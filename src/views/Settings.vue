@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import { appConfig, loadConfig, saveConfig as persistConfig } from "../stores/config";
 
 const statusMessage = ref("");
+const aifwExePath = ref("aifw_server.exe");
+const aifwRunning = ref(false);
 
 const targetLanguages = [
   "English",
@@ -52,8 +55,35 @@ function removeModel(index: number) {
   }
 }
 
+async function checkAifwStatus() {
+  try {
+    aifwRunning.value = await invoke<boolean>("aifw_status");
+  } catch {
+    aifwRunning.value = false;
+  }
+}
+
+async function startAifw() {
+  try {
+    await invoke("start_aifw", { exePath: aifwExePath.value });
+    aifwRunning.value = true;
+  } catch (err) {
+    statusMessage.value = `AIFW Error: ${err}`;
+  }
+}
+
+async function stopAifw() {
+  try {
+    await invoke("stop_aifw");
+    aifwRunning.value = false;
+  } catch (err) {
+    statusMessage.value = `AIFW Error: ${err}`;
+  }
+}
+
 onMounted(() => {
   load();
+  checkAifwStatus();
 });
 </script>
 
@@ -211,6 +241,35 @@ onMounted(() => {
           class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2
                  text-sm focus:border-blue-500 outline-none"
         />
+      </section>
+
+      <!-- AIFW Control -->
+      <section class="mb-6">
+        <h2 class="text-sm font-semibold text-white/70 mb-2">AIFW Service (Privacy Mode)</h2>
+        <div class="flex items-center gap-3">
+          <input
+            v-model="aifwExePath"
+            placeholder="Path to aifw_server.exe"
+            class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
+          />
+          <button
+            v-if="!aifwRunning"
+            @click="startAifw"
+            class="shrink-0 bg-green-600 hover:bg-green-500 px-4 py-2 rounded-lg text-sm transition-colors"
+          >
+            Start
+          </button>
+          <button
+            v-else
+            @click="stopAifw"
+            class="shrink-0 bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg text-sm transition-colors"
+          >
+            Stop
+          </button>
+          <span :class="aifwRunning ? 'text-green-400' : 'text-white/40'" class="text-xs shrink-0">
+            {{ aifwRunning ? 'Running' : 'Stopped' }}
+          </span>
+        </div>
       </section>
 
       <!-- Save -->
