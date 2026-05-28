@@ -26,18 +26,62 @@ const defaultConfig: AppConfig = {
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
 
+function secretKeyId(index: number): string {
+  return `model_${index}`;
+}
+
+async function loadSecrets(): Promise<void> {
+  for (let i = 0; i < appConfig.models.length; i++) {
+    try {
+      const key = await invoke<string>("read_secret", {
+        keyId: secretKeyId(i),
+      });
+      if (key) {
+        appConfig.models[i].api_key = key;
+      }
+    } catch (err) {
+      console.error(`Failed to load secret for model ${i}:`, err);
+    }
+  }
+}
+
+async function saveSecrets(): Promise<void> {
+  for (let i = appConfig.models.length; i < 50; i++) {
+    try {
+      await invoke("delete_secret", { keyId: secretKeyId(i) });
+    } catch {
+      // Secret may not exist
+    }
+  }
+  for (let i = 0; i < appConfig.models.length; i++) {
+    const apiKey = appConfig.models[i].api_key;
+    if (apiKey) {
+      await invoke("save_secret", {
+        keyId: secretKeyId(i),
+        plaintext: apiKey,
+      });
+    }
+  }
+}
+
 export async function loadConfig(): Promise<void> {
   try {
     const loaded = await invoke<AppConfig>("read_config");
     Object.assign(appConfig, loaded);
+    await loadSecrets();
   } catch {
-    // Config file doesn't exist yet — use defaults
     Object.assign(appConfig, { ...defaultConfig });
   }
 }
 
 export async function saveConfig(): Promise<void> {
-  await invoke("save_config", { config: toRaw(appConfig) });
+  await saveSecrets();
+
+  const sanitized = structuredClone(toRaw(appConfig));
+  for (const model of sanitized.models) {
+    model.api_key = "";
+  }
+  await invoke("save_config", { config: sanitized });
 }
 
 export function getActiveModel(): ModelConfig | null {

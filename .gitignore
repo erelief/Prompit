@@ -13,6 +13,11 @@ dist-ssr
 *.local
 .claude/
 
+# Environment variables (may contain API keys)
+.env
+.env.local
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

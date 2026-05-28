@@ -15,6 +15,9 @@ pub fn run() {
             commands::clipboard::simulate_paste,
             commands::config_cmd::read_config,
             commands::config_cmd::save_config,
+            commands::secrets::save_secret,
+            commands::secrets::read_secret,
+            commands::secrets::delete_secret,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

@@ -53,7 +53,7 @@ mod tests {
     fn test_config_serialize_roundtrip() {
         let config = AppConfig {
             models: vec![ModelConfig {
-                api_key: "sk-test".to_string(),
+                api_key: "".to_string(),
                 base_url: "https://api.openai.com/v1".to_string(),
                 model: "gpt-4o-mini".to_string(),
                 display_name: "GPT-4o Mini".to_string(),
@@ -66,7 +66,7 @@ mod tests {
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized.models[0].api_key, "sk-test");
+        assert_eq!(deserialized.models[0].api_key, "");
         assert_eq!(deserialized.target_lang, "Japanese");
     }
 

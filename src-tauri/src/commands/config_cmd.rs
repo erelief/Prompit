@@ -41,7 +41,7 @@ mod tests {
     fn test_config_roundtrip_via_json() {
         let config = AppConfig {
             models: vec![ModelConfig {
-                api_key: "sk-test123".to_string(),
+                api_key: "".to_string(),
                 base_url: "https://api.openai.com/v1".to_string(),
                 model: "gpt-4o-mini".to_string(),
                 display_name: "Test Model".to_string(),
@@ -64,7 +64,7 @@ mod tests {
         let loaded: AppConfig = serde_json::from_str(&content).unwrap();
 
         assert_eq!(loaded.models.len(), 1);
-        assert_eq!(loaded.models[0].api_key, "sk-test123");
+        assert_eq!(loaded.models[0].api_key, "");
         assert_eq!(loaded.target_lang, "Japanese");
         assert_eq!(loaded.persona, "formal");
 

@@ -17,10 +17,23 @@ import {
   CircleCheck,
   Circle,
   Check,
+  Eye,
+  EyeOff,
 } from "@lucide/vue";
 
 const router = useRouter();
 const statusMessage = ref("");
+const visibleKeys = ref<Set<number>>(new Set());
+
+function toggleKeyVisibility(index: number) {
+  const s = new Set(visibleKeys.value);
+  if (s.has(index)) {
+    s.delete(index);
+  } else {
+    s.add(index);
+  }
+  visibleKeys.value = s;
+}
 
 const targetLanguages = [
   "English",
@@ -65,6 +78,13 @@ function addModel() {
 
 function removeModel(index: number) {
   appConfig.models.splice(index, 1);
+  const s = new Set(visibleKeys.value);
+  s.delete(index);
+  const reindexed = new Set<number>();
+  for (const i of s) {
+    reindexed.add(i > index ? i - 1 : i);
+  }
+  visibleKeys.value = reindexed;
   if (appConfig.selected_model_index >= appConfig.models.length) {
     appConfig.selected_model_index = Math.max(0, appConfig.models.length - 1);
   }
@@ -162,11 +182,22 @@ onMounted(async () => {
               </div>
               <div class="field col-span-2">
                 <label>API Key</label>
-                <input
-                  v-model="model.api_key"
-                  type="password"
-                  class="field-input"
-                />
+                <div class="key-input-wrapper">
+                  <input
+                    v-model="model.api_key"
+                    :type="visibleKeys.has(index) ? 'text' : 'password'"
+                    class="field-input key-input"
+                  />
+                  <button
+                    type="button"
+                    class="eye-btn"
+                    @click.stop="toggleKeyVisibility(index)"
+                    :title="visibleKeys.has(index) ? 'Hide key' : 'Show key'"
+                  >
+                    <EyeOff v-if="visibleKeys.has(index)" :size="14" :stroke-width="1.8" />
+                    <Eye v-else :size="14" :stroke-width="1.8" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -432,6 +463,34 @@ onMounted(async () => {
 .delete-btn:hover {
   color: #f87171;
   background: rgba(248, 113, 113, 0.1);
+}
+
+.key-input-wrapper {
+  position: relative;
+}
+
+.key-input {
+  padding-right: 32px !important;
+}
+
+.eye-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.2);
+  transition: all 0.15s ease;
+}
+
+.eye-btn:hover {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .add-btn {
