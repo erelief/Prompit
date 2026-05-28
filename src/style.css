@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+* {
+  box-sizing: border-box;
+}
+
 #app {
   background: transparent;
+}
+
+::selection {
+  background: rgba(217, 160, 71, 0.3);
+  color: #fff;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Global input styling reset */
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+input[type="password"]::-ms-reveal,
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  filter: invert(1);
 }
