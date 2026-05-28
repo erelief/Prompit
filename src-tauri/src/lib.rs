@@ -11,6 +11,7 @@ pub fn run() {
             commands::window::hide_main_window,
             commands::window::show_main_window,
             commands::window::open_settings_window,
+            commands::clipboard::simulate_paste,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
