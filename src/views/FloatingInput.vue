@@ -3,6 +3,7 @@ import { ref, nextTick, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { loadConfig } from "../stores/config";
+import { translate } from "../services/llm-client";
 
 const inputText = ref("");
 const translatedText = ref("");
@@ -29,8 +30,11 @@ async function handleTranslate() {
   isLoading.value = true;
 
   try {
-    // Placeholder — will be replaced with actual LLM call in Task 10
-    translatedText.value = `[TODO] Translation of: ${text}`;
+    const result = await translate(text);
+    translatedText.value = result;
+
+    await invoke("hide_main_window");
+    await invoke("simulate_paste", { text: result });
   } catch (err) {
     errorMessage.value = String(err);
   } finally {
