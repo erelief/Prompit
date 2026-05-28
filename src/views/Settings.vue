@@ -1,32 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-
-interface ModelConfig {
-  api_key: string;
-  base_url: string;
-  model: string;
-  display_name: string;
-  temperature: number | null;
-  max_tokens: number | null;
-}
-
-interface AppConfig {
-  models: ModelConfig[];
-  selected_model_index: number;
-  target_lang: string;
-  privacy_mode: boolean;
-  translation_mode: string;
-  persona: string;
-}
-
-const config = ref<AppConfig>({
-  models: [],
-  selected_model_index: 0,
-  target_lang: "English",
-  privacy_mode: false,
-  translation_mode: "manual",
-  persona: "",
-});
+import { appConfig, loadConfig, saveConfig as persistConfig } from "../stores/config";
 
 const statusMessage = ref("");
 
@@ -41,16 +15,18 @@ const targetLanguages = [
   "Russian",
 ];
 
-async function loadConfig() {
-  // Will be wired to Tauri invoke in Task 9
-  console.log("load config");
+async function load() {
+  try {
+    await loadConfig();
+  } catch (err) {
+    console.error("Failed to load config:", err);
+  }
 }
 
 async function saveConfig() {
   statusMessage.value = "";
   try {
-    // Will be wired to Tauri invoke in Task 9
-    console.log("save config", config.value);
+    await persistConfig();
     statusMessage.value = "Saved!";
     setTimeout(() => (statusMessage.value = ""), 2000);
   } catch (err) {
@@ -59,7 +35,7 @@ async function saveConfig() {
 }
 
 function addModel() {
-  config.value.models.push({
+  appConfig.models.push({
     api_key: "",
     base_url: "https://api.openai.com/v1",
     model: "gpt-4o-mini",
@@ -70,19 +46,14 @@ function addModel() {
 }
 
 function removeModel(index: number) {
-  config.value.models.splice(index, 1);
-  if (
-    config.value.selected_model_index >= config.value.models.length
-  ) {
-    config.value.selected_model_index = Math.max(
-      0,
-      config.value.models.length - 1
-    );
+  appConfig.models.splice(index, 1);
+  if (appConfig.selected_model_index >= appConfig.models.length) {
+    appConfig.selected_model_index = Math.max(0, appConfig.models.length - 1);
   }
 }
 
 onMounted(() => {
-  loadConfig();
+  load();
 });
 </script>
 
@@ -97,7 +68,7 @@ onMounted(() => {
           Target Language
         </h2>
         <select
-          v-model="config.target_lang"
+          v-model="appConfig.target_lang"
           class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2
                  text-sm focus:border-blue-500 outline-none"
         >
@@ -116,7 +87,7 @@ onMounted(() => {
           <label class="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="radio"
-              v-model="config.translation_mode"
+              v-model="appConfig.translation_mode"
               value="manual"
               class="accent-blue-500"
             />
@@ -125,7 +96,7 @@ onMounted(() => {
           <label class="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="radio"
-              v-model="config.translation_mode"
+              v-model="appConfig.translation_mode"
               value="realtime"
               class="accent-blue-500"
             />
@@ -139,7 +110,7 @@ onMounted(() => {
         <label class="flex items-center gap-3 text-sm cursor-pointer">
           <input
             type="checkbox"
-            v-model="config.privacy_mode"
+            v-model="appConfig.privacy_mode"
             class="accent-blue-500 w-4 h-4"
           />
           Privacy Mode (use local AIFW service)
@@ -160,7 +131,7 @@ onMounted(() => {
         </div>
 
         <div
-          v-for="(model, index) in config.models"
+          v-for="(model, index) in appConfig.models"
           :key="index"
           class="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-3"
         >
@@ -168,7 +139,7 @@ onMounted(() => {
             <label class="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="radio"
-                v-model="config.selected_model_index"
+                v-model="appConfig.selected_model_index"
                 :value="index"
                 class="accent-blue-500"
               />
@@ -222,7 +193,7 @@ onMounted(() => {
         </div>
 
         <div
-          v-if="config.models.length === 0"
+          v-if="appConfig.models.length === 0"
           class="text-white/40 text-sm text-center py-4"
         >
           No models configured. Click "+ Add Model" to add one.
@@ -235,7 +206,7 @@ onMounted(() => {
           Translation Persona (optional)
         </h2>
         <input
-          v-model="config.persona"
+          v-model="appConfig.persona"
           placeholder="e.g. formal, casual, technical..."
           class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2
                  text-sm focus:border-blue-500 outline-none"

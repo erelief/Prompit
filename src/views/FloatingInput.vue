@@ -2,6 +2,7 @@
 import { ref, nextTick, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
+import { loadConfig } from "../stores/config";
 
 const inputText = ref("");
 const translatedText = ref("");
@@ -51,7 +52,8 @@ function clearAll() {
   errorMessage.value = "";
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await loadConfig();
   nextTick(() => {
     textareaRef.value?.focus();
   });

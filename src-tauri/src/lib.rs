@@ -12,6 +12,8 @@ pub fn run() {
             commands::window::show_main_window,
             commands::window::open_settings_window,
             commands::clipboard::simulate_paste,
+            commands::config_cmd::read_config,
+            commands::config_cmd::save_config,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
