@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from "vue";
+import { invoke } from "@tauri-apps/api/core";
+import { useShortcutTriggered } from "../composables/useTauriEvents";
 
 const inputText = ref("");
 const translatedText = ref("");
@@ -36,13 +38,11 @@ async function handleTranslate() {
 }
 
 async function handleHide() {
-  // Will be wired to Tauri invoke in Task 7
-  console.log("hide window");
+  await invoke("hide_main_window");
 }
 
 async function handleOpenSettings() {
-  // Will be wired to Tauri invoke in Task 7
-  console.log("open settings");
+  await invoke("open_settings_window");
 }
 
 function clearAll() {
@@ -58,6 +58,13 @@ onMounted(() => {
 });
 
 defineExpose({ clearAll });
+
+useShortcutTriggered(() => {
+  clearAll();
+  nextTick(() => {
+    textareaRef.value?.focus();
+  });
+});
 </script>
 
 <template>

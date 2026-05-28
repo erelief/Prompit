@@ -14,6 +14,8 @@
     "core:window:allow-set-always-on-top",
     "core:window:allow-create",
     "core:window:allow-get-all-windows",
+    "core:window:allow-is-visible",
+    "global-shortcut:allow-register",
     "opener:default"
   ]
 }
