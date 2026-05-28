@@ -7,8 +7,6 @@ Rules:
 - Do not add explanations, notes, or any extra content.
 - If the input is already in the target language, output it as-is.`;
 
-const AIFW_DEFAULT_URL = "http://localhost:8844/api/call";
-
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -49,13 +47,13 @@ export async function translate(text: string): Promise<string> {
     max_tokens: model.max_tokens ?? 1024,
   };
 
-  const url = getRequestUrl(model.base_url);
+  const url = model.base_url.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  if (!appConfig.privacy_mode && model.api_key) {
+  if (model.api_key) {
     headers["Authorization"] = `Bearer ${model.api_key}`;
   }
 
@@ -90,18 +88,7 @@ function buildSystemPrompt(): string {
   return prompt;
 }
 
-function getRequestUrl(baseUrl: string): string {
-  if (appConfig.privacy_mode) {
-    return AIFW_DEFAULT_URL;
-  }
-
-  const clean = baseUrl.replace(/\/v1\/?$/, "").replace(/\/$/, "");
-  return clean;
-}
-
 export const _internals = {
   buildSystemPrompt,
-  getRequestUrl,
   TRANSLATION_SYSTEM_PROMPT,
-  AIFW_DEFAULT_URL,
 };

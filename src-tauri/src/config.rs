@@ -19,19 +19,11 @@ pub struct AppConfig {
     #[serde(default = "default_target_lang")]
     pub target_lang: String,
     #[serde(default)]
-    pub privacy_mode: bool,
-    #[serde(default = "default_translation_mode")]
-    pub translation_mode: String,
-    #[serde(default)]
     pub persona: String,
 }
 
 fn default_target_lang() -> String {
     "English".to_string()
-}
-
-fn default_translation_mode() -> String {
-    "manual".to_string()
 }
 
 impl Default for AppConfig {
@@ -40,8 +32,6 @@ impl Default for AppConfig {
             models: vec![],
             selected_model_index: 0,
             target_lang: "English".to_string(),
-            privacy_mode: false,
-            translation_mode: "manual".to_string(),
             persona: String::new(),
         }
     }
@@ -56,8 +46,6 @@ mod tests {
         let config = AppConfig::default();
         assert_eq!(config.target_lang, "English");
         assert_eq!(config.selected_model_index, 0);
-        assert!(!config.privacy_mode);
-        assert_eq!(config.translation_mode, "manual");
         assert!(config.models.is_empty());
     }
 
@@ -74,15 +62,12 @@ mod tests {
             }],
             selected_model_index: 0,
             target_lang: "Japanese".to_string(),
-            privacy_mode: true,
-            translation_mode: "realtime".to_string(),
             persona: "formal".to_string(),
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.models[0].api_key, "sk-test");
         assert_eq!(deserialized.target_lang, "Japanese");
-        assert!(deserialized.privacy_mode);
     }
 
     #[test]
@@ -91,11 +76,9 @@ mod tests {
             "models": [],
             "selected_model_index": 0,
             "target_lang": "English",
-            "privacy_mode": false,
-            "translation_mode": "manual",
             "persona": ""
         }"#;
         let config: AppConfig = serde_json::from_str(json).unwrap();
-        assert_eq!(config.translation_mode, "manual");
+        assert_eq!(config.target_lang, "English");
     }
 }

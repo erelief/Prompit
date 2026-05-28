@@ -10,11 +10,8 @@ import {
 import {
   ArrowLeft,
   Languages,
-  Keyboard,
-  Shield,
   Cpu,
   UserCircle,
-  Server,
   Plus,
   Trash2,
   CircleCheck,
@@ -24,8 +21,6 @@ import {
 
 const router = useRouter();
 const statusMessage = ref("");
-const aifwExePath = ref("aifw_server.exe");
-const aifwRunning = ref(false);
 
 const targetLanguages = [
   "English",
@@ -75,41 +70,14 @@ function removeModel(index: number) {
   }
 }
 
-async function checkAifwStatus() {
-  try {
-    aifwRunning.value = await invoke<boolean>("aifw_status");
-  } catch {
-    aifwRunning.value = false;
-  }
-}
-
-async function startAifw() {
-  try {
-    await invoke("start_aifw", { exePath: aifwExePath.value });
-    aifwRunning.value = true;
-  } catch (err) {
-    statusMessage.value = `AIFW Error: ${err}`;
-  }
-}
-
-async function stopAifw() {
-  try {
-    await invoke("stop_aifw");
-    aifwRunning.value = false;
-  } catch (err) {
-    statusMessage.value = `AIFW Error: ${err}`;
-  }
-}
-
 async function goBack() {
   await invoke("resize_main_window", { width: 600, height: 200 });
   router.push("/");
 }
 
 onMounted(async () => {
-  await invoke("resize_main_window", { width: 660, height: 580 });
+  await invoke("resize_main_window", { width: 660, height: 420 });
   load();
-  checkAifwStatus();
 });
 </script>
 
@@ -138,68 +106,6 @@ onMounted(async () => {
             {{ lang }}
           </option>
         </select>
-      </section>
-
-      <!-- Translation Mode -->
-      <section class="settings-section">
-        <div class="section-label">
-          <Keyboard :size="14" :stroke-width="1.8" />
-          <span>Translation Mode</span>
-        </div>
-        <div class="radio-group">
-          <label
-            class="radio-option"
-            :class="{ active: appConfig.translation_mode === 'manual' }"
-          >
-            <input
-              type="radio"
-              v-model="appConfig.translation_mode"
-              value="manual"
-              class="sr-only"
-            />
-            <span class="radio-dot">
-              <CircleCheck v-if="appConfig.translation_mode === 'manual'" :size="16" />
-              <Circle v-else :size="16" />
-            </span>
-            <div>
-              <div class="text-[12px] text-white/80">Manual</div>
-              <div class="text-[10px] text-white/30">Press Enter to translate</div>
-            </div>
-          </label>
-          <label
-            class="radio-option"
-            :class="{ active: appConfig.translation_mode === 'realtime' }"
-          >
-            <input
-              type="radio"
-              v-model="appConfig.translation_mode"
-              value="realtime"
-              class="sr-only"
-            />
-            <span class="radio-dot">
-              <CircleCheck v-if="appConfig.translation_mode === 'realtime'" :size="16" />
-              <Circle v-else :size="16" />
-            </span>
-            <div>
-              <div class="text-[12px] text-white/80">Realtime</div>
-              <div class="text-[10px] text-white/30">Auto after debounce</div>
-            </div>
-          </label>
-        </div>
-      </section>
-
-      <!-- Privacy Mode -->
-      <section class="settings-section">
-        <div class="section-label">
-          <Shield :size="14" :stroke-width="1.8" />
-          <span>Privacy Mode</span>
-        </div>
-        <label class="toggle-row" @click.prevent="appConfig.privacy_mode = !appConfig.privacy_mode">
-          <span class="text-[12px] text-white/60">Use local AIFW service for private translation</span>
-          <div class="toggle-switch" :class="{ on: appConfig.privacy_mode }">
-            <div class="toggle-thumb"></div>
-          </div>
-        </label>
       </section>
 
       <!-- Models -->
@@ -287,40 +193,6 @@ onMounted(async () => {
           placeholder="e.g. formal, casual, technical..."
           class="settings-input"
         />
-      </section>
-
-      <!-- AIFW Control -->
-      <section class="settings-section">
-        <div class="section-label">
-          <Server :size="14" :stroke-width="1.8" />
-          <span>AIFW Service</span>
-          <span
-            class="status-badge ml-auto"
-            :class="aifwRunning ? 'status-on' : 'status-off'"
-          >
-            <span class="status-dot"></span>
-            {{ aifwRunning ? "Running" : "Stopped" }}
-          </span>
-        </div>
-        <div class="aifw-row">
-          <input
-            v-model="aifwExePath"
-            placeholder="Path to aifw_server.exe"
-            class="settings-input flex-1"
-          />
-          <button
-            v-if="!aifwRunning"
-            @click="startAifw"
-            class="action-btn action-green"
-          >
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-current"></span>
-            Start
-          </button>
-          <button v-else @click="stopAifw" class="action-btn action-red">
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-current"></span>
-            Stop
-          </button>
-        </div>
       </section>
     </div>
 
@@ -467,90 +339,11 @@ onMounted(async () => {
   color: #fff;
 }
 
-/* Radio group */
-.radio-group {
-  display: flex;
-  gap: 8px;
-}
-
-.radio-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  padding: 10px 12px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.radio-option:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.radio-option.active {
-  border-color: rgba(217, 160, 71, 0.25);
-  background: rgba(217, 160, 71, 0.05);
-}
-
+/* Radio dot (used in model cards) */
 .radio-dot {
   color: rgba(255, 255, 255, 0.2);
   display: flex;
   flex-shrink: 0;
-}
-
-.radio-option.active .radio-dot {
-  color: #d4a048;
-}
-
-/* Toggle */
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  cursor: pointer;
-  transition: border-color 0.15s ease;
-}
-
-.toggle-row:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.toggle-switch {
-  width: 36px;
-  height: 20px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  position: relative;
-  transition: background 0.2s ease;
-  flex-shrink: 0;
-}
-
-.toggle-switch.on {
-  background: rgba(217, 160, 71, 0.5);
-}
-
-.toggle-thumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.7);
-  transition: all 0.2s ease;
-}
-
-.toggle-switch.on .toggle-thumb {
-  left: 19px;
-  background: #d4a048;
 }
 
 /* Model list */
@@ -666,86 +459,6 @@ onMounted(async () => {
   padding: 20px;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.2);
-}
-
-/* Status badge */
-.status-badge {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 3px 8px 3px 6px;
-  border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-}
-
-.status-on {
-  color: #4ade80;
-  background: rgba(74, 222, 128, 0.1);
-}
-
-.status-on .status-dot {
-  background: #4ade80;
-  box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
-}
-
-.status-off {
-  color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.status-off .status-dot {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-/* AIFW row */
-.aifw-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-}
-
-.action-green {
-  background: rgba(74, 222, 128, 0.12);
-  color: #4ade80;
-  border: 1px solid rgba(74, 222, 128, 0.15);
-}
-
-.action-green:hover {
-  background: rgba(74, 222, 128, 0.18);
-  border-color: rgba(74, 222, 128, 0.25);
-}
-
-.action-red {
-  background: rgba(248, 113, 113, 0.1);
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.12);
-}
-
-.action-red:hover {
-  background: rgba(248, 113, 113, 0.16);
-  border-color: rgba(248, 113, 113, 0.2);
 }
 
 /* Footer */

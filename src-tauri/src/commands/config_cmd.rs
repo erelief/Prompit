@@ -50,8 +50,6 @@ mod tests {
             }],
             selected_model_index: 0,
             target_lang: "Japanese".to_string(),
-            privacy_mode: false,
-            translation_mode: "manual".to_string(),
             persona: "formal".to_string(),
         };
 
@@ -75,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_empty_config_returns_default() {
-        let json = r#"{"models":[],"selected_model_index":0,"target_lang":"English","privacy_mode":false,"translation_mode":"manual","persona":""}"#;
+        let json = r#"{"models":[],"selected_model_index":0,"target_lang":"English","persona":""}"#;
         let config: AppConfig = serde_json::from_str(json).unwrap();
         assert!(config.models.is_empty());
         assert_eq!(config.target_lang, "English");

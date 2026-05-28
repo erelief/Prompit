@@ -14,8 +14,6 @@ export interface AppConfig {
   models: ModelConfig[];
   selected_model_index: number;
   target_lang: string;
-  privacy_mode: boolean;
-  translation_mode: string;
   persona: string;
 }
 
@@ -23,8 +21,6 @@ const defaultConfig: AppConfig = {
   models: [],
   selected_model_index: 0,
   target_lang: "English",
-  privacy_mode: false,
-  translation_mode: "manual",
   persona: "",
 };
 
