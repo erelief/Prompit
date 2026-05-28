@@ -13,6 +13,7 @@ pub fn run() {
             commands::window::hide_main_window,
             commands::window::show_main_window,
             commands::window::open_settings_window,
+            commands::window::resize_main_window,
             commands::clipboard::simulate_paste,
             commands::config_cmd::read_config,
             commands::config_cmd::save_config,
