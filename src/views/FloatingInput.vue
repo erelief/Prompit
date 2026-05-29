@@ -405,8 +405,8 @@ useShortcutTriggered(() => {
               :title="personaOn ? 'Disable persona' : 'Enable persona'"
             >
               <UserCircle :size="11" :stroke-width="1.8" />
-              <span class="truncate max-w-[90px]">{{ displayPersonaName }}</span>
-              <span class="persona-dot" :class="{ on: personaOn }" />
+              <span v-if="personaOn" class="persona-dot on" />
+              <span class="truncate max-w-[90px]">{{ personaOn ? displayPersonaName : '' }}</span>
             </button>
             <button
               v-if="appConfig.personas.length > 1"
@@ -507,8 +507,8 @@ useShortcutTriggered(() => {
               :title="personaOn ? 'Disable persona' : 'Enable persona'"
             >
               <UserCircle :size="11" :stroke-width="1.8" />
-              <span class="truncate max-w-[90px]">{{ displayPersonaName }}</span>
-              <span class="persona-dot" :class="{ on: personaOn }" />
+              <span v-if="personaOn" class="persona-dot on" />
+              <span class="truncate max-w-[90px]">{{ personaOn ? displayPersonaName : '' }}</span>
             </button>
             <button
               v-if="appConfig.personas.length > 1"
@@ -718,7 +718,7 @@ useShortcutTriggered(() => {
   align-items: center;
   gap: 5px;
   height: 28px;
-  padding: 0 10px 0 8px;
+  padding: 0 4px 0 8px;
   border-radius: 8px 0 0 8px;
   font-size: 10px;
   font-weight: 550;
@@ -728,6 +728,7 @@ useShortcutTriggered(() => {
   border-right: none;
   transition: all 0.18s ease;
 }
+.persona-toggle.on { padding-right: 10px; }
 .persona-toggle:hover {
   color: rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.065);
@@ -745,13 +746,9 @@ useShortcutTriggered(() => {
 /* Status dot */
 .persona-dot {
   width: 5px; height: 5px; border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-.persona-dot.on {
   background: rgba(217, 160, 71, 0.9);
   box-shadow: 0 0 5px rgba(217, 160, 71, 0.3);
+  flex-shrink: 0;
 }
 
 /* Persona chevron */
