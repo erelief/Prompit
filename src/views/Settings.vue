@@ -464,7 +464,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
 
               <!-- pool -->
               <div class="pool-bar">
-                <span class="pool-label">Model Pool · {{ prov.models.length }}</span>
+                <span class="pool-label">Models · {{ prov.models.length }}</span>
                 <div class="pool-actions">
                   <button
                     class="pill-btn micro"
