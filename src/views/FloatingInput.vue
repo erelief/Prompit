@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
-import { loadConfig } from "../stores/config";
+import { listen } from "@tauri-apps/api/event";
+import { loadConfig, getActiveModel, appConfig } from "../stores/config";
 import { translate } from "../services/llm-client";
-import { Settings, LoaderCircle, Send, X } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown } from "@lucide/vue";
 
 const router = useRouter();
 
@@ -14,11 +16,71 @@ const translatedText = ref("");
 const isLoading = ref(false);
 const errorMessage = ref("");
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const hasResult = ref(false);
+const growAbove = ref(false);
+const bodyHeight = ref(0);
+let lastSentHeight = 0;
+let resizeObserver: ResizeObserver | null = null;
+let unlistenConfig: (() => void) | null = null;
+
+const activeModelName = computed(() => {
+  const m = getActiveModel();
+  if (!m) return null;
+  return m.display_name || m.model || null;
+});
+
+const showModelDropdown = ref(false);
+const modelDropdownRef = ref<HTMLDivElement | null>(null);
+const modelBtnRef = ref<HTMLButtonElement | null>(null);
+const modelMenuRef = ref<HTMLDivElement | null>(null);
+const dropdownPos = ref({ top: 0, left: 0 });
+
+function toggleModelDropdown() {
+  if (!showModelDropdown.value && modelBtnRef.value) {
+    const rect = modelBtnRef.value.getBoundingClientRect();
+    dropdownPos.value = {
+      top: rect.bottom + 4,
+      left: rect.left,
+    };
+  }
+  showModelDropdown.value = !showModelDropdown.value;
+}
+
+function selectModel(index: number) {
+  appConfig.selected_model_index = index;
+  showModelDropdown.value = false;
+}
+
+function handleModelLabel(model: { display_name: string; model: string }) {
+  return model.display_name || model.model || "unnamed";
+}
+
+function onDocumentClick(e: MouseEvent) {
+  const target = e.target as Node;
+  if (
+    modelDropdownRef.value?.contains(target) ||
+    modelMenuRef.value?.contains(target)
+  ) {
+    return;
+  }
+  showModelDropdown.value = false;
+}
+
+watch(inputText, () => {
+  if (hasResult.value) {
+    hasResult.value = false;
+    translatedText.value = "";
+  }
+});
 
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
-    handleTranslate();
+    if (hasResult.value) {
+      handlePasteResult();
+    } else {
+      handleTranslate();
+    }
   }
   if (e.key === "Escape") {
     handleHide();
@@ -36,9 +98,7 @@ async function handleTranslate() {
   try {
     const result = await translate(text);
     translatedText.value = result;
-
-    await invoke("hide_main_window");
-    await invoke("simulate_paste", { text: result });
+    hasResult.value = true;
   } catch (err) {
     errorMessage.value = String(err);
   } finally {
@@ -46,8 +106,24 @@ async function handleTranslate() {
   }
 }
 
+async function handlePasteResult() {
+  const text = translatedText.value;
+  if (!text) return;
+
+  await invoke("hide_main_window");
+  await invoke("simulate_paste", { text });
+  clearAll();
+}
+
 async function handleHide() {
   await invoke("hide_main_window");
+}
+
+async function handleDrag(e: MouseEvent) {
+  // Only drag from the background, not from interactive elements
+  const target = e.target as HTMLElement;
+  if (target.closest("textarea, button, input, a, .model-dropdown")) return;
+  await getCurrentWindow().startDragging();
 }
 
 async function handleOpenSettings() {
@@ -59,19 +135,47 @@ function clearAll() {
   inputText.value = "";
   translatedText.value = "";
   errorMessage.value = "";
+  hasResult.value = false;
 }
 
 onMounted(async () => {
   await loadConfig();
+  document.addEventListener("mousedown", onDocumentClick);
   nextTick(() => {
     textareaRef.value?.focus();
   });
+
+  // Listen for grow_above config from backend
+  unlistenConfig = await listen<boolean>("window-config", (e) => {
+    growAbove.value = e.payload;
+  });
+
+  // Track body height for dynamic window resize
+  resizeObserver = new ResizeObserver((entries) => {
+    bodyHeight.value = entries[0].contentRect.height;
+  });
+  resizeObserver.observe(document.body);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("mousedown", onDocumentClick);
+  unlistenConfig?.();
+  resizeObserver?.disconnect();
+});
+
+// Resize window when content grows
+watch(bodyHeight, (h) => {
+  if (h > lastSentHeight) {
+    lastSentHeight = h;
+    invoke("resize_and_reposition", { height: h });
+  }
 });
 
 defineExpose({ clearAll });
 
 useShortcutTriggered(() => {
   clearAll();
+  lastSentHeight = 0;
   nextTick(() => {
     textareaRef.value?.focus();
   });
@@ -80,6 +184,7 @@ useShortcutTriggered(() => {
 
 <template>
   <div
+    @mousedown="handleDrag"
     class="w-full h-full flex items-center justify-center rounded-xl overflow-hidden"
     style="
       background: linear-gradient(
@@ -90,49 +195,84 @@ useShortcutTriggered(() => {
       backdrop-filter: blur(24px) saturate(1.5);
     "
   >
-    <div class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-3">
-      <!-- Input row -->
-      <div class="flex items-end gap-2.5">
-        <textarea
-          ref="textareaRef"
-          v-model="inputText"
-          @keydown="handleKeydown"
-          placeholder="Type to translate..."
-          rows="1"
-          class="floating-input flex-1 resize-none text-[13px] leading-relaxed
-                 outline-none max-h-[100px] overflow-y-auto"
-          style="field-sizing: content"
-        />
+    <div class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-3 overflow-y-auto max-h-full">
+      <!-- Input area -->
+      <textarea
+        ref="textareaRef"
+        v-model="inputText"
+        @keydown="handleKeydown"
+        :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to translate...'"
+        rows="1"
+        class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
+      />
 
-        <!-- Send button -->
+      <!-- Toolbar: Send + Settings + Dismiss -->
+      <div class="flex items-center gap-2">
         <button
           @click="handleTranslate"
           :disabled="!inputText.trim() || isLoading"
-          class="send-btn shrink-0"
+          class="send-btn"
           title="Translate (Enter)"
         >
-          <LoaderCircle v-if="isLoading" :size="15" class="animate-spin" />
-          <Send v-else :size="15" />
+          <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
+          <template v-else>
+            <Send :size="13" />
+            <span class="text-[12px] font-medium tracking-wide ml-1">Send</span>
+          </template>
         </button>
 
-        <div class="w-px h-5 bg-white/10 shrink-0 self-center"></div>
+        <div class="relative" ref="modelDropdownRef">
+          <button
+            v-if="activeModelName"
+            ref="modelBtnRef"
+            @click="toggleModelDropdown"
+            class="model-btn"
+            :class="{ active: showModelDropdown }"
+          >
+            <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
+            <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
+              :style="{ transform: showModelDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
+          </button>
 
-        <!-- Settings button -->
+          <Teleport to="body">
+            <Transition name="dropdown">
+              <div
+                v-if="showModelDropdown && appConfig.models.length > 0"
+                ref="modelMenuRef"
+                class="model-dropdown"
+                :style="{ top: dropdownPos.top + 'px', left: dropdownPos.left + 'px' }"
+              >
+                <button
+                  v-for="(m, i) in appConfig.models"
+                  :key="i"
+                  @click="selectModel(i)"
+                  class="model-option"
+                  :class="{ selected: i === appConfig.selected_model_index }"
+                >
+                  <span class="truncate">{{ handleModelLabel(m) }}</span>
+                  <span v-if="i === appConfig.selected_model_index" class="check-mark">&#10003;</span>
+                </button>
+              </div>
+            </Transition>
+          </Teleport>
+        </div>
+
+        <div class="flex-1"></div>
+
         <button
           @click="handleOpenSettings"
-          class="icon-btn shrink-0"
+          class="icon-btn"
           title="Settings"
         >
           <Settings :size="14" :stroke-width="1.8" />
         </button>
 
-        <!-- Dismiss button -->
-        <button @click="handleHide" class="icon-btn shrink-0" title="Hide (Esc)">
+        <button @click="handleHide" class="icon-btn" title="Hide (Esc)">
           <X :size="14" :stroke-width="1.8" />
         </button>
       </div>
 
-      <!-- Status -->
+      <!-- Loading state -->
       <Transition name="fade">
         <div
           v-if="isLoading"
@@ -143,6 +283,7 @@ useShortcutTriggered(() => {
         </div>
       </Transition>
 
+      <!-- Error -->
       <Transition name="fade">
         <div
           v-if="errorMessage"
@@ -153,13 +294,20 @@ useShortcutTriggered(() => {
         </div>
       </Transition>
 
+      <!-- Result area -->
       <Transition name="fade">
-        <div
-          v-if="translatedText"
-          class="text-[13px] text-white/80 leading-relaxed bg-white/[0.04] rounded-lg px-3.5 py-2.5
-                 border border-white/[0.06]"
-        >
-          {{ translatedText }}
+        <div v-if="translatedText" class="result-block">
+          <div class="result-text">{{ translatedText }}</div>
+          <div class="result-actions">
+            <button
+              @click="handlePasteResult"
+              class="paste-btn"
+              title="Paste into active field (Enter)"
+            >
+              <ClipboardPaste :size="12" />
+              <span>Paste Result</span>
+            </button>
+          </div>
         </div>
       </Transition>
     </div>
@@ -174,6 +322,9 @@ useShortcutTriggered(() => {
   border-radius: 10px;
   padding: 9px 14px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  field-sizing: content;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .floating-input::placeholder {
@@ -185,16 +336,17 @@ useShortcutTriggered(() => {
   box-shadow: 0 0 0 2px rgba(217, 160, 71, 0.08);
 }
 
+/* Send button */
 .send-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  height: 30px;
+  padding: 0 14px 0 11px;
+  border-radius: 8px;
   background: linear-gradient(135deg, #d4a048 0%, #c4922e 100%);
   color: #1a1a1a;
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .send-btn:hover:not(:disabled) {
@@ -212,15 +364,96 @@ useShortcutTriggered(() => {
   cursor: not-allowed;
 }
 
+/* Model selector button */
+.model-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 8px 0 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.model-btn:hover,
+.model-btn.active {
+  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Model dropdown */
+.model-dropdown {
+  position: fixed;
+  min-width: 160px;
+  max-width: 240px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(22, 22, 30, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.model-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: left;
+  transition: all 0.1s ease;
+}
+
+.model-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.model-option.selected {
+  color: rgba(217, 160, 71, 0.9);
+}
+
+.check-mark {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+/* Dropdown transition */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.97);
+}
+
+/* Icon buttons (settings, dismiss) */
 .icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.35);
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.3);
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .icon-btn:hover {
@@ -228,6 +461,59 @@ useShortcutTriggered(() => {
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* Result block */
+.result-block {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.result-text {
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+}
+
+.result-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Paste Result button */
+.paste-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(217, 160, 71, 0.85);
+  background: rgba(217, 160, 71, 0.08);
+  border: 1px solid rgba(217, 160, 71, 0.12);
+  transition: all 0.15s ease;
+}
+
+.paste-btn:hover {
+  background: rgba(217, 160, 71, 0.15);
+  border-color: rgba(217, 160, 71, 0.25);
+  color: rgba(217, 160, 71, 1);
+}
+
+.paste-btn:active {
+  transform: scale(0.97);
+}
+
+/* Transitions */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;

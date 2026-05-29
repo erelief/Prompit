@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
 import {
   appConfig,
@@ -95,6 +96,12 @@ async function goBack() {
   router.push("/");
 }
 
+async function handleDrag(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (target.closest("textarea, button, input, select, a, .model-card")) return;
+  await getCurrentWindow().startDragging();
+}
+
 onMounted(async () => {
   await invoke("resize_main_window", { width: 660, height: 420 });
   load();
@@ -102,7 +109,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="settings-root">
+  <div class="settings-root" @mousedown="handleDrag">
     <!-- Header -->
     <header class="settings-header">
       <button @click="goBack" class="back-btn" title="Back">

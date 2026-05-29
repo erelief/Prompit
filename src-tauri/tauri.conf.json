@@ -14,8 +14,8 @@
       {
         "label": "main",
         "title": "Translator",
-        "width": 600,
-        "height": 200,
+        "width": 480,
+        "height": 120,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
