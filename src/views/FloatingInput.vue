@@ -278,7 +278,8 @@ useShortcutTriggered(() => {
 <template>
   <div
     @mousedown="handleDrag"
-    class="w-full h-full flex items-center justify-center rounded-xl overflow-hidden"
+    class="w-full h-full flex justify-center rounded-xl overflow-hidden"
+    :class="growAbove ? 'items-end' : 'items-start'"
     style="
       background: linear-gradient(
         135deg,
@@ -288,167 +289,335 @@ useShortcutTriggered(() => {
       backdrop-filter: blur(24px) saturate(1.5);
     "
   >
-    <div class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-3 overflow-y-auto max-h-full">
-      <!-- Input area -->
-      <textarea
-        ref="textareaRef"
-        v-model="inputText"
-        @keydown="handleKeydown"
-        :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to translate...'"
-        rows="1"
-        class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
-      />
-
-      <!-- Toolbar: Send + Settings + Dismiss -->
-      <div class="flex items-center gap-2">
-        <button
-          @click="handleTranslate"
-          :disabled="!inputText.trim() || isLoading"
-          class="send-btn"
-          title="Translate (Enter)"
-        >
-          <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
-          <template v-else>
-            <Send :size="13" />
-            <span class="text-[12px] font-medium tracking-wide ml-1">Send</span>
-          </template>
-        </button>
-
-        <div class="relative" ref="modelDropdownRef">
-          <button
-            v-if="activeModelName"
-            ref="modelBtnRef"
-            @click="toggleModelDropdown"
-            class="model-btn"
-            :class="{ active: showModelDropdown }"
-          >
-            <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
-            <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
-              :style="{ transform: showModelDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
-          </button>
-
-          <Teleport to="body">
-            <Transition name="dropdown">
-              <div
-                v-if="showModelDropdown && allModels.length > 0"
-                ref="modelMenuRef"
-                class="model-dropdown"
-                :style="{ top: dropdownPos.top + 'px', left: dropdownPos.left + 'px' }"
+    <div class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-3 overflow-y-auto max-h-full"
+      :class="{ 'justify-end': growAbove }">
+      <!-- growAbove: result grows upward, input anchored at bottom -->
+      <template v-if="growAbove">
+        <!-- Result area -->
+        <Transition name="fade">
+          <div v-if="translatedText" class="result-block">
+            <div class="result-text">{{ translatedText }}</div>
+            <div class="result-actions">
+              <button
+                @click="handlePasteResult"
+                class="paste-btn"
+                title="Paste into active field (Enter)"
               >
-                <button
-                  v-for="entry in allModels"
-                  :key="entry.pIndex + '-' + entry.mIndex"
-                  @click="selectModel(entry.pIndex, entry.mIndex)"
-                  class="model-option"
-                  :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
-                >
-                  <span class="truncate">{{ entry.id }}</span>
-                  <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
-                </button>
-              </div>
-            </Transition>
-          </Teleport>
-        </div>
-
-        <!-- Persona toggle + selector -->
-        <div v-if="appConfig.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
-          <button
-            @click="togglePersona"
-            class="persona-toggle"
-            :class="{ on: personaOn }"
-            :title="personaOn ? 'Disable persona' : 'Enable persona'"
-          >
-            <UserCircle :size="11" :stroke-width="1.8" />
-            <span class="truncate max-w-[90px]">{{ displayPersonaName }}</span>
-            <span class="persona-dot" :class="{ on: personaOn }" />
-          </button>
-          <button
-            v-if="appConfig.personas.length > 1"
-            ref="personaBtnRef"
-            @click="togglePersonaDropdown"
-            class="persona-chevron"
-            :class="{ on: personaOn, active: showPersonaDropdown }"
-          >
-            <ChevronDown :size="10" :stroke-width="2" class="transition-transform"
-              :style="{ transform: showPersonaDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
-          </button>
-
-          <Teleport to="body">
-            <Transition name="dropdown">
-              <div
-                v-if="showPersonaDropdown"
-                ref="personaMenuRef"
-                class="model-dropdown persona-dropdown"
-                :style="{ top: personaDropdownPos.top + 'px', left: personaDropdownPos.left + 'px' }"
-              >
-                <button
-                  v-for="(persona, pi) in appConfig.personas"
-                  :key="pi"
-                  @click="selectPersona(pi)"
-                  class="model-option"
-                  :class="{ selected: persona.enabled }"
-                >
-                  <span class="truncate">{{ persona.name }}</span>
-                  <span v-if="persona.enabled" class="check-mark">&#10003;</span>
-                </button>
-              </div>
-            </Transition>
-          </Teleport>
-        </div>
-
-        <div class="flex-1"></div>
-
-        <button
-          @click="handleOpenSettings"
-          class="icon-btn"
-          title="Settings"
-        >
-          <Settings :size="14" :stroke-width="1.8" />
-        </button>
-
-        <button @click="handleHide" class="icon-btn" title="Hide (Esc)">
-          <X :size="14" :stroke-width="1.8" />
-        </button>
-      </div>
-
-      <!-- Loading state -->
-      <Transition name="fade">
-        <div
-          v-if="isLoading"
-          class="flex items-center gap-2 text-[11px] text-white/40"
-        >
-          <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-          Translating...
-        </div>
-      </Transition>
-
-      <!-- Error -->
-      <Transition name="fade">
-        <div
-          v-if="errorMessage"
-          class="text-[11px] text-red-400/80 flex items-center gap-1.5"
-        >
-          <X :size="12" :stroke-width="2" />
-          {{ errorMessage }}
-        </div>
-      </Transition>
-
-      <!-- Result area -->
-      <Transition name="fade">
-        <div v-if="translatedText" class="result-block">
-          <div class="result-text">{{ translatedText }}</div>
-          <div class="result-actions">
-            <button
-              @click="handlePasteResult"
-              class="paste-btn"
-              title="Paste into active field (Enter)"
-            >
-              <ClipboardPaste :size="12" />
-              <span>Paste Result</span>
-            </button>
+                <ClipboardPaste :size="12" />
+                <span>Paste Result</span>
+              </button>
+            </div>
           </div>
+        </Transition>
+
+        <!-- Loading state -->
+        <Transition name="fade">
+          <div
+            v-if="isLoading"
+            class="flex items-center gap-2 text-[11px] text-white/40"
+          >
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
+            Translating...
+          </div>
+        </Transition>
+
+        <!-- Error -->
+        <Transition name="fade">
+          <div
+            v-if="errorMessage"
+            class="text-[11px] text-red-400/80 flex items-center gap-1.5"
+          >
+            <X :size="12" :stroke-width="2" />
+            {{ errorMessage }}
+          </div>
+        </Transition>
+
+        <!-- Input area -->
+        <textarea
+          ref="textareaRef"
+          v-model="inputText"
+          @keydown="handleKeydown"
+          :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to translate...'"
+          rows="1"
+          class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
+        />
+
+        <!-- Toolbar: Send + Settings + Dismiss -->
+        <div class="flex items-center gap-2">
+          <button
+            @click="handleTranslate"
+            :disabled="!inputText.trim() || isLoading"
+            class="send-btn"
+            title="Translate (Enter)"
+          >
+            <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
+            <template v-else>
+              <Send :size="13" />
+              <span class="text-[12px] font-medium tracking-wide ml-1">Send</span>
+            </template>
+          </button>
+
+          <div class="relative" ref="modelDropdownRef">
+            <button
+              v-if="activeModelName"
+              ref="modelBtnRef"
+              @click="toggleModelDropdown"
+              class="model-btn"
+              :class="{ active: showModelDropdown }"
+            >
+              <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
+              <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
+                :style="{ transform: showModelDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
+            </button>
+
+            <Teleport to="body">
+              <Transition name="dropdown">
+                <div
+                  v-if="showModelDropdown && allModels.length > 0"
+                  ref="modelMenuRef"
+                  class="model-dropdown"
+                  :style="{ top: dropdownPos.top + 'px', left: dropdownPos.left + 'px' }"
+                >
+                  <button
+                    v-for="entry in allModels"
+                    :key="entry.pIndex + '-' + entry.mIndex"
+                    @click="selectModel(entry.pIndex, entry.mIndex)"
+                    class="model-option"
+                    :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
+                  >
+                    <span class="truncate">{{ entry.id }}</span>
+                    <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
+                  </button>
+                </div>
+              </Transition>
+            </Teleport>
+          </div>
+
+          <!-- Persona toggle + selector -->
+          <div v-if="appConfig.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
+            <button
+              @click="togglePersona"
+              class="persona-toggle"
+              :class="{ on: personaOn }"
+              :title="personaOn ? 'Disable persona' : 'Enable persona'"
+            >
+              <UserCircle :size="11" :stroke-width="1.8" />
+              <span class="truncate max-w-[90px]">{{ displayPersonaName }}</span>
+              <span class="persona-dot" :class="{ on: personaOn }" />
+            </button>
+            <button
+              v-if="appConfig.personas.length > 1"
+              ref="personaBtnRef"
+              @click="togglePersonaDropdown"
+              class="persona-chevron"
+              :class="{ on: personaOn, active: showPersonaDropdown }"
+            >
+              <ChevronDown :size="10" :stroke-width="2" class="transition-transform"
+                :style="{ transform: showPersonaDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
+            </button>
+
+            <Teleport to="body">
+              <Transition name="dropdown">
+                <div
+                  v-if="showPersonaDropdown"
+                  ref="personaMenuRef"
+                  class="model-dropdown persona-dropdown"
+                  :style="{ top: personaDropdownPos.top + 'px', left: personaDropdownPos.left + 'px' }"
+                >
+                  <button
+                    v-for="(persona, pi) in appConfig.personas"
+                    :key="pi"
+                    @click="selectPersona(pi)"
+                    class="model-option"
+                    :class="{ selected: persona.enabled }"
+                  >
+                    <span class="truncate">{{ persona.name }}</span>
+                    <span v-if="persona.enabled" class="check-mark">&#10003;</span>
+                  </button>
+                </div>
+              </Transition>
+            </Teleport>
+          </div>
+
+          <div class="flex-1"></div>
+
+          <button
+            @click="handleOpenSettings"
+            class="icon-btn"
+            title="Settings"
+          >
+            <Settings :size="14" :stroke-width="1.8" />
+          </button>
+
+          <button @click="handleHide" class="icon-btn" title="Hide (Esc)">
+            <X :size="14" :stroke-width="1.8" />
+          </button>
         </div>
-      </Transition>
+      </template>
+
+      <!-- !growAbove: result grows downward, input at top (default) -->
+      <template v-else>
+        <!-- Input area -->
+        <textarea
+          ref="textareaRef"
+          v-model="inputText"
+          @keydown="handleKeydown"
+          :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to translate...'"
+          rows="1"
+          class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
+        />
+
+        <!-- Toolbar: Send + Settings + Dismiss -->
+        <div class="flex items-center gap-2">
+          <button
+            @click="handleTranslate"
+            :disabled="!inputText.trim() || isLoading"
+            class="send-btn"
+            title="Translate (Enter)"
+          >
+            <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
+            <template v-else>
+              <Send :size="13" />
+              <span class="text-[12px] font-medium tracking-wide ml-1">Send</span>
+            </template>
+          </button>
+
+          <div class="relative" ref="modelDropdownRef">
+            <button
+              v-if="activeModelName"
+              ref="modelBtnRef"
+              @click="toggleModelDropdown"
+              class="model-btn"
+              :class="{ active: showModelDropdown }"
+            >
+              <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
+              <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
+                :style="{ transform: showModelDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
+            </button>
+
+            <Teleport to="body">
+              <Transition name="dropdown">
+                <div
+                  v-if="showModelDropdown && allModels.length > 0"
+                  ref="modelMenuRef"
+                  class="model-dropdown"
+                  :style="{ top: dropdownPos.top + 'px', left: dropdownPos.left + 'px' }"
+                >
+                  <button
+                    v-for="entry in allModels"
+                    :key="entry.pIndex + '-' + entry.mIndex"
+                    @click="selectModel(entry.pIndex, entry.mIndex)"
+                    class="model-option"
+                    :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
+                  >
+                    <span class="truncate">{{ entry.id }}</span>
+                    <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
+                  </button>
+                </div>
+              </Transition>
+            </Teleport>
+          </div>
+
+          <!-- Persona toggle + selector -->
+          <div v-if="appConfig.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
+            <button
+              @click="togglePersona"
+              class="persona-toggle"
+              :class="{ on: personaOn }"
+              :title="personaOn ? 'Disable persona' : 'Enable persona'"
+            >
+              <UserCircle :size="11" :stroke-width="1.8" />
+              <span class="truncate max-w-[90px]">{{ displayPersonaName }}</span>
+              <span class="persona-dot" :class="{ on: personaOn }" />
+            </button>
+            <button
+              v-if="appConfig.personas.length > 1"
+              ref="personaBtnRef"
+              @click="togglePersonaDropdown"
+              class="persona-chevron"
+              :class="{ on: personaOn, active: showPersonaDropdown }"
+            >
+              <ChevronDown :size="10" :stroke-width="2" class="transition-transform"
+                :style="{ transform: showPersonaDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
+            </button>
+
+            <Teleport to="body">
+              <Transition name="dropdown">
+                <div
+                  v-if="showPersonaDropdown"
+                  ref="personaMenuRef"
+                  class="model-dropdown persona-dropdown"
+                  :style="{ top: personaDropdownPos.top + 'px', left: personaDropdownPos.left + 'px' }"
+                >
+                  <button
+                    v-for="(persona, pi) in appConfig.personas"
+                    :key="pi"
+                    @click="selectPersona(pi)"
+                    class="model-option"
+                    :class="{ selected: persona.enabled }"
+                  >
+                    <span class="truncate">{{ persona.name }}</span>
+                    <span v-if="persona.enabled" class="check-mark">&#10003;</span>
+                  </button>
+                </div>
+              </Transition>
+            </Teleport>
+          </div>
+
+          <div class="flex-1"></div>
+
+          <button
+            @click="handleOpenSettings"
+            class="icon-btn"
+            title="Settings"
+          >
+            <Settings :size="14" :stroke-width="1.8" />
+          </button>
+
+          <button @click="handleHide" class="icon-btn" title="Hide (Esc)">
+            <X :size="14" :stroke-width="1.8" />
+          </button>
+        </div>
+
+        <!-- Loading state -->
+        <Transition name="fade">
+          <div
+            v-if="isLoading"
+            class="flex items-center gap-2 text-[11px] text-white/40"
+          >
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
+            Translating...
+          </div>
+        </Transition>
+
+        <!-- Error -->
+        <Transition name="fade">
+          <div
+            v-if="errorMessage"
+            class="text-[11px] text-red-400/80 flex items-center gap-1.5"
+          >
+            <X :size="12" :stroke-width="2" />
+            {{ errorMessage }}
+          </div>
+        </Transition>
+
+        <!-- Result area -->
+        <Transition name="fade">
+          <div v-if="translatedText" class="result-block">
+            <div class="result-text">{{ translatedText }}</div>
+            <div class="result-actions">
+              <button
+                @click="handlePasteResult"
+                class="paste-btn"
+                title="Paste into active field (Enter)"
+              >
+                <ClipboardPaste :size="12" />
+                <span>Paste Result</span>
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </template>
     </div>
   </div>
 </template>
