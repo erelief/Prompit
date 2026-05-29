@@ -57,6 +57,10 @@ function selectModel(pIndex: number, mIndex: number) {
   appConfig.active_provider_index = pIndex;
   appConfig.active_model_index = mIndex;
   showModelDropdown.value = false;
+  if (hasResult.value) {
+    hasResult.value = false;
+    translatedText.value = "";
+  }
 }
 
 // Flatten all provider models for dropdown: [{pIndex, mIndex, id}]
@@ -101,6 +105,10 @@ function togglePersona() {
       ? lastActivePersonaIndex.value : 0;
     appConfig.personas[i].enabled = true;
   }
+  if (hasResult.value) {
+    hasResult.value = false;
+    translatedText.value = "";
+  }
 }
 
 function togglePersonaDropdown() {
@@ -126,6 +134,10 @@ function selectPersona(index: number) {
   appConfig.personas[index].enabled = true;
   lastActivePersonaIndex.value = index;
   showPersonaDropdown.value = false;
+  if (hasResult.value) {
+    hasResult.value = false;
+    translatedText.value = "";
+  }
 }
 
 function onDocumentClick(e: MouseEvent) {
