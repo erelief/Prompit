@@ -42,8 +42,11 @@ const fetchedModels = ref<Map<string, string[]>>(new Map());
 const fetchingProviders = ref(new Set<number>());
 const addingModelProvider = ref<number | null>(null);
 const showModelSelector = ref(false);
+const showLangSelector = ref(false);
 const selMenuPos = ref({ top: 0, left: 0 });
+const langMenuPos = ref({ top: 0, left: 0 });
 const selBtnRef = ref<HTMLElement | null>(null);
+const langBtnRef = ref<HTMLElement | null>(null);
 
 // ── Persona management ──
 const addingPersona = ref(false);
@@ -88,6 +91,7 @@ function togglePersona(index: number) {
 
 function toggleSelMenu() {
   if (allFlat.value.length === 0) return;
+  showLangSelector.value = false;
   showModelSelector.value = !showModelSelector.value;
   if (showModelSelector.value && selBtnRef.value) {
     const r = selBtnRef.value.getBoundingClientRect();
@@ -95,8 +99,22 @@ function toggleSelMenu() {
   }
 }
 
+function toggleLangMenu() {
+  showModelSelector.value = false;
+  showLangSelector.value = !showLangSelector.value;
+  if (showLangSelector.value && langBtnRef.value) {
+    const r = langBtnRef.value.getBoundingClientRect();
+    langMenuPos.value = { top: r.bottom + 5, left: r.left };
+  }
+}
+
+function pickLang(lang: string) {
+  appConfig.target_lang = lang;
+  showLangSelector.value = false;
+}
+
 const targetLanguages = [
-  "English", "Chinese", "Japanese", "Korean",
+  "English", "Simplified Chinese", "Traditional Chinese", "Japanese", "Korean",
   "French", "German", "Spanish", "Russian",
 ];
 
@@ -274,6 +292,8 @@ function onDocClick(e: MouseEvent) {
   const t = e.target as HTMLElement;
   if (!t.closest(".sel-menu") && !t.closest(".sel-btn"))
     showModelSelector.value = false;
+  if (!t.closest(".lang-menu") && !t.closest(".lang-btn"))
+    showLangSelector.value = false;
   if (!t.closest(".picker") && !t.closest(".gold-micro"))
     addingModelProvider.value = null;
 }
@@ -293,7 +313,7 @@ async function handleDrag(e: MouseEvent) {
 
 onMounted(async () => {
   document.addEventListener("mousedown", onDocClick);
-  await invoke("resize_main_window", { width: 660, height: 640 });
+  await invoke("resize_main_window", { width: 660, height: 780 });
   load();
 });
 
@@ -536,21 +556,25 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
           <Teleport to="body">
             <Transition name="drop">
               <div v-if="showModelSelector && allFlat.length > 0" class="sel-menu" :style="{ top: selMenuPos.top + 'px', left: selMenuPos.left + 'px' }">
-                <button
-                  v-for="e in allFlat" :key="e.pIndex + '-' + e.mIndex"
-                  class="sel-opt"
-                  :class="{ hit: e.pIndex === appConfig.active_provider_index && e.mIndex === appConfig.active_model_index }"
-                  @click="pickModel(e)"
-                >
-                  <div class="opt-info">
-                    <span class="opt-id">{{ e.id }}</span>
-                    <span class="opt-src">{{ e.providerName }}</span>
-                  </div>
-                  <Check
-                    v-if="e.pIndex === appConfig.active_provider_index && e.mIndex === appConfig.active_model_index"
-                    :size="13" :stroke-width="2.5"
-                  />
-                </button>
+                <div class="sel-clip">
+                <div class="sel-menu-inner">
+                  <button
+                    v-for="e in allFlat" :key="e.pIndex + '-' + e.mIndex"
+                    class="sel-opt"
+                    :class="{ hit: e.pIndex === appConfig.active_provider_index && e.mIndex === appConfig.active_model_index }"
+                    @click="pickModel(e)"
+                  >
+                    <div class="opt-info">
+                      <span class="opt-id">{{ e.id }}</span>
+                      <span class="opt-src">{{ e.providerName }}</span>
+                    </div>
+                    <Check
+                      v-if="e.pIndex === appConfig.active_provider_index && e.mIndex === appConfig.active_model_index"
+                      :size="13" :stroke-width="2.5"
+                    />
+                  </button>
+                </div>
+                </div>
               </div>
             </Transition>
           </Teleport>
@@ -560,9 +584,40 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
         <div class="section-head mt">
           <span class="section-title"><Languages :size="13" />Target Language</span>
         </div>
-        <select v-model="appConfig.target_lang" class="fi full">
-          <option v-for="lang in targetLanguages" :key="lang" :value="lang">{{ lang }}</option>
-        </select>
+        <div class="sel-wrap">
+          <button
+            ref="langBtnRef"
+            class="sel-btn lang-btn"
+            @click="toggleLangMenu()"
+          >
+            <Languages :size="13" :stroke-width="1.7" />
+            <span class="sel-text">{{ appConfig.target_lang }}</span>
+            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showLangSelector }" />
+          </button>
+
+          <Teleport to="body">
+            <Transition name="drop">
+              <div v-if="showLangSelector" class="sel-menu lang-menu" :style="{ top: langMenuPos.top + 'px', left: langMenuPos.left + 'px' }">
+                <div class="sel-clip">
+                <div class="sel-menu-inner">
+                  <button
+                    v-for="lang in targetLanguages" :key="lang"
+                    class="sel-opt"
+                    :class="{ hit: lang === appConfig.target_lang }"
+                    @click="pickLang(lang)"
+                  >
+                    <span class="opt-label">{{ lang }}</span>
+                    <Check
+                      v-if="lang === appConfig.target_lang"
+                      :size="13" :stroke-width="2.5"
+                    />
+                  </button>
+                </div>
+                </div>
+              </div>
+            </Transition>
+          </Teleport>
+        </div>
 
         <!-- Persona -->
         <div class="section-head mt">
@@ -938,22 +993,25 @@ label {
   flex:1; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+.lang-btn .sel-text{ font-family: inherit; font-size:12px; }
 .sel-arrow { color: rgba(255,255,255,.22); transition: transform .18s; flex-shrink:0; }
 .sel-arrow.rot{ transform: rotate(180deg); }
 
 .sel-menu {
-  position:fixed; min-width:230px; max-width:320px; max-height:260px;
-  padding: 5px; border-radius: 11px;
+  position:fixed; min-width:230px; max-width:320px; max-height:180px;
+  padding: 0; border-radius: 11px;
   background: rgba(16,16,22,.97); backdrop-filter: blur(20px) saturate(1.4);
   border: 1px solid rgba(255,255,255,.075);
   box-shadow: 0 16px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.025);
-  z-index:99999; overflow-y:auto;
+  z-index:99999; overflow:hidden;
 }
-.sel-menu::-webkit-scrollbar{width:3px}
-.sel-menu::-webkit-scrollbar-thumb{background:rgba(255,255,255,.09);border-radius:3px}
+.sel-clip{ max-height:inherit; overflow-y:auto; overflow-x:hidden; padding:5px 7px 5px 5px; }
+.sel-clip::-webkit-scrollbar{width:3px}
+.sel-clip::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:3px}
+.sel-menu-inner{ min-height:0; }
 .sel-opt {
   display:flex; align-items:center; justify-content:space-between; gap:10px;
-  width:100%; padding: 8px 11px; border-radius:7px;
+  width:100%; padding: 8px 11px; border-radius:7px; font-size:11.5px;
   color: rgba(255,255,255,.52); cursor:pointer;
   border:none; background:none; text-align:left; transition:.1s;
 }
@@ -961,20 +1019,18 @@ label {
 .sel-opt.hit{
   background: rgba(212,160,72,.07); color: rgba(212,160,72,.92);
 }
+.opt-label{
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;
+  font-size:11.5px;
+}
 .opt-info{ display:flex; flex-direction:column; gap:1px; min-width:0; }
 .opt-id{
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .opt-src{ font-size: 9px; color: rgba(255,255,255,.2); letter-spacing: .02em; }
-
-/* ── Select element ── */
-select.fi.full {
-  appearance:none; cursor:pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,.28)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat:no-repeat; background-position:right 11px center;
-}
-select.fi.full option{ background:#14141c; color:#fff; }
+.lang-menu .opt-label{ font-size:12px; }
+.lang-menu .sel-opt{ font-size:12px; }
 
 /* ── Empty state ── */
 .empty-card {

@@ -80,6 +80,9 @@ export async function loadConfig(): Promise<void> {
   try {
     const loaded = await invoke<AppConfig>("read_config");
     Object.assign(appConfig, loaded);
+    if (appConfig.target_lang === "Chinese") {
+      appConfig.target_lang = "Simplified Chinese";
+    }
     await loadSecrets();
   } catch {
     Object.assign(appConfig, { ...defaultConfig });
