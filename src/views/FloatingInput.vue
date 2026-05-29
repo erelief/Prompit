@@ -42,10 +42,12 @@ function toggleModelDropdown() {
     showModelDropdown.value = true;
     nextTick(() => {
       if (modelMenuRef.value) {
-        dropdownPos.value = {
-          top: rect.top - modelMenuRef.value.offsetHeight - 4,
-          left: rect.left,
-        };
+        const menuH = modelMenuRef.value.offsetHeight;
+        const spaceBelow = window.innerHeight - rect.bottom - 4;
+        const spaceAbove = rect.top - 4;
+        if (menuH > spaceBelow && menuH <= spaceAbove) {
+          dropdownPos.value = { top: rect.top - menuH - 4, left: rect.left };
+        }
       }
     });
   } else {
@@ -114,14 +116,17 @@ function togglePersona() {
 function togglePersonaDropdown() {
   if (!showPersonaDropdown.value && personaBtnRef.value) {
     const rect = personaBtnRef.value.getBoundingClientRect();
-    personaDropdownPos.value = { top: rect.bottom + 4, left: rect.left };
+    const wrapLeft = personaDropdownRef.value?.getBoundingClientRect().left ?? rect.left;
+    personaDropdownPos.value = { top: rect.bottom + 4, left: wrapLeft };
     showPersonaDropdown.value = true;
     nextTick(() => {
       if (personaMenuRef.value) {
-        personaDropdownPos.value = {
-          top: rect.top - personaMenuRef.value.offsetHeight - 4,
-          left: rect.left,
-        };
+        const menuH = personaMenuRef.value.offsetHeight;
+        const spaceBelow = window.innerHeight - rect.bottom - 4;
+        const spaceAbove = rect.top - 4;
+        if (menuH > spaceBelow && menuH <= spaceAbove) {
+          personaDropdownPos.value = { top: rect.top - menuH - 4, left: wrapLeft };
+        }
       }
     });
   } else {
@@ -365,7 +370,7 @@ useShortcutTriggered(() => {
             >
               <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
               <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
-                :style="{ transform: showModelDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
+                :style="{ transform: showModelDropdown ? (growAbove ? 'rotate(0)' : 'rotate(180deg)') : (growAbove ? 'rotate(180deg)' : 'rotate(0)') }" />
             </button>
 
             <Teleport to="body">
@@ -411,7 +416,7 @@ useShortcutTriggered(() => {
               :class="{ on: personaOn, active: showPersonaDropdown }"
             >
               <ChevronDown :size="10" :stroke-width="2" class="transition-transform"
-                :style="{ transform: showPersonaDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
+                :style="{ transform: showPersonaDropdown ? (growAbove ? 'rotate(0)' : 'rotate(180deg)') : (growAbove ? 'rotate(180deg)' : 'rotate(0)') }" />
             </button>
 
             <Teleport to="body">
@@ -467,7 +472,7 @@ useShortcutTriggered(() => {
             >
               <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
               <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
-                :style="{ transform: showModelDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
+                :style="{ transform: showModelDropdown ? (growAbove ? 'rotate(0)' : 'rotate(180deg)') : (growAbove ? 'rotate(180deg)' : 'rotate(0)') }" />
             </button>
 
             <Teleport to="body">
@@ -513,7 +518,7 @@ useShortcutTriggered(() => {
               :class="{ on: personaOn, active: showPersonaDropdown }"
             >
               <ChevronDown :size="10" :stroke-width="2" class="transition-transform"
-                :style="{ transform: showPersonaDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
+                :style="{ transform: showPersonaDropdown ? (growAbove ? 'rotate(0)' : 'rotate(180deg)') : (growAbove ? 'rotate(180deg)' : 'rotate(0)') }" />
             </button>
 
             <Teleport to="body">
