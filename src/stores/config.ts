@@ -14,12 +14,18 @@ export interface ProviderConfig {
   max_tokens: number | null;
 }
 
+export interface PersonaConfig {
+  name: string;
+  prompt: string;
+  enabled: boolean;
+}
+
 export interface AppConfig {
   providers: ProviderConfig[];
   active_provider_index: number;
   active_model_index: number;
   target_lang: string;
-  persona: string;
+  personas: PersonaConfig[];
 }
 
 const defaultConfig: AppConfig = {
@@ -27,7 +33,7 @@ const defaultConfig: AppConfig = {
   active_provider_index: 0,
   active_model_index: 0,
   target_lang: "English",
-  persona: "",
+  personas: [],
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });

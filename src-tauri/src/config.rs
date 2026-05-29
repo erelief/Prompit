@@ -18,6 +18,14 @@ pub struct ProviderConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersonaConfig {
+    pub name: String,
+    pub prompt: String,
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub providers: Vec<ProviderConfig>,
     #[serde(default)]
@@ -27,7 +35,7 @@ pub struct AppConfig {
     #[serde(default = "default_target_lang")]
     pub target_lang: String,
     #[serde(default)]
-    pub persona: String,
+    pub personas: Vec<PersonaConfig>,
 }
 
 fn default_target_lang() -> String {
@@ -41,7 +49,7 @@ impl Default for AppConfig {
             active_provider_index: 0,
             active_model_index: 0,
             target_lang: "English".to_string(),
-            persona: String::new(),
+            personas: vec![],
         }
     }
 }
@@ -72,12 +80,18 @@ mod tests {
             active_provider_index: 0,
             active_model_index: 0,
             target_lang: "Japanese".to_string(),
-            persona: "formal".to_string(),
+            personas: vec![PersonaConfig {
+                name: "Formal".to_string(),
+                prompt: "Translate in a formal tone".to_string(),
+                enabled: true,
+            }],
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.providers[0].name, "OpenAI");
         assert_eq!(deserialized.target_lang, "Japanese");
+        assert_eq!(deserialized.personas[0].name, "Formal");
+        assert!(deserialized.personas[0].enabled);
     }
 
     #[test]
@@ -87,7 +101,7 @@ mod tests {
             "active_provider_index": 0,
             "active_model_index": 0,
             "target_lang": "English",
-            "persona": ""
+            "personas": []
         }"#;
         let config: AppConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.target_lang, "English");

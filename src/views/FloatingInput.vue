@@ -7,7 +7,7 @@ import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { loadConfig, getActiveModel, appConfig } from "../stores/config";
 import { translate } from "../services/llm-client";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle } from "@lucide/vue";
 
 const router = useRouter();
 
@@ -66,6 +66,33 @@ const allModels = computed(() => {
 const isActiveModelEntry = (pIndex: number, mIndex: number) =>
   pIndex === appConfig.active_provider_index && mIndex === appConfig.active_model_index;
 
+// ── Persona selector ──
+const activePersonaName = computed(() => {
+  const p = appConfig.personas.find((p) => p.enabled);
+  return p?.name || null;
+});
+
+const showPersonaDropdown = ref(false);
+const personaDropdownRef = ref<HTMLDivElement | null>(null);
+const personaBtnRef = ref<HTMLButtonElement | null>(null);
+const personaMenuRef = ref<HTMLDivElement | null>(null);
+const personaDropdownPos = ref({ top: 0, left: 0 });
+
+function togglePersonaDropdown() {
+  if (!showPersonaDropdown.value && personaBtnRef.value) {
+    const rect = personaBtnRef.value.getBoundingClientRect();
+    personaDropdownPos.value = { top: rect.bottom + 4, left: rect.left };
+  }
+  showPersonaDropdown.value = !showPersonaDropdown.value;
+}
+
+function selectPersona(index: number) {
+  const wasOn = appConfig.personas[index].enabled;
+  for (const p of appConfig.personas) p.enabled = false;
+  if (!wasOn) appConfig.personas[index].enabled = true;
+  showPersonaDropdown.value = false;
+}
+
 function onDocumentClick(e: MouseEvent) {
   const target = e.target as Node;
   if (
@@ -75,6 +102,14 @@ function onDocumentClick(e: MouseEvent) {
     return;
   }
   showModelDropdown.value = false;
+
+  if (
+    personaDropdownRef.value?.contains(target) ||
+    personaMenuRef.value?.contains(target)
+  ) {
+    return;
+  }
+  showPersonaDropdown.value = false;
 }
 
 watch(inputText, () => {
@@ -133,7 +168,7 @@ async function handleHide() {
 async function handleDrag(e: MouseEvent) {
   // Only drag from the background, not from interactive elements
   const target = e.target as HTMLElement;
-  if (target.closest("textarea, button, input, a, .model-dropdown")) return;
+  if (target.closest("textarea, button, input, a, .model-dropdown, .persona-dropdown")) return;
   await getCurrentWindow().startDragging();
 }
 
@@ -262,6 +297,43 @@ useShortcutTriggered(() => {
                 >
                   <span class="truncate">{{ entry.id }}</span>
                   <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
+                </button>
+              </div>
+            </Transition>
+          </Teleport>
+        </div>
+
+        <!-- Persona selector -->
+        <div v-if="appConfig.personas.length > 0" class="relative" ref="personaDropdownRef">
+          <button
+            ref="personaBtnRef"
+            @click="togglePersonaDropdown"
+            class="model-btn persona-btn"
+            :class="{ active: showPersonaDropdown, on: !!activePersonaName }"
+          >
+            <UserCircle :size="11" :stroke-width="1.8" />
+            <span class="truncate max-w-[100px]">{{ activePersonaName || 'Persona' }}</span>
+            <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
+              :style="{ transform: showPersonaDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
+          </button>
+
+          <Teleport to="body">
+            <Transition name="dropdown">
+              <div
+                v-if="showPersonaDropdown"
+                ref="personaMenuRef"
+                class="model-dropdown persona-dropdown"
+                :style="{ top: personaDropdownPos.top + 'px', left: personaDropdownPos.left + 'px' }"
+              >
+                <button
+                  v-for="(persona, pi) in appConfig.personas"
+                  :key="pi"
+                  @click="selectPersona(pi)"
+                  class="model-option"
+                  :class="{ selected: persona.enabled }"
+                >
+                  <span class="truncate">{{ persona.name }}</span>
+                  <span v-if="persona.enabled" class="check-mark">&#10003;</span>
                 </button>
               </div>
             </Transition>
@@ -397,6 +469,19 @@ useShortcutTriggered(() => {
   color: rgba(255, 255, 255, 0.65);
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Persona button */
+.persona-btn.on {
+  color: rgba(217, 160, 71, 0.85);
+  border-color: rgba(217, 160, 71, 0.18);
+  background: rgba(217, 160, 71, 0.06);
+}
+.persona-btn.on:hover,
+.persona-btn.on.active {
+  color: rgba(217, 160, 71, 1);
+  border-color: rgba(217, 160, 71, 0.3);
+  background: rgba(217, 160, 71, 0.1);
 }
 
 /* Model dropdown */

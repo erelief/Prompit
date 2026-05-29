@@ -81,8 +81,9 @@ function buildSystemPrompt(): string {
   let prompt = TRANSLATION_SYSTEM_PROMPT;
   prompt += `\nTarget language: ${appConfig.target_lang}.`;
 
-  if (appConfig.persona) {
-    prompt += `\nTranslation style: ${appConfig.persona}.`;
+  const enabledPersonas = appConfig.personas.filter((p) => p.enabled);
+  for (const persona of enabledPersonas) {
+    prompt += `\n${persona.prompt}`;
   }
 
   return prompt;

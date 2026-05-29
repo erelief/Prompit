@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
@@ -32,9 +32,9 @@ type TabKey = "general" | "translation";
 
 const router = useRouter();
 const activeTab = ref<TabKey>("general");
-const statusMessage = ref("");
 const visibleKeys = ref<Set<number>>(new Set());
 const editingProvider = ref<Set<number>>(new Set());
+const addingProvider = ref(false);
 
 const testingProvider = ref<number | null>(null);
 const fetchStatuses = ref<Map<number, string>>(new Map());
@@ -44,6 +44,47 @@ const addingModelProvider = ref<number | null>(null);
 const showModelSelector = ref(false);
 const selMenuPos = ref({ top: 0, left: 0 });
 const selBtnRef = ref<HTMLElement | null>(null);
+
+// ── Persona management ──
+const addingPersona = ref(false);
+const editingPersona = ref<Set<number>>(new Set());
+
+function isEditingPersona(index: number): boolean {
+  return editingPersona.value.has(index);
+}
+
+function toggleEditPersona(index: number) {
+  const s = new Set(editingPersona.value);
+  s.has(index) ? s.delete(index) : s.add(index);
+  editingPersona.value = s;
+}
+
+function addPersona() {
+  appConfig.personas.push({ name: "", prompt: "", enabled: false });
+  addingPersona.value = true;
+}
+
+function confirmPersona() {
+  addingPersona.value = false;
+}
+
+function cancelPersona() {
+  appConfig.personas.pop();
+  addingPersona.value = false;
+}
+
+function removePersona(index: number) {
+  appConfig.personas.splice(index, 1);
+  const re = new Set<number>();
+  for (const i of editingPersona.value) re.add(i > index ? i - 1 : i);
+  editingPersona.value = re;
+}
+
+function togglePersona(index: number) {
+  const wasOn = appConfig.personas[index].enabled;
+  for (const p of appConfig.personas) p.enabled = false;
+  if (!wasOn) appConfig.personas[index].enabled = true;
+}
 
 function toggleSelMenu() {
   if (allFlat.value.length === 0) return;
@@ -80,25 +121,32 @@ async function load() {
   catch (err) { console.error("Failed to load config:", err); }
 }
 
-async function saveConfig() {
-  statusMessage.value = "";
-  try {
-    await persistConfig();
-    statusMessage.value = "Saved!";
-    setTimeout(() => (statusMessage.value = ""), 2500);
-  } catch (err) {
-    statusMessage.value = `Error: ${err}`;
-  }
-}
+// ── Auto-save ──
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+watch(
+  () => JSON.stringify(appConfig),
+  () => {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { persistConfig(); }, 800);
+  },
+);
 
 function addProvider() {
-  const idx = appConfig.providers.length;
   appConfig.providers.push({
     name: "", api_key: "",
     base_url: "https://api.openai.com/v1",
     models: [], temperature: 0.3, max_tokens: 1024,
   });
-  editingProvider.value.add(idx);
+  addingProvider.value = true;
+}
+
+function confirmProvider() {
+  addingProvider.value = false;
+}
+
+function cancelProvider() {
+  appConfig.providers.pop();
+  addingProvider.value = false;
 }
 
 function removeProvider(index: number) {
@@ -286,21 +334,52 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
       <template v-if="activeTab === 'general'">
         <div class="section-head">
           <span class="section-title"><Settings2 :size="13" />Providers</span>
-          <button class="pill-btn add-pill" @click="addProvider">
+          <button class="pill-btn add-pill" @click="addProvider" :disabled="addingProvider">
             <Plus :size="12" :stroke-width="2" />Add Provider
           </button>
         </div>
 
         <div class="card-stack">
           <!-- Empty -->
-          <div v-if="appConfig.providers.length === 0" class="empty-card">
+          <div v-if="appConfig.providers.length === 0 && !addingProvider" class="empty-card">
             <CircleDot :size="22" :stroke-width="1" />
             <span>No providers yet.<br><small>Add one to get started.</small></span>
           </div>
 
+          <!-- Adding form -->
+          <div v-if="addingProvider" class="prov-card open">
+            <div class="prov-expanded">
+              <div class="name-row">
+                <input
+                  v-model="appConfig.providers[appConfig.providers.length - 1].name"
+                  placeholder="Provider name…"
+                  class="name-input" @click.stop
+                />
+              </div>
+              <div class="fields">
+                <div class="field">
+                  <label>API Key</label>
+                  <div class="key-wrap">
+                    <input
+                      v-model="appConfig.providers[appConfig.providers.length - 1].api_key"
+                      type="password"
+                      class="fi key-fi" placeholder="sk-…" @click.stop
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="persona-actions">
+                <button class="pill-btn gold-micro" @click.stop="confirmProvider">
+                  <Check :size="10" :stroke-width="2.5" />Confirm
+                </button>
+                <button class="pill-btn micro" @click.stop="cancelProvider">Cancel</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Provider cards -->
           <div
-            v-for="(prov, pi) in appConfig.providers"
+            v-for="(prov, pi) in appConfig.providers.slice(0, addingProvider ? -1 : undefined)"
             :key="pi"
             class="prov-card"
             :class="{ open: isEditing(pi) || !prov.name }"
@@ -488,22 +567,100 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
         <!-- Persona -->
         <div class="section-head mt">
           <span class="section-title"><UserCircle :size="13" />Translation Persona</span>
-          <span class="hint">Optional</span>
+          <button class="pill-btn add-pill" @click="addPersona" :disabled="addingPersona">
+            <Plus :size="12" :stroke-width="2" />Add Persona
+          </button>
         </div>
-        <input v-model="appConfig.persona" placeholder="e.g. formal, casual, technical…" class="fi full" />
+
+        <div class="card-stack">
+          <!-- Empty -->
+          <div v-if="appConfig.personas.length === 0 && !addingPersona" class="empty-card">
+            <UserCircle :size="22" :stroke-width="1" />
+            <span>No personas yet.<br><small>Add one to customize translation style.</small></span>
+          </div>
+
+          <!-- Adding form (no checkbox, Confirm/Cancel) -->
+          <div v-if="addingPersona" class="persona-card open">
+            <div class="persona-expanded">
+              <div class="name-row">
+                <input
+                  v-model="appConfig.personas[appConfig.personas.length - 1].name"
+                  placeholder="Persona name…"
+                  class="name-input" @click.stop
+                />
+              </div>
+              <textarea
+                v-model="appConfig.personas[appConfig.personas.length - 1].prompt"
+                placeholder="Enter the translation prompt for this persona…"
+                class="persona-textarea"
+                rows="3"
+                @click.stop
+              />
+              <div class="persona-actions">
+                <button class="pill-btn gold-micro" @click.stop="confirmPersona">
+                  <Check :size="10" :stroke-width="2.5" />Confirm
+                </button>
+                <button class="pill-btn micro" @click.stop="cancelPersona">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Persona cards (skip last while adding) -->
+          <div
+            v-for="(persona, psi) in appConfig.personas.slice(0, addingPersona ? -1 : undefined)"
+            :key="psi"
+            class="persona-card"
+            :class="{ open: isEditingPersona(psi) }"
+          >
+            <!-- Collapsed: checkbox + name only -->
+            <div v-if="!isEditingPersona(psi)" class="persona-collapsed" @click="toggleEditPersona(psi)">
+              <div class="persona-lhs">
+                <label class="persona-check" :class="{ on: persona.enabled }" @click.stop>
+                  <input type="checkbox" :checked="persona.enabled" @change="togglePersona(psi)" />
+                  <Check v-if="persona.enabled" :size="9" :stroke-width="3" />
+                </label>
+                <span class="persona-name">{{ persona.name }}</span>
+              </div>
+              <div class="persona-rhs" @click.stop>
+                <button class="mini-btn" title="Edit" @click="toggleEditPersona(psi)">
+                  <Pencil :size="11" :stroke-width="1.9" />
+                </button>
+                <button class="mini-btn warn" title="Remove" @click="removePersona(psi)">
+                  <Trash2 :size="11" :stroke-width="1.9" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Expanded: checkbox + name + prompt -->
+            <div v-else class="persona-expanded">
+              <div class="name-row">
+                <label class="persona-check" :class="{ on: persona.enabled }" @click.stop>
+                  <input type="checkbox" :checked="persona.enabled" @change="togglePersona(psi)" />
+                  <Check v-if="persona.enabled" :size="9" :stroke-width="3" />
+                </label>
+                <input
+                  v-model="persona.name" placeholder="Persona name…"
+                  class="name-input" @click.stop
+                />
+                <button class="mini-btn ghost" title="Collapse" @click.stop="toggleEditPersona(psi)">
+                  <ChevronDown :size="14" :stroke-width="1.8" class="chev-up" />
+                </button>
+                <button class="mini-btn warn" title="Remove" @click.stop="removePersona(psi)">
+                  <Trash2 :size="12" :stroke-width="1.8" />
+                </button>
+              </div>
+              <textarea
+                v-model="persona.prompt"
+                placeholder="Enter the translation prompt for this persona…"
+                class="persona-textarea"
+                rows="3"
+                @click.stop
+              />
+            </div>
+          </div>
+        </div>
       </template>
     </main>
-
-    <!-- ═══ Footer ═══ -->
-    <footer class="foot">
-      <button class="save-btn" :class="{ ok: statusMessage === 'Saved!' }" @click="saveConfig">
-        <Check v-if="statusMessage === 'Saved!'" :size="15" :stroke-width="2.5" />
-        <span v-else>Save Changes</span>
-      </button>
-      <Transition name="fade">
-        <span v-if="statusMessage && statusMessage !== 'Saved!'" class="err-msg">{{ statusMessage }}</span>
-      </Transition>
-    </footer>
   </div>
 </template>
 
@@ -828,28 +985,67 @@ select.fi.full option{ background:#14141c; color:#fff; }
 }
 .empty-card small{ font-size: 10px; color: rgba(255,255,255,.13); }
 
-/* ── Footer ── */
-.foot {
-  display:flex; align-items:center; gap:12px;
-  padding: 12px 24px 16px; border-top: 1px solid rgba(255,255,255,.035);
-  flex-shrink: 0;
+/* ── Persona card ── */
+.persona-card {
+  border-radius: 11px; overflow:hidden;
+  border: 1px solid rgba(255,255,255,.055);
+  background: linear-gradient(180deg, rgba(255,255,255,.022) 0%, rgba(255,255,255,.014) 100%);
+  transition: border-color .18s, box-shadow .18s;
 }
-.save-btn {
-  display:flex; align-items:center; justify-content:center;
-  min-width: 114px; padding: 8px 22px; border-radius: 10px;
-  font-size: 12px; font-weight: 650; letter-spacing: .005em;
-  background: linear-gradient(135deg, #d4a048 0%, #c4922e 100%);
-  color: #121210; cursor:pointer; border:none; transition:.15s;
+.persona-card:hover { border-color: rgba(255,255,255,.09); }
+.persona-card.open { padding: 15px 16px 14px; }
+
+/* ── Persona collapsed ── */
+.persona-collapsed {
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 11px 14px; cursor:pointer; transition:background .12s;
 }
-.save-btn:hover{
-  background: linear-gradient(135deg, #ddb35a 0%, #d4a048 100%);
-  transform: translateY(-.5px); box-shadow: 0 4px 14px rgba(212,160,72,.22);
+.persona-collapsed:hover { background: rgba(255,255,255,.02); }
+.persona-lhs { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
+.persona-name {
+  font-size: 12.5px; font-weight: 650; letter-spacing: -.01em;
+  color: rgba(255,255,255,.78);
 }
-.save-btn:active{ transform: translateY(0); }
-.save-btn.ok{
-  background: rgba(74,222,128,.13); color: #4ade80; min-width: 42px;
+.persona-rhs { display:flex; align-items:center; gap:2px; opacity:.6; transition:opacity .12s; }
+.persona-collapsed:hover .persona-rhs { opacity:1; }
+
+/* ── Persona expanded ── */
+.persona-expanded .name-row {
+  display:flex; align-items:center; gap:7px; margin-bottom:10px;
 }
-.err-msg{ font-size: 11px; color: rgba(248,113,113,.78); }
+
+/* ── Checkbox ── */
+.persona-check {
+  position: relative; width:18px; height:18px; border-radius:5px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border: 1.5px solid rgba(255,255,255,.12); background: rgba(255,255,255,.03);
+  transition: .15s; color: #121210; cursor:pointer; flex-shrink:0;
+  z-index: 1;
+}
+.persona-check input {
+  position:absolute; inset:0; opacity:0; cursor:pointer; margin:0;
+}
+.persona-check.on {
+  border-color: rgba(212,160,72,.6); background: rgba(212,160,72,.85);
+}
+.persona-check:hover { border-color: rgba(255,255,255,.25); }
+.persona-check.on:hover { border-color: rgba(212,160,72,.9); }
+
+/* ── Persona textarea ── */
+.persona-textarea {
+  width:100%; background: rgba(255,255,255,.038);
+  border: 1px solid rgba(255,255,255,.065); border-radius:7px;
+  padding: 9px 11px; font-size: 12px; color: rgba(255,255,255,.82);
+  outline:none; transition:border-color .15s, box-shadow .15s;
+  resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.5;
+}
+.persona-textarea::placeholder { color: rgba(255,255,255,.15); }
+.persona-textarea:focus { border-color: rgba(212,160,72,.28); box-shadow: 0 0 0 2px rgba(212,160,72,.05); }
+
+/* ── Persona actions (Confirm / Cancel) ── */
+.persona-actions {
+  display:flex; align-items:center; gap:6px; margin-top:10px;
+}
 
 /* ── Transitions ── */
 .fade-enter-active,.fade-leave-active{ transition:opacity .18s ease; }
