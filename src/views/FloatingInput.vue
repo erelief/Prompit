@@ -457,16 +457,6 @@ useShortcutTriggered(() => {
 
       <!-- !growAbove: result grows downward, input at top (default) -->
       <template v-else>
-        <!-- Input area -->
-        <textarea
-          ref="textareaRef"
-          v-model="inputText"
-          @keydown="handleKeydown"
-          :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to translate...'"
-          rows="1"
-          class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
-        />
-
         <!-- Toolbar: Send + Settings + Dismiss -->
         <div class="flex items-center gap-2">
           <button
@@ -578,6 +568,16 @@ useShortcutTriggered(() => {
             <X :size="14" :stroke-width="1.8" />
           </button>
         </div>
+
+        <!-- Input area -->
+        <textarea
+          ref="textareaRef"
+          v-model="inputText"
+          @keydown="handleKeydown"
+          :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to translate...'"
+          rows="1"
+          class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
+        />
 
         <!-- Loading state -->
         <Transition name="fade">
