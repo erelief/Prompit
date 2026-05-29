@@ -13,6 +13,7 @@ import {
   Languages,
   Cpu,
   UserCircle,
+  Settings2,
   Plus,
   Trash2,
   CircleCheck,
@@ -22,7 +23,10 @@ import {
   EyeOff,
 } from "@lucide/vue";
 
+type TabKey = "general" | "translation";
+
 const router = useRouter();
+const activeTab = ref<TabKey>("general");
 const statusMessage = ref("");
 const visibleKeys = ref<Set<number>>(new Set());
 
@@ -121,117 +125,140 @@ onMounted(async () => {
       </div>
     </header>
 
+    <!-- Tabs -->
+    <nav class="settings-tabs">
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'general' }"
+        @click="activeTab = 'general'"
+      >
+        <Settings2 :size="13" :stroke-width="1.8" />
+        <span>General</span>
+      </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'translation' }"
+        @click="activeTab = 'translation'"
+      >
+        <Languages :size="13" :stroke-width="1.8" />
+        <span>Translation</span>
+      </button>
+    </nav>
+
     <div class="settings-body">
-      <!-- Target Language -->
-      <section class="settings-section">
-        <div class="section-label">
-          <Languages :size="14" :stroke-width="1.8" />
-          <span>Target Language</span>
-        </div>
-        <select v-model="appConfig.target_lang" class="settings-select">
-          <option v-for="lang in targetLanguages" :key="lang" :value="lang">
-            {{ lang }}
-          </option>
-        </select>
-      </section>
+      <!-- General: Models -->
+      <template v-if="activeTab === 'general'">
+        <section class="settings-section">
+          <div class="section-label">
+            <Cpu :size="14" :stroke-width="1.8" />
+            <span>Models</span>
+            <button @click="addModel" class="add-btn ml-auto">
+              <Plus :size="13" :stroke-width="2" />
+              <span>Add</span>
+            </button>
+          </div>
 
-      <!-- Models -->
-      <section class="settings-section">
-        <div class="section-label">
-          <Cpu :size="14" :stroke-width="1.8" />
-          <span>Models</span>
-          <button @click="addModel" class="add-btn ml-auto">
-            <Plus :size="13" :stroke-width="2" />
-            <span>Add</span>
-          </button>
-        </div>
-
-        <div class="model-list">
-          <div
-            v-for="(model, index) in appConfig.models"
-            :key="index"
-            class="model-card"
-            :class="{ selected: appConfig.selected_model_index === index }"
-            @click="appConfig.selected_model_index = index"
-          >
-            <div class="model-card-header">
-              <span class="radio-dot" @click.stop>
-                <CircleCheck
-                  v-if="appConfig.selected_model_index === index"
-                  :size="15"
-                />
-                <Circle v-else :size="15" />
-              </span>
-              <span class="text-[11px] text-white/40 flex-1">
-                {{ model.display_name || model.model || "Unnamed Model" }}
-              </span>
-              <button
-                @click.stop="removeModel(index)"
-                class="delete-btn"
-                title="Remove"
-              >
-                <Trash2 :size="13" :stroke-width="1.8" />
-              </button>
-            </div>
-
-            <div class="model-grid">
-              <div class="field">
-                <label>Display Name</label>
-                <input v-model="model.display_name" class="field-input" />
-              </div>
-              <div class="field">
-                <label>Model</label>
-                <input v-model="model.model" class="field-input" />
-              </div>
-              <div class="field col-span-2">
-                <label>Base URL</label>
-                <input v-model="model.base_url" class="field-input" />
-              </div>
-              <div class="field col-span-2">
-                <label>API Key</label>
-                <div class="key-input-wrapper">
-                  <input
-                    v-model="model.api_key"
-                    :type="visibleKeys.has(index) ? 'text' : 'password'"
-                    class="field-input key-input"
+          <div class="model-list">
+            <div
+              v-for="(model, index) in appConfig.models"
+              :key="index"
+              class="model-card"
+              :class="{ selected: appConfig.selected_model_index === index }"
+              @click="appConfig.selected_model_index = index"
+            >
+              <div class="model-card-header">
+                <span class="radio-dot" @click.stop>
+                  <CircleCheck
+                    v-if="appConfig.selected_model_index === index"
+                    :size="15"
                   />
-                  <button
-                    type="button"
-                    class="eye-btn"
-                    @click.stop="toggleKeyVisibility(index)"
-                    :title="visibleKeys.has(index) ? 'Hide key' : 'Show key'"
-                  >
-                    <EyeOff v-if="visibleKeys.has(index)" :size="14" :stroke-width="1.8" />
-                    <Eye v-else :size="14" :stroke-width="1.8" />
-                  </button>
+                  <Circle v-else :size="15" />
+                </span>
+                <span class="text-[11px] text-white/40 flex-1">
+                  {{ model.display_name || model.model || "Unnamed Model" }}
+                </span>
+                <button
+                  @click.stop="removeModel(index)"
+                  class="delete-btn"
+                  title="Remove"
+                >
+                  <Trash2 :size="13" :stroke-width="1.8" />
+                </button>
+              </div>
+
+              <div class="model-grid">
+                <div class="field">
+                  <label>Display Name</label>
+                  <input v-model="model.display_name" class="field-input" />
+                </div>
+                <div class="field">
+                  <label>Model</label>
+                  <input v-model="model.model" class="field-input" />
+                </div>
+                <div class="field col-span-2">
+                  <label>Base URL</label>
+                  <input v-model="model.base_url" class="field-input" />
+                </div>
+                <div class="field col-span-2">
+                  <label>API Key</label>
+                  <div class="key-input-wrapper">
+                    <input
+                      v-model="model.api_key"
+                      :type="visibleKeys.has(index) ? 'text' : 'password'"
+                      class="field-input key-input"
+                    />
+                    <button
+                      type="button"
+                      class="eye-btn"
+                      @click.stop="toggleKeyVisibility(index)"
+                      :title="visibleKeys.has(index) ? 'Hide key' : 'Show key'"
+                    >
+                      <EyeOff v-if="visibleKeys.has(index)" :size="14" :stroke-width="1.8" />
+                      <Eye v-else :size="14" :stroke-width="1.8" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div
-            v-if="appConfig.models.length === 0"
-            class="empty-state"
-          >
-            <Cpu :size="20" :stroke-width="1.2" class="text-white/15" />
-            <span>No models configured</span>
+            <div
+              v-if="appConfig.models.length === 0"
+              class="empty-state"
+            >
+              <Cpu :size="20" :stroke-width="1.2" class="text-white/15" />
+              <span>No models configured</span>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </template>
 
-      <!-- Persona -->
-      <section class="settings-section">
-        <div class="section-label">
-          <UserCircle :size="14" :stroke-width="1.8" />
-          <span>Translation Persona</span>
-          <span class="text-[10px] text-white/20 ml-auto font-normal">Optional</span>
-        </div>
-        <input
-          v-model="appConfig.persona"
-          placeholder="e.g. formal, casual, technical..."
-          class="settings-input"
-        />
-      </section>
+      <!-- Translation: Target Language + Persona -->
+      <template v-if="activeTab === 'translation'">
+        <section class="settings-section">
+          <div class="section-label">
+            <Languages :size="14" :stroke-width="1.8" />
+            <span>Target Language</span>
+          </div>
+          <select v-model="appConfig.target_lang" class="settings-select">
+            <option v-for="lang in targetLanguages" :key="lang" :value="lang">
+              {{ lang }}
+            </option>
+          </select>
+        </section>
+
+        <section class="settings-section">
+          <div class="section-label">
+            <UserCircle :size="14" :stroke-width="1.8" />
+            <span>Translation Persona</span>
+            <span class="text-[10px] text-white/20 ml-auto font-normal">Optional</span>
+          </div>
+          <input
+            v-model="appConfig.persona"
+            placeholder="e.g. formal, casual, technical..."
+            class="settings-input"
+          />
+        </section>
+      </template>
     </div>
 
     <!-- Save footer -->
@@ -286,6 +313,51 @@ onMounted(async () => {
 .back-btn:hover {
   color: rgba(255, 255, 255, 0.8);
   background: rgba(255, 255, 255, 0.06);
+}
+
+/* Tabs */
+.settings-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.3);
+  position: relative;
+  transition: color 0.15s ease;
+}
+
+.tab-btn::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 14px;
+  right: 14px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.tab-btn:hover {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.tab-btn.active {
+  color: rgba(217, 160, 71, 0.85);
+}
+
+.tab-btn.active::after {
+  background: rgba(217, 160, 71, 0.5);
 }
 
 /* Body */
