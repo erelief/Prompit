@@ -38,12 +38,19 @@ const dropdownPos = ref({ top: 0, left: 0 });
 function toggleModelDropdown() {
   if (!showModelDropdown.value && modelBtnRef.value) {
     const rect = modelBtnRef.value.getBoundingClientRect();
-    dropdownPos.value = {
-      top: rect.bottom + 4,
-      left: rect.left,
-    };
+    dropdownPos.value = { top: rect.bottom + 4, left: rect.left };
+    showModelDropdown.value = true;
+    nextTick(() => {
+      if (modelMenuRef.value) {
+        dropdownPos.value = {
+          top: rect.top - modelMenuRef.value.offsetHeight - 4,
+          left: rect.left,
+        };
+      }
+    });
+  } else {
+    showModelDropdown.value = false;
   }
-  showModelDropdown.value = !showModelDropdown.value;
 }
 
 function selectModel(pIndex: number, mIndex: number) {
@@ -82,8 +89,18 @@ function togglePersonaDropdown() {
   if (!showPersonaDropdown.value && personaBtnRef.value) {
     const rect = personaBtnRef.value.getBoundingClientRect();
     personaDropdownPos.value = { top: rect.bottom + 4, left: rect.left };
+    showPersonaDropdown.value = true;
+    nextTick(() => {
+      if (personaMenuRef.value) {
+        personaDropdownPos.value = {
+          top: rect.top - personaMenuRef.value.offsetHeight - 4,
+          left: rect.left,
+        };
+      }
+    });
+  } else {
+    showPersonaDropdown.value = false;
   }
-  showPersonaDropdown.value = !showPersonaDropdown.value;
 }
 
 function selectPersona(index: number) {
