@@ -1,60 +1,66 @@
 import { reactive, toRaw } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 
-export interface ModelConfig {
+export interface ProviderModel {
+  id: string;
+}
+
+export interface ProviderConfig {
+  name: string;
   api_key: string;
   base_url: string;
-  model: string;
-  display_name: string;
+  models: ProviderModel[];
   temperature: number | null;
   max_tokens: number | null;
 }
 
 export interface AppConfig {
-  models: ModelConfig[];
-  selected_model_index: number;
+  providers: ProviderConfig[];
+  active_provider_index: number;
+  active_model_index: number;
   target_lang: string;
   persona: string;
 }
 
 const defaultConfig: AppConfig = {
-  models: [],
-  selected_model_index: 0,
+  providers: [],
+  active_provider_index: 0,
+  active_model_index: 0,
   target_lang: "English",
   persona: "",
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
 
-function secretKeyId(index: number): string {
-  return `model_${index}`;
+function secretKeyId(providerIndex: number): string {
+  return `provider_${providerIndex}`;
 }
 
 async function loadSecrets(): Promise<void> {
-  for (let i = 0; i < appConfig.models.length; i++) {
+  for (let i = 0; i < appConfig.providers.length; i++) {
     try {
       const key = await invoke<string>("read_secret", {
         keyId: secretKeyId(i),
       });
       if (key) {
-        appConfig.models[i].api_key = key;
+        appConfig.providers[i].api_key = key;
       }
     } catch (err) {
-      console.error(`Failed to load secret for model ${i}:`, err);
+      console.error(`Failed to load secret for provider ${i}:`, err);
     }
   }
 }
 
 async function saveSecrets(): Promise<void> {
-  for (let i = appConfig.models.length; i < 50; i++) {
+  for (let i = appConfig.providers.length; i < 50; i++) {
     try {
       await invoke("delete_secret", { keyId: secretKeyId(i) });
     } catch {
       // Secret may not exist
     }
   }
-  for (let i = 0; i < appConfig.models.length; i++) {
-    const apiKey = appConfig.models[i].api_key;
+  for (let i = 0; i < appConfig.providers.length; i++) {
+    const apiKey = appConfig.providers[i].api_key;
     if (apiKey) {
       await invoke("save_secret", {
         keyId: secretKeyId(i),
@@ -78,18 +84,39 @@ export async function saveConfig(): Promise<void> {
   await saveSecrets();
 
   const sanitized = structuredClone(toRaw(appConfig));
-  for (const model of sanitized.models) {
-    model.api_key = "";
+  for (const provider of sanitized.providers) {
+    provider.api_key = "";
   }
   await invoke("save_config", { config: sanitized });
 }
 
-export function getActiveModel(): ModelConfig | null {
+export function getActiveModel(): {
+  model: string;
+  api_key: string;
+  base_url: string;
+  temperature: number | null;
+  max_tokens: number | null;
+} | null {
+  const pi = appConfig.active_provider_index;
+  const mi = appConfig.active_model_index;
+
   if (
-    appConfig.models.length === 0 ||
-    appConfig.selected_model_index >= appConfig.models.length
+    appConfig.providers.length === 0 ||
+    pi >= appConfig.providers.length
   ) {
     return null;
   }
-  return appConfig.models[appConfig.selected_model_index];
+
+  const provider = appConfig.providers[pi];
+  if (provider.models.length === 0 || mi >= provider.models.length) {
+    return null;
+  }
+
+  return {
+    model: provider.models[mi].id,
+    api_key: provider.api_key,
+    base_url: provider.base_url,
+    temperature: provider.temperature,
+    max_tokens: provider.max_tokens,
+  };
 }

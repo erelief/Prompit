@@ -26,7 +26,7 @@ let unlistenConfig: (() => void) | null = null;
 const activeModelName = computed(() => {
   const m = getActiveModel();
   if (!m) return null;
-  return m.display_name || m.model || null;
+  return m.model || null;
 });
 
 const showModelDropdown = ref(false);
@@ -46,14 +46,25 @@ function toggleModelDropdown() {
   showModelDropdown.value = !showModelDropdown.value;
 }
 
-function selectModel(index: number) {
-  appConfig.selected_model_index = index;
+function selectModel(pIndex: number, mIndex: number) {
+  appConfig.active_provider_index = pIndex;
+  appConfig.active_model_index = mIndex;
   showModelDropdown.value = false;
 }
 
-function handleModelLabel(model: { display_name: string; model: string }) {
-  return model.display_name || model.model || "unnamed";
-}
+// Flatten all provider models for dropdown: [{pIndex, mIndex, id}]
+const allModels = computed(() => {
+  const result: Array<{ pIndex: number; mIndex: number; id: string }> = [];
+  appConfig.providers.forEach((prov, pi) => {
+    prov.models.forEach((m, mi) => {
+      result.push({ pIndex: pi, mIndex: mi, id: m.id });
+    });
+  });
+  return result;
+});
+
+const isActiveModelEntry = (pIndex: number, mIndex: number) =>
+  pIndex === appConfig.active_provider_index && mIndex === appConfig.active_model_index;
 
 function onDocumentClick(e: MouseEvent) {
   const target = e.target as Node;
@@ -237,20 +248,20 @@ useShortcutTriggered(() => {
           <Teleport to="body">
             <Transition name="dropdown">
               <div
-                v-if="showModelDropdown && appConfig.models.length > 0"
+                v-if="showModelDropdown && allModels.length > 0"
                 ref="modelMenuRef"
                 class="model-dropdown"
                 :style="{ top: dropdownPos.top + 'px', left: dropdownPos.left + 'px' }"
               >
                 <button
-                  v-for="(m, i) in appConfig.models"
-                  :key="i"
-                  @click="selectModel(i)"
+                  v-for="entry in allModels"
+                  :key="entry.pIndex + '-' + entry.mIndex"
+                  @click="selectModel(entry.pIndex, entry.mIndex)"
                   class="model-option"
-                  :class="{ selected: i === appConfig.selected_model_index }"
+                  :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
                 >
-                  <span class="truncate">{{ handleModelLabel(m) }}</span>
-                  <span v-if="i === appConfig.selected_model_index" class="check-mark">&#10003;</span>
+                  <span class="truncate">{{ entry.id }}</span>
+                  <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
                 </button>
               </div>
             </Transition>
