@@ -317,7 +317,7 @@ useShortcutTriggered(() => {
             class="flex items-center gap-2 text-[11px] text-white/40"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            Translating...
+            Sending...
           </div>
         </Transition>
 
@@ -332,31 +332,29 @@ useShortcutTriggered(() => {
           </div>
         </Transition>
 
-        <!-- Input area -->
-        <textarea
-          ref="textareaRef"
-          v-model="inputText"
-          @keydown="handleKeydown"
-          :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to translate...'"
-          rows="1"
-          class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
-        />
-
-        <!-- Toolbar: Send + Settings + Dismiss -->
-        <div class="flex items-center gap-2">
+        <!-- Input area + inline send -->
+        <div class="relative">
+          <textarea
+            ref="textareaRef"
+            v-model="inputText"
+            @keydown="handleKeydown"
+            :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to send...'"
+            rows="1"
+            class="floating-input floating-input-with-btn w-full resize-none text-[13px] leading-relaxed outline-none"
+          />
           <button
             @click="handleTranslate"
             :disabled="!inputText.trim() || isLoading"
-            class="send-btn"
-            title="Translate (Enter)"
+            class="send-btn-inline"
+            title="Send (Enter)"
           >
             <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
-            <template v-else>
-              <Send :size="13" />
-              <span class="text-[12px] font-medium tracking-wide ml-1">Send</span>
-            </template>
+            <Send v-else :size="13" />
           </button>
+        </div>
 
+        <!-- Toolbar -->
+        <div class="flex items-center gap-2">
           <div class="relative" ref="modelDropdownRef">
             <button
               v-if="activeModelName"
@@ -457,21 +455,8 @@ useShortcutTriggered(() => {
 
       <!-- !growAbove: result grows downward, input at top (default) -->
       <template v-else>
-        <!-- Toolbar: Send + Settings + Dismiss -->
+        <!-- Toolbar -->
         <div class="flex items-center gap-2">
-          <button
-            @click="handleTranslate"
-            :disabled="!inputText.trim() || isLoading"
-            class="send-btn"
-            title="Translate (Enter)"
-          >
-            <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
-            <template v-else>
-              <Send :size="13" />
-              <span class="text-[12px] font-medium tracking-wide ml-1">Send</span>
-            </template>
-          </button>
-
           <div class="relative" ref="modelDropdownRef">
             <button
               v-if="activeModelName"
@@ -569,15 +554,26 @@ useShortcutTriggered(() => {
           </button>
         </div>
 
-        <!-- Input area -->
-        <textarea
-          ref="textareaRef"
-          v-model="inputText"
-          @keydown="handleKeydown"
-          :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to translate...'"
-          rows="1"
-          class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
-        />
+        <!-- Input area + inline send -->
+        <div class="relative">
+          <textarea
+            ref="textareaRef"
+            v-model="inputText"
+            @keydown="handleKeydown"
+            :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to send...'"
+            rows="1"
+            class="floating-input floating-input-with-btn w-full resize-none text-[13px] leading-relaxed outline-none"
+          />
+          <button
+            @click="handleTranslate"
+            :disabled="!inputText.trim() || isLoading"
+            class="send-btn-inline"
+            title="Send (Enter)"
+          >
+            <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
+            <Send v-else :size="13" />
+          </button>
+        </div>
 
         <!-- Loading state -->
         <Transition name="fade">
@@ -586,7 +582,7 @@ useShortcutTriggered(() => {
             class="flex items-center gap-2 text-[11px] text-white/40"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            Translating...
+            Sending...
           </div>
         </Transition>
 
@@ -644,30 +640,39 @@ useShortcutTriggered(() => {
   box-shadow: 0 0 0 2px rgba(217, 160, 71, 0.08);
 }
 
-/* Send button */
-.send-btn {
-  display: inline-flex;
+/* Textarea with inline send button */
+.floating-input-with-btn {
+  padding-right: 34px;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.send-btn-inline {
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  display: flex;
   align-items: center;
-  height: 30px;
-  padding: 0 14px 0 11px;
-  border-radius: 8px;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   background: linear-gradient(135deg, #d4a048 0%, #c4922e 100%);
   color: #1a1a1a;
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
 
-.send-btn:hover:not(:disabled) {
+.send-btn-inline:hover:not(:disabled) {
   background: linear-gradient(135deg, #ddb35a 0%, #d4a048 100%);
-  transform: translateY(-0.5px);
-  box-shadow: 0 4px 12px rgba(212, 160, 72, 0.25);
+  box-shadow: 0 2px 8px rgba(212, 160, 72, 0.3);
 }
 
-.send-btn:active:not(:disabled) {
-  transform: translateY(0);
+.send-btn-inline:active:not(:disabled) {
+  transform: scale(0.9);
 }
 
-.send-btn:disabled {
+.send-btn-inline:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
