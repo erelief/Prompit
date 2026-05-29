@@ -965,8 +965,9 @@ useShortcutTriggered(() => {
   overflow-y: auto;
   overflow-x: hidden;
 }
-.model-dropdown::-webkit-scrollbar { width: 2.5px; }
-.model-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,.09); border-radius: 3px; }
+.model-dropdown::-webkit-scrollbar { width: 3px; }
+.model-dropdown::-webkit-scrollbar-track { margin: 10px 0; }
+.model-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 3px; }
 
 .model-option {
   display: flex;
