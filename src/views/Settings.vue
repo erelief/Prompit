@@ -512,7 +512,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
 
               <!-- fetched picker -->
               <div v-if="addingModelProvider === pi" class="picker" @click.stop>
-                <div class="picker-scroll">
+                <div class="picker-scroll settings-scrollbar">
                   <button
                     v-for="mid in getFetchedModels(pi)" :key="mid"
                     class="pick-item"
@@ -560,7 +560,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
           <Teleport to="body">
             <Transition name="drop">
               <div v-if="showModelSelector && allFlat.length > 0" class="sel-menu" :style="{ top: selMenuPos.top + 'px', left: selMenuPos.left + 'px' }">
-                <div class="sel-clip">
+                <div class="sel-clip settings-scrollbar">
                 <div class="sel-menu-inner">
                   <button
                     v-for="e in allFlat" :key="e.pIndex + '-' + e.mIndex"
@@ -601,7 +601,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
           <Teleport to="body">
             <Transition name="drop">
               <div v-if="showLangSelector" class="sel-menu lang-menu" :style="{ top: langMenuPos.top + 'px', left: langMenuPos.left + 'px' }">
-                <div class="sel-clip">
+                <div class="sel-clip settings-scrollbar">
                 <div class="sel-menu-inner">
                   <button
                     v-for="lang in targetLanguages" :key="lang"
@@ -783,6 +783,11 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
 .body::-webkit-scrollbar{width:3px}
 .body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07);border-radius:3px}
 
+/* ── Shared scrollbar (picker & dropdown lists) ── */
+.settings-scrollbar::-webkit-scrollbar{width:3px}
+.settings-scrollbar::-webkit-scrollbar-track{margin:10px 0}
+.settings-scrollbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:3px}
+
 /* ── Section head ── */
 .section-head {
   display:flex; align-items:center; justify-content:space-between;
@@ -943,10 +948,8 @@ label {
   border-radius:9px; background: rgba(255,255,255,.018); overflow:hidden;
 }
 .picker-scroll {
-  max-height:172px; overflow-y:auto; padding:3px;
+  max-height:180px; overflow-y:auto; padding:3px;
 }
-.picker-scroll::-webkit-scrollbar{width:2.5px}
-.picker-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.09);border-radius:3px}
 .pick-item {
   display:flex; align-items:center; justify-content:space-between;
   width:100%; padding: 5px 9px; border-radius:5px;
@@ -1012,8 +1015,6 @@ label {
   z-index:99999; overflow:hidden;
 }
 .sel-clip{ max-height:inherit; overflow-y:auto; overflow-x:hidden; padding:5px 7px 5px 5px; }
-.sel-clip::-webkit-scrollbar{width:3px}
-.sel-clip::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:3px}
 .sel-menu-inner{ min-height:0; }
 .sel-opt {
   display:flex; align-items:center; justify-content:space-between; gap:10px;
