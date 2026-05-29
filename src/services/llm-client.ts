@@ -1,12 +1,5 @@
 import { getActiveModel, appConfig } from "../stores/config";
 
-const TRANSLATION_SYSTEM_PROMPT = `You are a translation engine. Translate the user's input text to the target language.
-Rules:
-- Output ONLY the translated text, nothing else.
-- Preserve the original punctuation style and line breaks.
-- Do not add explanations, notes, or any extra content.
-- If the input is already in the target language, output it as-is.`;
-
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -78,18 +71,16 @@ export async function translate(text: string): Promise<string> {
 }
 
 function buildSystemPrompt(): string {
-  let prompt = TRANSLATION_SYSTEM_PROMPT;
-  prompt += `\nTarget language: ${appConfig.target_lang}.`;
-
   const enabledPersonas = appConfig.personas.filter((p) => p.enabled);
+
+  let rules = "";
   for (const persona of enabledPersonas) {
-    prompt += `\n${persona.prompt}`;
+    rules += `\n- Additional style instructions: ${persona.prompt}`;
   }
+  rules += "\n- Output ONLY the translated text, nothing else.";
+  rules += "\n- Preserve the original punctuation style and line breaks.";
+  rules += "\n- Do not add explanations, notes, or any extra content.";
+  rules += "\n- If the input is already in the target language, output it as-is.";
 
-  return prompt;
+  return `You are a translation engine. Translate the user's input text to the target language.\nRules:${rules}\nTarget language: ${appConfig.target_lang}.`;
 }
-
-export const _internals = {
-  buildSystemPrompt,
-  TRANSLATION_SYSTEM_PROMPT,
-};
