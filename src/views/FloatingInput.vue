@@ -256,9 +256,9 @@ onUnmounted(() => {
   resizeObserver?.disconnect();
 });
 
-// Resize window when content grows
+// Resize window when content changes
 watch(bodyHeight, (h) => {
-  if (h > lastSentHeight) {
+  if (h !== lastSentHeight) {
     lastSentHeight = h;
     invoke("resize_and_reposition", { height: h });
   }
