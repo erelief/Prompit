@@ -8,7 +8,7 @@ app.use(router);
 
 function applyRouteTheme(path: string) {
   const isSettings = path === "/settings";
-  const bg = isSettings ? "#111827" : "transparent";
+  const bg = isSettings ? "#0b0b0f" : "transparent";
   document.documentElement.style.background = bg;
   document.body.style.background = bg;
   document.body.style.overflow = isSettings ? "auto" : "hidden";

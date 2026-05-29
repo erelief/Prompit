@@ -671,6 +671,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
 .settings-root {
   height: 100vh; display: flex; flex-direction: column;
   background: #0b0b0f; color: #fff; overflow: hidden;
+  border-radius: 11px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
