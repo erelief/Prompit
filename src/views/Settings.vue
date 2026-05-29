@@ -26,6 +26,7 @@ import {
   Pencil,
   Cpu,
   CircleDot,
+  X,
 } from "@lucide/vue";
 
 type TabKey = "general" | "translation";
@@ -305,6 +306,10 @@ async function goBack() {
   router.push("/");
 }
 
+async function closeWindow() {
+  await getCurrentWindow().close();
+}
+
 async function handleDrag(e: MouseEvent) {
   const t = e.target as HTMLElement;
   if (t.closest("textarea, button, input, select, a, .provider-card, .sel-menu")) return;
@@ -327,10 +332,10 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
       <button @click="goBack" class="back-btn" title="Back">
         <ArrowLeft :size="18" :stroke-width="1.8" />
       </button>
-      <div>
-        <h1>Settings</h1>
-        <p>Configure your translator</p>
-      </div>
+      <h1 class="header-title">Settings</h1>
+      <button @click="closeWindow" class="close-btn" title="Close">
+        <X :size="16" :stroke-width="1.8" />
+      </button>
     </header>
 
     <!-- ═══ Tabs ═══ -->
@@ -548,7 +553,6 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
             :class="{ dead: allFlat.length === 0 }"
             @click="toggleSelMenu()"
           >
-            <Cpu :size="13" :stroke-width="1.7" />
             <span class="sel-text">{{ allFlat.length === 0 ? 'No models available' : activeLabel }}</span>
             <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showModelSelector }" />
           </button>
@@ -590,7 +594,6 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
             class="sel-btn lang-btn"
             @click="toggleLangMenu()"
           >
-            <Languages :size="13" :stroke-width="1.7" />
             <span class="sel-text">{{ appConfig.target_lang }}</span>
             <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showLangSelector }" />
           </button>
@@ -736,12 +739,9 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
   padding: 16px 24px 12px; border-bottom: 1px solid rgba(255,255,255,.035);
   flex-shrink: 0;
 }
-.settings-header h1 {
-  font-size: 15px; font-weight: 700; letter-spacing: -.02em;
+.header-title {
+  flex: 1; font-size: 15px; font-weight: 700; letter-spacing: -.02em;
   color: rgba(255,255,255,.88); line-height: 1.2;
-}
-.settings-header p {
-  font-size: 10.5px; color: rgba(255,255,255,.22); margin-top: 1px;
 }
 .back-btn {
   display: flex; align-items: center; justify-content: center;
@@ -749,6 +749,12 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
   color: rgba(255,255,255,.35); transition: .15s;
 }
 .back-btn:hover { color: rgba(255,255,255,.75); background: rgba(255,255,255,.06); }
+.close-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 9px;
+  color: rgba(255,255,255,.35); transition: .15s;
+}
+.close-btn:hover { color: rgba(255,255,255,.75); background: rgba(255,255,255,.06); }
 
 /* ── Tabs ── */
 .tabs {
