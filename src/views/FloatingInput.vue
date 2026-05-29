@@ -74,9 +74,16 @@ const isActiveModelEntry = (pIndex: number, mIndex: number) =>
   pIndex === appConfig.active_provider_index && mIndex === appConfig.active_model_index;
 
 // ── Persona selector ──
+const lastActivePersonaIndex = ref(0);
 const activePersonaName = computed(() => {
   const p = appConfig.personas.find((p) => p.enabled);
   return p?.name || null;
+});
+const personaOn = computed(() => appConfig.personas.some((p) => p.enabled));
+const displayPersonaName = computed(() => {
+  if (activePersonaName.value) return activePersonaName.value;
+  const i = lastActivePersonaIndex.value;
+  return i < appConfig.personas.length ? appConfig.personas[i].name : (appConfig.personas[0]?.name || 'Persona');
 });
 
 const showPersonaDropdown = ref(false);
@@ -84,6 +91,17 @@ const personaDropdownRef = ref<HTMLDivElement | null>(null);
 const personaBtnRef = ref<HTMLButtonElement | null>(null);
 const personaMenuRef = ref<HTMLDivElement | null>(null);
 const personaDropdownPos = ref({ top: 0, left: 0 });
+
+function togglePersona() {
+  const active = appConfig.personas.findIndex((p) => p.enabled);
+  if (active >= 0) {
+    appConfig.personas[active].enabled = false;
+  } else {
+    const i = lastActivePersonaIndex.value < appConfig.personas.length
+      ? lastActivePersonaIndex.value : 0;
+    appConfig.personas[i].enabled = true;
+  }
+}
 
 function togglePersonaDropdown() {
   if (!showPersonaDropdown.value && personaBtnRef.value) {
@@ -104,9 +122,9 @@ function togglePersonaDropdown() {
 }
 
 function selectPersona(index: number) {
-  const wasOn = appConfig.personas[index].enabled;
   for (const p of appConfig.personas) p.enabled = false;
-  if (!wasOn) appConfig.personas[index].enabled = true;
+  appConfig.personas[index].enabled = true;
+  lastActivePersonaIndex.value = index;
   showPersonaDropdown.value = false;
 }
 
@@ -320,17 +338,26 @@ useShortcutTriggered(() => {
           </Teleport>
         </div>
 
-        <!-- Persona selector -->
-        <div v-if="appConfig.personas.length > 0" class="relative" ref="personaDropdownRef">
+        <!-- Persona toggle + selector -->
+        <div v-if="appConfig.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
           <button
-            ref="personaBtnRef"
-            @click="togglePersonaDropdown"
-            class="model-btn persona-btn"
-            :class="{ active: showPersonaDropdown, on: !!activePersonaName }"
+            @click="togglePersona"
+            class="persona-toggle"
+            :class="{ on: personaOn }"
+            :title="personaOn ? 'Disable persona' : 'Enable persona'"
           >
             <UserCircle :size="11" :stroke-width="1.8" />
-            <span class="truncate max-w-[100px]">{{ activePersonaName || 'Persona' }}</span>
-            <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
+            <span class="truncate max-w-[90px]">{{ displayPersonaName }}</span>
+            <span class="persona-dot" :class="{ on: personaOn }" />
+          </button>
+          <button
+            v-if="appConfig.personas.length > 1"
+            ref="personaBtnRef"
+            @click="togglePersonaDropdown"
+            class="persona-chevron"
+            :class="{ on: personaOn, active: showPersonaDropdown }"
+          >
+            <ChevronDown :size="10" :stroke-width="2" class="transition-transform"
               :style="{ transform: showPersonaDropdown ? 'rotate(180deg)' : 'rotate(0)' }" />
           </button>
 
@@ -488,17 +515,83 @@ useShortcutTriggered(() => {
   border-color: rgba(255, 255, 255, 0.12);
 }
 
-/* Persona button */
-.persona-btn.on {
-  color: rgba(217, 160, 71, 0.85);
-  border-color: rgba(217, 160, 71, 0.18);
-  background: rgba(217, 160, 71, 0.06);
+/* Persona toggle */
+.persona-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
 }
-.persona-btn.on:hover,
-.persona-btn.on.active {
+.persona-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border-radius: 8px 0 0 8px;
+  font-size: 10px;
+  font-weight: 550;
+  color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: none;
+  transition: all 0.18s ease;
+}
+.persona-toggle:hover {
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.065);
+}
+.persona-toggle.on {
+  color: rgba(217, 160, 71, 0.9);
+  background: rgba(217, 160, 71, 0.07);
+  border-color: rgba(217, 160, 71, 0.18);
+}
+.persona-toggle.on:hover {
   color: rgba(217, 160, 71, 1);
+  background: rgba(217, 160, 71, 0.11);
+}
+
+/* Status dot */
+.persona-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.persona-dot.on {
+  background: rgba(217, 160, 71, 0.9);
+  box-shadow: 0 0 5px rgba(217, 160, 71, 0.3);
+}
+
+/* Persona chevron */
+.persona-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 28px;
+  border-radius: 0 8px 8px 0;
+  color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  transition: all 0.15s ease;
+}
+.persona-chevron:hover,
+.persona-chevron.active {
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.065);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.persona-chevron.on {
+  border-color: rgba(217, 160, 71, 0.18);
+  background: rgba(217, 160, 71, 0.07);
+}
+.persona-chevron.on:hover,
+.persona-chevron.on.active {
   border-color: rgba(217, 160, 71, 0.3);
-  background: rgba(217, 160, 71, 0.1);
+  background: rgba(217, 160, 71, 0.11);
+  color: rgba(217, 160, 71, 0.9);
 }
 
 /* Model dropdown */
