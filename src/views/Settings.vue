@@ -28,7 +28,6 @@ import {
   CircleDot,
   X,
 } from "@lucide/vue";
-import { useDropdown } from "../composables/useDropdown";
 
 type TabKey = "general" | "translation";
 
@@ -43,12 +42,12 @@ const fetchStatuses = ref<Map<number, string>>(new Map());
 const fetchedModels = ref<Map<string, string[]>>(new Map());
 const fetchingProviders = ref(new Set<number>());
 const addingModelProvider = ref<number | null>(null);
-
-// ── Dropdown instances (mutual close) ──
-const allSettingsDropdowns = ref<ReturnType<typeof useDropdown>[]>([]);
-const modelDD = useDropdown({ siblings: allSettingsDropdowns, offset: 5 });
-const langDD = useDropdown({ siblings: allSettingsDropdowns, offset: 5 });
-allSettingsDropdowns.value = [modelDD, langDD];
+const showModelSelector = ref(false);
+const showLangSelector = ref(false);
+const selMenuPos = ref({ top: 0, left: 0 });
+const langMenuPos = ref({ top: 0, left: 0 });
+const selBtnRef = ref<HTMLElement | null>(null);
+const langBtnRef = ref<HTMLElement | null>(null);
 
 // ── Persona management ──
 const addingPersona = ref(false);
@@ -93,12 +92,26 @@ function togglePersona(index: number) {
 
 function toggleSelMenu() {
   if (allFlat.value.length === 0) return;
-  modelDD.toggle();
+  showLangSelector.value = false;
+  showModelSelector.value = !showModelSelector.value;
+  if (showModelSelector.value && selBtnRef.value) {
+    const r = selBtnRef.value.getBoundingClientRect();
+    selMenuPos.value = { top: r.bottom + 5, left: r.left };
+  }
+}
+
+function toggleLangMenu() {
+  showModelSelector.value = false;
+  showLangSelector.value = !showLangSelector.value;
+  if (showLangSelector.value && langBtnRef.value) {
+    const r = langBtnRef.value.getBoundingClientRect();
+    langMenuPos.value = { top: r.bottom + 5, left: r.left };
+  }
 }
 
 function pickLang(lang: string) {
   appConfig.target_lang = lang;
-  langDD.close();
+  showLangSelector.value = false;
 }
 
 const targetLanguages = [
@@ -271,18 +284,18 @@ const activeLabel = computed(() => {
 function pickModel(e: FlatEntry) {
   appConfig.active_provider_index = e.pIndex;
   appConfig.active_model_index = e.mIndex;
-  modelDD.close();
+  showModelSelector.value = false;
 }
 
 // ── Click outside panels ──
 
 function onDocClick(e: MouseEvent) {
-  const target = e.target as Node;
-  for (const dd of allSettingsDropdowns.value) {
-    if (dd.containerRef.value?.contains(target) || dd.menuRef.value?.contains(target)) return;
-    dd.close();
-  }
-  if (!(e.target as HTMLElement).closest(".picker") && !(e.target as HTMLElement).closest(".gold-micro"))
+  const t = e.target as HTMLElement;
+  if (!t.closest(".sel-menu") && !t.closest(".sel-btn"))
+    showModelSelector.value = false;
+  if (!t.closest(".lang-menu") && !t.closest(".lang-btn"))
+    showLangSelector.value = false;
+  if (!t.closest(".picker") && !t.closest(".gold-micro"))
     addingModelProvider.value = null;
 }
 
@@ -533,21 +546,20 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
         <div class="section-head">
           <span class="section-title"><Cpu :size="13" />Translation Model</span>
         </div>
-        <div class="sel-wrap" :ref="el => modelDD.containerRef.value = el">
+        <div class="sel-wrap">
           <button
-            :ref="el => modelDD.btnRef.value = el"
+            ref="selBtnRef"
             class="sel-btn"
             :class="{ dead: allFlat.length === 0 }"
             @click="toggleSelMenu()"
           >
             <span class="sel-text">{{ allFlat.length === 0 ? 'No models available' : activeLabel }}</span>
-            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow"
-              :style="{ transform: modelDD.chevronTransform() }" />
+            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showModelSelector }" />
           </button>
 
           <Teleport to="body">
             <Transition name="drop">
-              <div v-if="modelDD.show.value && allFlat.length > 0" :ref="el => modelDD.menuRef.value = el" class="sel-menu" :style="{ top: modelDD.pos.value.top + 'px', left: modelDD.pos.value.left + 'px' }">
+              <div v-if="showModelSelector && allFlat.length > 0" class="sel-menu" :style="{ top: selMenuPos.top + 'px', left: selMenuPos.left + 'px' }">
                 <div class="sel-clip settings-scrollbar">
                 <div class="sel-menu-inner">
                   <button
@@ -576,20 +588,19 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
         <div class="section-head mt">
           <span class="section-title"><Languages :size="13" />Target Language</span>
         </div>
-        <div class="sel-wrap" :ref="el => langDD.containerRef.value = el">
+        <div class="sel-wrap">
           <button
-            :ref="el => langDD.btnRef.value = el"
+            ref="langBtnRef"
             class="sel-btn lang-btn"
-            @click="langDD.toggle()"
+            @click="toggleLangMenu()"
           >
             <span class="sel-text">{{ appConfig.target_lang }}</span>
-            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow"
-              :style="{ transform: langDD.chevronTransform() }" />
+            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showLangSelector }" />
           </button>
 
           <Teleport to="body">
             <Transition name="drop">
-              <div v-if="langDD.show.value" :ref="el => langDD.menuRef.value = el" class="sel-menu lang-menu" :style="{ top: langDD.pos.value.top + 'px', left: langDD.pos.value.left + 'px' }">
+              <div v-if="showLangSelector" class="sel-menu lang-menu" :style="{ top: langMenuPos.top + 'px', left: langMenuPos.left + 'px' }">
                 <div class="sel-clip settings-scrollbar">
                 <div class="sel-menu-inner">
                   <button
@@ -993,6 +1004,7 @@ label {
 }
 .lang-btn .sel-text{ font-family: inherit; font-size:12px; }
 .sel-arrow { color: rgba(255,255,255,.22); transition: transform .18s; flex-shrink:0; }
+.sel-arrow.rot{ transform: rotate(180deg); }
 
 .sel-menu {
   position:fixed; min-width:230px; max-width:320px; max-height:180px;

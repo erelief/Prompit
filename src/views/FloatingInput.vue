@@ -5,10 +5,9 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
-import { loadConfig, getActiveModel, appConfig } from "../stores/config";
+import { loadConfig, saveConfig, getActiveModel, appConfig } from "../stores/config";
 import { translate } from "../services/llm-client";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages } from "@lucide/vue";
-import { useDropdown } from "../composables/useDropdown";
 
 const router = useRouter();
 
@@ -19,6 +18,8 @@ const errorMessage = ref("");
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const hasResult = ref(false);
 const growAbove = ref(false);
+const chevronTransform = (open: boolean) =>
+  `rotate(${open === growAbove.value ? 0 : 180}deg)`;
 const bodyHeight = ref(0);
 let lastSentHeight = 0;
 let resizeObserver: ResizeObserver | null = null;
@@ -30,20 +31,38 @@ const activeModelName = computed(() => {
   return m.model || null;
 });
 
-// ── Dropdown instances (mutual close) ──
-const allDropdowns = ref<ReturnType<typeof useDropdown>[]>([]);
-const modelDD = useDropdown({ siblings: allDropdowns });
-const langDD = useDropdown({ siblings: allDropdowns });
-const personaDD = useDropdown({ siblings: allDropdowns, posOverride: (rect) => ({
-  top: rect.bottom + 4,
-  left: personaDD.containerRef.value?.getBoundingClientRect().left ?? rect.left,
-})});
-allDropdowns.value = [modelDD, langDD, personaDD];
+const showModelDropdown = ref(false);
+const modelDropdownRef = ref<HTMLDivElement | null>(null);
+const modelBtnRef = ref<HTMLButtonElement | null>(null);
+const modelMenuRef = ref<HTMLDivElement | null>(null);
+const dropdownPos = ref({ top: 0, left: 0 });
+
+function toggleModelDropdown() {
+  showLangDropdown.value = false;
+  showPersonaDropdown.value = false;
+  if (!showModelDropdown.value && modelBtnRef.value) {
+    const rect = modelBtnRef.value.getBoundingClientRect();
+    dropdownPos.value = { top: rect.bottom + 4, left: rect.left };
+    showModelDropdown.value = true;
+    nextTick(() => {
+      if (modelMenuRef.value) {
+        const menuH = modelMenuRef.value.offsetHeight;
+        const spaceBelow = window.innerHeight - rect.bottom - 4;
+        const spaceAbove = rect.top - 4;
+        if (menuH > spaceBelow && menuH <= spaceAbove) {
+          dropdownPos.value = { top: rect.top - menuH - 4, left: rect.left };
+        }
+      }
+    });
+  } else {
+    showModelDropdown.value = false;
+  }
+}
 
 function selectModel(pIndex: number, mIndex: number) {
   appConfig.active_provider_index = pIndex;
   appConfig.active_model_index = mIndex;
-  modelDD.close();
+  showModelDropdown.value = false;
   if (hasResult.value) {
     hasResult.value = false;
     translatedText.value = "";
@@ -64,7 +83,7 @@ const allModels = computed(() => {
 const isActiveModelEntry = (pIndex: number, mIndex: number) =>
   pIndex === appConfig.active_provider_index && mIndex === appConfig.active_model_index;
 
-// ── Persona toggle (on/off, not dropdown) ──
+// ── Persona selector ──
 const lastActivePersonaIndex = ref(0);
 const activePersonaName = computed(() => {
   const p = appConfig.personas.find((p) => p.enabled);
@@ -76,6 +95,12 @@ const displayPersonaName = computed(() => {
   const i = lastActivePersonaIndex.value;
   return i < appConfig.personas.length ? appConfig.personas[i].name : (appConfig.personas[0]?.name || 'Persona');
 });
+
+const showPersonaDropdown = ref(false);
+const personaDropdownRef = ref<HTMLDivElement | null>(null);
+const personaBtnRef = ref<HTMLButtonElement | null>(null);
+const personaMenuRef = ref<HTMLDivElement | null>(null);
+const personaDropdownPos = ref({ top: 0, left: 0 });
 
 function togglePersona() {
   const active = appConfig.personas.findIndex((p) => p.enabled);
@@ -92,29 +117,79 @@ function togglePersona() {
   }
 }
 
+function togglePersonaDropdown() {
+  showModelDropdown.value = false;
+  showLangDropdown.value = false;
+  if (!showPersonaDropdown.value && personaBtnRef.value) {
+    const rect = personaBtnRef.value.getBoundingClientRect();
+    const wrapLeft = personaDropdownRef.value?.getBoundingClientRect().left ?? rect.left;
+    personaDropdownPos.value = { top: rect.bottom + 4, left: wrapLeft };
+    showPersonaDropdown.value = true;
+    nextTick(() => {
+      if (personaMenuRef.value) {
+        const menuH = personaMenuRef.value.offsetHeight;
+        const spaceBelow = window.innerHeight - rect.bottom - 4;
+        const spaceAbove = rect.top - 4;
+        if (menuH > spaceBelow && menuH <= spaceAbove) {
+          personaDropdownPos.value = { top: rect.top - menuH - 4, left: wrapLeft };
+        }
+      }
+    });
+  } else {
+    showPersonaDropdown.value = false;
+  }
+}
+
 function selectPersona(index: number) {
   for (const p of appConfig.personas) p.enabled = false;
   appConfig.personas[index].enabled = true;
   lastActivePersonaIndex.value = index;
-  personaDD.close();
+  showPersonaDropdown.value = false;
   if (hasResult.value) {
     hasResult.value = false;
     translatedText.value = "";
   }
 }
 
-// ── Language ──
+// ── Language selector ──
 const langCodeMap: Record<string, string> = {
   "English": "EN", "Simplified Chinese": "简中", "Traditional Chinese": "繁中",
   "Japanese": "JA", "Korean": "KO", "French": "FR",
   "German": "DE", "Spanish": "ES", "Russian": "RU",
 };
 const langCode = computed(() => langCodeMap[appConfig.target_lang] || appConfig.target_lang?.slice(0, 2).toUpperCase() || "EN");
+const showLangDropdown = ref(false);
+const langDropdownRef = ref<HTMLDivElement | null>(null);
+const langBtnRef = ref<HTMLButtonElement | null>(null);
+const langMenuRef = ref<HTMLDivElement | null>(null);
+const langDropdownPos = ref({ top: 0, left: 0 });
 const targetLanguages = ["English", "Simplified Chinese", "Traditional Chinese", "Japanese", "Korean", "French", "German", "Spanish", "Russian"];
+
+function toggleLangDropdown() {
+  showModelDropdown.value = false;
+  showPersonaDropdown.value = false;
+  if (!showLangDropdown.value && langBtnRef.value) {
+    const rect = langBtnRef.value.getBoundingClientRect();
+    langDropdownPos.value = { top: rect.bottom + 4, left: rect.left };
+    showLangDropdown.value = true;
+    nextTick(() => {
+      if (langMenuRef.value) {
+        const menuH = langMenuRef.value.offsetHeight;
+        const spaceBelow = window.innerHeight - rect.bottom - 4;
+        const spaceAbove = rect.top - 4;
+        if (menuH > spaceBelow && menuH <= spaceAbove) {
+          langDropdownPos.value = { top: rect.top - menuH - 4, left: rect.left };
+        }
+      }
+    });
+  } else {
+    showLangDropdown.value = false;
+  }
+}
 
 function pickLang(lang: string) {
   appConfig.target_lang = lang;
-  langDD.close();
+  showLangDropdown.value = false;
 }
 
 // ── Dropdown max-height (2 items visible, scroll beyond) ──
@@ -127,10 +202,29 @@ const langDropdownStyle = computed(() => capHeight(targetLanguages.length));
 
 function onDocumentClick(e: MouseEvent) {
   const target = e.target as Node;
-  for (const dd of allDropdowns.value) {
-    if (dd.containerRef.value?.contains(target) || dd.menuRef.value?.contains(target)) return;
-    dd.close();
+  if (
+    modelDropdownRef.value?.contains(target) ||
+    modelMenuRef.value?.contains(target)
+  ) {
+    return;
   }
+  showModelDropdown.value = false;
+
+  if (
+    personaDropdownRef.value?.contains(target) ||
+    personaMenuRef.value?.contains(target)
+  ) {
+    return;
+  }
+  showPersonaDropdown.value = false;
+
+  if (
+    langDropdownRef.value?.contains(target) ||
+    langMenuRef.value?.contains(target)
+  ) {
+    return;
+  }
+  showLangDropdown.value = false;
 }
 
 watch(inputText, () => {
@@ -189,7 +283,7 @@ async function handleHide() {
 async function handleDrag(e: MouseEvent) {
   // Only drag from the background, not from interactive elements
   const target = e.target as HTMLElement;
-  if (target.closest("textarea, button, input, a, .model-dropdown, .persona-dropdown, .lang-dropdown")) return;
+  if (target.closest("textarea, button, input, a, .model-dropdown, .persona-dropdown")) return;
   await getCurrentWindow().startDragging();
 }
 
@@ -222,6 +316,13 @@ onMounted(async () => {
     bodyHeight.value = entries[0].contentRect.height;
   });
   resizeObserver.observe(document.body);
+});
+
+// Auto-save config changes to disk
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+watch(() => JSON.stringify(appConfig), () => {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveConfig(); }, 800);
 });
 
 onUnmounted(() => {
@@ -330,27 +431,27 @@ useShortcutTriggered(() => {
         <!-- Toolbar -->
         <div class="flex items-center gap-2">
           <!-- Language selector -->
-          <div class="lang-wrap" :ref="el => langDD.containerRef.value = el">
+          <div class="lang-wrap" ref="langDropdownRef">
             <button
-              :ref="el => langDD.btnRef.value = el"
-              @click="langDD.toggle()"
+              ref="langBtnRef"
+              @click="toggleLangDropdown"
               class="lang-btn"
-              :class="{ active: langDD.show.value }"
+              :class="{ active: showLangDropdown }"
               title="Target Language"
             >
               <Languages :size="11" :stroke-width="1.8" />
               <span>{{ langCode }}</span>
               <ChevronDown :size="9" :stroke-width="2" class="lang-chevron"
-                :style="{ transform: langDD.chevronTransform() }" />
+                :style="{ transform: chevronTransform(showLangDropdown) }" />
             </button>
 
             <Teleport to="body">
               <Transition name="dropdown">
                 <div
-                  v-if="langDD.show.value"
-                  :ref="el => langDD.menuRef.value = el"
+                  v-if="showLangDropdown"
+                  ref="langMenuRef"
                   class="model-dropdown lang-dropdown"
-                  :style="{ top: langDD.pos.value.top + 'px', left: langDD.pos.value.left + 'px', ...langDropdownStyle }"
+                  :style="{ top: langDropdownPos.top + 'px', left: langDropdownPos.left + 'px', ...langDropdownStyle }"
                 >
                   <button
                     v-for="lang in targetLanguages"
@@ -367,26 +468,26 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
-          <div class="relative" :ref="el => modelDD.containerRef.value = el">
+          <div class="relative" ref="modelDropdownRef">
             <button
               v-if="activeModelName"
-              :ref="el => modelDD.btnRef.value = el"
-              @click="modelDD.toggle()"
+              ref="modelBtnRef"
+              @click="toggleModelDropdown"
               class="model-btn"
-              :class="{ active: modelDD.show.value }"
+              :class="{ active: showModelDropdown }"
             >
               <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
               <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
-                :style="{ transform: modelDD.chevronTransform() }" />
+                :style="{ transform: chevronTransform(showModelDropdown) }" />
             </button>
 
             <Teleport to="body">
               <Transition name="dropdown">
                 <div
-                  v-if="modelDD.show.value && allModels.length > 0"
-                  :ref="el => modelDD.menuRef.value = el"
+                  v-if="showModelDropdown && allModels.length > 0"
+                  ref="modelMenuRef"
                   class="model-dropdown"
-                  :style="{ top: modelDD.pos.value.top + 'px', left: modelDD.pos.value.left + 'px', ...modelDropdownStyle }"
+                  :style="{ top: dropdownPos.top + 'px', left: dropdownPos.left + 'px', ...modelDropdownStyle }"
                 >
                   <button
                     v-for="entry in allModels"
@@ -404,7 +505,7 @@ useShortcutTriggered(() => {
           </div>
 
           <!-- Persona toggle + selector -->
-          <div v-if="appConfig.personas.length > 0" class="persona-wrap" :ref="el => personaDD.containerRef.value = el">
+          <div v-if="appConfig.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
             <button
               @click="togglePersona"
               class="persona-toggle"
@@ -417,22 +518,22 @@ useShortcutTriggered(() => {
             </button>
             <button
               v-if="appConfig.personas.length > 1"
-              :ref="el => personaDD.btnRef.value = el"
-              @click="personaDD.toggle()"
+              ref="personaBtnRef"
+              @click="togglePersonaDropdown"
               class="persona-chevron"
-              :class="{ on: personaOn, active: personaDD.show.value }"
+              :class="{ on: personaOn, active: showPersonaDropdown }"
             >
               <ChevronDown :size="10" :stroke-width="2" class="transition-transform"
-                :style="{ transform: personaDD.chevronTransform() }" />
+                :style="{ transform: chevronTransform(showPersonaDropdown) }" />
             </button>
 
             <Teleport to="body">
               <Transition name="dropdown">
                 <div
-                  v-if="personaDD.show.value"
-                  :ref="el => personaDD.menuRef.value = el"
+                  v-if="showPersonaDropdown"
+                  ref="personaMenuRef"
                   class="model-dropdown persona-dropdown"
-                  :style="{ top: personaDD.pos.value.top + 'px', left: personaDD.pos.value.left + 'px', ...personaDropdownStyle }"
+                  :style="{ top: personaDropdownPos.top + 'px', left: personaDropdownPos.left + 'px', ...personaDropdownStyle }"
                 >
                   <button
                     v-for="(persona, pi) in appConfig.personas"
@@ -470,27 +571,27 @@ useShortcutTriggered(() => {
         <!-- Toolbar -->
         <div class="flex items-center gap-2">
           <!-- Language selector -->
-          <div class="lang-wrap" :ref="el => langDD.containerRef.value = el">
+          <div class="lang-wrap" ref="langDropdownRef">
             <button
-              :ref="el => langDD.btnRef.value = el"
-              @click="langDD.toggle()"
+              ref="langBtnRef"
+              @click="toggleLangDropdown"
               class="lang-btn"
-              :class="{ active: langDD.show.value }"
+              :class="{ active: showLangDropdown }"
               title="Target Language"
             >
               <Languages :size="11" :stroke-width="1.8" />
               <span>{{ langCode }}</span>
               <ChevronDown :size="9" :stroke-width="2" class="lang-chevron"
-                :style="{ transform: langDD.chevronTransform() }" />
+                :style="{ transform: chevronTransform(showLangDropdown) }" />
             </button>
 
             <Teleport to="body">
               <Transition name="dropdown">
                 <div
-                  v-if="langDD.show.value"
-                  :ref="el => langDD.menuRef.value = el"
+                  v-if="showLangDropdown"
+                  ref="langMenuRef"
                   class="model-dropdown lang-dropdown"
-                  :style="{ top: langDD.pos.value.top + 'px', left: langDD.pos.value.left + 'px', ...langDropdownStyle }"
+                  :style="{ top: langDropdownPos.top + 'px', left: langDropdownPos.left + 'px', ...langDropdownStyle }"
                 >
                   <button
                     v-for="lang in targetLanguages"
@@ -507,26 +608,26 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
-          <div class="relative" :ref="el => modelDD.containerRef.value = el">
+          <div class="relative" ref="modelDropdownRef">
             <button
               v-if="activeModelName"
-              :ref="el => modelDD.btnRef.value = el"
-              @click="modelDD.toggle()"
+              ref="modelBtnRef"
+              @click="toggleModelDropdown"
               class="model-btn"
-              :class="{ active: modelDD.show.value }"
+              :class="{ active: showModelDropdown }"
             >
               <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
               <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
-                :style="{ transform: modelDD.chevronTransform() }" />
+                :style="{ transform: chevronTransform(showModelDropdown) }" />
             </button>
 
             <Teleport to="body">
               <Transition name="dropdown">
                 <div
-                  v-if="modelDD.show.value && allModels.length > 0"
-                  :ref="el => modelDD.menuRef.value = el"
+                  v-if="showModelDropdown && allModels.length > 0"
+                  ref="modelMenuRef"
                   class="model-dropdown"
-                  :style="{ top: modelDD.pos.value.top + 'px', left: modelDD.pos.value.left + 'px', ...modelDropdownStyle }"
+                  :style="{ top: dropdownPos.top + 'px', left: dropdownPos.left + 'px', ...modelDropdownStyle }"
                 >
                   <button
                     v-for="entry in allModels"
@@ -544,7 +645,7 @@ useShortcutTriggered(() => {
           </div>
 
           <!-- Persona toggle + selector -->
-          <div v-if="appConfig.personas.length > 0" class="persona-wrap" :ref="el => personaDD.containerRef.value = el">
+          <div v-if="appConfig.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
             <button
               @click="togglePersona"
               class="persona-toggle"
@@ -557,22 +658,22 @@ useShortcutTriggered(() => {
             </button>
             <button
               v-if="appConfig.personas.length > 1"
-              :ref="el => personaDD.btnRef.value = el"
-              @click="personaDD.toggle()"
+              ref="personaBtnRef"
+              @click="togglePersonaDropdown"
               class="persona-chevron"
-              :class="{ on: personaOn, active: personaDD.show.value }"
+              :class="{ on: personaOn, active: showPersonaDropdown }"
             >
               <ChevronDown :size="10" :stroke-width="2" class="transition-transform"
-                :style="{ transform: personaDD.chevronTransform() }" />
+                :style="{ transform: chevronTransform(showPersonaDropdown) }" />
             </button>
 
             <Teleport to="body">
               <Transition name="dropdown">
                 <div
-                  v-if="personaDD.show.value"
-                  :ref="el => personaDD.menuRef.value = el"
+                  v-if="showPersonaDropdown"
+                  ref="personaMenuRef"
                   class="model-dropdown persona-dropdown"
-                  :style="{ top: personaDD.pos.value.top + 'px', left: personaDD.pos.value.left + 'px', ...personaDropdownStyle }"
+                  :style="{ top: personaDropdownPos.top + 'px', left: personaDropdownPos.left + 'px', ...personaDropdownStyle }"
                 >
                   <button
                     v-for="(persona, pi) in appConfig.personas"
