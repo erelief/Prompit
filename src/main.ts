@@ -7,7 +7,7 @@ const app = createApp(App);
 app.use(router);
 
 function applyRouteTheme(path: string) {
-  const isSettings = path === "/settings";
+  const isSettings = path === "/settings" || path === "/settings/dictionary";
   const bg = isSettings ? "#0b0b0f" : "transparent";
   document.documentElement.style.background = bg;
   document.body.style.background = bg;

@@ -105,7 +105,7 @@ onMounted(async () => {
   <div class="dict-root">
     <!-- Header -->
     <div class="dict-header">
-      <button class="back-btn" @click="router.back()">
+      <button class="back-btn" @click="router.push('/settings')">
         <ArrowLeft :size="16" />
       </button>
       <span class="header-title">User Dictionary</span>

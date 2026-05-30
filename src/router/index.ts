@@ -14,7 +14,7 @@ const router = createRouter({
       component: () => import("../views/Settings.vue"),
     },
     {
-      path: "/dictionary",
+      path: "/settings/dictionary",
       name: "dictionary",
       component: () => import("../views/DictionaryEditor.vue"),
     },
