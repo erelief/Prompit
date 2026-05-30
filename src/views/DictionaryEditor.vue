@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
@@ -10,54 +10,57 @@ import {
   exportDictionaryCsv,
 } from "../stores/config";
 import type { DictEntry } from "../stores/config";
-import { ArrowLeft, Download, Upload, Trash2 } from "@lucide/vue";
+import { ArrowLeft, Download, Upload, Trash2, Plus, Save } from "@lucide/vue";
 
 const entries = ref<DictEntry[]>([]);
 const loading = ref(true);
 const router = useRouter();
+const saveError = ref("");
+const dirty = ref(false);
 
-const EMPTY: DictEntry = { source: "", target: "" };
-
-/* ── Auto-save debounce ── */
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
-function scheduleSave() {
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    const nonEmpty = entries.value.filter(
-      (e) => e.source.trim() !== "" || e.target.trim() !== ""
-    );
-    try {
-      await saveDictionary(appConfig.target_lang, nonEmpty);
-    } catch (err) {
-      console.error("Failed to auto-save dictionary:", err);
-    }
-  }, 800);
+/* ── Add entry ── */
+function addEntry() {
+  entries.value.push({ source: "", target: "" });
+  dirty.value = true;
 }
 
-/* ── Helpers ── */
-function ensureEmptyTail() {
-  const last = entries.value[entries.value.length - 1];
-  if (!last || last.source !== "" || last.target !== "") {
-    entries.value.push({ ...EMPTY });
+/* ── Validate & Save ── */
+async function handleSave() {
+  saveError.value = "";
+  for (let i = 0; i < entries.value.length; i++) {
+    const e = entries.value[i];
+    const hasSource = e.source.trim() !== "";
+    const hasTarget = e.target.trim() !== "";
+    if (!hasSource && !hasTarget) {
+      saveError.value = `Row ${i + 1} is empty — fill it or delete it.`;
+      return;
+    }
+    if (!hasSource) {
+      saveError.value = `Row ${i + 1}: Translation requires a Source.`;
+      return;
+    }
+    if (!hasTarget) {
+      saveError.value = `Row ${i + 1}: Source requires a Translation.`;
+      return;
+    }
+  }
+  const valid = entries.value
+    .filter((e) => e.source.trim() !== "" && e.target.trim() !== "")
+    .map((e) => ({ source: e.source.trim(), target: e.target.trim() }));
+  try {
+    await saveDictionary(appConfig.target_lang, valid);
+    dirty.value = false;
+  } catch (err) {
+    saveError.value = "Failed to save dictionary.";
+    console.error("Failed to save dictionary:", err);
   }
 }
 
-function entryCount(): number {
-  return entries.value.filter(
-    (e) => e.source.trim() !== "" || e.target.trim() !== ""
-  ).length;
-}
-
-/* ── Event handlers ── */
-function onInput() {
-  scheduleSave();
-  nextTick(ensureEmptyTail);
-}
-
+/* ── Remove entry ── */
 function removeEntry(index: number) {
   entries.value.splice(index, 1);
-  scheduleSave();
-  ensureEmptyTail();
+  dirty.value = true;
+  saveError.value = "";
 }
 
 /* ── Import / Export ── */
@@ -70,7 +73,8 @@ async function handleImport() {
   try {
     await importDictionaryCsv(appConfig.target_lang, filePath as string);
     entries.value = await loadDictionary(appConfig.target_lang);
-    ensureEmptyTail();
+    dirty.value = false;
+    saveError.value = "";
   } catch (err) {
     console.error("Failed to import dictionary:", err);
   }
@@ -96,7 +100,6 @@ onMounted(async () => {
   } catch {
     entries.value = [];
   }
-  ensureEmptyTail();
   loading.value = false;
 });
 </script>
@@ -119,8 +122,14 @@ onMounted(async () => {
       </button>
     </div>
 
-    <!-- Language label -->
-    <div class="dict-lang">Target: {{ appConfig.target_lang }}</div>
+    <!-- Language label + Add Entry -->
+    <div class="dict-lang-row">
+      <span class="dict-lang">Target: {{ appConfig.target_lang }}</span>
+      <button class="pill-btn add-pill" @click="addEntry">
+        <Plus :size="12" :stroke-width="2" />
+        <span>Add Entry</span>
+      </button>
+    </div>
 
     <!-- Table -->
     <div class="dict-table-wrap">
@@ -139,7 +148,7 @@ onMounted(async () => {
               class="dict-input"
               v-model="entry.source"
               placeholder="..."
-              @input="onInput"
+              @input="dirty = true"
             />
           </div>
           <div class="dict-col col-trans">
@@ -147,12 +156,11 @@ onMounted(async () => {
               class="dict-input"
               v-model="entry.target"
               placeholder="..."
-              @input="onInput"
+              @input="dirty = true"
             />
           </div>
           <div class="dict-col col-action">
             <button
-              v-if="entry.source.trim() || entry.target.trim()"
               class="mini-btn warn"
               @click="removeEntry(i)"
             >
@@ -164,7 +172,14 @@ onMounted(async () => {
     </div>
 
     <!-- Footer -->
-    <div class="dict-footer">Entries: {{ entryCount() }}</div>
+    <div class="dict-footer">
+      <span class="footer-count">Entries: {{ entries.length }}</span>
+      <span v-if="saveError" class="footer-error">{{ saveError }}</span>
+      <button class="pill-btn save-btn" :disabled="!dirty" @click="handleSave">
+        <Save :size="12" />
+        <span>Save</span>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -230,6 +245,13 @@ onMounted(async () => {
   background: none;
   transition: 0.15s;
 }
+.add-pill {
+  color: rgba(212, 160, 72, 0.72);
+}
+.add-pill:hover {
+  color: #d4a048;
+  background: rgba(212, 160, 72, 0.09);
+}
 .micro {
   color: rgba(255, 255, 255, 0.28);
   padding: 3px 8px;
@@ -239,13 +261,19 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.055);
 }
 
-/* ── Language label ── */
-.dict-lang {
+/* ── Language row ── */
+.dict-lang-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 24px 6px;
+  flex-shrink: 0;
+}
+.dict-lang {
+  flex: 1;
   font-size: 11.5px;
   font-weight: 550;
   color: rgba(255, 255, 255, 0.36);
-  flex-shrink: 0;
 }
 
 /* ── Table ── */
@@ -361,10 +389,35 @@ onMounted(async () => {
 
 /* ── Footer ── */
 .dict-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 10px 24px 14px;
   font-size: 10.5px;
   font-weight: 550;
   color: rgba(255, 255, 255, 0.2);
   flex-shrink: 0;
+}
+.footer-count {
+  flex: 1;
+}
+.footer-error {
+  color: #f87171;
+  font-weight: 500;
+  flex: 1;
+  text-align: right;
+}
+.save-btn {
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(212, 160, 72, 0.12);
+  padding: 4px 12px;
+}
+.save-btn:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(212, 160, 72, 0.22);
+}
+.save-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 </style>
