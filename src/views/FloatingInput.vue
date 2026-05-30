@@ -20,6 +20,7 @@ const hasResult = ref(false);
 const growAbove = ref(false);
 const chevronTransform = (open: boolean) =>
   `rotate(${open === growAbove.value ? 0 : 180}deg)`;
+const contentWrapRef = ref<HTMLDivElement | null>(null);
 const bodyHeight = ref(0);
 let lastSentHeight = 0;
 let resizeObserver: ResizeObserver | null = null;
@@ -311,11 +312,16 @@ onMounted(async () => {
     growAbove.value = e.payload;
   });
 
-  // Track body height for dynamic window resize
-  resizeObserver = new ResizeObserver((entries) => {
-    bodyHeight.value = entries[0].contentRect.height;
+  // Track content container height for dynamic window resize
+  // Use scrollHeight — returns true content size even when overflow-clipped or flex-constrained
+  resizeObserver = new ResizeObserver(() => {
+    if (contentWrapRef.value) {
+      bodyHeight.value = Math.ceil(contentWrapRef.value.scrollHeight);
+    }
   });
-  resizeObserver.observe(document.body);
+  if (contentWrapRef.value) {
+    resizeObserver.observe(contentWrapRef.value);
+  }
 });
 
 // Auto-save config changes to disk
@@ -364,13 +370,14 @@ useShortcutTriggered(() => {
       backdrop-filter: blur(24px) saturate(1.5);
     "
   >
-    <div class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-3 overflow-y-auto max-h-full"
+    <div ref="contentWrapRef"
+      class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-3 overflow-y-auto flex-shrink-0 h-fit"
       :class="{ 'justify-end': growAbove }">
       <!-- growAbove: result grows upward, input anchored at bottom -->
       <template v-if="growAbove">
         <!-- Result area -->
         <Transition name="fade">
-          <div v-if="translatedText" class="result-block">
+          <div v-show="translatedText" class="result-block">
             <div class="result-text">{{ translatedText }}</div>
           </div>
         </Transition>
@@ -378,7 +385,7 @@ useShortcutTriggered(() => {
         <!-- Loading state -->
         <Transition name="fade">
           <div
-            v-if="isLoading"
+            v-show="isLoading"
             class="flex items-center gap-2 text-[11px] text-white/40"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
@@ -389,7 +396,7 @@ useShortcutTriggered(() => {
         <!-- Error -->
         <Transition name="fade">
           <div
-            v-if="errorMessage"
+            v-show="errorMessage"
             class="text-[11px] text-red-400/80 flex items-center gap-1.5"
           >
             <X :size="12" :stroke-width="2" />
@@ -723,7 +730,7 @@ useShortcutTriggered(() => {
         <!-- Loading state -->
         <Transition name="fade">
           <div
-            v-if="isLoading"
+            v-show="isLoading"
             class="flex items-center gap-2 text-[11px] text-white/40"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
@@ -734,7 +741,7 @@ useShortcutTriggered(() => {
         <!-- Error -->
         <Transition name="fade">
           <div
-            v-if="errorMessage"
+            v-show="errorMessage"
             class="text-[11px] text-red-400/80 flex items-center gap-1.5"
           >
             <X :size="12" :stroke-width="2" />
@@ -744,7 +751,7 @@ useShortcutTriggered(() => {
 
         <!-- Result area -->
         <Transition name="fade">
-          <div v-if="translatedText" class="result-block">
+          <div v-show="translatedText" class="result-block">
             <div class="result-text">{{ translatedText }}</div>
           </div>
         </Transition>
@@ -1049,12 +1056,27 @@ useShortcutTriggered(() => {
 /* Transitions */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.15s ease-out;
 }
 
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
+}
+
+/* Thin scrollbar to prevent layout shift on appear */
+:deep(.overflow-y-auto) {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+:deep(.overflow-y-auto)::-webkit-scrollbar {
+  width: 4px;
+}
+:deep(.overflow-y-auto)::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+:deep(.overflow-y-auto)::-webkit-scrollbar-track {
+  background: transparent;
 }
 </style>

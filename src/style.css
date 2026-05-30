@@ -14,8 +14,9 @@
 }
 
 /* Smooth scrolling */
-html {
+html, body {
   scroll-behavior: smooth;
+  background: transparent;
 }
 
 /* Global input styling reset */
