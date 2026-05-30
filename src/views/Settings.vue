@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import {
   appConfig,
   loadConfig,
@@ -34,6 +34,7 @@ import {
 type TabKey = "general" | "translation";
 
 const router = useRouter();
+const route = useRoute();
 const growAbove = ref(false);
 const activeTab = ref<TabKey>("general");
 const visibleKeys = ref<Set<number>>(new Set());
@@ -323,6 +324,9 @@ async function handleDrag(e: MouseEvent) {
 let unlistenConfig: (() => void) | null = null;
 
 onMounted(async () => {
+  if (route.query.tab === "translation") {
+    activeTab.value = "translation";
+  }
   document.addEventListener("mousedown", onDocClick);
   growAbove.value = await invoke<boolean>("get_grow_above");
   unlistenConfig = await listen<boolean>("window-config", (e) => {
@@ -647,11 +651,10 @@ onUnmounted(() => {
           </label>
           <span class="dict-toggle-label">{{ appConfig.user_dict_enabled ? 'Enabled' : 'Disabled' }}</span>
           <button
-            class="sel-btn dict-edit-btn"
-            @click="router.push('/settings/dictionary')"
+            class="pill-btn micro dict-edit-btn"
+            @click="router.push('/settings/dictionary?tab=translation')"
           >
-            <span class="sel-text">Edit Dictionary</span>
-            <Pencil :size="11" :stroke-width="1.9" />
+            <Pencil :size="10" :stroke-width="2" />Edit
           </button>
         </div>
 
@@ -1072,7 +1075,6 @@ label {
   min-width: 52px;
 }
 .dict-edit-btn {
-  flex: 1;
   margin-left: auto;
 }
 
