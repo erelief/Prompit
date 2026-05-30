@@ -524,7 +524,7 @@ useShortcutTriggered(() => {
               <span class="truncate max-w-[90px]">{{ personaOn ? displayPersonaName : '' }}</span>
             </button>
             <button
-              v-if="personaStore.personas.length > 1"
+              v-if="personaStore.personas.length > 0"
               ref="personaBtnRef"
               @click="togglePersonaDropdown"
               class="persona-chevron"
@@ -678,7 +678,7 @@ useShortcutTriggered(() => {
               <span class="truncate max-w-[90px]">{{ personaOn ? displayPersonaName : '' }}</span>
             </button>
             <button
-              v-if="personaStore.personas.length > 1"
+              v-if="personaStore.personas.length > 0"
               ref="personaBtnRef"
               @click="togglePersonaDropdown"
               class="persona-chevron"
