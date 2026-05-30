@@ -312,6 +312,9 @@ onMounted(async () => {
   // Listen for grow_above config from backend
   unlistenConfig = await listen<boolean>("window-config", (e) => {
     growAbove.value = e.payload;
+    nextTick(() => {
+      textareaRef.value?.focus();
+    });
   });
 
   // Track content container height for dynamic window resize
@@ -352,9 +355,6 @@ defineExpose({ clearAll });
 useShortcutTriggered(() => {
   clearAll();
   lastSentHeight = 0;
-  nextTick(() => {
-    textareaRef.value?.focus();
-  });
 });
 </script>
 
