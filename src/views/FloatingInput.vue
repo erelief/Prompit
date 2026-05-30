@@ -372,16 +372,6 @@ useShortcutTriggered(() => {
         <Transition name="fade">
           <div v-if="translatedText" class="result-block">
             <div class="result-text">{{ translatedText }}</div>
-            <div class="result-actions">
-              <button
-                @click="handlePasteResult"
-                class="paste-btn"
-                title="Paste into active field (Enter)"
-              >
-                <ClipboardPaste :size="12" />
-                <span>Paste Result</span>
-              </button>
-            </div>
           </div>
         </Transition>
 
@@ -418,12 +408,14 @@ useShortcutTriggered(() => {
             class="floating-input floating-input-with-btn w-full resize-none text-[13px] leading-relaxed outline-none"
           />
           <button
-            @click="handleTranslate"
-            :disabled="!inputText.trim() || isLoading"
+            @click="hasResult ? handlePasteResult() : handleTranslate()"
+            :disabled="(!inputText.trim() && !hasResult) || isLoading"
             class="send-btn-inline"
-            title="Send (Enter)"
+            :class="{ 'paste-mode': hasResult }"
+            :title="hasResult ? 'Paste into active field (Enter)' : 'Send (Enter)'"
           >
             <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
+            <ClipboardPaste v-else-if="hasResult" :size="13" />
             <Send v-else :size="13" />
           </button>
         </div>
@@ -716,12 +708,14 @@ useShortcutTriggered(() => {
             class="floating-input floating-input-with-btn w-full resize-none text-[13px] leading-relaxed outline-none"
           />
           <button
-            @click="handleTranslate"
-            :disabled="!inputText.trim() || isLoading"
+            @click="hasResult ? handlePasteResult() : handleTranslate()"
+            :disabled="(!inputText.trim() && !hasResult) || isLoading"
             class="send-btn-inline"
-            title="Send (Enter)"
+            :class="{ 'paste-mode': hasResult }"
+            :title="hasResult ? 'Paste into active field (Enter)' : 'Send (Enter)'"
           >
             <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
+            <ClipboardPaste v-else-if="hasResult" :size="13" />
             <Send v-else :size="13" />
           </button>
         </div>
@@ -752,16 +746,6 @@ useShortcutTriggered(() => {
         <Transition name="fade">
           <div v-if="translatedText" class="result-block">
             <div class="result-text">{{ translatedText }}</div>
-            <div class="result-actions">
-              <button
-                @click="handlePasteResult"
-                class="paste-btn"
-                title="Paste into active field (Enter)"
-              >
-                <ClipboardPaste :size="12" />
-                <span>Paste Result</span>
-              </button>
-            </div>
           </div>
         </Transition>
       </template>
@@ -826,6 +810,16 @@ useShortcutTriggered(() => {
 .send-btn-inline:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+.send-btn-inline.paste-mode {
+  background: linear-gradient(135deg, #e8b84a 0%, #d4a048 100%);
+  box-shadow: 0 0 8px rgba(232, 184, 74, 0.35);
+}
+
+.send-btn-inline.paste-mode:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f0c55e 0%, #e8b84a 100%);
+  box-shadow: 0 2px 10px rgba(232, 184, 74, 0.5);
 }
 
 /* Model selector button */
@@ -1050,40 +1044,6 @@ useShortcutTriggered(() => {
   white-space: pre-wrap;
   word-break: break-word;
   overflow-y: auto;
-}
-
-.result-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding: 6px 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-/* Paste Result button */
-.paste-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 26px;
-  padding: 0 10px 0 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: rgba(217, 160, 71, 0.85);
-  background: rgba(217, 160, 71, 0.08);
-  border: 1px solid rgba(217, 160, 71, 0.12);
-  transition: all 0.15s ease;
-}
-
-.paste-btn:hover {
-  background: rgba(217, 160, 71, 0.15);
-  border-color: rgba(217, 160, 71, 0.25);
-  color: rgba(217, 160, 71, 1);
-}
-
-.paste-btn:active {
-  transform: scale(0.97);
 }
 
 /* Transitions */
