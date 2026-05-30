@@ -37,6 +37,7 @@ const growAbove = ref(false);
 const activeTab = ref<TabKey>("general");
 const visibleKeys = ref<Set<number>>(new Set());
 const editingProvider = ref<Set<number>>(new Set());
+const isEditingAnyProvider = computed(() => editingProvider.value.size > 0);
 const addingProvider = ref(false);
 
 const testingProvider = ref<number | null>(null);
@@ -375,7 +376,7 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <div class="card-stack">
+        <div class="card-stack" :class="{ 'prov-stack': !addingProvider && !isEditingAnyProvider }">
           <!-- Empty -->
           <div v-if="appConfig.providers.length === 0 && !addingProvider" class="empty-card">
             <CircleDot :size="22" :stroke-width="1" />
@@ -417,6 +418,7 @@ onUnmounted(() => {
           <div
             v-for="(prov, pi) in appConfig.providers.slice(0, addingProvider ? -1 : undefined)"
             :key="pi"
+            v-show="!addingProvider && !isEditingAnyProvider || isEditing(pi)"
             class="prov-card"
             :class="{ open: isEditing(pi) || !prov.name }"
           >
@@ -844,6 +846,15 @@ onUnmounted(() => {
 .persona-stack::-webkit-scrollbar { width: 3px; }
 .persona-stack::-webkit-scrollbar-track { margin: 4px 0; }
 .persona-stack::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+.prov-stack {
+  max-height: 168px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.prov-stack .prov-card { flex-shrink: 0; }
+.prov-stack::-webkit-scrollbar { width: 3px; }
+.prov-stack::-webkit-scrollbar-track { margin: 4px 0; }
+.prov-stack::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
 
 /* ── Provider card ── */
 .prov-card {
