@@ -301,6 +301,8 @@ function clearAll() {
 }
 
 onMounted(async () => {
+  lastSentHeight = 0;
+
   await loadConfig();
   document.addEventListener("mousedown", onDocumentClick);
   nextTick(() => {

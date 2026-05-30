@@ -302,7 +302,6 @@ function onDocClick(e: MouseEvent) {
 // ── Navigation ──
 
 async function goBack() {
-  await invoke("resize_main_window", { width: 480, height: 200 });
   router.push("/");
 }
 
@@ -318,7 +317,7 @@ async function handleDrag(e: MouseEvent) {
 
 onMounted(async () => {
   document.addEventListener("mousedown", onDocClick);
-  await invoke("resize_main_window", { width: 660, height: 780 });
+  await invoke("resize_and_reposition", { height: 520, width: 480 });
   load();
 });
 

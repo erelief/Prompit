@@ -38,7 +38,7 @@ pub fn resize_main_window(app: AppHandle, width: f64, height: f64) -> Result<(),
 /// Resize the window to fit content. When grow_above is true, keeps the
 /// bottom edge fixed so the window expands upward.
 #[tauri::command]
-pub fn resize_and_reposition(app: AppHandle, height: f64) -> Result<(), String> {
+pub fn resize_and_reposition(app: AppHandle, height: f64, width: Option<f64>) -> Result<(), String> {
     let window = app
         .get_webview_window("main")
         .ok_or("Main window not found")?;
@@ -51,6 +51,7 @@ pub fn resize_and_reposition(app: AppHandle, height: f64) -> Result<(), String> 
         .unwrap_or(1.0);
 
     let physical_h = (height * scale) as u32;
+    let physical_w = ((width.unwrap_or(480.0)) * scale) as u32;
 
     let grow_above = app.state::<WindowConfig>().get_grow_above();
 
@@ -67,7 +68,7 @@ pub fn resize_and_reposition(app: AppHandle, height: f64) -> Result<(), String> 
     }
 
     let _ = window.set_size(tauri::PhysicalSize {
-        width: (480.0 * scale) as u32,
+        width: physical_w,
         height: physical_h,
     });
 
