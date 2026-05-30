@@ -1,4 +1,4 @@
-import { getActiveModel, appConfig } from "../stores/config";
+import { getActiveModel, appConfig, loadDictionary } from "../stores/config";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -30,8 +30,22 @@ export async function translate(text: string): Promise<string> {
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: text },
   ];
+
+  if (appConfig.user_dict_enabled) {
+    const entries = await loadDictionary(appConfig.target_lang);
+    if (entries.length > 0) {
+      const dictLines = entries
+        .map((e) => `- "${e.source}" → "${e.target}"`)
+        .join("\n");
+      messages.push({
+        role: "system",
+        content: `User dictionary — you MUST use these exact translations:\n${dictLines}`,
+      });
+    }
+  }
+
+  messages.push({ role: "user", content: text });
 
   const body: ChatCompletionRequest = {
     model: model.model,
