@@ -307,7 +307,7 @@ async function goBack() {
 }
 
 async function closeWindow() {
-  await getCurrentWindow().close();
+  await invoke("hide_main_window");
 }
 
 async function handleDrag(e: MouseEvent) {
