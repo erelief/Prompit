@@ -26,6 +26,7 @@ export interface AppConfig {
   active_model_index: number;
   target_lang: string;
   personas: PersonaConfig[];
+  user_dict_enabled: boolean;
 }
 
 const defaultConfig: AppConfig = {
@@ -34,6 +35,7 @@ const defaultConfig: AppConfig = {
   active_model_index: 0,
   target_lang: "English",
   personas: [],
+  user_dict_enabled: false,
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });

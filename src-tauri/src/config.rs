@@ -36,6 +36,8 @@ pub struct AppConfig {
     pub target_lang: String,
     #[serde(default)]
     pub personas: Vec<PersonaConfig>,
+    #[serde(default)]
+    pub user_dict_enabled: bool,
 }
 
 fn default_target_lang() -> String {
@@ -50,6 +52,7 @@ impl Default for AppConfig {
             active_model_index: 0,
             target_lang: "English".to_string(),
             personas: vec![],
+            user_dict_enabled: false,
         }
     }
 }
@@ -85,6 +88,7 @@ mod tests {
                 prompt: "Translate in a formal tone".to_string(),
                 enabled: true,
             }],
+            user_dict_enabled: false,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();
