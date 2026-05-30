@@ -18,6 +18,8 @@
     "core:window:allow-start-dragging",
     "core:window:allow-set-position",
     "global-shortcut:allow-register",
-    "opener:default"
+    "opener:default",
+    "dialog:default",
+    "fs:default"
   ]
 }

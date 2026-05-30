@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import {
   appConfig,
   loadConfig,
@@ -28,11 +28,13 @@ import {
   Cpu,
   CircleDot,
   X,
+  BookText,
 } from "@lucide/vue";
 
 type TabKey = "general" | "translation";
 
 const router = useRouter();
+const route = useRoute();
 const growAbove = ref(false);
 const activeTab = ref<TabKey>("general");
 const visibleKeys = ref<Set<number>>(new Set());
@@ -322,6 +324,9 @@ async function handleDrag(e: MouseEvent) {
 let unlistenConfig: (() => void) | null = null;
 
 onMounted(async () => {
+  if (route.query.tab === "translation") {
+    activeTab.value = "translation";
+  }
   document.addEventListener("mousedown", onDocClick);
   growAbove.value = await invoke<boolean>("get_grow_above");
   unlistenConfig = await listen<boolean>("window-config", (e) => {
@@ -633,6 +638,24 @@ onUnmounted(() => {
               </div>
             </Transition>
           </Teleport>
+        </div>
+
+        <!-- User Dictionary -->
+        <div class="section-head mt">
+          <span class="section-title"><BookText :size="13" />User Dictionary</span>
+        </div>
+        <div class="dict-toggle-row">
+          <label class="persona-check" :class="{ on: appConfig.user_dict_enabled }" @click.stop>
+            <input type="checkbox" :checked="appConfig.user_dict_enabled" @change="appConfig.user_dict_enabled = !appConfig.user_dict_enabled" />
+            <Check v-if="appConfig.user_dict_enabled" :size="9" :stroke-width="3" />
+          </label>
+          <span class="dict-toggle-label">{{ appConfig.user_dict_enabled ? 'Enabled' : 'Disabled' }}</span>
+          <button
+            class="pill-btn micro dict-edit-btn"
+            @click="router.push('/settings/dictionary?tab=translation')"
+          >
+            <Pencil :size="10" :stroke-width="2" />Edit
+          </button>
         </div>
 
         <!-- Persona -->
@@ -1038,6 +1061,23 @@ label {
   font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .lang-btn .sel-text{ font-family: inherit; font-size:12px; }
+
+/* ── Dictionary toggle row ── */
+.dict-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+.dict-toggle-label {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.4);
+  min-width: 52px;
+}
+.dict-edit-btn {
+  margin-left: auto;
+}
+
 .sel-arrow { color: rgba(255,255,255,.22); transition: transform .18s; flex-shrink:0; }
 .sel-arrow.rot{ transform: rotate(180deg); }
 

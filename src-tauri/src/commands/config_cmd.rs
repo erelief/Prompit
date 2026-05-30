@@ -56,6 +56,7 @@ mod tests {
                 prompt: "Translate in a formal tone".to_string(),
                 enabled: true,
             }],
+            user_dict_enabled: false,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();

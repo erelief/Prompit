@@ -30,4 +30,7 @@ sha2 = "0.10"
 base64 = "0.22"
 rand = "0.8"
 dotenvy = "0.15"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+csv = "1"
 
