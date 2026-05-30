@@ -7,7 +7,7 @@ import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { loadConfig, saveConfig, getActiveModel, appConfig } from "../stores/config";
 import { translate } from "../services/llm-client";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages, BookText } from "@lucide/vue";
 
 const router = useRouter();
 
@@ -555,6 +555,17 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
+          <!-- Dictionary toggle -->
+          <button
+            @click="appConfig.user_dict_enabled = !appConfig.user_dict_enabled"
+            class="dict-toggle"
+            :class="{ on: appConfig.user_dict_enabled }"
+            :title="appConfig.user_dict_enabled ? 'Disable user dictionary' : 'Enable user dictionary'"
+          >
+            <BookText :size="11" :stroke-width="1.8" />
+            <span v-if="appConfig.user_dict_enabled" class="dict-dot on" />
+          </button>
+
           <div class="flex-1"></div>
 
           <button
@@ -697,6 +708,17 @@ useShortcutTriggered(() => {
               </Transition>
             </Teleport>
           </div>
+
+          <!-- Dictionary toggle -->
+          <button
+            @click="appConfig.user_dict_enabled = !appConfig.user_dict_enabled"
+            class="dict-toggle"
+            :class="{ on: appConfig.user_dict_enabled }"
+            :title="appConfig.user_dict_enabled ? 'Disable user dictionary' : 'Enable user dictionary'"
+          >
+            <BookText :size="11" :stroke-width="1.8" />
+            <span v-if="appConfig.user_dict_enabled" class="dict-dot on" />
+          </button>
 
           <div class="flex-1"></div>
 
@@ -965,6 +987,46 @@ useShortcutTriggered(() => {
   border-color: rgba(217, 160, 71, 0.3);
   background: rgba(217, 160, 71, 0.11);
   color: rgba(217, 160, 71, 0.9);
+}
+
+/* ── Dictionary toggle ── */
+.dict-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-size: 11px;
+  font-family: inherit;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+.dict-toggle:hover {
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.065);
+}
+.dict-toggle.on {
+  color: rgba(217, 160, 71, 0.9);
+  background: rgba(217, 160, 71, 0.07);
+  border-color: rgba(217, 160, 71, 0.18);
+}
+.dict-toggle.on:hover {
+  color: rgba(217, 160, 71, 1);
+  background: rgba(217, 160, 71, 0.11);
+}
+.dict-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(217, 160, 71, 0.9);
+  box-shadow: 0 0 5px rgba(217, 160, 71, 0.3);
+  flex-shrink: 0;
 }
 
 /* Model dropdown */
