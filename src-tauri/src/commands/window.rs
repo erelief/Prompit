@@ -84,3 +84,8 @@ pub fn open_settings_window(app: AppHandle) -> Result<(), String> {
     window.set_focus().map_err(|e| e.to_string())?;
     Ok(())
 }
+
+#[tauri::command]
+pub fn get_grow_above(app: AppHandle) -> bool {
+    app.state::<WindowConfig>().get_grow_above()
+}

@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import { useRouter } from "vue-router";
 import {
   appConfig,
@@ -32,6 +33,7 @@ import {
 type TabKey = "general" | "translation";
 
 const router = useRouter();
+const growAbove = ref(false);
 const activeTab = ref<TabKey>("general");
 const visibleKeys = ref<Set<number>>(new Set());
 const editingProvider = ref<Set<number>>(new Set());
@@ -315,17 +317,26 @@ async function handleDrag(e: MouseEvent) {
   await getCurrentWindow().startDragging();
 }
 
+let unlistenConfig: (() => void) | null = null;
+
 onMounted(async () => {
   document.addEventListener("mousedown", onDocClick);
+  growAbove.value = await invoke<boolean>("get_grow_above");
+  unlistenConfig = await listen<boolean>("window-config", (e) => {
+    growAbove.value = e.payload;
+  });
   await invoke("resize_and_reposition", { height: 520, width: 480 });
   load();
 });
 
-onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
+onUnmounted(() => {
+  document.removeEventListener("mousedown", onDocClick);
+  unlistenConfig?.();
+});
 </script>
 
 <template>
-  <div class="settings-root" @mousedown="handleDrag">
+  <div class="settings-root" :class="{ 'grow-above': growAbove }" @mousedown="handleDrag">
     <!-- ═══ Header ═══ -->
     <header class="settings-header">
       <button @click="goBack" class="back-btn" title="Back">
@@ -731,6 +742,9 @@ onUnmounted(() => document.removeEventListener("mousedown", onDocClick));
   border-radius: 11px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
+.settings-root.grow-above .settings-header { order: 2; border-bottom: none; border-top: 1px solid rgba(255,255,255,.035); }
+.settings-root.grow-above .tabs { order: 1; border-bottom: none; border-top: 1px solid rgba(255,255,255,.035); }
+.settings-root.grow-above .body { order: 0; }
 
 /* ── Header ── */
 .settings-header {

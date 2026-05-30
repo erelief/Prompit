@@ -15,6 +15,7 @@ pub fn run() {
             commands::window::open_settings_window,
             commands::window::resize_main_window,
             commands::window::resize_and_reposition,
+            commands::window::get_grow_above,
             commands::clipboard::simulate_paste,
             commands::config_cmd::read_config,
             commands::config_cmd::save_config,
