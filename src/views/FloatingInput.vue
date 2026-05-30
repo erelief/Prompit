@@ -5,7 +5,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
-import { loadConfig, saveConfig, getActiveModel, appConfig } from "../stores/config";
+import { loadConfig, saveConfig, getActiveModel, appConfig, personaStore, savePersonas } from "../stores/config";
 import { translate } from "../services/llm-client";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages, BookText } from "@lucide/vue";
 
@@ -87,14 +87,14 @@ const isActiveModelEntry = (pIndex: number, mIndex: number) =>
 // ── Persona selector ──
 const lastActivePersonaIndex = ref(0);
 const activePersonaName = computed(() => {
-  const p = appConfig.personas.find((p) => p.enabled);
+  const p = personaStore.personas.find((p) => p.enabled);
   return p?.name || null;
 });
-const personaOn = computed(() => appConfig.personas.some((p) => p.enabled));
+const personaOn = computed(() => personaStore.personas.some((p) => p.enabled));
 const displayPersonaName = computed(() => {
   if (activePersonaName.value) return activePersonaName.value;
   const i = lastActivePersonaIndex.value;
-  return i < appConfig.personas.length ? appConfig.personas[i].name : (appConfig.personas[0]?.name || 'Persona');
+  return i < personaStore.personas.length ? personaStore.personas[i].name : (personaStore.personas[0]?.name || 'Persona');
 });
 
 const showPersonaDropdown = ref(false);
@@ -104,14 +104,15 @@ const personaMenuRef = ref<HTMLDivElement | null>(null);
 const personaDropdownPos = ref({ top: 0, left: 0 });
 
 function togglePersona() {
-  const active = appConfig.personas.findIndex((p) => p.enabled);
+  const active = personaStore.personas.findIndex((p) => p.enabled);
   if (active >= 0) {
-    appConfig.personas[active].enabled = false;
+    personaStore.personas[active].enabled = false;
   } else {
-    const i = lastActivePersonaIndex.value < appConfig.personas.length
+    const i = lastActivePersonaIndex.value < personaStore.personas.length
       ? lastActivePersonaIndex.value : 0;
-    appConfig.personas[i].enabled = true;
+    personaStore.personas[i].enabled = true;
   }
+  savePersonas();
   if (hasResult.value) {
     hasResult.value = false;
     translatedText.value = "";
@@ -142,10 +143,11 @@ function togglePersonaDropdown() {
 }
 
 function selectPersona(index: number) {
-  for (const p of appConfig.personas) p.enabled = false;
-  appConfig.personas[index].enabled = true;
+  for (const p of personaStore.personas) p.enabled = false;
+  personaStore.personas[index].enabled = true;
   lastActivePersonaIndex.value = index;
   showPersonaDropdown.value = false;
+  savePersonas();
   if (hasResult.value) {
     hasResult.value = false;
     translatedText.value = "";
@@ -198,7 +200,7 @@ const ITEM_H = 28;
 const PAD = 6;
 const capHeight = (n: number) => n > 2 ? { maxHeight: `${2 * ITEM_H + PAD}px` } : {};
 const modelDropdownStyle = computed(() => capHeight(allModels.value.length));
-const personaDropdownStyle = computed(() => capHeight(appConfig.personas.length));
+const personaDropdownStyle = computed(() => capHeight(personaStore.personas.length));
 const langDropdownStyle = computed(() => capHeight(targetLanguages.length));
 
 function onDocumentClick(e: MouseEvent) {
@@ -510,7 +512,7 @@ useShortcutTriggered(() => {
           </div>
 
           <!-- Persona toggle + selector -->
-          <div v-if="appConfig.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
+          <div v-if="personaStore.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
             <button
               @click="togglePersona"
               class="persona-toggle"
@@ -522,7 +524,7 @@ useShortcutTriggered(() => {
               <span class="truncate max-w-[90px]">{{ personaOn ? displayPersonaName : '' }}</span>
             </button>
             <button
-              v-if="appConfig.personas.length > 1"
+              v-if="personaStore.personas.length > 1"
               ref="personaBtnRef"
               @click="togglePersonaDropdown"
               class="persona-chevron"
@@ -541,7 +543,7 @@ useShortcutTriggered(() => {
                   :style="{ top: personaDropdownPos.top + 'px', left: personaDropdownPos.left + 'px', ...personaDropdownStyle }"
                 >
                   <button
-                    v-for="(persona, pi) in appConfig.personas"
+                    v-for="(persona, pi) in personaStore.personas"
                     :key="pi"
                     @click="selectPersona(pi)"
                     class="model-option"
@@ -664,7 +666,7 @@ useShortcutTriggered(() => {
           </div>
 
           <!-- Persona toggle + selector -->
-          <div v-if="appConfig.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
+          <div v-if="personaStore.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
             <button
               @click="togglePersona"
               class="persona-toggle"
@@ -676,7 +678,7 @@ useShortcutTriggered(() => {
               <span class="truncate max-w-[90px]">{{ personaOn ? displayPersonaName : '' }}</span>
             </button>
             <button
-              v-if="appConfig.personas.length > 1"
+              v-if="personaStore.personas.length > 1"
               ref="personaBtnRef"
               @click="togglePersonaDropdown"
               class="persona-chevron"
@@ -695,7 +697,7 @@ useShortcutTriggered(() => {
                   :style="{ top: personaDropdownPos.top + 'px', left: personaDropdownPos.left + 'px', ...personaDropdownStyle }"
                 >
                   <button
-                    v-for="(persona, pi) in appConfig.personas"
+                    v-for="(persona, pi) in personaStore.personas"
                     :key="pi"
                     @click="selectPersona(pi)"
                     class="model-option"

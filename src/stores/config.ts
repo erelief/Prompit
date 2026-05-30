@@ -1,5 +1,6 @@
 import { reactive, toRaw } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { readTextFile } from "@tauri-apps/plugin-fs";
 
 export interface ProviderModel {
   id: string;
@@ -30,7 +31,6 @@ export interface AppConfig {
   active_provider_index: number;
   active_model_index: number;
   target_lang: string;
-  personas: PersonaConfig[];
   user_dict_enabled: boolean;
 }
 
@@ -39,11 +39,14 @@ const defaultConfig: AppConfig = {
   active_provider_index: 0,
   active_model_index: 0,
   target_lang: "English",
-  personas: [],
   user_dict_enabled: false,
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
+
+export const personaStore = reactive<{ personas: PersonaConfig[] }>({
+  personas: [],
+});
 
 function secretKeyId(providerIndex: number): string {
   return `provider_${providerIndex}`;
@@ -91,6 +94,7 @@ export async function loadConfig(): Promise<void> {
       appConfig.target_lang = "Simplified Chinese";
     }
     await loadSecrets();
+    await loadPersonas();
   } catch {
     Object.assign(appConfig, { ...defaultConfig });
   }
@@ -104,6 +108,43 @@ export async function saveConfig(): Promise<void> {
     provider.api_key = "";
   }
   await invoke("save_config", { config: sanitized });
+}
+
+export async function loadPersonas(): Promise<void> {
+  try {
+    const loaded = await invoke<PersonaConfig[]>("read_personas");
+    if (loaded.length > 0) {
+      personaStore.personas = loaded;
+      return;
+    }
+    // Migration: read raw config.json to check for leftover personas
+    try {
+      const configDir = await invoke<string>("get_config_dir");
+      const raw = await readTextFile(`${configDir}/config.json`);
+      const parsed = JSON.parse(raw);
+      if (parsed.personas && parsed.personas.length > 0) {
+        personaStore.personas = parsed.personas;
+        await savePersonas();
+        // Strip personas from config.json by re-saving without them
+        const sanitized = structuredClone(toRaw(appConfig));
+        await invoke("save_config", { config: sanitized });
+      }
+    } catch {
+      // No old config or no personas to migrate
+    }
+  } catch (err) {
+    console.error("Failed to load personas:", err);
+  }
+}
+
+export async function savePersonas(): Promise<void> {
+  try {
+    await invoke("save_personas", {
+      personas: toRaw(personaStore.personas),
+    });
+  } catch (err) {
+    console.error("Failed to save personas:", err);
+  }
 }
 
 export function getActiveModel(): {

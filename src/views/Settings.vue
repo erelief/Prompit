@@ -6,8 +6,10 @@ import { listen } from "@tauri-apps/api/event";
 import { useRouter, useRoute } from "vue-router";
 import {
   appConfig,
+  personaStore,
   loadConfig,
   saveConfig as persistConfig,
+  savePersonas as persistPersonas,
 } from "../stores/config";
 import type { ProviderConfig } from "../stores/config";
 import {
@@ -70,7 +72,7 @@ function toggleEditPersona(index: number) {
 }
 
 function addPersona() {
-  appConfig.personas.push({ name: "", prompt: "", enabled: false });
+  personaStore.personas.push({ name: "", prompt: "", enabled: false });
   addingPersona.value = true;
 }
 
@@ -79,21 +81,21 @@ function confirmPersona() {
 }
 
 function cancelPersona() {
-  appConfig.personas.pop();
+  personaStore.personas.pop();
   addingPersona.value = false;
 }
 
 function removePersona(index: number) {
-  appConfig.personas.splice(index, 1);
+  personaStore.personas.splice(index, 1);
   const re = new Set<number>();
   for (const i of editingPersona.value) re.add(i > index ? i - 1 : i);
   editingPersona.value = re;
 }
 
 function togglePersona(index: number) {
-  const wasOn = appConfig.personas[index].enabled;
-  for (const p of appConfig.personas) p.enabled = false;
-  if (!wasOn) appConfig.personas[index].enabled = true;
+  const wasOn = personaStore.personas[index].enabled;
+  for (const p of personaStore.personas) p.enabled = false;
+  if (!wasOn) personaStore.personas[index].enabled = true;
 }
 
 function toggleSelMenu() {
@@ -153,6 +155,15 @@ watch(
   () => {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => { persistConfig(); }, 800);
+  },
+);
+
+let personaSaveTimer: ReturnType<typeof setTimeout> | null = null;
+watch(
+  () => JSON.stringify(personaStore.personas),
+  () => {
+    if (personaSaveTimer) clearTimeout(personaSaveTimer);
+    personaSaveTimer = setTimeout(() => { persistPersonas(); }, 800);
   },
 );
 
@@ -668,7 +679,7 @@ onUnmounted(() => {
 
         <div class="card-stack" :class="{ 'persona-stack': !addingPersona && !isEditingAnyPersona }">
           <!-- Empty -->
-          <div v-if="appConfig.personas.length === 0 && !addingPersona" class="empty-card">
+          <div v-if="personaStore.personas.length === 0 && !addingPersona" class="empty-card">
             <UserCircle :size="22" :stroke-width="1" />
             <span>No personas yet.<br><small>Add one to customize translation style.</small></span>
           </div>
@@ -678,13 +689,13 @@ onUnmounted(() => {
             <div class="persona-expanded">
               <div class="name-row">
                 <input
-                  v-model="appConfig.personas[appConfig.personas.length - 1].name"
+                  v-model="personaStore.personas[personaStore.personas.length - 1].name"
                   placeholder="Persona name…"
                   class="name-input" @click.stop
                 />
               </div>
               <textarea
-                v-model="appConfig.personas[appConfig.personas.length - 1].prompt"
+                v-model="personaStore.personas[personaStore.personas.length - 1].prompt"
                 placeholder="Enter the translation prompt for this persona…"
                 class="persona-textarea"
                 rows="3"
@@ -701,7 +712,7 @@ onUnmounted(() => {
 
           <!-- Persona cards (skip last while adding) -->
           <div
-            v-for="(persona, psi) in appConfig.personas.slice(0, addingPersona ? -1 : undefined)"
+            v-for="(persona, psi) in personaStore.personas.slice(0, addingPersona ? -1 : undefined)"
             :key="psi"
             v-show="!addingPersona && !isEditingAnyPersona || isEditingPersona(psi)"
             class="persona-card"

@@ -1,4 +1,4 @@
-import { getActiveModel, appConfig, loadDictionary } from "../stores/config";
+import { getActiveModel, appConfig, personaStore, loadDictionary } from "../stores/config";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -85,7 +85,7 @@ export async function translate(text: string): Promise<string> {
 }
 
 function buildSystemPrompt(): string {
-  const enabledPersonas = appConfig.personas.filter((p) => p.enabled);
+  const enabledPersonas = personaStore.personas.filter((p) => p.enabled);
 
   let rules = "";
   for (const persona of enabledPersonas) {

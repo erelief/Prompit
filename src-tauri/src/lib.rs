@@ -23,6 +23,7 @@ pub fn run() {
             commands::clipboard::simulate_paste,
             commands::config_cmd::read_config,
             commands::config_cmd::save_config,
+            commands::config_cmd::get_config_dir,
             commands::secrets::save_secret,
             commands::secrets::read_secret,
             commands::secrets::delete_secret,
@@ -30,6 +31,8 @@ pub fn run() {
             commands::dictionary::save_dictionary,
             commands::dictionary::import_dictionary_csv,
             commands::dictionary::export_dictionary_csv,
+            commands::persona::read_personas,
+            commands::persona::save_personas,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

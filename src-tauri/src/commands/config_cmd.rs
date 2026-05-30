@@ -31,10 +31,19 @@ pub fn save_config(app: AppHandle, config: AppConfig) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+pub fn get_config_dir(app: AppHandle) -> Result<String, String> {
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("config dir: {e}"))?;
+    Ok(dir.to_string_lossy().into_owned())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{PersonaConfig, ProviderConfig, ProviderModel};
+    use crate::config::{ProviderConfig, ProviderModel};
     use std::io::Write;
 
     #[test]
@@ -51,11 +60,6 @@ mod tests {
             active_provider_index: 0,
             active_model_index: 0,
             target_lang: "Japanese".to_string(),
-            personas: vec![PersonaConfig {
-                name: "Formal".to_string(),
-                prompt: "Translate in a formal tone".to_string(),
-                enabled: true,
-            }],
             user_dict_enabled: false,
         };
 
@@ -72,19 +76,15 @@ mod tests {
         assert_eq!(loaded.providers.len(), 1);
         assert_eq!(loaded.providers[0].name, "OpenAI");
         assert_eq!(loaded.target_lang, "Japanese");
-        assert_eq!(loaded.personas.len(), 1);
-        assert_eq!(loaded.personas[0].name, "Formal");
-        assert!(loaded.personas[0].enabled);
 
         fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
     fn test_empty_config_returns_default() {
-        let json = r#"{"providers":[],"active_provider_index":0,"active_model_index":0,"target_lang":"English","personas":[]}"#;
+        let json = r#"{"providers":[],"active_provider_index":0,"active_model_index":0,"target_lang":"English"}"#;
         let config: AppConfig = serde_json::from_str(json).unwrap();
         assert!(config.providers.is_empty());
-        assert!(config.personas.is_empty());
         assert_eq!(config.target_lang, "English");
     }
 }
