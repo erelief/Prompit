@@ -34,7 +34,7 @@ pub fn run() {
             use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 
             let settings_item =
-                MenuItemBuilder::with_id("settings", "Settings").build(app)?;
+                MenuItemBuilder::with_id("settings", "Settings...").build(app)?;
             let exit_item = MenuItemBuilder::with_id("exit", "Exit").build(app)?;
             let menu = MenuBuilder::new(app)
                 .items(&[&settings_item, &exit_item])
