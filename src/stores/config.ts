@@ -20,6 +20,11 @@ export interface PersonaConfig {
   enabled: boolean;
 }
 
+export interface DictEntry {
+  source: string;
+  target: string;
+}
+
 export interface AppConfig {
   providers: ProviderConfig[];
   active_provider_index: number;
@@ -130,4 +135,40 @@ export function getActiveModel(): {
     temperature: provider.temperature,
     max_tokens: provider.max_tokens,
   };
+}
+
+export async function loadDictionary(lang: string): Promise<DictEntry[]> {
+  try {
+    return await invoke<DictEntry[]>("read_dictionary", { targetLang: lang });
+  } catch (err) {
+    console.error("Failed to load dictionary:", err);
+    return [];
+  }
+}
+
+export async function saveDictionary(
+  lang: string,
+  entries: DictEntry[]
+): Promise<void> {
+  await invoke("save_dictionary", { targetLang: lang, entries });
+}
+
+export async function importDictionaryCsv(
+  lang: string,
+  filePath: string
+): Promise<number> {
+  return await invoke<number>("import_dictionary_csv", {
+    targetLang: lang,
+    filePath,
+  });
+}
+
+export async function exportDictionaryCsv(
+  lang: string,
+  filePath: string
+): Promise<void> {
+  await invoke("export_dictionary_csv", {
+    targetLang: lang,
+    filePath,
+  });
 }
