@@ -119,6 +119,14 @@ function togglePersona() {
   }
 }
 
+function toggleDict() {
+  appConfig.user_dict_enabled = !appConfig.user_dict_enabled;
+  if (hasResult.value) {
+    hasResult.value = false;
+    translatedText.value = "";
+  }
+}
+
 function togglePersonaDropdown() {
   showModelDropdown.value = false;
   showLangDropdown.value = false;
@@ -559,7 +567,7 @@ useShortcutTriggered(() => {
 
           <!-- Dictionary toggle -->
           <button
-            @click="appConfig.user_dict_enabled = !appConfig.user_dict_enabled"
+            @click="toggleDict"
             class="dict-toggle"
             :class="{ on: appConfig.user_dict_enabled }"
             :title="appConfig.user_dict_enabled ? 'Disable user dictionary' : 'Enable user dictionary'"
@@ -713,7 +721,7 @@ useShortcutTriggered(() => {
 
           <!-- Dictionary toggle -->
           <button
-            @click="appConfig.user_dict_enabled = !appConfig.user_dict_enabled"
+            @click="toggleDict"
             class="dict-toggle"
             :class="{ on: appConfig.user_dict_enabled }"
             :title="appConfig.user_dict_enabled ? 'Disable user dictionary' : 'Enable user dictionary'"
@@ -1007,7 +1015,6 @@ useShortcutTriggered(() => {
   font-size: 11px;
   font-family: inherit;
   flex-shrink: 0;
-  margin-left: 6px;
 }
 .dict-toggle:hover {
   color: rgba(255, 255, 255, 0.5);
