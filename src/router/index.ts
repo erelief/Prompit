@@ -13,6 +13,11 @@ const router = createRouter({
       name: "settings",
       component: () => import("../views/Settings.vue"),
     },
+    {
+      path: "/dictionary",
+      name: "dictionary",
+      component: () => import("../views/DictionaryEditor.vue"),
+    },
   ],
 });
 
