@@ -10,6 +10,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .manage(state::WindowConfig::default())
         .invoke_handler(tauri::generate_handler![
             commands::window::hide_main_window,
@@ -24,6 +26,10 @@ pub fn run() {
             commands::secrets::save_secret,
             commands::secrets::read_secret,
             commands::secrets::delete_secret,
+            commands::dictionary::read_dictionary,
+            commands::dictionary::save_dictionary,
+            commands::dictionary::import_dictionary_csv,
+            commands::dictionary::export_dictionary_csv,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
