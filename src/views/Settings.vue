@@ -302,7 +302,7 @@ function onDocClick(e: MouseEvent) {
 // ── Navigation ──
 
 async function goBack() {
-  await invoke("resize_main_window", { width: 600, height: 200 });
+  await invoke("resize_main_window", { width: 480, height: 200 });
   router.push("/");
 }
 
