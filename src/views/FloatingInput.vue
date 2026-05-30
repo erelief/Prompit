@@ -429,44 +429,7 @@ useShortcutTriggered(() => {
 
         <!-- Toolbar -->
         <div class="flex items-center gap-2">
-          <!-- Language selector -->
-          <div class="lang-wrap" ref="langDropdownRef">
-            <button
-              ref="langBtnRef"
-              @click="toggleLangDropdown"
-              class="lang-btn"
-              :class="{ active: showLangDropdown }"
-              title="Target Language"
-            >
-              <Languages :size="11" :stroke-width="1.8" />
-              <span>{{ langCode }}</span>
-              <ChevronDown :size="9" :stroke-width="2" class="lang-chevron"
-                :style="{ transform: chevronTransform(showLangDropdown) }" />
-            </button>
-
-            <Teleport to="body">
-              <Transition name="dropdown">
-                <div
-                  v-if="showLangDropdown"
-                  ref="langMenuRef"
-                  class="model-dropdown lang-dropdown"
-                  :style="{ top: langDropdownPos.top + 'px', left: langDropdownPos.left + 'px', ...langDropdownStyle }"
-                >
-                  <button
-                    v-for="lang in targetLanguages"
-                    :key="lang"
-                    @click="pickLang(lang)"
-                    class="model-option"
-                    :class="{ selected: appConfig.target_lang === lang }"
-                  >
-                    <span class="truncate">{{ lang }}</span>
-                    <span v-if="appConfig.target_lang === lang" class="check-mark">&#10003;</span>
-                  </button>
-                </div>
-              </Transition>
-            </Teleport>
-          </div>
-
+          <!-- Model selector -->
           <div class="relative" ref="modelDropdownRef">
             <button
               v-if="activeModelName"
@@ -476,7 +439,7 @@ useShortcutTriggered(() => {
               :class="{ active: showModelDropdown }"
             >
               <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
-              <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
+              <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
                 :style="{ transform: chevronTransform(showModelDropdown) }" />
             </button>
 
@@ -503,6 +466,46 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
+          <div class="w-px h-3 bg-white/10"></div>
+
+          <!-- Language selector -->
+          <div class="lang-wrap" ref="langDropdownRef">
+            <button
+              ref="langBtnRef"
+              @click="toggleLangDropdown"
+              class="lang-btn"
+              :class="{ active: showLangDropdown }"
+              title="Target Language"
+            >
+              <Languages :size="11" :stroke-width="1.8" />
+              <span>{{ langCode }}</span>
+              <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
+                :style="{ transform: chevronTransform(showLangDropdown) }" />
+            </button>
+
+            <Teleport to="body">
+              <Transition name="dropdown">
+                <div
+                  v-if="showLangDropdown"
+                  ref="langMenuRef"
+                  class="model-dropdown lang-dropdown"
+                  :style="{ top: langDropdownPos.top + 'px', left: langDropdownPos.left + 'px', ...langDropdownStyle }"
+                >
+                  <button
+                    v-for="lang in targetLanguages"
+                    :key="lang"
+                    @click="pickLang(lang)"
+                    class="model-option"
+                    :class="{ selected: appConfig.target_lang === lang }"
+                  >
+                    <span class="truncate">{{ lang }}</span>
+                    <span v-if="appConfig.target_lang === lang" class="check-mark">&#10003;</span>
+                  </button>
+                </div>
+              </Transition>
+            </Teleport>
+          </div>
+
           <!-- Persona toggle + selector -->
           <div v-if="appConfig.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
             <button
@@ -522,7 +525,7 @@ useShortcutTriggered(() => {
               class="persona-chevron"
               :class="{ on: personaOn, active: showPersonaDropdown }"
             >
-              <ChevronDown :size="10" :stroke-width="2" class="transition-transform"
+              <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
                 :style="{ transform: chevronTransform(showPersonaDropdown) }" />
             </button>
 
@@ -569,44 +572,7 @@ useShortcutTriggered(() => {
       <template v-else>
         <!-- Toolbar -->
         <div class="flex items-center gap-2">
-          <!-- Language selector -->
-          <div class="lang-wrap" ref="langDropdownRef">
-            <button
-              ref="langBtnRef"
-              @click="toggleLangDropdown"
-              class="lang-btn"
-              :class="{ active: showLangDropdown }"
-              title="Target Language"
-            >
-              <Languages :size="11" :stroke-width="1.8" />
-              <span>{{ langCode }}</span>
-              <ChevronDown :size="9" :stroke-width="2" class="lang-chevron"
-                :style="{ transform: chevronTransform(showLangDropdown) }" />
-            </button>
-
-            <Teleport to="body">
-              <Transition name="dropdown">
-                <div
-                  v-if="showLangDropdown"
-                  ref="langMenuRef"
-                  class="model-dropdown lang-dropdown"
-                  :style="{ top: langDropdownPos.top + 'px', left: langDropdownPos.left + 'px', ...langDropdownStyle }"
-                >
-                  <button
-                    v-for="lang in targetLanguages"
-                    :key="lang"
-                    @click="pickLang(lang)"
-                    class="model-option"
-                    :class="{ selected: appConfig.target_lang === lang }"
-                  >
-                    <span class="truncate">{{ lang }}</span>
-                    <span v-if="appConfig.target_lang === lang" class="check-mark">&#10003;</span>
-                  </button>
-                </div>
-              </Transition>
-            </Teleport>
-          </div>
-
+          <!-- Model selector -->
           <div class="relative" ref="modelDropdownRef">
             <button
               v-if="activeModelName"
@@ -616,7 +582,7 @@ useShortcutTriggered(() => {
               :class="{ active: showModelDropdown }"
             >
               <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
-              <ChevronDown :size="10" :stroke-width="2" class="shrink-0 transition-transform"
+              <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
                 :style="{ transform: chevronTransform(showModelDropdown) }" />
             </button>
 
@@ -643,6 +609,46 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
+          <div class="w-px h-3 bg-white/10"></div>
+
+          <!-- Language selector -->
+          <div class="lang-wrap" ref="langDropdownRef">
+            <button
+              ref="langBtnRef"
+              @click="toggleLangDropdown"
+              class="lang-btn"
+              :class="{ active: showLangDropdown }"
+              title="Target Language"
+            >
+              <Languages :size="11" :stroke-width="1.8" />
+              <span>{{ langCode }}</span>
+              <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
+                :style="{ transform: chevronTransform(showLangDropdown) }" />
+            </button>
+
+            <Teleport to="body">
+              <Transition name="dropdown">
+                <div
+                  v-if="showLangDropdown"
+                  ref="langMenuRef"
+                  class="model-dropdown lang-dropdown"
+                  :style="{ top: langDropdownPos.top + 'px', left: langDropdownPos.left + 'px', ...langDropdownStyle }"
+                >
+                  <button
+                    v-for="lang in targetLanguages"
+                    :key="lang"
+                    @click="pickLang(lang)"
+                    class="model-option"
+                    :class="{ selected: appConfig.target_lang === lang }"
+                  >
+                    <span class="truncate">{{ lang }}</span>
+                    <span v-if="appConfig.target_lang === lang" class="check-mark">&#10003;</span>
+                  </button>
+                </div>
+              </Transition>
+            </Teleport>
+          </div>
+
           <!-- Persona toggle + selector -->
           <div v-if="appConfig.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
             <button
@@ -662,7 +668,7 @@ useShortcutTriggered(() => {
               class="persona-chevron"
               :class="{ on: personaOn, active: showPersonaDropdown }"
             >
-              <ChevronDown :size="10" :stroke-width="2" class="transition-transform"
+              <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
                 :style="{ transform: chevronTransform(showPersonaDropdown) }" />
             </button>
 
@@ -834,7 +840,7 @@ useShortcutTriggered(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 30px;
+  height: 28px;
   padding: 0 8px 0 10px;
   border-radius: 8px;
   font-size: 10px;
@@ -876,8 +882,8 @@ useShortcutTriggered(() => {
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.11);
 }
-.lang-chevron {
-  color: rgba(255, 255, 255, 0.2);
+.toolbar-chevron {
+  color: rgba(255, 255, 255, 0.28);
   transition: transform 0.15s ease;
   flex-shrink: 0;
 }
