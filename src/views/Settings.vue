@@ -647,12 +647,11 @@ onUnmounted(() => {
           </label>
           <span class="dict-toggle-label">{{ appConfig.user_dict_enabled ? 'Enabled' : 'Disabled' }}</span>
           <button
-            v-if="appConfig.user_dict_enabled"
             class="sel-btn dict-edit-btn"
             @click="router.push('/settings/dictionary')"
           >
             <span class="sel-text">Edit Dictionary</span>
-            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" style="transform: rotate(-90deg)" />
+            <Pencil :size="11" :stroke-width="1.9" />
           </button>
         </div>
 
