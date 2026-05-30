@@ -28,6 +28,7 @@ import {
   Cpu,
   CircleDot,
   X,
+  BookText,
 } from "@lucide/vue";
 
 type TabKey = "general" | "translation";
@@ -635,6 +636,26 @@ onUnmounted(() => {
           </Teleport>
         </div>
 
+        <!-- User Dictionary -->
+        <div class="section-head mt">
+          <span class="section-title"><BookText :size="13" />User Dictionary</span>
+        </div>
+        <div class="dict-toggle-row">
+          <label class="persona-check" :class="{ on: appConfig.user_dict_enabled }" @click.stop>
+            <input type="checkbox" :checked="appConfig.user_dict_enabled" @change="appConfig.user_dict_enabled = !appConfig.user_dict_enabled" />
+            <Check v-if="appConfig.user_dict_enabled" :size="9" :stroke-width="3" />
+          </label>
+          <span class="dict-toggle-label">{{ appConfig.user_dict_enabled ? 'Enabled' : 'Disabled' }}</span>
+          <button
+            v-if="appConfig.user_dict_enabled"
+            class="sel-btn dict-edit-btn"
+            @click="router.push('/settings/dictionary')"
+          >
+            <span class="sel-text">Edit Dictionary</span>
+            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" style="transform: rotate(-90deg)" />
+          </button>
+        </div>
+
         <!-- Persona -->
         <div class="section-head mt">
           <span class="section-title"><UserCircle :size="13" />Translation Persona</span>
@@ -1038,6 +1059,24 @@ label {
   font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .lang-btn .sel-text{ font-family: inherit; font-size:12px; }
+
+/* ── Dictionary toggle row ── */
+.dict-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+.dict-toggle-label {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.4);
+  min-width: 52px;
+}
+.dict-edit-btn {
+  flex: 1;
+  margin-left: auto;
+}
+
 .sel-arrow { color: rgba(255,255,255,.22); transition: transform .18s; flex-shrink:0; }
 .sel-arrow.rot{ transform: rotate(180deg); }
 
