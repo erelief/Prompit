@@ -54,6 +54,7 @@ const langBtnRef = ref<HTMLElement | null>(null);
 // ── Persona management ──
 const addingPersona = ref(false);
 const editingPersona = ref<Set<number>>(new Set());
+const isEditingAnyPersona = computed(() => editingPersona.value.size > 0);
 
 function isEditingPersona(index: number): boolean {
   return editingPersona.value.has(index);
@@ -640,7 +641,7 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <div class="card-stack">
+        <div class="card-stack" :class="{ 'persona-stack': !addingPersona && !isEditingAnyPersona }">
           <!-- Empty -->
           <div v-if="appConfig.personas.length === 0 && !addingPersona" class="empty-card">
             <UserCircle :size="22" :stroke-width="1" />
@@ -677,6 +678,7 @@ onUnmounted(() => {
           <div
             v-for="(persona, psi) in appConfig.personas.slice(0, addingPersona ? -1 : undefined)"
             :key="psi"
+            v-show="!addingPersona && !isEditingAnyPersona || isEditingPersona(psi)"
             class="persona-card"
             :class="{ open: isEditingPersona(psi) }"
           >
@@ -833,6 +835,15 @@ onUnmounted(() => {
 
 /* ── Card stack ── */
 .card-stack { display:flex; flex-direction:column; gap:7px; }
+.persona-stack {
+  max-height: 168px; /* 3 collapsed cards comfortably */
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.persona-stack .persona-card { flex-shrink: 0; }
+.persona-stack::-webkit-scrollbar { width: 3px; }
+.persona-stack::-webkit-scrollbar-track { margin: 4px 0; }
+.persona-stack::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
 
 /* ── Provider card ── */
 .prov-card {
