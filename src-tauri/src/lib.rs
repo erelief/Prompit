@@ -68,6 +68,7 @@ pub fn run() {
                             if w.is_visible().unwrap_or(false) {
                                 let _ = w.hide();
                             } else {
+                                let _ = w.eval("window.location.hash = '/'");
                                 let _ = w.show();
                                 let _ = w.set_focus();
                             }

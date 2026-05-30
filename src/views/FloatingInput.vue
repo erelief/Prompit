@@ -355,6 +355,7 @@ defineExpose({ clearAll });
 useShortcutTriggered(() => {
   clearAll();
   lastSentHeight = 0;
+  if (router.currentRoute.value.path !== '/') router.push('/');
 });
 </script>
 

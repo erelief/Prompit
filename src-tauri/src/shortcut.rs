@@ -96,6 +96,7 @@ pub fn register(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                         cfg.set_grow_above(grow_above);
                     }
 
+                    let _ = main_window.eval("window.location.hash = '/'");
                     let _ = main_window.show();
                     let _ = main_window.set_focus();
                     let _ = main_window.emit("shortcut-triggered", ());
