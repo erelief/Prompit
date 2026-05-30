@@ -32,3 +32,6 @@ dist-ssr
 #Claude
 .claude/
 CLAUDE.md
+
+#Images
+src/assets/.sourcefiles
