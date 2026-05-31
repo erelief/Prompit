@@ -688,8 +688,9 @@ onUnmounted(() => {
                   :list="langItems"
                   item-key="id"
                   handle=".lang-drag-handle"
-                  ghost-class="lang-ghost"
                   :force-fallback="true"
+                  fallback-class="hidden-drag-ghost"
+                  ghost-class="lang-ghost"
                   @end="onLangDragEnd"
                 >
                   <template #item="{ element }">
@@ -1221,7 +1222,7 @@ label {
 .lang-menu .opt-label{ font-size:12px; }
 .lang-menu .sel-opt{ font-size:12px; }
 .lang-menu { max-height: 340px; }
-.lang-opt { gap: 4px; padding: 4px 8px; justify-content: flex-start; }
+.lang-opt { gap: 4px; padding: 4px 8px; justify-content: flex-start; user-select: none; -webkit-user-select: none; }
 .lang-opt .lang-drag-handle { opacity: 0; transition: opacity .12s; }
 .lang-opt:hover .lang-drag-handle { opacity: 1; }
 .lang-end { margin-left: auto; display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
@@ -1357,9 +1358,17 @@ label {
   background: rgba(239, 68, 68, 0.1);
 }
 .lang-ghost {
-  opacity: 0.35;
-  background: rgba(212, 160, 72, 0.05);
+  opacity: 0.9;
+  background: rgba(212, 160, 72, 0.08);
   border-radius: 7px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.3);
+}
+.lang-dragging {
+  opacity: 0.25;
+}
+.hidden-drag-ghost {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 .lang-add-row {
   display: flex;
