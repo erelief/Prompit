@@ -147,6 +147,8 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
       :item-key="(oi: number) => oi"
       handle=".card-drag-handle"
       ghost-class="card-ghost"
+      :force-fallback="true"
+      fallback-class="hidden-drag-ghost"
       class="drag-wrapper"
       :swap-threshold="0.65"
       :disabled="isEditingAny"
@@ -263,6 +265,10 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   opacity: 0.35; background: rgba(212, 160, 72, 0.10);
   border: 1px dashed rgba(212, 160, 72, 0.35);
   border-radius: 11px; min-height: 44px;
+}
+.hidden-drag-ghost {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* ── Pill button (Add / Confirm / Cancel) ── */
