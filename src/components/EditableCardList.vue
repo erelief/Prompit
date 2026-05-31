@@ -12,6 +12,8 @@ const props = defineProps<{
   emptyMessage?: string;
   emptySubMessage?: string;
   emptyIcon?: Component;
+  /** Return an error message if the item is invalid, or null to allow. */
+  validate?: (item: any) => string | null;
 }>();
 
 const emit = defineEmits<{
@@ -30,6 +32,7 @@ const editing = ref<Set<number>>(new Set());
 const isEditingAny = computed(() => editing.value.size > 0);
 const order = shallowRef<number[]>([]);
 const pendingRemove = ref<number | null>(null);
+const validationError = ref<string | null>(null);
 
 watch(() => props.items.length, (len) => {
   order.value = Array.from({ length: len }, (_, i) => i);
@@ -43,6 +46,17 @@ function isEditing(index: number): boolean {
 }
 
 function toggleEdit(index: number) {
+  // Collapsing — validate first
+  if (editing.value.has(index)) {
+    const item = props.items[index];
+    if (props.validate) {
+      const error = props.validate(item);
+      if (error) { validationError.value = error; return; }
+    }
+    validationError.value = null;
+  } else {
+    validationError.value = null;
+  }
   const s = new Set(editing.value);
   s.has(index) ? s.delete(index) : s.add(index);
   editing.value = s;
@@ -50,16 +64,24 @@ function toggleEdit(index: number) {
 
 // ── Add / Confirm / Cancel ──
 function handleAdd() {
+  validationError.value = null;
   emit("add");
   nextTick(() => { adding.value = true; });
 }
 
 function handleConfirm() {
+  const item = props.items[NI.value];
+  if (props.validate) {
+    const error = props.validate(item);
+    if (error) { validationError.value = error; return; }
+  }
+  validationError.value = null;
   adding.value = false;
   emit("confirm", { index: NI.value });
 }
 
 function handleCancel() {
+  validationError.value = null;
   const idx = NI.value;
   props.items.pop();
   order.value.pop();
@@ -146,6 +168,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
           </slot>
         </div>
         <slot name="content" :item="items[NI]" :index="NI" :is-adding="true" />
+        <div v-if="validationError" class="validation-error">{{ validationError }}</div>
         <div class="ecl-actions">
           <button class="pill-btn gold-micro" @click.stop="handleConfirm">
             <Check :size="10" :stroke-width="2.5" />Confirm
@@ -235,6 +258,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
               <span class="remove-warning-text">This cannot be undone.</span>
             </div>
             <slot name="content" :item="items[oi]" :index="oi" :is-adding="false" />
+            <div v-if="validationError" class="validation-error">{{ validationError }}</div>
           </div>
         </div>
       </template>
@@ -342,6 +366,10 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 .remove-warning-text {
   font-size: 10px; font-weight: 550; letter-spacing: .01em;
   color: rgba(248,113,113,.65);
+}
+.validation-error {
+  font-size: 10px; font-weight: 550; letter-spacing: .01em;
+  color: rgba(212,160,72,.65); margin-top: 6px;
 }
 .mini-btn.ghost { color: rgba(255,255,255,.2); }
 .mini-btn.ghost:hover { color: rgba(255,255,255,.48); background: rgba(255,255,255,.045); }

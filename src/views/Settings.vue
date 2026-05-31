@@ -59,6 +59,22 @@ const selBtnRef = ref<HTMLElement | null>(null);
 const langBtnRef = ref<HTMLElement | null>(null);
 
 // ── Persona management ──
+function validateProvider(p: ProviderConfig): string | null {
+  const missing: string[] = [];
+  if (!p.name.trim()) missing.push("Name");
+  if (!p.api_key.trim()) missing.push("API Key");
+  if (!p.base_url.trim()) missing.push("Base URL");
+  if (p.models.length === 0) missing.push("at least one Model");
+  return missing.length ? `Required: ${missing.join(", ")}` : null;
+}
+
+function validatePersona(p: { name: string; prompt: string }): string | null {
+  const missing: string[] = [];
+  if (!p.name.trim()) missing.push("Name");
+  if (!p.prompt.trim()) missing.push("Prompt");
+  return missing.length ? `Required: ${missing.join(", ")}` : null;
+}
+
 function togglePersona(index: number) {
   const wasOn = personaStore.personas[index].enabled;
   for (const p of personaStore.personas) p.enabled = false;
@@ -418,6 +434,7 @@ onUnmounted(() => {
           empty-message="No providers yet."
           empty-sub-message="Add one to get started."
           :empty-icon="CircleDot"
+          :validate="validateProvider"
           @add="onProviderAdd"
           @cancel="onProviderCancel"
           @remove="onProviderRemove"
@@ -680,6 +697,7 @@ onUnmounted(() => {
           :icon="UserCircle"
           empty-message="No personas yet."
           empty-sub-message="Add one to customize translation style."
+          :validate="validatePersona"
           @add="personaStore.personas.push({ name: '', prompt: '', enabled: false })"
         >
           <template #collapsed="{ item, index }">
