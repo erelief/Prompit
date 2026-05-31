@@ -29,6 +29,7 @@ const adding = ref(false);
 const editing = ref<Set<number>>(new Set());
 const isEditingAny = computed(() => editing.value.size > 0);
 const order = shallowRef<number[]>([]);
+const pendingRemove = ref<number | null>(null);
 
 watch(() => props.items.length, (len) => {
   order.value = Array.from({ length: len }, (_, i) => i);
@@ -68,7 +69,17 @@ function handleCancel() {
   emit("cancel", { index: idx, indexMap });
 }
 
-// ── Remove ──
+// ── Remove (two-step confirm) ──
+function requestRemove(index: number) {
+  pendingRemove.value = index;
+}
+function confirmRemove(index: number) {
+  pendingRemove.value = null;
+  handleRemove(index);
+}
+function cancelRemove() {
+  pendingRemove.value = null;
+}
 function handleRemove(index: number) {
   props.items.splice(index, 1);
   const re = new Set<number>();
@@ -168,17 +179,32 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
           </span>
 
           <!-- Collapsed -->
-          <div v-if="!isEditing(oi)" class="ecl-collapsed" @click="toggleEdit(oi)">
+          <div v-if="!isEditing(oi)" class="ecl-collapsed" :class="{ 'remove-pending': pendingRemove === oi }" @click="pendingRemove === oi || toggleEdit(oi)">
             <div class="ecl-lhs">
-              <slot name="collapsed" :item="items[oi]" :index="oi" />
+              <template v-if="pendingRemove === oi">
+                <span class="remove-warning-text">This cannot be undone.</span>
+              </template>
+              <template v-else>
+                <slot name="collapsed" :item="items[oi]" :index="oi" />
+              </template>
             </div>
             <div class="ecl-rhs" @click.stop>
-              <button class="mini-btn" title="Edit" @click="toggleEdit(oi)">
-                <Pencil :size="11" :stroke-width="1.9" />
-              </button>
-              <button class="mini-btn warn" title="Remove" @click="handleRemove(oi)">
-                <Trash2 :size="11" :stroke-width="1.9" />
-              </button>
+              <template v-if="pendingRemove === oi">
+                <button class="mini-btn danger-active" title="Confirm remove" @click="confirmRemove(oi)">
+                  <Check :size="11" :stroke-width="2.5" />
+                </button>
+                <button class="mini-btn" title="Cancel" @click="cancelRemove">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </template>
+              <template v-else>
+                <button class="mini-btn" title="Edit" @click="toggleEdit(oi)">
+                  <Pencil :size="11" :stroke-width="1.9" />
+                </button>
+                <button class="mini-btn warn" title="Remove" @click="requestRemove(oi)">
+                  <Trash2 :size="11" :stroke-width="1.9" />
+                </button>
+              </template>
             </div>
           </div>
 
@@ -191,9 +217,22 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
               <button class="mini-btn ghost" title="Collapse" @click.stop="toggleEdit(oi)">
                 <ChevronDown :size="14" :stroke-width="1.8" class="chev-up" />
               </button>
-              <button class="mini-btn warn" title="Remove" @click.stop="handleRemove(oi)">
-                <Trash2 :size="12" :stroke-width="1.8" />
-              </button>
+              <template v-if="pendingRemove === oi">
+                <button class="mini-btn danger-active" title="Confirm remove" @click.stop="confirmRemove(oi)">
+                  <Check :size="12" :stroke-width="2.5" />
+                </button>
+                <button class="mini-btn ghost" title="Cancel" @click.stop="cancelRemove">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </template>
+              <template v-else>
+                <button class="mini-btn warn" title="Remove" @click.stop="requestRemove(oi)">
+                  <Trash2 :size="12" :stroke-width="1.8" />
+                </button>
+              </template>
+            </div>
+            <div v-if="pendingRemove === oi" class="remove-warning-row">
+              <span class="remove-warning-text">This cannot be undone.</span>
             </div>
             <slot name="content" :item="items[oi]" :index="oi" :is-adding="false" />
           </div>
@@ -234,6 +273,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   padding: 11px 14px 11px 40px; cursor:pointer; transition:background .12s;
 }
 .ecl-collapsed:hover { background: rgba(255,255,255,.02); }
+.ecl-collapsed.remove-pending { background: rgba(248,113,113,.06); cursor: default; }
 .ecl-lhs { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
 .ecl-rhs { display:flex; align-items:center; gap:2px; opacity:.6; transition:opacity .12s; }
 .ecl-collapsed:hover .ecl-rhs { opacity:1; }
@@ -294,6 +334,15 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 }
 .mini-btn:hover { color: rgba(255,255,255,.7); background: rgba(255,255,255,.065); }
 .mini-btn.warn:hover { color: #f87171; background: rgba(248,113,113,.1); }
+.mini-btn.danger-active {
+  color: #f87171; background: rgba(248,113,113,.14);
+  animation: danger-pulse .8s ease-in-out infinite alternate;
+}
+.remove-warning-row { margin-bottom: 6px; }
+.remove-warning-text {
+  font-size: 10px; font-weight: 550; letter-spacing: .01em;
+  color: rgba(248,113,113,.65);
+}
 .mini-btn.ghost { color: rgba(255,255,255,.2); }
 .mini-btn.ghost:hover { color: rgba(255,255,255,.48); background: rgba(255,255,255,.045); }
 
@@ -330,6 +379,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 .empty-card small{ font-size: 10px; color: rgba(255,255,255,.13); }
 
 @keyframes spin{ to{ transform: rotate(360deg)} }
+@keyframes danger-pulse{ to{ background: rgba(248,113,113,.24)} }
 .spin{ animation: spin .75s linear infinite; }
 .chev-up{ transform: rotate(180deg); }
 </style>
