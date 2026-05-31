@@ -225,7 +225,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
       fallback-class="hidden-drag-ghost"
       class="drag-wrapper"
       :animation="200"
-      :swap-threshold="0.65"
+      :swap-threshold="0.5"
       :disabled="isEditingAny"
       @end="onDragEnd"
     >
