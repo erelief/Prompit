@@ -241,7 +241,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
           </span>
 
           <!-- Collapsed -->
-          <div v-if="!isEditing(oi)" class="ecl-collapsed" :class="{ 'remove-pending': pendingRemove === oi }" @click="pendingRemove === oi || toggleEdit(oi)">
+          <div v-if="!isEditing(oi)" class="ecl-collapsed" :class="{ 'remove-pending': pendingRemove === oi }">
             <div class="ecl-lhs">
               <template v-if="pendingRemove === oi">
                 <span class="remove-warning-text">This cannot be undone.</span>
@@ -333,10 +333,10 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 /* ── Collapsed ── */
 .ecl-collapsed {
   display:flex; align-items:center; justify-content:space-between;
-  padding: 11px 14px 11px 40px; cursor:pointer; transition:background .12s;
+  padding: 11px 14px 11px 40px; transition:background .12s;
 }
 .ecl-collapsed:hover { background: rgba(255,255,255,.02); }
-.ecl-collapsed.remove-pending { background: rgba(248,113,113,.06); cursor: default; }
+.ecl-collapsed.remove-pending { background: rgba(248,113,113,.06); }
 .ecl-lhs { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
 .ecl-rhs { display:flex; align-items:center; gap:2px; opacity:.6; transition:opacity .12s; }
 .ecl-collapsed:hover .ecl-rhs { opacity:1; }
