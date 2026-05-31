@@ -127,8 +127,6 @@ function pickLang(lang: string) {
   showLangSelector.value = false;
 }
 
-const targetLanguages = computed(() => getOrderedLanguages());
-
 // ── Language management ──
 const newLangInput = ref("");
 const showAddLang = ref(false);
@@ -686,87 +684,65 @@ onUnmounted(() => {
             <Transition name="drop">
               <div v-if="showLangSelector" class="sel-menu lang-menu" :style="{ top: langMenuPos.top + 'px', left: langMenuPos.left + 'px' }">
                 <div class="sel-clip settings-scrollbar">
-                <div class="sel-menu-inner">
-                  <button
-                    v-for="lang in targetLanguages" :key="lang"
-                    class="sel-opt"
-                    :class="{ hit: lang === appConfig.target_lang }"
-                    @click="pickLang(lang)"
-                  >
-                    <span class="opt-label">{{ lang }}</span>
-                    <Check
-                      v-if="lang === appConfig.target_lang"
-                      :size="13" :stroke-width="2.5"
-                    />
+                <draggable
+                  :list="langItems"
+                  item-key="id"
+                  handle=".lang-drag-handle"
+                  ghost-class="lang-ghost"
+                  @end="onLangDragEnd"
+                >
+                  <template #item="{ element }">
+                    <div
+                      class="sel-opt lang-opt"
+                      :class="{ hit: element.name === appConfig.target_lang }"
+                      @click="pickLang(element.name)"
+                    >
+                      <GripVertical :size="11" :stroke-width="1.8" class="lang-drag-handle" />
+                      <span class="opt-label">{{ element.name }}</span>
+                      <Check v-if="element.name === appConfig.target_lang" :size="13" :stroke-width="2.5" class="lang-item-check" />
+                      <button
+                        v-if="element.isCustom"
+                        class="lang-item-delete"
+                        @click.stop="deleteCustomLang(element.name)"
+                        title="Remove language"
+                      >
+                        <Trash2 :size="11" :stroke-width="1.8" />
+                      </button>
+                      <span v-else class="lang-item-spacer"></span>
+                    </div>
+                  </template>
+                </draggable>
+
+                <!-- Add language -->
+                <div class="lang-sep"></div>
+                <div v-if="showAddLang" class="lang-add-row">
+                  <input
+                    v-model="newLangInput"
+                    class="lang-add-input"
+                    placeholder="Language name…"
+                    @keydown.enter="addCustomLang"
+                    @click.stop
+                    ref="langAddInputRef"
+                  />
+                  <button class="lang-add-confirm" @click="addCustomLang" :disabled="!newLangInput.trim()">
+                    <Check :size="12" :stroke-width="2.5" />
+                  </button>
+                  <button class="lang-add-cancel" @click="showAddLang = false; newLangInput = ''">
+                    <X :size="12" :stroke-width="2" />
                   </button>
                 </div>
+                <button v-else class="lang-add-btn" @click="showAddLang = true">
+                  <Plus :size="11" :stroke-width="2" />Add language…
+                </button>
+
+                <!-- Restore default order -->
+                <button class="lang-restore-btn" @click="restoreDefaultOrder">
+                  <RotateCcw :size="10" :stroke-width="1.8" />Restore default order
+                </button>
                 </div>
               </div>
             </Transition>
           </Teleport>
-        </div>
-
-        <!-- Language management list -->
-        <div class="lang-mgmt">
-          <div class="lang-mgmt-header">
-            <span class="lang-mgmt-title">Language List</span>
-            <span class="lang-mgmt-hint">Drag to reorder</span>
-          </div>
-
-          <draggable
-            :list="langItems"
-            item-key="id"
-            handle=".lang-drag-handle"
-            ghost-class="lang-ghost"
-            @end="onLangDragEnd"
-          >
-            <template #item="{ element }">
-              <div
-                class="lang-item"
-                :class="{ 'lang-item-custom': element.isCustom, 'lang-item-active': element.name === appConfig.target_lang }"
-                @click="pickLang(element.name)"
-              >
-                <GripVertical :size="12" :stroke-width="1.8" class="lang-drag-handle" />
-                <span class="lang-item-name">{{ element.name }}</span>
-                <Check v-if="element.name === appConfig.target_lang" :size="12" :stroke-width="2.5" class="lang-item-check" />
-                <button
-                  v-if="element.isCustom"
-                  class="lang-item-delete"
-                  @click.stop="deleteCustomLang(element.name)"
-                  title="Remove language"
-                >
-                  <Trash2 :size="11" :stroke-width="1.8" />
-                </button>
-                <span v-else class="lang-item-spacer"></span>
-              </div>
-            </template>
-          </draggable>
-
-          <!-- Add language -->
-          <div v-if="showAddLang" class="lang-add-row">
-            <input
-              v-model="newLangInput"
-              class="lang-add-input"
-              placeholder="Language name…"
-              @keydown.enter="addCustomLang"
-              @click.stop
-              ref="langAddInputRef"
-            />
-            <button class="lang-add-confirm" @click="addCustomLang" :disabled="!newLangInput.trim()">
-              <Check :size="12" :stroke-width="2.5" />
-            </button>
-            <button class="lang-add-cancel" @click="showAddLang = false; newLangInput = ''">
-              <X :size="12" :stroke-width="2" />
-            </button>
-          </div>
-          <button v-else class="lang-add-btn" @click="showAddLang = true">
-            <Plus :size="12" :stroke-width="2" />Add language…
-          </button>
-
-          <!-- Restore default order -->
-          <button class="lang-restore-btn" @click="restoreDefaultOrder">
-            <RotateCcw :size="11" :stroke-width="1.8" />Restore default order
-          </button>
         </div>
 
         <!-- User Dictionary -->
@@ -1242,6 +1218,11 @@ label {
 .opt-src{ font-size: 9px; color: rgba(255,255,255,.2); letter-spacing: .02em; }
 .lang-menu .opt-label{ font-size:12px; }
 .lang-menu .sel-opt{ font-size:12px; }
+.lang-menu { max-height: 340px; }
+.lang-opt { gap: 6px; padding: 5px 8px; }
+.lang-opt .lang-drag-handle { opacity: 0; transition: opacity .12s; }
+.lang-opt:hover .lang-drag-handle { opacity: 1; }
+.lang-sep { height: 1px; background: rgba(255,255,255,.06); margin: 4px 8px; }
 
 /* ── Empty state ── */
 .empty-card {
@@ -1325,66 +1306,15 @@ label {
 .spin{ animation: spin .75s linear infinite; }
 .chev-up{ transform: rotate(180deg); }
 
-/* ── Language management panel ── */
-.lang-mgmt {
-  margin-top: 10px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.055);
-  padding: 10px 10px 8px;
-}
-.lang-mgmt-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-.lang-mgmt-title {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.3);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.lang-mgmt-hint {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.16);
-}
-.lang-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 7px;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: background 0.12s;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-}
-.lang-item:hover {
-  background: rgba(255, 255, 255, 0.045);
-}
-.lang-item-active {
-  color: rgba(212, 160, 72, 0.9);
-}
+/* ── Language dropdown management ── */
 .lang-drag-handle {
   cursor: grab;
   color: rgba(255, 255, 255, 0.16);
   flex-shrink: 0;
   transition: color 0.12s;
 }
-.lang-item:hover .lang-drag-handle {
-  color: rgba(255, 255, 255, 0.28);
-}
 .lang-drag-handle:active {
   cursor: grabbing;
-}
-.lang-item-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .lang-item-check {
   flex-shrink: 0;
@@ -1405,7 +1335,7 @@ label {
   transition: all 0.12s;
   opacity: 0;
 }
-.lang-item:hover .lang-item-delete {
+.lang-opt:hover .lang-item-delete {
   opacity: 1;
 }
 .lang-item-delete:hover {
