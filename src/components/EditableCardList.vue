@@ -115,10 +115,22 @@ function handleRemove(index: number) {
 }
 
 // ── Drag end ──
+const rootEl = ref<HTMLElement | null>(null);
+
 function onDragEnd() {
   const newOrder = order.value;
   const indexMap = new Map<number, number>();
   newOrder.forEach((oldIdx, newIdx) => indexMap.set(oldIdx, newIdx));
+
+  // FLIP: First — capture current positions of each card
+  const firstRects = new Map<number, DOMRect>();
+  if (rootEl.value) {
+    rootEl.value.querySelectorAll<HTMLElement>(".ecl-card").forEach(el => {
+      const oi = Number(el.dataset.flipId);
+      if (!isNaN(oi)) firstRects.set(oi, el.getBoundingClientRect());
+    });
+  }
+
   // Reorder the data array to match the visual order
   const reordered = newOrder.map(i => props.items[i]);
   for (let i = 0; i < reordered.length; i++) props.items[i] = reordered[i];
@@ -130,6 +142,31 @@ function onDragEnd() {
   order.value = props.items.map((_, i) => i);
   triggerRef(order);
   emit("drag-end", { indexMap });
+
+  // FLIP: Invert + Play — animate cards from old to new positions
+  nextTick(() => {
+    if (!rootEl.value) return;
+    rootEl.value.querySelectorAll<HTMLElement>(".ecl-card").forEach(el => {
+      const oi = Number(el.dataset.flipId);
+      if (isNaN(oi)) return;
+      const first = firstRects.get(oi);
+      if (!first) return;
+      const last = el.getBoundingClientRect();
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      if (!dx && !dy) return;
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+      el.style.transition = "none";
+      // Force reflow so the "invert" transform applies before we animate
+      el.offsetHeight; // eslint-disable-line no-unused-expressions
+      el.style.transition = "transform 200ms ease";
+      el.style.transform = "";
+      el.addEventListener("transitionend", () => {
+        el.style.transition = "";
+        el.style.transform = "";
+      }, { once: true });
+    });
+  });
 }
 
 // ── Helpers ──
@@ -152,7 +189,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
     </button>
   </div>
 
-  <div class="ecl-stack" :class="{ compact: !adding && !isEditingAny }">
+  <div ref="rootEl" class="ecl-stack" :class="{ compact: !adding && !isEditingAny }">
     <!-- Empty state -->
     <div v-if="items.length === 0 && !adding" class="empty-card">
       <component :is="emptyIcon || icon" :size="22" :stroke-width="1" />
@@ -187,6 +224,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
       :force-fallback="true"
       fallback-class="hidden-drag-ghost"
       class="drag-wrapper"
+      :animation="200"
       :swap-threshold="0.65"
       :disabled="isEditingAny"
       @end="onDragEnd"
@@ -196,6 +234,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
           v-show="!adding && !isEditingAny || isEditing(oi)"
           class="ecl-card"
           :class="{ open: isEditing(oi) }"
+          :data-flip-id="oi"
         >
           <span class="card-drag-handle" @click.stop>
             <GripVertical :size="13" :stroke-width="1.8" />
