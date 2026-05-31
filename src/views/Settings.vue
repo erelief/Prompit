@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, triggerRef, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
@@ -15,6 +15,7 @@ import {
 import type { ProviderConfig } from "../stores/config";
 import { BUILTIN_LANGUAGES } from "../constants/languages";
 import draggable from "vuedraggable";
+import EditableCardList from "../components/EditableCardList.vue";
 import {
   ArrowLeft,
   Languages,
@@ -45,18 +46,11 @@ const route = useRoute();
 const growAbove = ref(false);
 const activeTab = ref<TabKey>("general");
 const visibleKeys = ref<Set<number>>(new Set());
-const editingProvider = ref<Set<number>>(new Set());
-const isEditingAnyProvider = computed(() => editingProvider.value.size > 0);
-const addingProvider = ref(false);
-const newProviderIndex = computed(() => appConfig.providers.length - 1);
-
 const testingProvider = ref<number | null>(null);
 const fetchStatuses = ref<Map<number, string>>(new Map());
 const fetchedModels = ref<Map<string, string[]>>(new Map());
 const fetchingProviders = ref(new Set<number>());
 const addingModelProvider = ref<number | null>(null);
-const providerOrder = shallowRef<number[]>([]);
-const personaOrder = shallowRef<number[]>([]);
 const showModelSelector = ref(false);
 const showLangSelector = ref(false);
 const selMenuPos = ref({ top: 0, left: 0 });
@@ -65,44 +59,6 @@ const selBtnRef = ref<HTMLElement | null>(null);
 const langBtnRef = ref<HTMLElement | null>(null);
 
 // ── Persona management ──
-const addingPersona = ref(false);
-const editingPersona = ref<Set<number>>(new Set());
-const isEditingAnyPersona = computed(() => editingPersona.value.size > 0);
-
-function isEditingPersona(index: number): boolean {
-  return editingPersona.value.has(index);
-}
-
-function toggleEditPersona(index: number) {
-  const s = new Set(editingPersona.value);
-  s.has(index) ? s.delete(index) : s.add(index);
-  editingPersona.value = s;
-}
-
-function addPersona() {
-  personaStore.personas.push({ name: "", prompt: "", enabled: false });
-  personaOrder.value.push(personaStore.personas.length - 1);
-  addingPersona.value = true;
-}
-
-function confirmPersona() {
-  addingPersona.value = false;
-}
-
-function cancelPersona() {
-  personaStore.personas.pop();
-  personaOrder.value.pop();
-  addingPersona.value = false;
-}
-
-function removePersona(index: number) {
-  personaStore.personas.splice(index, 1);
-  const re = new Set<number>();
-  for (const i of editingPersona.value) re.add(i > index ? i - 1 : i);
-  editingPersona.value = re;
-  personaOrder.value = personaOrder.value.filter(i => i !== index).map(i => i > index ? i - 1 : i);
-}
-
 function togglePersona(index: number) {
   const wasOn = personaStore.personas[index].enabled;
   for (const p of personaStore.personas) p.enabled = false;
@@ -160,20 +116,8 @@ function onLangDragEnd() {
   appConfig.language_order = langItems.value.map(item => item.name);
 }
 
-function onProviderDragEnd() {
-  // shallowRef prevents re-renders during drag; read mutated order directly
-  const newOrder = providerOrder.value;
-  const indexMap = new Map<number, number>();
-  newOrder.forEach((oldIdx, newIdx) => indexMap.set(oldIdx, newIdx));
-
-  const reordered = newOrder.map(i => appConfig.providers[i]);
-  for (let i = 0; i < reordered.length; i++) appConfig.providers[i] = reordered[i];
-
+function onProviderDragEnd({ indexMap }: { indexMap: Map<number, number> }) {
   appConfig.active_provider_index = indexMap.get(appConfig.active_provider_index) ?? 0;
-
-  const re = new Set<number>();
-  for (const i of editingProvider.value) { const m = indexMap.get(i); if (m !== undefined) re.add(m); }
-  editingProvider.value = re;
 
   const rv = new Set<number>();
   for (const i of visibleKeys.value) { const m = indexMap.get(i); if (m !== undefined) rv.add(m); }
@@ -196,25 +140,6 @@ function onProviderDragEnd() {
 
   if (testingProvider.value !== null) testingProvider.value = indexMap.get(testingProvider.value) ?? null;
   if (addingModelProvider.value !== null) addingModelProvider.value = indexMap.get(addingModelProvider.value) ?? null;
-
-  providerOrder.value = appConfig.providers.map((_, i) => i);
-  triggerRef(providerOrder);
-}
-
-function onPersonaDragEnd() {
-  const newOrder = personaOrder.value;
-  const indexMap = new Map<number, number>();
-  newOrder.forEach((oldIdx, newIdx) => indexMap.set(oldIdx, newIdx));
-
-  const reordered = newOrder.map(i => personaStore.personas[i]);
-  for (let i = 0; i < reordered.length; i++) personaStore.personas[i] = reordered[i];
-
-  const re = new Set<number>();
-  for (const i of editingPersona.value) { const m = indexMap.get(i); if (m !== undefined) re.add(m); }
-  editingPersona.value = re;
-
-  personaOrder.value = personaStore.personas.map((_, i) => i);
-  triggerRef(personaOrder);
 }
 
 function deleteCustomLang(name: string) {
@@ -249,21 +174,9 @@ function toggleKeyVisibility(index: number) {
   visibleKeys.value = s;
 }
 
-function isEditing(pIndex: number): boolean {
-  return editingProvider.value.has(pIndex);
-}
-
-function toggleEdit(pIndex: number) {
-  const s = new Set(editingProvider.value);
-  s.has(pIndex) ? s.delete(pIndex) : s.add(pIndex);
-  editingProvider.value = s;
-}
-
 async function load() {
   try { await loadConfig(); }
   catch (err) { console.error("Failed to load config:", err); }
-  providerOrder.value = appConfig.providers.map((_, i) => i);
-  personaOrder.value = personaStore.personas.map((_, i) => i);
 }
 
 // ── Auto-save ──
@@ -285,51 +198,35 @@ watch(
   },
 );
 
-function addProvider() {
+function onProviderAdd() {
   appConfig.providers.push({
     name: "", api_key: "",
     base_url: "https://api.openai.com/v1",
     models: [], temperature: 0.3, max_tokens: 1024,
   });
-  providerOrder.value.push(appConfig.providers.length - 1);
-  addingProvider.value = true;
 }
 
-function confirmProvider() {
-  addingProvider.value = false;
-}
-
-function cancelProvider() {
-  const idx = appConfig.providers.length - 1;
-  appConfig.providers.pop();
-  providerOrder.value.pop();
-  visibleKeys.value.delete(idx);
-  fetchStatuses.value.delete(idx);
-  fetchedModels.value.delete(`p${idx}`);
-  fetchingProviders.value.delete(idx);
-  if (addingModelProvider.value === idx) addingModelProvider.value = null;
-  if (testingProvider.value === idx) testingProvider.value = null;
-  addingProvider.value = false;
-}
-
-function removeProvider(index: number) {
-  appConfig.providers.splice(index, 1);
+function onProviderCancel({ index }: { index: number }) {
   visibleKeys.value.delete(index);
-  editingProvider.value.delete(index);
+  fetchStatuses.value.delete(index);
+  fetchedModels.value.delete(`p${index}`);
+  fetchingProviders.value.delete(index);
+  if (addingModelProvider.value === index) addingModelProvider.value = null;
+  if (testingProvider.value === index) testingProvider.value = null;
+}
+
+function onProviderRemove({ index, indexMap }: { index: number; indexMap: Map<number, number> }) {
+  visibleKeys.value.delete(index);
   fetchedModels.value.delete(`p${index}`);
   const rv = new Set<number>();
-  for (const i of visibleKeys.value) rv.add(i > index ? i - 1 : i);
+  for (const i of visibleKeys.value) { const m = indexMap.get(i); if (m !== undefined) rv.add(m); }
   visibleKeys.value = rv;
-  const re = new Set<number>();
-  for (const i of editingProvider.value) re.add(i > index ? i - 1 : i);
-  editingProvider.value = re;
   const rf = new Map<string, string[]>();
   for (const [k, v] of fetchedModels.value) {
-    const n = parseInt(k.slice(1));
-    rf.set(`p${n > index ? n - 1 : n}`, v);
+    const ni = indexMap.get(parseInt(k.slice(1)));
+    if (ni !== undefined) rf.set(`p${ni}`, v);
   }
   fetchedModels.value = rf;
-  providerOrder.value = providerOrder.value.filter(i => i !== index).map(i => i > index ? i - 1 : i);
   if (appConfig.active_provider_index >= appConfig.providers.length)
     appConfig.active_provider_index = Math.max(0, appConfig.providers.length - 1);
   const ap = appConfig.providers[appConfig.active_provider_index];
@@ -456,7 +353,7 @@ async function closeWindow() {
 
 async function handleDrag(e: MouseEvent) {
   const t = e.target as HTMLElement;
-  if (t.closest("textarea, button, input, select, a, .provider-card, .prov-card, .persona-card, .card-drag-handle, .sel-menu")) return;
+  if (t.closest("textarea, button, input, select, a, .ecl-card, .card-drag-handle, .sel-menu")) return;
   await getCurrentWindow().startDragging();
 }
 
@@ -513,282 +410,122 @@ onUnmounted(() => {
 
       <!-- ─── General: Providers ─── -->
       <template v-if="activeTab === 'general'">
-        <div class="section-head">
-          <span class="section-title"><Settings2 :size="13" />Providers</span>
-          <button class="pill-btn add-pill" @click="addProvider" :disabled="addingProvider">
-            <Plus :size="12" :stroke-width="2" />Add Provider
-          </button>
-        </div>
-
-        <div class="card-stack" :class="{ 'prov-stack': !addingProvider && !isEditingAnyProvider }">
-          <!-- Empty -->
-          <div v-if="appConfig.providers.length === 0 && !addingProvider" class="empty-card">
-            <CircleDot :size="22" :stroke-width="1" />
-            <span>No providers yet.<br><small>Add one to get started.</small></span>
-          </div>
-
-          <!-- Adding form -->
-          <div v-if="addingProvider" class="prov-card open">
-            <div class="prov-expanded">
-              <div class="name-row">
-                <input
-                  v-model="appConfig.providers[newProviderIndex].name"
-                  placeholder="Provider name…"
-                  class="name-input" @click.stop
-                />
-              </div>
-
-              <!-- fields -->
-              <div class="fields">
-                <div class="field">
-                  <label>API Key</label>
-                  <div class="key-wrap">
-                    <input
-                      v-model="appConfig.providers[newProviderIndex].api_key"
-                      :type="visibleKeys.has(newProviderIndex) ? 'text' : 'password'"
-                      class="fi key-fi" placeholder="sk-…" @click.stop
-                    />
-                    <button class="icon-btn-sm" @click.stop="toggleKeyVisibility(newProviderIndex)" :title="visibleKeys.has(newProviderIndex) ? 'Hide' : 'Show'">
-                      <EyeOff v-if="visibleKeys.has(newProviderIndex)" :size="12" :stroke-width="1.9" />
-                      <Eye v-else :size="12" :stroke-width="1.9" />
-                    </button>
-                    <button
-                      class="icon-btn-sm linkish"
-                      @click.stop="testConnection(appConfig.providers[newProviderIndex], newProviderIndex)"
-                      :disabled="!appConfig.providers[newProviderIndex].api_key || testingProvider === newProviderIndex"
-                      title="Test connection"
-                    >
-                      <Loader2 v-if="testingProvider === newProviderIndex" :size="12" class="spin" :stroke-width="1.9" />
-                      <Link2 v-else :size="12" :stroke-width="1.9" />
-                    </button>
-                  </div>
-                  <Transition name="fade">
-                    <span
-                      v-if="fetchStatuses.get(newProviderIndex)"
-                      class="status-pill"
-                      :class="{ ok: fetchStatuses.get(newProviderIndex) === 'Connected', err: fetchStatuses.get(newProviderIndex) !== 'Connected' }"
-                    >
-                      <span class="status-dot" />
-                      {{ fetchStatuses.get(newProviderIndex) }}
-                    </span>
-                  </Transition>
-                </div>
-
-                <div class="field">
-                  <label>Base URL</label>
-                  <input v-model="appConfig.providers[newProviderIndex].base_url" class="fi" placeholder="https://api.openai.com/v1" @click.stop />
-                </div>
-              </div>
-
-              <!-- pool -->
-              <div class="pool-bar">
-                <span class="pool-label">Models · {{ appConfig.providers[newProviderIndex].models.length }}</span>
-                <div class="pool-actions">
-                  <button
-                    class="pill-btn micro"
-                    @click.stop="fetchModels(appConfig.providers[newProviderIndex], newProviderIndex)"
-                    :disabled="!appConfig.providers[newProviderIndex].api_key || fetchingProviders.has(newProviderIndex)"
-                  >
-                    <Loader2 v-if="fetchingProviders.has(newProviderIndex)" :size="10" class="spin" :stroke-width="2" />
-                    <RefreshCw v-else :size="10" :stroke-width="2" />
-                    {{ fetchingProviders.has(newProviderIndex) ? 'Fetching' : 'Fetch' }}
-                  </button>
-                  <button
-                    v-if="getFetchedModels(newProviderIndex).length > 0 && addingModelProvider !== newProviderIndex"
-                    class="pill-btn micro gold-micro"
-                    @click.stop="addingModelProvider = newProviderIndex"
-                  >
-                    <Plus :size="10" :stroke-width="2" />Add
-                  </button>
-                </div>
-              </div>
-
-              <!-- fetched picker -->
-              <div v-if="addingModelProvider === newProviderIndex" class="picker" @click.stop>
-                <div class="picker-scroll settings-scrollbar">
-                  <button
-                    v-for="mid in getFetchedModels(newProviderIndex)" :key="mid"
-                    class="pick-item"
-                    :class="{ dim: appConfig.providers[newProviderIndex].models.some(m => m.id === mid) }"
-                    @click="addModelFromList(newProviderIndex, mid)"
-                  >
-                    <span>{{ mid }}</span>
-                    <Check v-if="appConfig.providers[newProviderIndex].models.some(m => m.id === mid)" :size="11" :stroke-width="2.6" />
-                  </button>
-                </div>
-                <button class="picker-done" @click.stop="addingModelProvider = null">Done</button>
-              </div>
-
-              <!-- tags -->
-              <div v-if="appConfig.providers[newProviderIndex].models.length > 0" class="tags">
-                <span v-for="(m, mi) in appConfig.providers[newProviderIndex].models" :key="mi" class="tag">
-                  {{ m.id }}
-                  <button class="tag-x" @click.stop="removeModel(newProviderIndex, mi)">
-                    <Trash2 :size="9" :stroke-width="2" />
-                  </button>
-                </span>
-              </div>
-
-              <div class="persona-actions">
-                <button class="pill-btn gold-micro" @click.stop="confirmProvider">
-                  <Check :size="10" :stroke-width="2.5" />Confirm
-                </button>
-                <button class="pill-btn micro" @click.stop="cancelProvider">Cancel</button>
+        <!-- Providers -->
+        <EditableCardList
+          :items="appConfig.providers"
+          title="Providers"
+          :icon="Settings2"
+          empty-message="No providers yet."
+          empty-sub-message="Add one to get started."
+          :empty-icon="CircleDot"
+          @add="onProviderAdd"
+          @cancel="onProviderCancel"
+          @remove="onProviderRemove"
+          @drag-end="onProviderDragEnd"
+        >
+          <template #collapsed="{ item }">
+            <div class="prov-lhs">
+              <div class="prov-accent" />
+              <div class="prov-meta">
+                <span class="prov-name" :class="{ dim: !item.name }">{{ item.name || 'Untitled Provider' }}</span>
+                <span class="prov-badge">{{ item.models.length }} model{{ item.models.length !== 1 ? 's' : '' }}</span>
               </div>
             </div>
-          </div>
+          </template>
 
-          <!-- Provider cards -->
-          <draggable
-            :list="providerOrder"
-            :item-key="(oi: number) => oi"
-            handle=".card-drag-handle"
-            ghost-class="card-ghost"
-            class="drag-wrapper"
-            :swap-threshold="0.65"
-            :disabled="isEditingAnyProvider"
-            @end="onProviderDragEnd"
-          >
-            <template #item="{ element: oi }">
-              <div
-                v-show="!addingProvider && !isEditingAnyProvider || isEditing(oi)"
-                class="prov-card"
-                :class="{ open: isEditing(oi) }"
-              >
-                <span class="card-drag-handle" @click.stop>
-                  <GripVertical :size="13" :stroke-width="1.8" />
-                </span>
-
-                <!-- ── Collapsed ── -->
-                <div v-if="!isEditing(oi)" class="prov-collapsed" @click="toggleEdit(oi)">
-                  <div class="prov-lhs">
-                    <div class="prov-accent" />
-                    <div class="prov-meta">
-                      <span class="prov-name" :class="{ dim: !appConfig.providers[oi].name }">{{ appConfig.providers[oi].name || 'Untitled Provider' }}</span>
-                      <span class="prov-badge">{{ appConfig.providers[oi].models.length }} model{{ appConfig.providers[oi].models.length !== 1 ? 's' : '' }}</span>
-                    </div>
-                  </div>
-                  <div class="prov-rhs" @click.stop>
-                    <button class="mini-btn" title="Edit" @click="toggleEdit(oi)">
-                      <Pencil :size="11" :stroke-width="1.9" />
-                    </button>
-                    <button class="mini-btn warn" title="Remove" @click="removeProvider(oi)">
-                      <Trash2 :size="11" :stroke-width="1.9" />
-                    </button>
-                  </div>
+          <template #content="{ item, index }">
+            <!-- fields -->
+            <div class="fields">
+              <div class="field">
+                <label>API Key</label>
+                <div class="key-wrap">
+                  <input
+                    v-model="item.api_key"
+                    :type="visibleKeys.has(index) ? 'text' : 'password'"
+                    class="fi key-fi" placeholder="sk-…" @click.stop
+                  />
+                  <button class="icon-btn-sm" @click.stop="toggleKeyVisibility(index)" :title="visibleKeys.has(index) ? 'Hide' : 'Show'">
+                    <EyeOff v-if="visibleKeys.has(index)" :size="12" :stroke-width="1.9" />
+                    <Eye v-else :size="12" :stroke-width="1.9" />
+                  </button>
+                  <button
+                    class="icon-btn-sm linkish"
+                    @click.stop="testConnection(item, index)"
+                    :disabled="!item.api_key || testingProvider === index"
+                    title="Test connection"
+                  >
+                    <Loader2 v-if="testingProvider === index" :size="12" class="spin" :stroke-width="1.9" />
+                    <Link2 v-else :size="12" :stroke-width="1.9" />
+                  </button>
                 </div>
-
-                <!-- ── Expanded ── -->
-                <div v-else class="prov-expanded">
-                  <!-- name row -->
-                  <div class="name-row">
-                    <input
-                      v-model="appConfig.providers[oi].name" placeholder="Provider name…"
-                      class="name-input" @click.stop
-                    />
-                    <button class="mini-btn ghost" title="Collapse" @click.stop="toggleEdit(oi)">
-                      <ChevronDown :size="14" :stroke-width="1.8" class="chev-up" />
-                    </button>
-                    <button class="mini-btn warn" title="Remove" @click.stop="removeProvider(oi)">
-                      <Trash2 :size="12" :stroke-width="1.8" />
-                    </button>
-                  </div>
-
-                  <!-- fields -->
-                  <div class="fields">
-                    <div class="field">
-                      <label>API Key</label>
-                      <div class="key-wrap">
-                        <input
-                          v-model="appConfig.providers[oi].api_key"
-                          :type="visibleKeys.has(oi) ? 'text' : 'password'"
-                          class="fi key-fi" placeholder="sk-…" @click.stop
-                        />
-                        <button class="icon-btn-sm" @click.stop="toggleKeyVisibility(oi)" :title="visibleKeys.has(oi) ? 'Hide' : 'Show'">
-                          <EyeOff v-if="visibleKeys.has(oi)" :size="12" :stroke-width="1.9" />
-                          <Eye v-else :size="12" :stroke-width="1.9" />
-                        </button>
-                        <button
-                          class="icon-btn-sm linkish"
-                          @click.stop="testConnection(appConfig.providers[oi], oi)"
-                          :disabled="!appConfig.providers[oi].api_key || testingProvider === oi"
-                          title="Test connection"
-                        >
-                          <Loader2 v-if="testingProvider === oi" :size="12" class="spin" :stroke-width="1.9" />
-                          <Link2 v-else :size="12" :stroke-width="1.9" />
-                        </button>
-                      </div>
-                      <Transition name="fade">
-                        <span
-                          v-if="fetchStatuses.get(oi)"
-                          class="status-pill"
-                          :class="{ ok: fetchStatuses.get(oi) === 'Connected', err: fetchStatuses.get(oi) !== 'Connected' }"
-                        >
-                          <span class="status-dot" />
-                          {{ fetchStatuses.get(oi) }}
-                        </span>
-                      </Transition>
-                    </div>
-
-                    <div class="field">
-                      <label>Base URL</label>
-                      <input v-model="appConfig.providers[oi].base_url" class="fi" placeholder="https://api.openai.com/v1" @click.stop />
-                    </div>
-                  </div>
-
-                  <!-- pool -->
-                  <div class="pool-bar">
-                    <span class="pool-label">Models · {{ appConfig.providers[oi].models.length }}</span>
-                    <div class="pool-actions">
-                      <button
-                        class="pill-btn micro"
-                        @click.stop="fetchModels(appConfig.providers[oi], oi)"
-                        :disabled="!appConfig.providers[oi].api_key || fetchingProviders.has(oi)"
-                      >
-                        <Loader2 v-if="fetchingProviders.has(oi)" :size="10" class="spin" :stroke-width="2" />
-                        <RefreshCw v-else :size="10" :stroke-width="2" />
-                        {{ fetchingProviders.has(oi) ? 'Fetching' : 'Fetch' }}
-                      </button>
-                      <button
-                        v-if="getFetchedModels(oi).length > 0 && addingModelProvider !== oi"
-                        class="pill-btn micro gold-micro"
-                        @click.stop="addingModelProvider = oi"
-                      >
-                        <Plus :size="10" :stroke-width="2" />Add
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- fetched picker -->
-                  <div v-if="addingModelProvider === oi" class="picker" @click.stop>
-                    <div class="picker-scroll settings-scrollbar">
-                      <button
-                        v-for="mid in getFetchedModels(oi)" :key="mid"
-                        class="pick-item"
-                        :class="{ dim: appConfig.providers[oi].models.some(m => m.id === mid) }"
-                        @click="addModelFromList(oi, mid)"
-                      >
-                        <span>{{ mid }}</span>
-                        <Check v-if="appConfig.providers[oi].models.some(m => m.id === mid)" :size="11" :stroke-width="2.6" />
-                      </button>
-                    </div>
-                    <button class="picker-done" @click.stop="addingModelProvider = null">Done</button>
-                  </div>
-
-                  <!-- tags -->
-                  <div v-if="appConfig.providers[oi].models.length > 0" class="tags">
-                    <span v-for="(m, mi) in appConfig.providers[oi].models" :key="mi" class="tag">
-                      {{ m.id }}
-                      <button class="tag-x" @click.stop="removeModel(oi, mi)">
-                        <Trash2 :size="9" :stroke-width="2" />
-                      </button>
-                    </span>
-                  </div>
-                </div>
+                <Transition name="fade">
+                  <span
+                    v-if="fetchStatuses.get(index)"
+                    class="status-pill"
+                    :class="{ ok: fetchStatuses.get(index) === 'Connected', err: fetchStatuses.get(index) !== 'Connected' }"
+                  >
+                    <span class="status-dot" />
+                    {{ fetchStatuses.get(index) }}
+                  </span>
+                </Transition>
               </div>
-            </template>
-          </draggable>
-        </div>
+
+              <div class="field">
+                <label>Base URL</label>
+                <input v-model="item.base_url" class="fi" placeholder="https://api.openai.com/v1" @click.stop />
+              </div>
+            </div>
+
+            <!-- pool -->
+            <div class="pool-bar">
+              <span class="pool-label">Models · {{ item.models.length }}</span>
+              <div class="pool-actions">
+                <button
+                  class="pill-btn micro"
+                  @click.stop="fetchModels(item, index)"
+                  :disabled="!item.api_key || fetchingProviders.has(index)"
+                >
+                  <Loader2 v-if="fetchingProviders.has(index)" :size="10" class="spin" :stroke-width="2" />
+                  <RefreshCw v-else :size="10" :stroke-width="2" />
+                  {{ fetchingProviders.has(index) ? 'Fetching' : 'Fetch' }}
+                </button>
+                <button
+                  v-if="getFetchedModels(index).length > 0 && addingModelProvider !== index"
+                  class="pill-btn micro gold-micro"
+                  @click.stop="addingModelProvider = index"
+                >
+                  <Plus :size="10" :stroke-width="2" />Add
+                </button>
+              </div>
+            </div>
+
+            <!-- fetched picker -->
+            <div v-if="addingModelProvider === index" class="picker" @click.stop>
+              <div class="picker-scroll settings-scrollbar">
+                <button
+                  v-for="mid in getFetchedModels(index)" :key="mid"
+                  class="pick-item"
+                  :class="{ dim: item.models.some((m: any) => m.id === mid) }"
+                  @click="addModelFromList(index, mid)"
+                >
+                  <span>{{ mid }}</span>
+                  <Check v-if="item.models.some((m: any) => m.id === mid)" :size="11" :stroke-width="2.6" />
+                </button>
+              </div>
+              <button class="picker-done" @click.stop="addingModelProvider = null">Done</button>
+            </div>
+
+            <!-- tags -->
+            <div v-if="item.models.length > 0" class="tags">
+              <span v-for="(m, mi) in item.models" :key="mi" class="tag">
+                {{ m.id }}
+                <button class="tag-x" @click.stop="removeModel(index, mi)">
+                  <Trash2 :size="9" :stroke-width="2" />
+                </button>
+              </span>
+            </div>
+          </template>
+        </EditableCardList>
       </template>
 
       <!-- ─── Translation tab ─── -->
@@ -936,116 +673,41 @@ onUnmounted(() => {
         </div>
 
         <!-- Persona -->
-        <div class="section-head mt">
-          <span class="section-title"><UserCircle :size="13" />Translation Persona</span>
-          <button class="pill-btn add-pill" @click="addPersona" :disabled="addingPersona">
-            <Plus :size="12" :stroke-width="2" />Add Persona
-          </button>
-        </div>
+        <EditableCardList
+          class="mt"
+          :items="personaStore.personas"
+          title="Translation Persona"
+          :icon="UserCircle"
+          empty-message="No personas yet."
+          empty-sub-message="Add one to customize translation style."
+          @add="personaStore.personas.push({ name: '', prompt: '', enabled: false })"
+        >
+          <template #collapsed="{ item, index }">
+            <label class="persona-check" :class="{ on: item.enabled }" @click.stop>
+              <input type="checkbox" :checked="item.enabled" @change="togglePersona(index)" />
+              <Check v-if="item.enabled" :size="9" :stroke-width="3" />
+            </label>
+            <span class="persona-name">{{ item.name }}</span>
+          </template>
 
-        <div class="card-stack" :class="{ 'persona-stack': !addingPersona && !isEditingAnyPersona }">
-          <!-- Empty -->
-          <div v-if="personaStore.personas.length === 0 && !addingPersona" class="empty-card">
-            <UserCircle :size="22" :stroke-width="1" />
-            <span>No personas yet.<br><small>Add one to customize translation style.</small></span>
-          </div>
+          <template #name-input="{ item, index, isAdding }">
+            <label v-if="!isAdding" class="persona-check" :class="{ on: item.enabled }" @click.stop>
+              <input type="checkbox" :checked="item.enabled" @change="togglePersona(index)" />
+              <Check v-if="item.enabled" :size="9" :stroke-width="3" />
+            </label>
+            <input v-model="item.name" placeholder="Persona name…" class="name-input" @click.stop />
+          </template>
 
-          <!-- Adding form (no checkbox, Confirm/Cancel) -->
-          <div v-if="addingPersona" class="persona-card open">
-            <div class="persona-expanded">
-              <div class="name-row">
-                <input
-                  v-model="personaStore.personas[personaStore.personas.length - 1].name"
-                  placeholder="Persona name…"
-                  class="name-input" @click.stop
-                />
-              </div>
-              <textarea
-                v-model="personaStore.personas[personaStore.personas.length - 1].prompt"
-                placeholder="Enter the translation prompt for this persona…"
-                class="persona-textarea"
-                rows="3"
-                @click.stop
-              />
-              <div class="persona-actions">
-                <button class="pill-btn gold-micro" @click.stop="confirmPersona">
-                  <Check :size="10" :stroke-width="2.5" />Confirm
-                </button>
-                <button class="pill-btn micro" @click.stop="cancelPersona">Cancel</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Persona cards (skip last while adding) -->
-          <draggable
-            :list="personaOrder"
-            :item-key="(oi: number) => oi"
-            handle=".card-drag-handle"
-            ghost-class="card-ghost"
-            class="drag-wrapper"
-            :swap-threshold="0.65"
-            :disabled="isEditingAnyPersona"
-            @end="onPersonaDragEnd"
-          >
-            <template #item="{ element: oi }">
-              <div
-                v-show="!addingPersona && !isEditingAnyPersona || isEditingPersona(oi)"
-                class="persona-card"
-                :class="{ open: isEditingPersona(oi) }"
-              >
-                <span class="card-drag-handle" @click.stop>
-                  <GripVertical :size="13" :stroke-width="1.8" />
-                </span>
-
-                <!-- Collapsed: checkbox + name only -->
-                <div v-if="!isEditingPersona(oi)" class="persona-collapsed" @click="toggleEditPersona(oi)">
-                  <div class="persona-lhs">
-                    <label class="persona-check" :class="{ on: personaStore.personas[oi].enabled }" @click.stop>
-                      <input type="checkbox" :checked="personaStore.personas[oi].enabled" @change="togglePersona(oi)" />
-                      <Check v-if="personaStore.personas[oi].enabled" :size="9" :stroke-width="3" />
-                    </label>
-                    <span class="persona-name">{{ personaStore.personas[oi].name }}</span>
-                  </div>
-                  <div class="persona-rhs" @click.stop>
-                    <button class="mini-btn" title="Edit" @click="toggleEditPersona(oi)">
-                      <Pencil :size="11" :stroke-width="1.9" />
-                    </button>
-                    <button class="mini-btn warn" title="Remove" @click="removePersona(oi)">
-                      <Trash2 :size="11" :stroke-width="1.9" />
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Expanded: checkbox + name + prompt -->
-                <div v-else class="persona-expanded">
-                  <div class="name-row">
-                    <label class="persona-check" :class="{ on: personaStore.personas[oi].enabled }" @click.stop>
-                      <input type="checkbox" :checked="personaStore.personas[oi].enabled" @change="togglePersona(oi)" />
-                      <Check v-if="personaStore.personas[oi].enabled" :size="9" :stroke-width="3" />
-                    </label>
-                    <input
-                      v-model="personaStore.personas[oi].name" placeholder="Persona name…"
-                      class="name-input" @click.stop
-                    />
-                    <button class="mini-btn ghost" title="Collapse" @click.stop="toggleEditPersona(oi)">
-                      <ChevronDown :size="14" :stroke-width="1.8" class="chev-up" />
-                    </button>
-                    <button class="mini-btn warn" title="Remove" @click.stop="removePersona(oi)">
-                      <Trash2 :size="12" :stroke-width="1.8" />
-                    </button>
-                  </div>
-                  <textarea
-                    v-model="personaStore.personas[oi].prompt"
-                    placeholder="Enter the translation prompt for this persona…"
-                    class="persona-textarea"
-                    rows="3"
-                    @click.stop
-                  />
-                </div>
-              </div>
-            </template>
-          </draggable>
-        </div>
+          <template #content="{ item }">
+            <textarea
+              v-model="item.prompt"
+              placeholder="Enter the translation prompt for this persona…"
+              class="persona-textarea"
+              rows="3"
+              @click.stop
+            />
+          </template>
+        </EditableCardList>
       </template>
     </main>
   </div>
@@ -1150,45 +812,7 @@ onUnmounted(() => {
 .gold-micro { color: rgba(212,160,72,.62); }
 .gold-micro:hover { color: rgba(212,160,72,.9); background: rgba(212,160,72,.08); }
 
-/* ── Card stack ── */
-.card-stack { display:flex; flex-direction:column; gap:7px; }
-.drag-wrapper { display: contents; }
-.persona-stack {
-  max-height: 168px; /* 3 collapsed cards comfortably */
-  overflow-y: auto;
-  padding-right: 2px;
-}
-.persona-stack .persona-card { flex-shrink: 0; }
-.persona-stack::-webkit-scrollbar { width: 3px; }
-.persona-stack::-webkit-scrollbar-track { margin: 4px 0; }
-.persona-stack::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
-.prov-stack {
-  max-height: 168px;
-  overflow-y: auto;
-  padding-right: 2px;
-}
-.prov-stack .prov-card { flex-shrink: 0; }
-.prov-stack::-webkit-scrollbar { width: 3px; }
-.prov-stack::-webkit-scrollbar-track { margin: 4px 0; }
-.prov-stack::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
-
-/* ── Provider card ── */
-.prov-card {
-  position: relative;
-  border-radius: 11px; overflow:hidden;
-  border: 1px solid rgba(255,255,255,.055);
-  background: linear-gradient(180deg, rgba(255,255,255,.022) 0%, rgba(255,255,255,.014) 100%);
-  transition: border-color .18s, box-shadow .18s;
-}
-.prov-card:hover { border-color: rgba(255,255,255,.09); }
-.prov-card.open { padding: 15px 30px 14px 40px; }
-
-/* ── Collapsed row ── */
-.prov-collapsed {
-  display:flex; align-items:center; justify-content:space-between;
-  padding: 11px 14px 11px 40px; cursor:pointer; transition:background .12s;
-}
-.prov-collapsed:hover { background: rgba(255,255,255,.02); }
+/* ── Provider collapsed content ── */
 .prov-lhs { display:flex; align-items:center; gap:10px; }
 .prov-accent {
   width:3px; height:28px; border-radius: 2px;
@@ -1205,19 +829,7 @@ onUnmounted(() => {
   font-size: 9.5px; font-weight: 550; color: rgba(255,255,255,.2);
   background: rgba(255,255,255,.055); padding: 1px 7px; border-radius: 6px;
 }
-.prov-rhs { display:flex; align-items:center; gap:2px; opacity:.6; transition:opacity .12s; }
-.prov-collapsed:hover .prov-rhs { opacity:1; }
 
-.mini-btn {
-  display:flex; align-items:center; justify-content:center;
-  width:27px; height:27px; border-radius:7px;
-  color: rgba(255,255,255,.32); cursor:pointer;
-  border:none; background:none; transition:.12s;
-}
-.mini-btn:hover { color: rgba(255,255,255,.7); background: rgba(255,255,255,.065); }
-.mini-btn.warn:hover { color: #f87171; background: rgba(248,113,113,.1); }
-.mini-btn.ghost { color: rgba(255,255,255,.2); }
-.mini-btn.ghost:hover { color: rgba(255,255,255,.48); background: rgba(255,255,255,.045); }
 
 /* ── Expanded internals ── */
 .name-row {
@@ -1415,44 +1027,10 @@ label {
 .lang-end { margin-left: auto; display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 .lang-sep { height: 1px; background: rgba(255,255,255,.06); margin: 4px 8px; }
 
-/* ── Empty state ── */
-.empty-card {
-  display:flex; flex-direction:column; align-items:center; gap:8px;
-  padding: 28px 16px; border-radius: 11px;
-  border: 1px dashed rgba(255,255,255,.06);
-  color: rgba(255,255,255,.18); font-size: 11.5px; line-height: 1.5;
-  text-align: center;
-}
-.empty-card small{ font-size: 10px; color: rgba(255,255,255,.13); }
-
-/* ── Persona card ── */
-.persona-card {
-  position: relative;
-  border-radius: 11px; overflow:hidden;
-  border: 1px solid rgba(255,255,255,.055);
-  background: linear-gradient(180deg, rgba(255,255,255,.022) 0%, rgba(255,255,255,.014) 100%);
-  transition: border-color .18s, box-shadow .18s;
-}
-.persona-card:hover { border-color: rgba(255,255,255,.09); }
-.persona-card.open { padding: 15px 30px 14px 40px; }
-
-/* ── Persona collapsed ── */
-.persona-collapsed {
-  display:flex; align-items:center; justify-content:space-between;
-  padding: 11px 14px 11px 40px; cursor:pointer; transition:background .12s;
-}
-.persona-collapsed:hover { background: rgba(255,255,255,.02); }
-.persona-lhs { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
+/* ── Persona name (in collapsed view) ── */
 .persona-name {
   font-size: 12.5px; font-weight: 650; letter-spacing: -.01em;
   color: rgba(255,255,255,.78);
-}
-.persona-rhs { display:flex; align-items:center; gap:2px; opacity:.6; transition:opacity .12s; }
-.persona-collapsed:hover .persona-rhs { opacity:1; }
-
-/* ── Persona expanded ── */
-.persona-expanded .name-row {
-  display:flex; align-items:center; gap:7px; margin-bottom:10px;
 }
 
 /* ── Checkbox ── */
@@ -1483,11 +1061,6 @@ label {
 .persona-textarea::placeholder { color: rgba(255,255,255,.15); }
 .persona-textarea:focus { border-color: rgba(212,160,72,.28); box-shadow: 0 0 0 2px rgba(212,160,72,.05); }
 
-/* ── Persona actions (Confirm / Cancel) ── */
-.persona-actions {
-  display:flex; align-items:center; gap:6px; margin-top:10px;
-}
-
 /* ── Transitions ── */
 .fade-enter-active,.fade-leave-active{ transition:opacity .18s ease; }
 .fade-enter-from,.fade-leave-to{ opacity:0; }
@@ -1496,7 +1069,6 @@ label {
 
 @keyframes spin{ to{ transform: rotate(360deg)} }
 .spin{ animation: spin .75s linear infinite; }
-.chev-up{ transform: rotate(180deg); }
 
 /* ── Language dropdown management ── */
 .lang-drag-handle {
@@ -1557,52 +1129,6 @@ label {
 .hidden-drag-ghost {
   opacity: 0 !important;
   pointer-events: none !important;
-}
-
-/* ── Card drag handle ── */
-.card-drag-handle {
-  position: absolute;
-  top: 12px;
-  left: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 5px;
-  cursor: grab;
-  color: rgba(255, 255, 255, 0.18);
-  z-index: 2;
-  opacity: 0;
-  transition: opacity 0.12s, color 0.12s;
-  pointer-events: auto;
-}
-.prov-card:hover > .card-drag-handle,
-.persona-card:hover > .card-drag-handle {
-  opacity: 1;
-}
-.card-drag-handle:hover {
-  color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.06);
-}
-.card-drag-handle:active {
-  cursor: grabbing;
-  color: rgba(255, 255, 255, 0.55);
-}
-.sortable-chosen {
-  opacity: 0.35;
-}
-.sortable-ghost.card-ghost {
-  opacity: 0.35;
-  background: rgba(212, 160, 72, 0.10);
-  border: 1px dashed rgba(212, 160, 72, 0.35);
-  border-radius: 11px;
-  min-height: 44px;
-}
-.prov-card,
-.persona-card,
-.card-drag-handle {
-  user-select: none;
 }
 
 .lang-add-row {
