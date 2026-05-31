@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
@@ -10,8 +10,11 @@ import {
   loadConfig,
   saveConfig as persistConfig,
   savePersonas as persistPersonas,
+  getOrderedLanguages,
 } from "../stores/config";
 import type { ProviderConfig } from "../stores/config";
+import { BUILTIN_LANGUAGES } from "../constants/languages";
+import draggable from "vuedraggable";
 import {
   ArrowLeft,
   Languages,
@@ -31,6 +34,8 @@ import {
   CircleDot,
   X,
   BookText,
+  GripVertical,
+  RotateCcw,
 } from "@lucide/vue";
 
 type TabKey = "general" | "translation";
@@ -122,10 +127,60 @@ function pickLang(lang: string) {
   showLangSelector.value = false;
 }
 
-const targetLanguages = [
-  "English", "Simplified Chinese", "Traditional Chinese", "Japanese", "Korean",
-  "French", "German", "Spanish", "Russian",
-];
+const targetLanguages = computed(() => getOrderedLanguages());
+
+// ── Language management ──
+const newLangInput = ref("");
+const showAddLang = ref(false);
+const langAddInputRef = ref<HTMLInputElement | null>(null);
+
+watch(showAddLang, (val) => {
+  if (val) nextTick(() => langAddInputRef.value?.focus());
+});
+
+interface LangItem {
+  id: string;
+  name: string;
+  isCustom: boolean;
+}
+
+const langItems = computed<LangItem[]>(() => {
+  return getOrderedLanguages().map(name => ({
+    id: name,
+    name,
+    isCustom: !BUILTIN_LANGUAGES.includes(name),
+  }));
+});
+
+function onLangDragEnd() {
+  appConfig.language_order = langItems.value.map(item => item.name);
+}
+
+function deleteCustomLang(name: string) {
+  appConfig.custom_languages = appConfig.custom_languages.filter(l => l !== name);
+  appConfig.language_order = appConfig.language_order.filter(l => l !== name);
+  if (appConfig.target_lang === name) {
+    appConfig.target_lang = "English";
+  }
+}
+
+function addCustomLang() {
+  const name = newLangInput.value.trim();
+  if (!name) return;
+  const allNames = getOrderedLanguages();
+  if (allNames.some(l => l.toLowerCase() === name.toLowerCase())) {
+    newLangInput.value = "";
+    return;
+  }
+  appConfig.custom_languages.push(name);
+  appConfig.language_order = [...getOrderedLanguages(), name];
+  newLangInput.value = "";
+  showAddLang.value = false;
+}
+
+function restoreDefaultOrder() {
+  appConfig.language_order = [];
+}
 
 function toggleKeyVisibility(index: number) {
   const s = new Set(visibleKeys.value);
@@ -649,6 +704,69 @@ onUnmounted(() => {
               </div>
             </Transition>
           </Teleport>
+        </div>
+
+        <!-- Language management list -->
+        <div class="lang-mgmt">
+          <div class="lang-mgmt-header">
+            <span class="lang-mgmt-title">Language List</span>
+            <span class="lang-mgmt-hint">Drag to reorder</span>
+          </div>
+
+          <draggable
+            :list="langItems"
+            item-key="id"
+            handle=".lang-drag-handle"
+            ghost-class="lang-ghost"
+            @end="onLangDragEnd"
+          >
+            <template #item="{ element }">
+              <div
+                class="lang-item"
+                :class="{ 'lang-item-custom': element.isCustom, 'lang-item-active': element.name === appConfig.target_lang }"
+                @click="pickLang(element.name)"
+              >
+                <GripVertical :size="12" :stroke-width="1.8" class="lang-drag-handle" />
+                <span class="lang-item-name">{{ element.name }}</span>
+                <Check v-if="element.name === appConfig.target_lang" :size="12" :stroke-width="2.5" class="lang-item-check" />
+                <button
+                  v-if="element.isCustom"
+                  class="lang-item-delete"
+                  @click.stop="deleteCustomLang(element.name)"
+                  title="Remove language"
+                >
+                  <Trash2 :size="11" :stroke-width="1.8" />
+                </button>
+                <span v-else class="lang-item-spacer"></span>
+              </div>
+            </template>
+          </draggable>
+
+          <!-- Add language -->
+          <div v-if="showAddLang" class="lang-add-row">
+            <input
+              v-model="newLangInput"
+              class="lang-add-input"
+              placeholder="Language name…"
+              @keydown.enter="addCustomLang"
+              @click.stop
+              ref="langAddInputRef"
+            />
+            <button class="lang-add-confirm" @click="addCustomLang" :disabled="!newLangInput.trim()">
+              <Check :size="12" :stroke-width="2.5" />
+            </button>
+            <button class="lang-add-cancel" @click="showAddLang = false; newLangInput = ''">
+              <X :size="12" :stroke-width="2" />
+            </button>
+          </div>
+          <button v-else class="lang-add-btn" @click="showAddLang = true">
+            <Plus :size="12" :stroke-width="2" />Add language…
+          </button>
+
+          <!-- Restore default order -->
+          <button class="lang-restore-btn" @click="restoreDefaultOrder">
+            <RotateCcw :size="11" :stroke-width="1.8" />Restore default order
+          </button>
         </div>
 
         <!-- User Dictionary -->
@@ -1206,4 +1324,193 @@ label {
 @keyframes spin{ to{ transform: rotate(360deg)} }
 .spin{ animation: spin .75s linear infinite; }
 .chev-up{ transform: rotate(180deg); }
+
+/* ── Language management panel ── */
+.lang-mgmt {
+  margin-top: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  padding: 10px 10px 8px;
+}
+.lang-mgmt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.lang-mgmt-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.lang-mgmt-hint {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.16);
+}
+.lang-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.lang-item:hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+.lang-item-active {
+  color: rgba(212, 160, 72, 0.9);
+}
+.lang-drag-handle {
+  cursor: grab;
+  color: rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+.lang-item:hover .lang-drag-handle {
+  color: rgba(255, 255, 255, 0.28);
+}
+.lang-drag-handle:active {
+  cursor: grabbing;
+}
+.lang-item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lang-item-check {
+  flex-shrink: 0;
+  color: rgba(212, 160, 72, 0.9);
+}
+.lang-item-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.12s;
+  opacity: 0;
+}
+.lang-item:hover .lang-item-delete {
+  opacity: 1;
+}
+.lang-item-delete:hover {
+  color: rgba(239, 68, 68, 0.7);
+  background: rgba(239, 68, 68, 0.1);
+}
+.lang-item-spacer {
+  width: 22px;
+  flex-shrink: 0;
+}
+.lang-ghost {
+  opacity: 0.35;
+  background: rgba(212, 160, 72, 0.05);
+  border-radius: 7px;
+}
+.lang-add-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+}
+.lang-add-input {
+  flex: 1;
+  padding: 5px 9px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.lang-add-input:focus {
+  border-color: rgba(212, 160, 72, 0.35);
+}
+.lang-add-input::placeholder {
+  color: rgba(255, 255, 255, 0.18);
+}
+.lang-add-confirm,
+.lang-add-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.lang-add-confirm {
+  background: rgba(212, 160, 72, 0.1);
+  color: rgba(212, 160, 72, 0.8);
+}
+.lang-add-confirm:hover:not(:disabled) {
+  background: rgba(212, 160, 72, 0.18);
+}
+.lang-add-confirm:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.lang-add-cancel {
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.25);
+}
+.lang-add-cancel:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.5);
+}
+.lang-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  border: 1px dashed rgba(255, 255, 255, 0.065);
+  background: none;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.lang-add-btn:hover {
+  border-color: rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.025);
+}
+.lang-restore-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.lang-restore-btn:hover {
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.035);
+}
 </style>
