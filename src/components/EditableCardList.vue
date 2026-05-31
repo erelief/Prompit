@@ -2,7 +2,7 @@
 import { ref, shallowRef, computed, watch, nextTick, triggerRef, type Component } from "vue";
 import draggable from "vuedraggable";
 import {
-  Plus, Trash2, Check, ChevronDown, Pencil, GripVertical,
+  Plus, Trash2, Check, Pencil, GripVertical,
 } from "@lucide/vue";
 
 const props = defineProps<{
@@ -33,6 +33,7 @@ const isEditingAny = computed(() => editing.value.size > 0);
 const order = shallowRef<number[]>([]);
 const pendingRemove = ref<number | null>(null);
 const validationError = ref<string | null>(null);
+const drafts = ref<Map<number, any>>(new Map());
 
 watch(() => props.items.length, (len) => {
   order.value = Array.from({ length: len }, (_, i) => i);
@@ -46,19 +47,34 @@ function isEditing(index: number): boolean {
 }
 
 function toggleEdit(index: number) {
-  // Collapsing — validate first
-  if (editing.value.has(index)) {
-    const item = props.items[index];
-    if (props.validate) {
-      const error = props.validate(item);
-      if (error) { validationError.value = error; return; }
-    }
-    validationError.value = null;
-  } else {
-    validationError.value = null;
-  }
+  if (editing.value.has(index)) return;
+  drafts.value.set(index, JSON.parse(JSON.stringify(props.items[index])));
+  validationError.value = null;
   const s = new Set(editing.value);
-  s.has(index) ? s.delete(index) : s.add(index);
+  s.add(index);
+  editing.value = s;
+}
+
+function confirmEdit(index: number) {
+  const draft = drafts.value.get(index);
+  if (!draft) return;
+  if (props.validate) {
+    const error = props.validate(draft);
+    if (error) { validationError.value = error; return; }
+  }
+  validationError.value = null;
+  Object.assign(props.items[index], draft);
+  drafts.value.delete(index);
+  const s = new Set(editing.value);
+  s.delete(index);
+  editing.value = s;
+}
+
+function cancelEdit(index: number) {
+  validationError.value = null;
+  drafts.value.delete(index);
+  const s = new Set(editing.value);
+  s.delete(index);
   editing.value = s;
 }
 
@@ -104,6 +120,7 @@ function cancelRemove() {
 }
 function handleRemove(index: number) {
   props.items.splice(index, 1);
+  drafts.value.delete(index);
   const re = new Set<number>();
   for (const i of editing.value) {
     if (i === index) continue;
@@ -273,12 +290,9 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
           <!-- Expanded -->
           <div v-else class="ecl-expanded">
             <div class="ecl-name-row">
-              <slot name="name-input" :item="items[oi]" :index="oi" :is-adding="false">
-                <input v-model="items[oi].name" placeholder="Name…" class="name-input" @click.stop />
+              <slot name="name-input" :item="drafts.get(oi)" :index="oi" :is-adding="false">
+                <input :value="drafts.get(oi)?.name" @input="drafts.get(oi) && (drafts.get(oi)!.name = ($event.target as HTMLInputElement).value)" placeholder="Name…" class="name-input" @click.stop />
               </slot>
-              <button class="mini-btn ghost" title="Collapse" @click.stop="toggleEdit(oi)">
-                <ChevronDown :size="14" :stroke-width="1.8" class="chev-up" />
-              </button>
               <template v-if="pendingRemove === oi">
                 <button class="mini-btn danger-active" title="Confirm remove" @click.stop="confirmRemove(oi)">
                   <Check :size="12" :stroke-width="2.5" />
@@ -296,8 +310,14 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
             <div v-if="pendingRemove === oi" class="remove-warning-row">
               <span class="remove-warning-text">This cannot be undone.</span>
             </div>
-            <slot name="content" :item="items[oi]" :index="oi" :is-adding="false" />
+            <slot name="content" :item="drafts.get(oi)" :index="oi" :is-adding="false" />
             <div v-if="validationError" class="validation-error">{{ validationError }}</div>
+            <div class="ecl-actions">
+              <button class="pill-btn gold-micro" @click.stop="confirmEdit(oi)">
+                <Check :size="10" :stroke-width="2.5" />Confirm
+              </button>
+              <button class="pill-btn micro" @click.stop="cancelEdit(oi)">Cancel</button>
+            </div>
           </div>
         </div>
       </template>
@@ -448,5 +468,4 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 @keyframes spin{ to{ transform: rotate(360deg)} }
 @keyframes danger-pulse{ to{ background: rgba(248,113,113,.24)} }
 .spin{ animation: spin .75s linear infinite; }
-.chev-up{ transform: rotate(180deg); }
 </style>
