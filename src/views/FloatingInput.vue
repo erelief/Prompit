@@ -5,8 +5,9 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
-import { loadConfig, saveConfig, getActiveModel, appConfig, personaStore, savePersonas } from "../stores/config";
+import { loadConfig, saveConfig, getActiveModel, appConfig, personaStore, savePersonas, getOrderedLanguages } from "../stores/config";
 import { translate } from "../services/llm-client";
+import { LANG_CODE_MAP } from "../constants/languages";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages, BookText } from "@lucide/vue";
 
 const router = useRouter();
@@ -163,18 +164,14 @@ function selectPersona(index: number) {
 }
 
 // ── Language selector ──
-const langCodeMap: Record<string, string> = {
-  "English": "EN", "Simplified Chinese": "简中", "Traditional Chinese": "繁中",
-  "Japanese": "JA", "Korean": "KO", "French": "FR",
-  "German": "DE", "Spanish": "ES", "Russian": "RU",
-};
+const langCodeMap = LANG_CODE_MAP;
 const langCode = computed(() => langCodeMap[appConfig.target_lang] || appConfig.target_lang?.slice(0, 2).toUpperCase() || "EN");
 const showLangDropdown = ref(false);
 const langDropdownRef = ref<HTMLDivElement | null>(null);
 const langBtnRef = ref<HTMLButtonElement | null>(null);
 const langMenuRef = ref<HTMLDivElement | null>(null);
 const langDropdownPos = ref({ top: 0, left: 0 });
-const targetLanguages = ["English", "Simplified Chinese", "Traditional Chinese", "Japanese", "Korean", "French", "German", "Spanish", "Russian"];
+const targetLanguages = computed(() => getOrderedLanguages());
 
 function toggleLangDropdown() {
   showModelDropdown.value = false;
@@ -209,7 +206,7 @@ const PAD = 6;
 const capHeight = (n: number) => n > 2 ? { maxHeight: `${2 * ITEM_H + PAD}px` } : {};
 const modelDropdownStyle = computed(() => capHeight(allModels.value.length));
 const personaDropdownStyle = computed(() => capHeight(personaStore.personas.length));
-const langDropdownStyle = computed(() => capHeight(targetLanguages.length));
+const langDropdownStyle = computed(() => capHeight(targetLanguages.value.length));
 
 function onDocumentClick(e: MouseEvent) {
   const target = e.target as Node;

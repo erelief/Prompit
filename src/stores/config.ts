@@ -1,6 +1,7 @@
 import { reactive, toRaw } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { readTextFile } from "@tauri-apps/plugin-fs";
+import { BUILTIN_LANGUAGES } from "../constants/languages";
 
 export interface ProviderModel {
   id: string;
@@ -32,6 +33,8 @@ export interface AppConfig {
   active_model_index: number;
   target_lang: string;
   user_dict_enabled: boolean;
+  custom_languages: string[];
+  language_order: string[];
 }
 
 const defaultConfig: AppConfig = {
@@ -40,9 +43,18 @@ const defaultConfig: AppConfig = {
   active_model_index: 0,
   target_lang: "English",
   user_dict_enabled: false,
+  custom_languages: [],
+  language_order: [],
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
+
+export function getOrderedLanguages(): string[] {
+  if (appConfig.language_order.length > 0) {
+    return appConfig.language_order;
+  }
+  return [...BUILTIN_LANGUAGES, ...appConfig.custom_languages];
+}
 
 export const personaStore = reactive<{ personas: PersonaConfig[] }>({
   personas: [],

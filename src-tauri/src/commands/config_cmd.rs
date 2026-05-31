@@ -61,6 +61,8 @@ mod tests {
             active_model_index: 0,
             target_lang: "Japanese".to_string(),
             user_dict_enabled: false,
+            custom_languages: vec![],
+            language_order: vec![],
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();

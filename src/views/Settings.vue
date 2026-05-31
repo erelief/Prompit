@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
@@ -10,8 +10,11 @@ import {
   loadConfig,
   saveConfig as persistConfig,
   savePersonas as persistPersonas,
+  getOrderedLanguages,
 } from "../stores/config";
 import type { ProviderConfig } from "../stores/config";
+import { BUILTIN_LANGUAGES } from "../constants/languages";
+import draggable from "vuedraggable";
 import {
   ArrowLeft,
   Languages,
@@ -31,6 +34,8 @@ import {
   CircleDot,
   X,
   BookText,
+  GripVertical,
+  RotateCcw,
 } from "@lucide/vue";
 
 type TabKey = "general" | "translation";
@@ -122,10 +127,58 @@ function pickLang(lang: string) {
   showLangSelector.value = false;
 }
 
-const targetLanguages = [
-  "English", "Simplified Chinese", "Traditional Chinese", "Japanese", "Korean",
-  "French", "German", "Spanish", "Russian",
-];
+// ── Language management ──
+const newLangInput = ref("");
+const showAddLang = ref(false);
+const langAddInputRef = ref<HTMLInputElement | null>(null);
+
+watch(showAddLang, (val) => {
+  if (val) nextTick(() => langAddInputRef.value?.focus());
+});
+
+interface LangItem {
+  id: string;
+  name: string;
+  isCustom: boolean;
+}
+
+const langItems = computed<LangItem[]>(() => {
+  return getOrderedLanguages().map(name => ({
+    id: name,
+    name,
+    isCustom: !BUILTIN_LANGUAGES.includes(name),
+  }));
+});
+
+function onLangDragEnd() {
+  appConfig.language_order = langItems.value.map(item => item.name);
+}
+
+function deleteCustomLang(name: string) {
+  appConfig.custom_languages = appConfig.custom_languages.filter(l => l !== name);
+  appConfig.language_order = appConfig.language_order.filter(l => l !== name);
+  if (appConfig.target_lang === name) {
+    appConfig.target_lang = "English";
+  }
+}
+
+function addCustomLang() {
+  const name = newLangInput.value.trim();
+  if (!name) return;
+  const allNames = getOrderedLanguages();
+  if (allNames.some(l => l.toLowerCase() === name.toLowerCase())) {
+    newLangInput.value = "";
+    return;
+  }
+  appConfig.custom_languages.push(name);
+  appConfig.language_order = [...getOrderedLanguages(), name];
+  newLangInput.value = "";
+  showAddLang.value = false;
+}
+
+function restoreDefaultOrder() {
+  appConfig.language_order = [];
+}
 
 function toggleKeyVisibility(index: number) {
   const s = new Set(visibleKeys.value);
@@ -631,20 +684,63 @@ onUnmounted(() => {
             <Transition name="drop">
               <div v-if="showLangSelector" class="sel-menu lang-menu" :style="{ top: langMenuPos.top + 'px', left: langMenuPos.left + 'px' }">
                 <div class="sel-clip settings-scrollbar">
-                <div class="sel-menu-inner">
-                  <button
-                    v-for="lang in targetLanguages" :key="lang"
-                    class="sel-opt"
-                    :class="{ hit: lang === appConfig.target_lang }"
-                    @click="pickLang(lang)"
-                  >
-                    <span class="opt-label">{{ lang }}</span>
-                    <Check
-                      v-if="lang === appConfig.target_lang"
-                      :size="13" :stroke-width="2.5"
-                    />
+                <draggable
+                  :list="langItems"
+                  item-key="id"
+                  handle=".lang-drag-handle"
+                  ghost-class="lang-ghost"
+                  :force-fallback="true"
+                  @end="onLangDragEnd"
+                >
+                  <template #item="{ element }">
+                    <div
+                      class="sel-opt lang-opt"
+                      :class="{ hit: element.name === appConfig.target_lang }"
+                      @click="pickLang(element.name)"
+                    >
+                      <span class="lang-drag-handle"><GripVertical :size="11" :stroke-width="1.8" /></span>
+                      <span class="opt-label">{{ element.name }}</span>
+                      <span class="lang-end">
+                        <Check v-if="element.name === appConfig.target_lang" :size="13" :stroke-width="2.5" class="lang-item-check" />
+                        <button
+                          v-if="element.isCustom"
+                          class="lang-item-delete"
+                          @click.stop="deleteCustomLang(element.name)"
+                          title="Remove language"
+                        >
+                          <Trash2 :size="11" :stroke-width="1.8" />
+                        </button>
+                      </span>
+                    </div>
+                  </template>
+                </draggable>
+
+                <!-- Add language -->
+                <div class="lang-sep"></div>
+                <div v-if="showAddLang" class="lang-add-row">
+                  <input
+                    v-model="newLangInput"
+                    class="lang-add-input"
+                    placeholder="Language name…"
+                    @keydown.enter="addCustomLang"
+                    @click.stop
+                    ref="langAddInputRef"
+                  />
+                  <button class="lang-add-confirm" @click="addCustomLang" :disabled="!newLangInput.trim()">
+                    <Check :size="12" :stroke-width="2.5" />
+                  </button>
+                  <button class="lang-add-cancel" @click="showAddLang = false; newLangInput = ''">
+                    <X :size="12" :stroke-width="2" />
                   </button>
                 </div>
+                <button v-else class="lang-add-btn" @click="showAddLang = true">
+                  <Plus :size="11" :stroke-width="2" />Add language…
+                </button>
+
+                <!-- Restore default order -->
+                <button class="lang-restore-btn" @click="restoreDefaultOrder">
+                  <RotateCcw :size="10" :stroke-width="1.8" />Restore default order
+                </button>
                 </div>
               </div>
             </Transition>
@@ -1124,6 +1220,12 @@ label {
 .opt-src{ font-size: 9px; color: rgba(255,255,255,.2); letter-spacing: .02em; }
 .lang-menu .opt-label{ font-size:12px; }
 .lang-menu .sel-opt{ font-size:12px; }
+.lang-menu { max-height: 340px; }
+.lang-opt { gap: 4px; padding: 4px 8px; justify-content: flex-start; }
+.lang-opt .lang-drag-handle { opacity: 0; transition: opacity .12s; }
+.lang-opt:hover .lang-drag-handle { opacity: 1; }
+.lang-end { margin-left: auto; display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.lang-sep { height: 1px; background: rgba(255,255,255,.06); margin: 4px 8px; }
 
 /* ── Empty state ── */
 .empty-card {
@@ -1206,4 +1308,149 @@ label {
 @keyframes spin{ to{ transform: rotate(360deg)} }
 .spin{ animation: spin .75s linear infinite; }
 .chev-up{ transform: rotate(180deg); }
+
+/* ── Language dropdown management ── */
+.lang-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: grab;
+  color: rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
+  transition: color 0.12s, background 0.12s;
+}
+.lang-drag-handle:hover {
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+}
+.lang-drag-handle:active {
+  cursor: grabbing;
+  color: rgba(255, 255, 255, 0.5);
+}
+.lang-item-check {
+  flex-shrink: 0;
+  color: rgba(212, 160, 72, 0.9);
+}
+.lang-item-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.12s;
+  opacity: 0;
+}
+.lang-opt:hover .lang-item-delete {
+  opacity: 1;
+}
+.lang-item-delete:hover {
+  color: rgba(239, 68, 68, 0.7);
+  background: rgba(239, 68, 68, 0.1);
+}
+.lang-ghost {
+  opacity: 0.35;
+  background: rgba(212, 160, 72, 0.05);
+  border-radius: 7px;
+}
+.lang-add-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+}
+.lang-add-input {
+  flex: 1;
+  padding: 5px 9px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.lang-add-input:focus {
+  border-color: rgba(212, 160, 72, 0.35);
+}
+.lang-add-input::placeholder {
+  color: rgba(255, 255, 255, 0.18);
+}
+.lang-add-confirm,
+.lang-add-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.lang-add-confirm {
+  background: rgba(212, 160, 72, 0.1);
+  color: rgba(212, 160, 72, 0.8);
+}
+.lang-add-confirm:hover:not(:disabled) {
+  background: rgba(212, 160, 72, 0.18);
+}
+.lang-add-confirm:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.lang-add-cancel {
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.25);
+}
+.lang-add-cancel:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.5);
+}
+.lang-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  border: 1px dashed rgba(255, 255, 255, 0.065);
+  background: none;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.lang-add-btn:hover {
+  border-color: rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.025);
+}
+.lang-restore-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.lang-restore-btn:hover {
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.035);
+}
 </style>
