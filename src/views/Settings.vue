@@ -689,6 +689,7 @@ onUnmounted(() => {
                   item-key="id"
                   handle=".lang-drag-handle"
                   ghost-class="lang-ghost"
+                  :force-fallback="true"
                   @end="onLangDragEnd"
                 >
                   <template #item="{ element }">
@@ -697,18 +698,19 @@ onUnmounted(() => {
                       :class="{ hit: element.name === appConfig.target_lang }"
                       @click="pickLang(element.name)"
                     >
-                      <GripVertical :size="11" :stroke-width="1.8" class="lang-drag-handle" />
+                      <span class="lang-drag-handle"><GripVertical :size="11" :stroke-width="1.8" /></span>
                       <span class="opt-label">{{ element.name }}</span>
-                      <Check v-if="element.name === appConfig.target_lang" :size="13" :stroke-width="2.5" class="lang-item-check" />
-                      <button
-                        v-if="element.isCustom"
-                        class="lang-item-delete"
-                        @click.stop="deleteCustomLang(element.name)"
-                        title="Remove language"
-                      >
-                        <Trash2 :size="11" :stroke-width="1.8" />
-                      </button>
-                      <span v-else class="lang-item-spacer"></span>
+                      <span class="lang-end">
+                        <Check v-if="element.name === appConfig.target_lang" :size="13" :stroke-width="2.5" class="lang-item-check" />
+                        <button
+                          v-if="element.isCustom"
+                          class="lang-item-delete"
+                          @click.stop="deleteCustomLang(element.name)"
+                          title="Remove language"
+                        >
+                          <Trash2 :size="11" :stroke-width="1.8" />
+                        </button>
+                      </span>
                     </div>
                   </template>
                 </draggable>
@@ -1219,9 +1221,10 @@ label {
 .lang-menu .opt-label{ font-size:12px; }
 .lang-menu .sel-opt{ font-size:12px; }
 .lang-menu { max-height: 340px; }
-.lang-opt { gap: 6px; padding: 5px 8px; }
+.lang-opt { gap: 4px; padding: 4px 8px; justify-content: flex-start; }
 .lang-opt .lang-drag-handle { opacity: 0; transition: opacity .12s; }
 .lang-opt:hover .lang-drag-handle { opacity: 1; }
+.lang-end { margin-left: auto; display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 .lang-sep { height: 1px; background: rgba(255,255,255,.06); margin: 4px 8px; }
 
 /* ── Empty state ── */
@@ -1308,13 +1311,24 @@ label {
 
 /* ── Language dropdown management ── */
 .lang-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
   cursor: grab;
   color: rgba(255, 255, 255, 0.16);
   flex-shrink: 0;
-  transition: color 0.12s;
+  transition: color 0.12s, background 0.12s;
+}
+.lang-drag-handle:hover {
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.04);
 }
 .lang-drag-handle:active {
   cursor: grabbing;
+  color: rgba(255, 255, 255, 0.5);
 }
 .lang-item-check {
   flex-shrink: 0;
@@ -1341,10 +1355,6 @@ label {
 .lang-item-delete:hover {
   color: rgba(239, 68, 68, 0.7);
   background: rgba(239, 68, 68, 0.1);
-}
-.lang-item-spacer {
-  width: 22px;
-  flex-shrink: 0;
 }
 .lang-ghost {
   opacity: 0.35;
