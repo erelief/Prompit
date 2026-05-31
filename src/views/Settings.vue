@@ -48,6 +48,7 @@ const visibleKeys = ref<Set<number>>(new Set());
 const editingProvider = ref<Set<number>>(new Set());
 const isEditingAnyProvider = computed(() => editingProvider.value.size > 0);
 const addingProvider = ref(false);
+const newProviderIndex = computed(() => appConfig.providers.length - 1);
 
 const testingProvider = ref<number | null>(null);
 const fetchStatuses = ref<Map<number, string>>(new Map());
@@ -299,8 +300,15 @@ function confirmProvider() {
 }
 
 function cancelProvider() {
+  const idx = appConfig.providers.length - 1;
   appConfig.providers.pop();
   providerOrder.value.pop();
+  visibleKeys.value.delete(idx);
+  fetchStatuses.value.delete(idx);
+  fetchedModels.value.delete(`p${idx}`);
+  fetchingProviders.value.delete(idx);
+  if (addingModelProvider.value === idx) addingModelProvider.value = null;
+  if (testingProvider.value === idx) testingProvider.value = null;
   addingProvider.value = false;
 }
 
@@ -524,23 +532,103 @@ onUnmounted(() => {
             <div class="prov-expanded">
               <div class="name-row">
                 <input
-                  v-model="appConfig.providers[appConfig.providers.length - 1].name"
+                  v-model="appConfig.providers[newProviderIndex].name"
                   placeholder="Provider name…"
                   class="name-input" @click.stop
                 />
               </div>
+
+              <!-- fields -->
               <div class="fields">
                 <div class="field">
                   <label>API Key</label>
                   <div class="key-wrap">
                     <input
-                      v-model="appConfig.providers[appConfig.providers.length - 1].api_key"
-                      type="password"
+                      v-model="appConfig.providers[newProviderIndex].api_key"
+                      :type="visibleKeys.has(newProviderIndex) ? 'text' : 'password'"
                       class="fi key-fi" placeholder="sk-…" @click.stop
                     />
+                    <button class="icon-btn-sm" @click.stop="toggleKeyVisibility(newProviderIndex)" :title="visibleKeys.has(newProviderIndex) ? 'Hide' : 'Show'">
+                      <EyeOff v-if="visibleKeys.has(newProviderIndex)" :size="12" :stroke-width="1.9" />
+                      <Eye v-else :size="12" :stroke-width="1.9" />
+                    </button>
+                    <button
+                      class="icon-btn-sm linkish"
+                      @click.stop="testConnection(appConfig.providers[newProviderIndex], newProviderIndex)"
+                      :disabled="!appConfig.providers[newProviderIndex].api_key || testingProvider === newProviderIndex"
+                      title="Test connection"
+                    >
+                      <Loader2 v-if="testingProvider === newProviderIndex" :size="12" class="spin" :stroke-width="1.9" />
+                      <Link2 v-else :size="12" :stroke-width="1.9" />
+                    </button>
                   </div>
+                  <Transition name="fade">
+                    <span
+                      v-if="fetchStatuses.get(newProviderIndex)"
+                      class="status-pill"
+                      :class="{ ok: fetchStatuses.get(newProviderIndex) === 'Connected', err: fetchStatuses.get(newProviderIndex) !== 'Connected' }"
+                    >
+                      <span class="status-dot" />
+                      {{ fetchStatuses.get(newProviderIndex) }}
+                    </span>
+                  </Transition>
+                </div>
+
+                <div class="field">
+                  <label>Base URL</label>
+                  <input v-model="appConfig.providers[newProviderIndex].base_url" class="fi" placeholder="https://api.openai.com/v1" @click.stop />
                 </div>
               </div>
+
+              <!-- pool -->
+              <div class="pool-bar">
+                <span class="pool-label">Models · {{ appConfig.providers[newProviderIndex].models.length }}</span>
+                <div class="pool-actions">
+                  <button
+                    class="pill-btn micro"
+                    @click.stop="fetchModels(appConfig.providers[newProviderIndex], newProviderIndex)"
+                    :disabled="!appConfig.providers[newProviderIndex].api_key || fetchingProviders.has(newProviderIndex)"
+                  >
+                    <Loader2 v-if="fetchingProviders.has(newProviderIndex)" :size="10" class="spin" :stroke-width="2" />
+                    <RefreshCw v-else :size="10" :stroke-width="2" />
+                    {{ fetchingProviders.has(newProviderIndex) ? 'Fetching' : 'Fetch' }}
+                  </button>
+                  <button
+                    v-if="getFetchedModels(newProviderIndex).length > 0 && addingModelProvider !== newProviderIndex"
+                    class="pill-btn micro gold-micro"
+                    @click.stop="addingModelProvider = newProviderIndex"
+                  >
+                    <Plus :size="10" :stroke-width="2" />Add
+                  </button>
+                </div>
+              </div>
+
+              <!-- fetched picker -->
+              <div v-if="addingModelProvider === newProviderIndex" class="picker" @click.stop>
+                <div class="picker-scroll settings-scrollbar">
+                  <button
+                    v-for="mid in getFetchedModels(newProviderIndex)" :key="mid"
+                    class="pick-item"
+                    :class="{ dim: appConfig.providers[newProviderIndex].models.some(m => m.id === mid) }"
+                    @click="addModelFromList(newProviderIndex, mid)"
+                  >
+                    <span>{{ mid }}</span>
+                    <Check v-if="appConfig.providers[newProviderIndex].models.some(m => m.id === mid)" :size="11" :stroke-width="2.6" />
+                  </button>
+                </div>
+                <button class="picker-done" @click.stop="addingModelProvider = null">Done</button>
+              </div>
+
+              <!-- tags -->
+              <div v-if="appConfig.providers[newProviderIndex].models.length > 0" class="tags">
+                <span v-for="(m, mi) in appConfig.providers[newProviderIndex].models" :key="mi" class="tag">
+                  {{ m.id }}
+                  <button class="tag-x" @click.stop="removeModel(newProviderIndex, mi)">
+                    <Trash2 :size="9" :stroke-width="2" />
+                  </button>
+                </span>
+              </div>
+
               <div class="persona-actions">
                 <button class="pill-btn gold-micro" @click.stop="confirmProvider">
                   <Check :size="10" :stroke-width="2.5" />Confirm
@@ -557,6 +645,7 @@ onUnmounted(() => {
             handle=".card-drag-handle"
             ghost-class="card-ghost"
             class="drag-wrapper"
+            :swap-threshold="0.65"
             :disabled="isEditingAnyProvider"
             @end="onProviderDragEnd"
           >
@@ -564,18 +653,18 @@ onUnmounted(() => {
               <div
                 v-show="!addingProvider && !isEditingAnyProvider || isEditing(oi)"
                 class="prov-card"
-                :class="{ open: isEditing(oi) || !appConfig.providers[oi].name }"
+                :class="{ open: isEditing(oi) }"
               >
                 <span class="card-drag-handle" @click.stop>
                   <GripVertical :size="13" :stroke-width="1.8" />
                 </span>
 
                 <!-- ── Collapsed ── -->
-                <div v-if="!isEditing(oi) && appConfig.providers[oi].name" class="prov-collapsed" @click="toggleEdit(oi)">
+                <div v-if="!isEditing(oi)" class="prov-collapsed" @click="toggleEdit(oi)">
                   <div class="prov-lhs">
                     <div class="prov-accent" />
                     <div class="prov-meta">
-                      <span class="prov-name">{{ appConfig.providers[oi].name }}</span>
+                      <span class="prov-name" :class="{ dim: !appConfig.providers[oi].name }">{{ appConfig.providers[oi].name || 'Untitled Provider' }}</span>
                       <span class="prov-badge">{{ appConfig.providers[oi].models.length }} model{{ appConfig.providers[oi].models.length !== 1 ? 's' : '' }}</span>
                     </div>
                   </div>
@@ -597,7 +686,7 @@ onUnmounted(() => {
                       v-model="appConfig.providers[oi].name" placeholder="Provider name…"
                       class="name-input" @click.stop
                     />
-                    <button v-if="appConfig.providers[oi].name" class="mini-btn ghost" title="Collapse" @click.stop="toggleEdit(oi)">
+                    <button class="mini-btn ghost" title="Collapse" @click.stop="toggleEdit(oi)">
                       <ChevronDown :size="14" :stroke-width="1.8" class="chev-up" />
                     </button>
                     <button class="mini-btn warn" title="Remove" @click.stop="removeProvider(oi)">
@@ -894,6 +983,7 @@ onUnmounted(() => {
             handle=".card-drag-handle"
             ghost-class="card-ghost"
             class="drag-wrapper"
+            :swap-threshold="0.65"
             :disabled="isEditingAnyPersona"
             @end="onPersonaDragEnd"
           >
@@ -1110,6 +1200,7 @@ onUnmounted(() => {
   font-size: 12.5px; font-weight: 650; letter-spacing: -.01em;
   color: rgba(255,255,255,.78);
 }
+.prov-name.dim { color: rgba(255,255,255,.25); font-style: italic; }
 .prov-badge {
   font-size: 9.5px; font-weight: 550; color: rgba(255,255,255,.2);
   background: rgba(255,255,255,.055); padding: 1px 7px; border-radius: 6px;
