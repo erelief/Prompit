@@ -384,7 +384,7 @@ onMounted(async () => {
   unlistenConfig = await listen<boolean>("window-config", (e) => {
     growAbove.value = e.payload;
   });
-  await invoke("resize_and_reposition", { height: 520, width: 480 });
+  await invoke("resize_and_reposition", { height: 580, width: 480 });
   load();
 });
 
