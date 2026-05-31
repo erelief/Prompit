@@ -72,7 +72,10 @@ function handleCancel() {
 function handleRemove(index: number) {
   props.items.splice(index, 1);
   const re = new Set<number>();
-  for (const i of editing.value) re.add(i > index ? i - 1 : i);
+  for (const i of editing.value) {
+    if (i === index) continue;
+    re.add(i > index ? i - 1 : i);
+  }
   editing.value = re;
   order.value = order.value.filter(i => i !== index).map(i => i > index ? i - 1 : i);
   emit("remove", { index, indexMap: buildIndexMap(props.items.length + 1, index) });
