@@ -266,10 +266,6 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   border: 1px dashed rgba(212, 160, 72, 0.35);
   border-radius: 11px; min-height: 44px;
 }
-.hidden-drag-ghost {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
 
 /* ── Pill button (Add / Confirm / Cancel) ── */
 .pill-btn {
