@@ -28,6 +28,10 @@ pub struct AppConfig {
     pub target_lang: String,
     #[serde(default)]
     pub user_dict_enabled: bool,
+    #[serde(default)]
+    pub custom_languages: Vec<String>,
+    #[serde(default)]
+    pub language_order: Vec<String>,
 }
 
 fn default_target_lang() -> String {
@@ -42,6 +46,8 @@ impl Default for AppConfig {
             active_model_index: 0,
             target_lang: "English".to_string(),
             user_dict_enabled: false,
+            custom_languages: vec![],
+            language_order: vec![],
         }
     }
 }
@@ -73,11 +79,15 @@ mod tests {
             active_model_index: 0,
             target_lang: "Japanese".to_string(),
             user_dict_enabled: false,
+            custom_languages: vec!["Klingon".to_string()],
+            language_order: vec!["English".to_string(), "Japanese".to_string(), "Klingon".to_string()],
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.providers[0].name, "OpenAI");
         assert_eq!(deserialized.target_lang, "Japanese");
+        assert_eq!(deserialized.custom_languages, vec!["Klingon"]);
+        assert_eq!(deserialized.language_order.len(), 3);
     }
 
     #[test]
@@ -91,5 +101,18 @@ mod tests {
         }"#;
         let config: AppConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.target_lang, "English");
+    }
+
+    #[test]
+    fn test_config_defaults_for_custom_languages() {
+        let json = r#"{
+            "providers": [],
+            "active_provider_index": 0,
+            "active_model_index": 0,
+            "target_lang": "English"
+        }"#;
+        let config: AppConfig = serde_json::from_str(json).unwrap();
+        assert!(config.custom_languages.is_empty());
+        assert!(config.language_order.is_empty());
     }
 }
