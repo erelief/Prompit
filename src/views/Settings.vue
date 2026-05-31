@@ -1429,20 +1429,19 @@ label {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-top: 5px;
-  padding: 5px 9px;
+  margin-top: 6px;
+  padding: 4px 9px;
   border-radius: 7px;
-  border: 1px dashed rgba(255, 255, 255, 0.065);
+  border: none;
   background: none;
-  color: rgba(255, 255, 255, 0.25);
-  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 10.5px;
   cursor: pointer;
   transition: all 0.12s;
 }
 .lang-add-btn:hover {
-  border-color: rgba(255, 255, 255, 0.13);
   color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(255, 255, 255, 0.035);
 }
 .lang-restore-btn {
   display: flex;
