@@ -14,6 +14,7 @@ import {
   loadProviderPresets,
 } from "../stores/config";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
+import { getTheme, setTheme } from "../composables/useTheme";
 import { resolveFormat, resolvePath } from "../services/llm-client";
 import { BUILTIN_LANGUAGES } from "../constants/languages";
 import draggable from "vuedraggable";
@@ -650,6 +651,22 @@ onUnmounted(() => {
             </div>
           </template>
         </EditableCardList>
+
+        <!-- Theme -->
+        <div class="section-head mt">
+          <span class="section-title"><Settings2 :size="13" />Theme</span>
+        </div>
+        <div class="theme-toggle">
+          <button
+            v-for="opt in [{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }, { value: 'system', label: 'System' }]"
+            :key="opt.value"
+            class="theme-btn"
+            :class="{ on: getTheme() === opt.value }"
+            @click="setTheme(opt.value as 'light' | 'dark' | 'system')"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
       </template>
 
       <!-- ─── Translation tab ─── -->
@@ -1363,5 +1380,35 @@ label {
 .lang-restore-btn:hover {
   color: rgba(255, 255, 255, 0.45);
   background: rgba(255, 255, 255, 0.035);
+}
+
+/* ── Theme toggle ── */
+.theme-toggle {
+  display: flex;
+  gap: 1px;
+  background: var(--color-border);
+  border-radius: 9px;
+  padding: 1px;
+  margin-bottom: 2px;
+}
+.theme-btn {
+  flex: 1;
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.theme-btn:hover {
+  color: var(--color-text-secondary);
+}
+.theme-btn.on {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 </style>
