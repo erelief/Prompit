@@ -23,6 +23,17 @@
       }
     },
     {
+      "name": "Kimi",
+      "provider_name": "Kimi",
+      "base_url": "https://api.moonshot.cn/v1",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
       "name": "Ollama (local)",
       "provider_name": "Ollama",
       "base_url": "http://localhost:11434/v1",
