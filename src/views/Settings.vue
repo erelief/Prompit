@@ -862,9 +862,8 @@ onUnmounted(() => {
 .name-input::placeholder{ color: rgba(255,255,255,.2); }
 .name-input:focus{ background: rgba(255,255,255,.045); }
 
-.fields { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.fields { display:grid; grid-template-columns:1fr; gap:10px; }
 .field { display:flex; flex-direction:column; gap:4px; }
-.field:nth-child(1){ grid-column: span 2; }
 
 label {
   font-size: 9.5px; font-weight: 600; text-transform:uppercase;
