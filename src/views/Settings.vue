@@ -661,13 +661,14 @@ onUnmounted(() => {
         </div>
         <div class="theme-toggle">
           <button
-            v-for="opt in [{ value: 'light', icon: Sun }, { value: 'dark', icon: Moon }, { value: 'system', icon: SunMoon }]"
+            v-for="opt in [{ value: 'light', icon: Sun, label: 'Light' }, { value: 'dark', icon: Moon, label: 'Dark' }, { value: 'system', icon: SunMoon, label: 'System' }]"
             :key="opt.value"
             class="theme-btn"
             :class="{ on: getTheme() === opt.value }"
             @click="setTheme(opt.value as 'light' | 'dark' | 'system')"
           >
-            <component :is="opt.icon" :size="14" :stroke-width="1.8" />
+            <component :is="opt.icon" :size="13" :stroke-width="1.8" />
+            {{ opt.label }}
           </button>
         </div>
       </template>
@@ -1399,8 +1400,11 @@ label {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   padding: 7px 12px;
   border-radius: 7px;
+  font-size: 11px;
+  font-weight: 550;
   color: var(--color-text-muted);
   background: transparent;
   border: none;
