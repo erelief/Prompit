@@ -1,5 +1,52 @@
 @import "tailwindcss";
 
+/* ══════════════════════════════════════
+   Theme tokens
+   ══════════════════════════════════════ */
+:root {
+  --color-bg:              #ffffff;
+  --color-surface:         rgba(0,0,0,0.03);
+  --color-surface-hover:   rgba(0,0,0,0.05);
+  --color-border:          rgba(0,0,0,0.08);
+  --color-border-hover:    rgba(0,0,0,0.14);
+  --color-text:            rgba(0,0,0,0.88);
+  --color-text-secondary:  rgba(0,0,0,0.52);
+  --color-text-muted:      rgba(0,0,0,0.3);
+  --color-text-placeholder:rgba(0,0,0,0.22);
+  --color-accent:          rgba(180,130,40,0.9);
+  --color-accent-text:     rgba(180,130,40,0.72);
+  --color-accent-bg:       rgba(180,130,40,0.08);
+  --color-accent-border:   rgba(180,130,40,0.3);
+  --color-danger:          #dc2626;
+  --color-danger-bg:       rgba(220,38,38,0.1);
+  --color-success:         #16a34a;
+  --color-success-bg:      rgba(22,163,74,0.08);
+  --color-overlay:         rgba(255,255,255,0.96);
+  --color-scrollbar:       rgba(0,0,0,0.12);
+}
+
+html.dark {
+  --color-bg:              #0b0b0f;
+  --color-surface:         rgba(255,255,255,0.038);
+  --color-surface-hover:   rgba(255,255,255,0.055);
+  --color-border:          rgba(255,255,255,0.065);
+  --color-border-hover:    rgba(255,255,255,0.115);
+  --color-text:            rgba(255,255,255,0.88);
+  --color-text-secondary:  rgba(255,255,255,0.48);
+  --color-text-muted:      rgba(255,255,255,0.22);
+  --color-text-placeholder:rgba(255,255,255,0.15);
+  --color-accent:          rgba(212,160,72,0.85);
+  --color-accent-text:     rgba(212,160,72,0.72);
+  --color-accent-bg:       rgba(212,160,72,0.08);
+  --color-accent-border:   rgba(212,160,72,0.28);
+  --color-danger:          #f87171;
+  --color-danger-bg:       rgba(248,113,113,0.1);
+  --color-success:         #4ade80;
+  --color-success-bg:      rgba(74,222,128,0.08);
+  --color-overlay:         rgba(16,16,22,0.97);
+  --color-scrollbar:       rgba(255,255,255,0.12);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -10,7 +57,7 @@
 
 ::selection {
   background: rgba(217, 160, 71, 0.3);
-  color: #fff;
+  color: var(--color-text);
 }
 
 /* Smooth scrolling */

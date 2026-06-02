@@ -334,7 +334,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 .ecl-stack.compact :deep(.ecl-card) { flex-shrink: 0; }
 .ecl-stack.compact::-webkit-scrollbar { width: 3px; }
 .ecl-stack.compact::-webkit-scrollbar-track { margin: 4px 0; }
-.ecl-stack.compact::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+.ecl-stack.compact::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
 
 .drag-wrapper { display: contents; }
 
@@ -342,12 +342,12 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 .ecl-card {
   position: relative;
   border-radius: 11px; overflow:hidden;
-  border: 1px solid rgba(255,255,255,.055);
-  background: linear-gradient(180deg, rgba(255,255,255,.022) 0%, rgba(255,255,255,.014) 100%);
+  border: 1px solid var(--color-surface-hover);
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface) 100%);
   transition: border-color .18s, box-shadow .18s;
   user-select: none;
 }
-.ecl-card:hover { border-color: rgba(255,255,255,.09); }
+.ecl-card:hover { border-color: var(--color-border-hover); }
 .ecl-card.open { padding: 15px 30px 14px 40px; }
 
 /* ── Collapsed ── */
@@ -355,8 +355,8 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   display:flex; align-items:center; justify-content:space-between;
   padding: 11px 14px 11px 40px; transition:background .12s;
 }
-.ecl-collapsed:hover { background: rgba(255,255,255,.02); }
-.ecl-collapsed.remove-pending { background: rgba(248,113,113,.06); }
+.ecl-collapsed:hover { background: var(--color-surface); }
+.ecl-collapsed.remove-pending { background: var(--color-danger-bg); }
 .ecl-lhs { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
 .ecl-rhs { display:flex; align-items:center; gap:2px; opacity:.6; transition:opacity .12s; }
 .ecl-collapsed:hover .ecl-rhs { opacity:1; }
@@ -375,22 +375,22 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   position: absolute; top: 12px; left: 10px;
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 5px;
-  cursor: grab; color: rgba(255, 255, 255, 0.18);
+  cursor: grab; color: var(--color-text-muted);
   z-index: 2; opacity: 0; transition: opacity 0.12s, color 0.12s;
   pointer-events: auto; user-select: none;
 }
 .ecl-card:hover > .card-drag-handle { opacity: 1; }
 .ecl-card.open > .card-drag-handle { display: none; }
 .card-drag-handle:hover {
-  color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-secondary); background: var(--color-surface-hover);
 }
-.card-drag-handle:active { cursor: grabbing; color: rgba(255, 255, 255, 0.55); }
+.card-drag-handle:active { cursor: grabbing; color: var(--color-accent); }
 
 /* ── Ghost / chosen ── */
 :deep(.sortable-chosen) { opacity: 0.35; }
 :deep(.sortable-ghost.card-ghost) {
-  opacity: 0.35; background: rgba(212, 160, 72, 0.10);
-  border: 1px dashed rgba(212, 160, 72, 0.35);
+  opacity: 0.35; background: var(--color-accent-bg);
+  border: 1px dashed var(--color-accent-border);
   border-radius: 11px; min-height: 44px;
 }
 
@@ -400,49 +400,49 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   padding: 4px 11px; border-radius: 7px; font-size: 10.5px; font-weight: 550;
   cursor: pointer; border:none; background:none; transition:.15s;
 }
-.add-pill { color: rgba(212,160,72,.72); }
-.add-pill:hover { color: #d4a048; background: rgba(212,160,72,.09); }
+.add-pill { color: var(--color-accent-text); }
+.add-pill:hover { color: var(--color-accent); background: var(--color-accent-bg); }
 .add-pill:disabled { opacity:.32; cursor:default; }
-.micro { color: rgba(255,255,255,.28); padding: 3px 8px; }
-.micro:hover:not(:disabled){ color: rgba(255,255,255,.52); background: rgba(255,255,255,.055); }
+.micro { color: var(--color-text-muted); padding: 3px 8px; }
+.micro:hover:not(:disabled){ color: var(--color-text-secondary); background: var(--color-surface-hover); }
 .micro:disabled{ opacity:.32; cursor:default; }
-.gold-micro { color: rgba(212,160,72,.62); }
-.gold-micro:hover { color: rgba(212,160,72,.9); background: rgba(212,160,72,.08); }
+.gold-micro { color: var(--color-accent-text); }
+.gold-micro:hover { color: var(--color-accent); background: var(--color-accent-bg); }
 
 /* ── Mini button (Edit / Remove / Collapse) ── */
 .mini-btn {
   display:flex; align-items:center; justify-content:center;
   width:27px; height:27px; border-radius:7px;
-  color: rgba(255,255,255,.32); cursor:pointer;
+  color: var(--color-text-muted); cursor:pointer;
   border:none; background:none; transition:.12s;
 }
-.mini-btn:hover { color: rgba(255,255,255,.7); background: rgba(255,255,255,.065); }
-.mini-btn.warn:hover { color: #f87171; background: rgba(248,113,113,.1); }
+.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
+.mini-btn.warn:hover { color: var(--color-danger); background: var(--color-danger-bg); }
 .mini-btn.danger-active {
-  color: #f87171; background: rgba(248,113,113,.14);
+  color: var(--color-danger); background: var(--color-danger-bg);
   animation: danger-pulse .8s ease-in-out infinite alternate;
 }
 .remove-warning-row { margin-bottom: 6px; }
 .remove-warning-text {
   font-size: 10px; font-weight: 550; letter-spacing: .01em;
-  color: rgba(248,113,113,.65);
+  color: var(--color-danger);
 }
 .validation-error {
   font-size: 10px; font-weight: 550; letter-spacing: .01em;
-  color: rgba(212,160,72,.65); margin-top: 6px;
+  color: var(--color-accent); margin-top: 6px;
 }
-.mini-btn.ghost { color: rgba(255,255,255,.2); }
-.mini-btn.ghost:hover { color: rgba(255,255,255,.48); background: rgba(255,255,255,.045); }
+.mini-btn.ghost { color: var(--color-text-muted); }
+.mini-btn.ghost:hover { color: var(--color-text-secondary); background: var(--color-surface); }
 
 /* ── Name input ── */
 .name-input {
   flex:1; background:none; border:none;
   font-size:14px; font-weight:700; letter-spacing: -.02em;
-  color: rgba(255,255,255,.86); outline:none;
+  color: var(--color-text); outline:none;
   padding:3px 5px; border-radius:5px; transition:background .15s;
 }
-.name-input::placeholder{ color: rgba(255,255,255,.2); }
-.name-input:focus{ background: rgba(255,255,255,.045); }
+.name-input::placeholder{ color: var(--color-text-muted); }
+.name-input:focus{ background: var(--color-surface); }
 
 /* ── Section head ── */
 .section-head {
@@ -453,20 +453,20 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 .section-title {
   display:flex; align-items:center; gap:7px;
   font-size: 11.5px; font-weight: 650; letter-spacing: .01em;
-  color: rgba(255,255,255,.48);
+  color: var(--color-text-secondary);
 }
 
 /* ── Empty state ── */
 .empty-card {
   display:flex; flex-direction:column; align-items:center; gap:8px;
   padding: 28px 16px; border-radius: 11px;
-  border: 1px dashed rgba(255,255,255,.06);
-  color: rgba(255,255,255,.18); font-size: 11.5px; line-height: 1.5;
+  border: 1px dashed var(--color-surface-hover);
+  color: var(--color-text-muted); font-size: 11.5px; line-height: 1.5;
   text-align: center;
 }
-.empty-card small{ font-size: 10px; color: rgba(255,255,255,.13); }
+.empty-card small{ font-size: 10px; color: var(--color-text-muted); }
 
 @keyframes spin{ to{ transform: rotate(360deg)} }
-@keyframes danger-pulse{ to{ background: rgba(248,113,113,.24)} }
+@keyframes danger-pulse{ to{ background: var(--color-danger-bg)} }
 .spin{ animation: spin .75s linear infinite; }
 </style>

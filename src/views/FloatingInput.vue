@@ -9,6 +9,7 @@ import { loadConfig, saveConfig, getActiveModel, appConfig, personaStore, savePe
 import { translate } from "../services/llm-client";
 import { LANG_CODE_MAP } from "../constants/languages";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages, BookText } from "@lucide/vue";
+import { isDark } from "../composables/useTheme";
 
 const router = useRouter();
 
@@ -32,6 +33,12 @@ const activeModelName = computed(() => {
   if (!m) return null;
   return m.model || null;
 });
+
+const glassBg = computed(() =>
+  isDark()
+    ? "linear-gradient(135deg, rgba(15,15,20,0.85) 0%, rgba(20,20,30,0.8) 100%)"
+    : "linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(245,245,250,0.8) 100%)"
+);
 
 const showModelDropdown = ref(false);
 const modelDropdownRef = ref<HTMLDivElement | null>(null);
@@ -371,14 +378,7 @@ useShortcutTriggered(() => {
     @mousedown="handleDrag"
     class="w-full h-full flex justify-center overflow-hidden"
     :class="growAbove ? 'items-end' : 'items-start'"
-    style="
-      background: linear-gradient(
-        135deg,
-        rgba(15, 15, 20, 0.85) 0%,
-        rgba(20, 20, 30, 0.8) 100%
-      );
-      backdrop-filter: blur(24px) saturate(1.5);
-    "
+    :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)' }"
   >
     <div ref="contentWrapRef"
       class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-3 overflow-y-auto flex-shrink-0 h-fit"
@@ -396,7 +396,7 @@ useShortcutTriggered(() => {
         <Transition name="fade">
           <div
             v-show="isLoading"
-            class="flex items-center gap-2 text-[11px] text-white/40"
+            class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
             Sending...
@@ -476,7 +476,7 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
-          <div class="w-px h-3 bg-white/10"></div>
+          <div class="w-px h-3 bg-[var(--color-border)]"></div>
 
           <!-- Language selector -->
           <div class="lang-wrap" ref="langDropdownRef">
@@ -630,7 +630,7 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
-          <div class="w-px h-3 bg-white/10"></div>
+          <div class="w-px h-3 bg-[var(--color-border)]"></div>
 
           <!-- Language selector -->
           <div class="lang-wrap" ref="langDropdownRef">
@@ -769,7 +769,7 @@ useShortcutTriggered(() => {
         <Transition name="fade">
           <div
             v-show="isLoading"
-            class="flex items-center gap-2 text-[11px] text-white/40"
+            class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
             Sending...
@@ -800,9 +800,9 @@ useShortcutTriggered(() => {
 
 <style scoped>
 .floating-input {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 9px 14px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -812,12 +812,12 @@ useShortcutTriggered(() => {
 }
 
 .floating-input::placeholder {
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--color-text-placeholder);
 }
 
 .floating-input:focus {
-  border-color: rgba(217, 160, 71, 0.35);
-  box-shadow: 0 0 0 2px rgba(217, 160, 71, 0.08);
+  border-color: var(--color-accent-border);
+  box-shadow: 0 0 0 2px var(--color-accent-bg);
 }
 
 /* Textarea with inline send button */
@@ -845,7 +845,7 @@ useShortcutTriggered(() => {
 
 .send-btn-inline:hover:not(:disabled) {
   background: linear-gradient(135deg, #ddb35a 0%, #d4a048 100%);
-  box-shadow: 0 2px 8px rgba(212, 160, 72, 0.3);
+  box-shadow: 0 2px 8px var(--color-accent-bg);
 }
 
 .send-btn-inline:active:not(:disabled) {
@@ -859,12 +859,12 @@ useShortcutTriggered(() => {
 
 .send-btn-inline.paste-mode {
   background: linear-gradient(135deg, #e8b84a 0%, #d4a048 100%);
-  box-shadow: 0 0 8px rgba(232, 184, 74, 0.35);
+  box-shadow: 0 0 8px var(--color-accent-bg);
 }
 
 .send-btn-inline.paste-mode:hover:not(:disabled) {
   background: linear-gradient(135deg, #f0c55e 0%, #e8b84a 100%);
-  box-shadow: 0 2px 10px rgba(232, 184, 74, 0.5);
+  box-shadow: 0 2px 10px var(--color-accent-bg);
 }
 
 /* Model selector button */
@@ -877,18 +877,18 @@ useShortcutTriggered(() => {
   border-radius: 8px;
   font-size: 10px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface);
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
 
 .model-btn:hover,
 .model-btn.active {
-  color: rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--color-text);
+  background: var(--color-border);
+  border-color: var(--color-border);
 }
 
 /* Language selector */
@@ -903,19 +903,19 @@ useShortcutTriggered(() => {
   font-size: 9.5px;
   font-weight: 600;
   letter-spacing: .04em;
-  color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface);
   transition: all 0.15s ease;
 }
 .lang-btn:hover,
 .lang-btn.active {
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.11);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
 }
 .toolbar-chevron {
-  color: rgba(255, 255, 255, 0.28);
+  color: var(--color-text-muted);
   transition: transform 0.15s ease;
   flex-shrink: 0;
 }
@@ -936,32 +936,32 @@ useShortcutTriggered(() => {
   border-radius: 8px 0 0 8px;
   font-size: 10px;
   font-weight: 550;
-  color: rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface);
   border-right: none;
   transition: all 0.18s ease;
 }
 .persona-toggle.on { padding-right: 10px; }
 .persona-toggle:hover {
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.065);
+  color: var(--color-text-secondary);
+  background: var(--color-border);
 }
 .persona-toggle.on {
-  color: rgba(217, 160, 71, 0.9);
-  background: rgba(217, 160, 71, 0.07);
-  border-color: rgba(217, 160, 71, 0.18);
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+  border-color: var(--color-accent-border);
 }
 .persona-toggle.on:hover {
-  color: rgba(217, 160, 71, 1);
-  background: rgba(217, 160, 71, 0.11);
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
 }
 
 /* Status dot */
 .persona-dot {
   width: 5px; height: 5px; border-radius: 50%;
-  background: rgba(217, 160, 71, 0.9);
-  box-shadow: 0 0 5px rgba(217, 160, 71, 0.3);
+  background: var(--color-accent);
+  box-shadow: 0 0 5px var(--color-accent-border);
   flex-shrink: 0;
 }
 
@@ -973,27 +973,27 @@ useShortcutTriggered(() => {
   width: 22px;
   height: 28px;
   border-radius: 0 8px 8px 0;
-  color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface);
+  border-left: 1px solid var(--color-surface);
   transition: all 0.15s ease;
 }
 .persona-chevron:hover,
 .persona-chevron.active {
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.065);
-  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+  background: var(--color-border);
+  border-color: var(--color-border);
 }
 .persona-chevron.on {
-  border-color: rgba(217, 160, 71, 0.18);
-  background: rgba(217, 160, 71, 0.07);
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-bg);
 }
 .persona-chevron.on:hover,
 .persona-chevron.on.active {
-  border-color: rgba(217, 160, 71, 0.3);
-  background: rgba(217, 160, 71, 0.11);
-  color: rgba(217, 160, 71, 0.9);
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
 }
 
 /* ── Dictionary toggle ── */
@@ -1004,9 +1004,9 @@ useShortcutTriggered(() => {
   height: 28px;
   padding: 0 10px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.035);
-  color: rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--color-surface);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.18s ease;
   font-size: 11px;
@@ -1014,24 +1014,24 @@ useShortcutTriggered(() => {
   flex-shrink: 0;
 }
 .dict-toggle:hover {
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.065);
+  color: var(--color-text-secondary);
+  background: var(--color-border);
 }
 .dict-toggle.on {
-  color: rgba(217, 160, 71, 0.9);
-  background: rgba(217, 160, 71, 0.07);
-  border-color: rgba(217, 160, 71, 0.18);
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+  border-color: var(--color-accent-border);
 }
 .dict-toggle.on:hover {
-  color: rgba(217, 160, 71, 1);
-  background: rgba(217, 160, 71, 0.11);
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
 }
 .dict-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(217, 160, 71, 0.9);
-  box-shadow: 0 0 5px rgba(217, 160, 71, 0.3);
+  background: var(--color-accent);
+  box-shadow: 0 0 5px var(--color-accent-border);
   flex-shrink: 0;
 }
 
@@ -1042,9 +1042,9 @@ useShortcutTriggered(() => {
   max-width: 240px;
   padding: 3px;
   border-radius: 8px;
-  background: rgba(22, 22, 30, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  background: var(--color-overlay);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--color-surface);
   backdrop-filter: blur(16px);
   z-index: 9999;
   overflow-y: auto;
@@ -1052,7 +1052,7 @@ useShortcutTriggered(() => {
 }
 .model-dropdown::-webkit-scrollbar { width: 3px; }
 .model-dropdown::-webkit-scrollbar-track { margin: 10px 0; }
-.model-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 3px; }
+.model-dropdown::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
 
 .model-option {
   display: flex;
@@ -1063,18 +1063,18 @@ useShortcutTriggered(() => {
   padding: 6px 10px;
   border-radius: 5px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-secondary);
   text-align: left;
   transition: all 0.1s ease;
 }
 
 .model-option:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .model-option.selected {
-  color: rgba(217, 160, 71, 0.9);
+  color: var(--color-accent);
 }
 
 .check-mark {
@@ -1102,20 +1102,20 @@ useShortcutTriggered(() => {
   width: 28px;
   height: 28px;
   border-radius: 7px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--color-text-muted);
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
 
 .icon-btn:hover {
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text);
+  background: var(--color-surface);
 }
 
 /* Result block */
 .result-block {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -1124,7 +1124,7 @@ useShortcutTriggered(() => {
   padding: 12px 14px;
   font-size: 13px;
   line-height: 1.65;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--color-text);
   white-space: pre-wrap;
   word-break: break-word;
   overflow-y: auto;
@@ -1144,13 +1144,13 @@ useShortcutTriggered(() => {
 /* Thin scrollbar to prevent layout shift on appear */
 :deep(.overflow-y-auto) {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: var(--color-scrollbar) transparent;
 }
 :deep(.overflow-y-auto)::-webkit-scrollbar {
   width: 4px;
 }
 :deep(.overflow-y-auto)::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-scrollbar);
   border-radius: 4px;
 }
 :deep(.overflow-y-auto)::-webkit-scrollbar-track {
