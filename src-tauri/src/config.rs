@@ -89,10 +89,15 @@ pub struct AppConfig {
     pub custom_languages: Vec<String>,
     #[serde(default)]
     pub language_order: Vec<String>,
+    #[serde(default = "default_theme")]
+    pub theme: String,
 }
 
 fn default_target_lang() -> String {
     "English".to_string()
+}
+fn default_theme() -> String {
+    "system".to_string()
 }
 
 impl Default for AppConfig {
@@ -105,6 +110,7 @@ impl Default for AppConfig {
             user_dict_enabled: false,
             custom_languages: vec![],
             language_order: vec![],
+            theme: "system".to_string(),
         }
     }
 }
@@ -140,6 +146,7 @@ mod tests {
             user_dict_enabled: false,
             custom_languages: vec!["Klingon".to_string()],
             language_order: vec!["English".to_string(), "Japanese".to_string(), "Klingon".to_string()],
+            theme: "dark".to_string(),
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();
@@ -147,6 +154,7 @@ mod tests {
         assert_eq!(deserialized.target_lang, "Japanese");
         assert_eq!(deserialized.custom_languages, vec!["Klingon"]);
         assert_eq!(deserialized.language_order.len(), 3);
+        assert_eq!(deserialized.theme, "dark");
     }
 
     #[test]
@@ -160,6 +168,7 @@ mod tests {
         }"#;
         let config: AppConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.target_lang, "English");
+        assert_eq!(config.theme, "system");
     }
 
     #[test]
@@ -173,5 +182,18 @@ mod tests {
         let config: AppConfig = serde_json::from_str(json).unwrap();
         assert!(config.custom_languages.is_empty());
         assert!(config.language_order.is_empty());
+        assert_eq!(config.theme, "system");
+    }
+
+    #[test]
+    fn test_config_theme_values() {
+        for theme in &["light", "dark", "system"] {
+            let json = format!(
+                r#"{{"providers":[],"active_provider_index":0,"active_model_index":0,"target_lang":"English","theme":"{}"}}"#,
+                theme
+            );
+            let config: AppConfig = serde_json::from_str(&json).unwrap();
+            assert_eq!(config.theme, *theme);
+        }
     }
 }

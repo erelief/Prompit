@@ -65,6 +65,7 @@ mod tests {
             user_dict_enabled: false,
             custom_languages: vec![],
             language_order: vec![],
+            theme: "system".to_string(),
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
