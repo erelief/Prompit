@@ -380,6 +380,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   pointer-events: auto; user-select: none;
 }
 .ecl-card:hover > .card-drag-handle { opacity: 1; }
+.ecl-card.open > .card-drag-handle { display: none; }
 .card-drag-handle:hover {
   color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.06);
 }
