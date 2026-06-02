@@ -134,11 +134,11 @@ export async function loadConfig(): Promise<void> {
 export async function saveConfig(): Promise<void> {
   await saveSecrets();
 
-  const sanitized = structuredClone(toRaw(appConfig));
-  for (const provider of sanitized.providers) {
+  const raw = JSON.parse(JSON.stringify(toRaw(appConfig)));
+  for (const provider of raw.providers) {
     provider.api_key = "";
   }
-  await invoke("save_config", { config: sanitized });
+  await invoke("save_config", { config: raw });
 }
 
 export async function loadPersonas(): Promise<void> {

@@ -227,23 +227,15 @@ async function load() {
   catch (err) { console.error("Failed to load config:", err); }
 }
 
-// ── Auto-save ──
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
+// ── Auto-save (instant) ──
 watch(
   () => JSON.stringify(appConfig),
-  () => {
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { persistConfig(); }, 800);
-  },
+  () => { persistConfig(); },
 );
 
-let personaSaveTimer: ReturnType<typeof setTimeout> | null = null;
 watch(
   () => JSON.stringify(personaStore.personas),
-  () => {
-    if (personaSaveTimer) clearTimeout(personaSaveTimer);
-    personaSaveTimer = setTimeout(() => { persistPersonas(); }, 800);
-  },
+  () => { persistPersonas(); },
 );
 
 function onProviderAdd() {
@@ -509,6 +501,7 @@ onUnmounted(() => {
           :empty-icon="CircleDot"
           :validate="validateProvider"
           @add="onProviderAdd"
+          @confirm="() => persistConfig()"
           @cancel="onProviderCancel"
           @remove="onProviderRemove"
           @drag-end="onProviderDragEnd"
@@ -650,7 +643,7 @@ onUnmounted(() => {
             <div v-if="item.models.length > 0" class="tags">
               <span v-for="(m, mi) in item.models" :key="mi" class="tag">
                 {{ m.id }}
-                <button class="tag-x" @click.stop="removeModel(Number(index), mi)">
+                <button class="tag-x" @click.stop="removeModel(+index, mi)">
                   <Trash2 :size="9" :stroke-width="2" />
                 </button>
               </span>
@@ -813,6 +806,7 @@ onUnmounted(() => {
           empty-sub-message="Add one to customize translation style."
           :validate="validatePersona"
           @add="personaStore.personas.push({ name: '', prompt: '', enabled: false })"
+          @confirm="() => persistPersonas()"
         >
           <template #collapsed="{ item, index }">
             <label class="persona-check" :class="{ on: item.enabled }" @click.stop>

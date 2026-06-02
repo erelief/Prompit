@@ -60,6 +60,7 @@ pub struct ProviderModel {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderConfig {
     pub name: String,
+    #[serde(default)]
     pub api_key: String,
     pub base_url: String,
     pub models: Vec<ProviderModel>,
