@@ -191,8 +191,8 @@ onMounted(async () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #0b0b0f;
-  color: #fff;
+  background: var(--color-bg);
+  color: var(--color-text);
   overflow: hidden;
   border-radius: 11px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
@@ -205,7 +205,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 16px 24px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  border-bottom: 1px solid var(--color-surface);
   flex-shrink: 0;
 }
 .header-title {
@@ -213,7 +213,7 @@ onMounted(async () => {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--color-text);
   line-height: 1.2;
 }
 .back-btn {
@@ -223,12 +223,12 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--color-text-muted);
   transition: 0.15s;
 }
 .back-btn:hover {
-  color: rgba(255, 255, 255, 0.75);
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text);
+  background: var(--color-surface-hover);
 }
 
 /* ── Pill buttons ── */
@@ -246,19 +246,19 @@ onMounted(async () => {
   transition: 0.15s;
 }
 .add-pill {
-  color: rgba(212, 160, 72, 0.72);
+  color: var(--color-accent-text);
 }
 .add-pill:hover {
-  color: #d4a048;
-  background: rgba(212, 160, 72, 0.09);
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
 }
 .micro {
-  color: rgba(255, 255, 255, 0.28);
+  color: var(--color-text-muted);
   padding: 3px 8px;
 }
 .micro:hover:not(:disabled) {
-  color: rgba(255, 255, 255, 0.52);
-  background: rgba(255, 255, 255, 0.055);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-hover);
 }
 
 /* ── Language row ── */
@@ -273,7 +273,7 @@ onMounted(async () => {
   flex: 1;
   font-size: 11.5px;
   font-weight: 550;
-  color: rgba(255, 255, 255, 0.36);
+  color: var(--color-text-muted);
 }
 
 /* ── Table ── */
@@ -286,7 +286,7 @@ onMounted(async () => {
 .dict-table {
   height: 100%;
   overflow-y: auto;
-  border: 1px solid rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--color-surface);
   border-radius: 9px;
 }
 
@@ -298,7 +298,7 @@ onMounted(async () => {
   margin: 10px 0;
 }
 .settings-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-scrollbar);
   border-radius: 3px;
 }
 
@@ -306,7 +306,7 @@ onMounted(async () => {
 .dict-row {
   display: flex;
   align-items: stretch;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  border-bottom: 1px solid var(--color-surface);
 }
 .dict-row:last-child {
   border-bottom: none;
@@ -317,13 +317,13 @@ onMounted(async () => {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--color-surface);
   backdrop-filter: blur(6px);
 }
 .dict-header-row .dict-col {
   font-size: 10.5px;
   font-weight: 650;
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--color-text-muted);
   letter-spacing: 0.02em;
   padding: 8px 12px;
 }
@@ -337,7 +337,7 @@ onMounted(async () => {
 }
 .col-source {
   flex: 1;
-  border-right: 1px solid rgba(255, 255, 255, 0.035);
+  border-right: 1px solid var(--color-surface);
 }
 .col-trans {
   flex: 1;
@@ -354,7 +354,7 @@ onMounted(async () => {
   background: none;
   border: 1px solid transparent;
   border-radius: 4px;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--color-text);
   font-size: 12px;
   padding: 6px 6px;
   outline: none;
@@ -362,10 +362,10 @@ onMounted(async () => {
   font-family: inherit;
 }
 .dict-input:focus {
-  border-color: rgba(212, 160, 72, 0.3);
+  border-color: var(--color-accent-border);
 }
 .dict-input::placeholder {
-  color: rgba(255, 255, 255, 0.12);
+  color: var(--color-scrollbar);
 }
 
 /* ── Mini button (delete) ── */
@@ -376,15 +376,15 @@ onMounted(async () => {
   width: 27px;
   height: 27px;
   border-radius: 7px;
-  color: rgba(255, 255, 255, 0.32);
+  color: var(--color-text-muted);
   cursor: pointer;
   border: none;
   background: none;
   transition: 0.12s;
 }
 .mini-btn.warn:hover {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.1);
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
 }
 
 /* ── Footer ── */
@@ -395,26 +395,26 @@ onMounted(async () => {
   padding: 10px 24px 14px;
   font-size: 10.5px;
   font-weight: 550;
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 .footer-count {
   flex: 1;
 }
 .footer-error {
-  color: #f87171;
+  color: var(--color-danger);
   font-weight: 500;
   flex: 1;
   text-align: right;
 }
 .save-btn {
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(212, 160, 72, 0.12);
+  color: var(--color-text-secondary);
+  background: var(--color-accent-bg);
   padding: 4px 12px;
 }
 .save-btn:hover:not(:disabled) {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(212, 160, 72, 0.22);
+  color: var(--color-text);
+  background: var(--color-accent-bg);
 }
 .save-btn:disabled {
   opacity: 0.35;
