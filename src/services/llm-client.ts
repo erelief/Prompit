@@ -106,7 +106,7 @@ export async function translate(text: string): Promise<string> {
     headers[k] = v;
   }
 
-  const baseUrl = model.base_url.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+  const baseUrl = model.base_url.replace(/\/$/, "");
 
   const response = await fetch(`${baseUrl}${fmt.chat_endpoint}`, {
     method: "POST",

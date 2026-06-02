@@ -53,6 +53,7 @@ const testingProvider = ref<number | null>(null);
 const fetchStatuses = ref<Map<number, string>>(new Map());
 const fetchedModels = ref<Map<string, string[]>>(new Map());
 const fetchingProviders = ref(new Set<number>());
+const fetchSuccess = ref(new Set<number>());
 const addingModelProvider = ref<number | null>(null);
 const showModelSelector = ref(false);
 const showLangSelector = ref(false);
@@ -248,9 +249,9 @@ watch(
 function onProviderAdd() {
   const openai = providerPresets.value.find(p => p.name === "OpenAI");
   appConfig.providers.push({
-    name: openai?.provider_name ?? "",
+    name: "",
     api_key: "",
-    base_url: openai?.base_url ?? "https://api.openai.com/v1",
+    base_url: "",
     models: [], temperature: 0.3, max_tokens: 1024,
     preset: openai?.name,
     api_format: openai ? { ...openai.api_format } : undefined,
@@ -299,7 +300,7 @@ async function testConnection(provider: ProviderConfig, index: number) {
   testingProvider.value = index;
   try {
     const fmt = resolveFormat(provider.api_format);
-    const url = provider.base_url.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+    const url = provider.base_url.replace(/\/$/, "");
     const headers: Record<string, string> = {};
     if (fmt.auth_header && provider.api_key) {
       headers[fmt.auth_header] = `${fmt.auth_prefix}${provider.api_key}`;
@@ -333,7 +334,7 @@ async function fetchModels(provider: ProviderConfig, index: number) {
   fetchingProviders.value.add(index);
   try {
     const fmt = resolveFormat(provider.api_format);
-    const url = provider.base_url.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+    const url = provider.base_url.replace(/\/$/, "");
     const headers: Record<string, string> = {};
     if (fmt.auth_header && provider.api_key) {
       headers[fmt.auth_header] = `${fmt.auth_prefix}${provider.api_key}`;
@@ -359,9 +360,11 @@ async function fetchModels(provider: ProviderConfig, index: number) {
       modelIds = data.data?.map((m: any) => m.id).sort() || [];
     }
     fetchedModels.value.set(`p${index}`, modelIds);
-  } catch {
-    fetchStatuses.value.set(index, "Fetch failed");
-    setTimeout(() => fetchStatuses.value.delete(index), 3000);
+    fetchSuccess.value.add(index);
+    setTimeout(() => { fetchSuccess.value.delete(index); fetchSuccess.value = new Set(fetchSuccess.value); }, 2000);
+  } catch (err) {
+    fetchStatuses.value.set(index, `Fetch failed: ${err instanceof Error ? err.message : String(err)}`);
+    setTimeout(() => fetchStatuses.value.delete(index), 5000);
   } finally {
     fetchingProviders.value.delete(index);
   }
@@ -608,12 +611,14 @@ onUnmounted(() => {
               <div class="pool-actions">
                 <button
                   class="pill-btn micro"
+                  :class="{ 'fetch-ok': fetchSuccess.has(index) }"
                   @click.stop="fetchModels(item, index)"
-                  :disabled="!item.api_key || fetchingProviders.has(index)"
+                  :disabled="!item.api_key || fetchingProviders.has(index) || fetchSuccess.has(index)"
                 >
                   <Loader2 v-if="fetchingProviders.has(index)" :size="10" class="spin" :stroke-width="2" />
+                  <Check v-else-if="fetchSuccess.has(index)" :size="10" :stroke-width="2.5" />
                   <RefreshCw v-else :size="10" :stroke-width="2" />
-                  {{ fetchingProviders.has(index) ? 'Fetching' : 'Fetch' }}
+                  {{ fetchingProviders.has(index) ? 'Fetching' : fetchSuccess.has(index) ? 'Done' : 'Fetch' }}
                 </button>
                 <button
                   v-if="getFetchedModels(index).length > 0 && addingModelProvider !== index"
@@ -645,7 +650,7 @@ onUnmounted(() => {
             <div v-if="item.models.length > 0" class="tags">
               <span v-for="(m, mi) in item.models" :key="mi" class="tag">
                 {{ m.id }}
-                <button class="tag-x" @click.stop="removeModel(index, mi)">
+                <button class="tag-x" @click.stop="removeModel(Number(index), mi)">
                   <Trash2 :size="9" :stroke-width="2" />
                 </button>
               </span>
@@ -938,6 +943,8 @@ onUnmounted(() => {
 .micro:disabled{ opacity:.32; cursor:default; }
 .gold-micro { color: rgba(212,160,72,.62); }
 .gold-micro:hover { color: rgba(212,160,72,.9); background: rgba(212,160,72,.08); }
+.fetch-ok { color: #4ade80; cursor: default; }
+.fetch-ok:hover { color: #4ade80; background: rgba(74,222,128,.08); }
 
 /* ── Provider collapsed content ── */
 .prov-lhs { display:flex; align-items:center; gap:10px; }
