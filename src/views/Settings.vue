@@ -41,6 +41,9 @@ import {
   GripVertical,
   RotateCcw,
   Wand2,
+  Sun,
+  Moon,
+  SunMoon,
 } from "@lucide/vue";
 
 type TabKey = "general" | "translation";
@@ -658,13 +661,13 @@ onUnmounted(() => {
         </div>
         <div class="theme-toggle">
           <button
-            v-for="opt in [{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }, { value: 'system', label: 'System' }]"
+            v-for="opt in [{ value: 'light', icon: Sun }, { value: 'dark', icon: Moon }, { value: 'system', icon: SunMoon }]"
             :key="opt.value"
             class="theme-btn"
             :class="{ on: getTheme() === opt.value }"
             @click="setTheme(opt.value as 'light' | 'dark' | 'system')"
           >
-            {{ opt.label }}
+            <component :is="opt.icon" :size="14" :stroke-width="1.8" />
           </button>
         </div>
       </template>
@@ -1393,10 +1396,11 @@ label {
 }
 .theme-btn {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 7px 12px;
   border-radius: 7px;
-  font-size: 11.5px;
-  font-weight: 550;
   color: var(--color-text-muted);
   background: transparent;
   border: none;
