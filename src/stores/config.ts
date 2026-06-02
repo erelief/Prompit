@@ -54,6 +54,7 @@ export interface AppConfig {
   user_dict_enabled: boolean;
   custom_languages: string[];
   language_order: string[];
+  theme: "light" | "dark" | "system";
 }
 
 const defaultConfig: AppConfig = {
@@ -64,6 +65,7 @@ const defaultConfig: AppConfig = {
   user_dict_enabled: false,
   custom_languages: [],
   language_order: [],
+  theme: "system",
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
