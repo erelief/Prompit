@@ -124,7 +124,7 @@ function togglePresetMenu(e: MouseEvent, _item: ProviderConfig, index: number) {
   showPresetMenu.value = true;
   const btn = e.currentTarget as HTMLElement;
   const r = btn.getBoundingClientRect();
-  presetMenuPos.value = { top: r.bottom + 5, left: r.left };
+  presetMenuPos.value = { top: r.bottom + 5, left: r.right - 220 };
 }
 
 function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
