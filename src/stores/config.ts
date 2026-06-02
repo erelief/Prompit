@@ -3,6 +3,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { BUILTIN_LANGUAGES } from "../constants/languages";
 
+export interface ApiFormat {
+  auth_header?: string;
+  auth_prefix?: string;
+  extra_headers?: Record<string, string>;
+  chat_endpoint?: string;
+  models_endpoint?: string;
+  request?: Record<string, any>;
+  response?: Record<string, string>;
+}
+
 export interface ProviderModel {
   id: string;
 }
@@ -14,6 +24,15 @@ export interface ProviderConfig {
   models: ProviderModel[];
   temperature: number | null;
   max_tokens: number | null;
+  preset?: string;
+  api_format?: ApiFormat;
+}
+
+export interface ProviderPreset {
+  name: string;
+  provider_name: string;
+  base_url: string;
+  api_format: ApiFormat;
 }
 
 export interface PersonaConfig {
@@ -165,6 +184,7 @@ export function getActiveModel(): {
   base_url: string;
   temperature: number | null;
   max_tokens: number | null;
+  api_format?: ApiFormat;
 } | null {
   const pi = appConfig.active_provider_index;
   const mi = appConfig.active_model_index;
@@ -187,6 +207,7 @@ export function getActiveModel(): {
     base_url: provider.base_url,
     temperature: provider.temperature,
     max_tokens: provider.max_tokens,
+    api_format: provider.api_format,
   };
 }
 
@@ -224,4 +245,8 @@ export async function exportDictionaryCsv(
     targetLang: lang,
     filePath,
   });
+}
+
+export async function loadProviderPresets(): Promise<ProviderPreset[]> {
+  return await invoke<ProviderPreset[]>("read_provider_presets");
 }

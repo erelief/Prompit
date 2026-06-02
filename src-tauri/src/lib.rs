@@ -33,6 +33,7 @@ pub fn run() {
             commands::dictionary::export_dictionary_csv,
             commands::persona::read_personas,
             commands::persona::save_personas,
+            commands::presets::read_provider_presets,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

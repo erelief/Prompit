@@ -1,23 +1,46 @@
 import { getActiveModel, appConfig, personaStore, loadDictionary } from "../stores/config";
+import type { ApiFormat } from "../stores/config";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
 
-interface ChatCompletionRequest {
-  model: string;
-  messages: ChatMessage[];
-  temperature?: number;
-  max_tokens?: number;
+const OPENAI_FORMAT: Required<ApiFormat> = {
+  auth_header: "Authorization",
+  auth_prefix: "Bearer ",
+  extra_headers: {},
+  chat_endpoint: "/chat/completions",
+  models_endpoint: "/models",
+  request: {},
+  response: {},
+};
+
+export function resolveFormat(apiFormat?: ApiFormat): Required<ApiFormat> {
+  if (!apiFormat) return { ...OPENAI_FORMAT };
+  return {
+    auth_header: apiFormat.auth_header ?? OPENAI_FORMAT.auth_header,
+    auth_prefix: apiFormat.auth_prefix ?? OPENAI_FORMAT.auth_prefix,
+    extra_headers: apiFormat.extra_headers ?? {},
+    chat_endpoint: apiFormat.chat_endpoint ?? OPENAI_FORMAT.chat_endpoint,
+    models_endpoint: apiFormat.models_endpoint ?? OPENAI_FORMAT.models_endpoint,
+    request: apiFormat.request ?? {},
+    response: apiFormat.response ?? {},
+  };
 }
 
-interface ChatCompletionResponse {
-  choices: Array<{
-    message: {
-      content: string;
-    };
-  }>;
+/** Resolve a dot-path like "choices.0.message.content" against an object. */
+export function resolvePath(obj: any, path: string): any {
+  if (!path) return obj;
+  const parts = path.split(".");
+  let cur = obj;
+  for (const part of parts) {
+    if (cur == null) return undefined;
+    if (part === "*") continue; // wildcard — caller handles
+    const idx = Number(part);
+    cur = Number.isInteger(idx) && Array.isArray(cur) ? cur[idx] : cur[part];
+  }
+  return cur;
 }
 
 export async function translate(text: string): Promise<string> {
@@ -25,6 +48,9 @@ export async function translate(text: string): Promise<string> {
   if (!model) {
     throw new Error("No model configured. Please add a model in Settings.");
   }
+
+  const fmt = resolveFormat(model.api_format);
+  const skipFields: string[] = fmt.request._skip_fields ?? [];
 
   const systemPrompt = buildSystemPrompt();
 
@@ -47,24 +73,42 @@ export async function translate(text: string): Promise<string> {
 
   messages.push({ role: "user", content: text });
 
-  const body: ChatCompletionRequest = {
+  // Build request body using field mappings
+  const body: Record<string, any> = {};
+  const fieldMap: Record<string, string> = {
+    model: "model",
+    messages: "messages",
+    temperature: "temperature",
+    max_tokens: "max_tokens",
+  };
+
+  const values: Record<string, any> = {
     model: model.model,
     messages,
     temperature: model.temperature ?? 0.3,
     max_tokens: model.max_tokens ?? 1024,
   };
 
-  const url = model.base_url.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+  for (const [stdKey, defaultTarget] of Object.entries(fieldMap)) {
+    if (skipFields.includes(stdKey)) continue;
+    const targetKey = fmt.request[stdKey] ?? defaultTarget;
+    body[targetKey] = values[stdKey];
+  }
 
+  // Build headers
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-
-  if (model.api_key) {
-    headers["Authorization"] = `Bearer ${model.api_key}`;
+  if (fmt.auth_header && model.api_key) {
+    headers[fmt.auth_header] = `${fmt.auth_prefix}${model.api_key}`;
+  }
+  for (const [k, v] of Object.entries(fmt.extra_headers)) {
+    headers[k] = v;
   }
 
-  const response = await fetch(`${url}/chat/completions`, {
+  const baseUrl = model.base_url.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+
+  const response = await fetch(`${baseUrl}${fmt.chat_endpoint}`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
@@ -75,13 +119,16 @@ export async function translate(text: string): Promise<string> {
     throw new Error(`API error ${response.status}: ${errorText}`);
   }
 
-  const data = (await response.json()) as ChatCompletionResponse;
+  const data = await response.json();
 
-  if (!data.choices || data.choices.length === 0) {
+  const contentPath = fmt.response["content"] ?? "choices.0.message.content";
+  const content = resolvePath(data, contentPath);
+
+  if (content == null) {
     throw new Error("Empty response from LLM API");
   }
 
-  return data.choices[0].message.content.trim();
+  return String(content).trim();
 }
 
 function buildSystemPrompt(): string {

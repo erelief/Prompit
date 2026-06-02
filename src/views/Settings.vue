@@ -11,8 +11,10 @@ import {
   saveConfig as persistConfig,
   savePersonas as persistPersonas,
   getOrderedLanguages,
+  loadProviderPresets,
 } from "../stores/config";
-import type { ProviderConfig } from "../stores/config";
+import type { ProviderConfig, ProviderPreset } from "../stores/config";
+import { resolveFormat, resolvePath } from "../services/llm-client";
 import { BUILTIN_LANGUAGES } from "../constants/languages";
 import draggable from "vuedraggable";
 import EditableCardList from "../components/EditableCardList.vue";
@@ -37,6 +39,7 @@ import {
   BookText,
   GripVertical,
   RotateCcw,
+  Wand2,
 } from "@lucide/vue";
 
 type TabKey = "general" | "translation";
@@ -53,6 +56,10 @@ const fetchingProviders = ref(new Set<number>());
 const addingModelProvider = ref<number | null>(null);
 const showModelSelector = ref(false);
 const showLangSelector = ref(false);
+const showPresetMenu = ref(false);
+const presetMenuPos = ref({ top: 0, left: 0 });
+const presetMenuIndex = ref<number | null>(null);
+const providerPresets = ref<ProviderPreset[]>([]);
 const selMenuPos = ref({ top: 0, left: 0 });
 const langMenuPos = ref({ top: 0, left: 0 });
 const selBtnRef = ref<HTMLElement | null>(null);
@@ -103,6 +110,30 @@ function toggleLangMenu() {
 function pickLang(lang: string) {
   appConfig.target_lang = lang;
   showLangSelector.value = false;
+}
+
+function togglePresetMenu(e: MouseEvent, _item: ProviderConfig, index: number) {
+  showModelSelector.value = false;
+  showLangSelector.value = false;
+  if (showPresetMenu.value && presetMenuIndex.value === index) {
+    showPresetMenu.value = false;
+    presetMenuIndex.value = null;
+    return;
+  }
+  presetMenuIndex.value = index;
+  showPresetMenu.value = true;
+  const btn = e.currentTarget as HTMLElement;
+  const r = btn.getBoundingClientRect();
+  presetMenuPos.value = { top: r.bottom + 5, left: r.left };
+}
+
+function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
+  item.preset = preset.name;
+  item.base_url = preset.base_url;
+  item.api_format = { ...preset.api_format };
+  if (!item.name.trim()) item.name = preset.provider_name;
+  showPresetMenu.value = false;
+  presetMenuIndex.value = null;
 }
 
 // ── Language management ──
@@ -215,10 +246,14 @@ watch(
 );
 
 function onProviderAdd() {
+  const openai = providerPresets.value.find(p => p.name === "OpenAI");
   appConfig.providers.push({
-    name: "", api_key: "",
-    base_url: "https://api.openai.com/v1",
+    name: openai?.provider_name ?? "",
+    api_key: "",
+    base_url: openai?.base_url ?? "https://api.openai.com/v1",
     models: [], temperature: 0.3, max_tokens: 1024,
+    preset: openai?.name,
+    api_format: openai ? { ...openai.api_format } : undefined,
   });
 }
 
@@ -229,6 +264,8 @@ function onProviderCancel({ index }: { index: number }) {
   fetchingProviders.value.delete(index);
   if (addingModelProvider.value === index) addingModelProvider.value = null;
   if (testingProvider.value === index) testingProvider.value = null;
+  showPresetMenu.value = false;
+  presetMenuIndex.value = null;
 }
 
 function onProviderRemove({ index, indexMap }: { index: number; indexMap: Map<number, number> }) {
@@ -261,10 +298,19 @@ async function testConnection(provider: ProviderConfig, index: number) {
   if (!provider.api_key || !provider.base_url) return;
   testingProvider.value = index;
   try {
+    const fmt = resolveFormat(provider.api_format);
     const url = provider.base_url.replace(/\/v1\/?$/, "").replace(/\/$/, "");
-    const r = await fetch(`${url}/models`, {
+    const headers: Record<string, string> = {};
+    if (fmt.auth_header && provider.api_key) {
+      headers[fmt.auth_header] = `${fmt.auth_prefix}${provider.api_key}`;
+    }
+    for (const [k, v] of Object.entries(fmt.extra_headers)) {
+      headers[k] = v;
+    }
+    const modelsEndpoint = fmt.models_endpoint || "/models";
+    const r = await fetch(`${url}${modelsEndpoint}`, {
       method: "GET",
-      headers: { Authorization: `Bearer ${provider.api_key}` },
+      headers,
     });
     if (r.ok) {
       fetchStatuses.value.set(index, "Connected");
@@ -286,14 +332,33 @@ async function fetchModels(provider: ProviderConfig, index: number) {
   if (!provider.api_key || !provider.base_url) return;
   fetchingProviders.value.add(index);
   try {
+    const fmt = resolveFormat(provider.api_format);
     const url = provider.base_url.replace(/\/v1\/?$/, "").replace(/\/$/, "");
-    const r = await fetch(`${url}/models`, {
+    const headers: Record<string, string> = {};
+    if (fmt.auth_header && provider.api_key) {
+      headers[fmt.auth_header] = `${fmt.auth_prefix}${provider.api_key}`;
+    }
+    for (const [k, v] of Object.entries(fmt.extra_headers)) {
+      headers[k] = v;
+    }
+    const modelsEndpoint = fmt.models_endpoint || "/models";
+    const r = await fetch(`${url}${modelsEndpoint}`, {
       method: "GET",
-      headers: { Authorization: `Bearer ${provider.api_key}` },
+      headers,
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = (await r.json()) as { data?: Array<{ id: string }> };
-    fetchedModels.value.set(`p${index}`, data.data?.map((m) => m.id).sort() || []);
+    const data = await r.json();
+
+    // Parse models list using api_format response mapping
+    const modelsListPath = fmt.response["models_list"];
+    let modelIds: string[];
+    if (modelsListPath) {
+      const raw = resolvePath(data, modelsListPath.replace(/\.\*$/, ""));
+      modelIds = Array.isArray(raw) ? raw.filter((m: any) => typeof m === "string").sort() : [];
+    } else {
+      modelIds = data.data?.map((m: any) => m.id).sort() || [];
+    }
+    fetchedModels.value.set(`p${index}`, modelIds);
   } catch {
     fetchStatuses.value.set(index, "Fetch failed");
     setTimeout(() => fetchStatuses.value.delete(index), 3000);
@@ -353,6 +418,10 @@ function onDocClick(e: MouseEvent) {
     showModelSelector.value = false;
   if (!t.closest(".lang-menu") && !t.closest(".lang-btn"))
     showLangSelector.value = false;
+  if (!t.closest(".preset-menu") && !t.closest(".preset-mini-btn")) {
+    showPresetMenu.value = false;
+    presetMenuIndex.value = null;
+  }
   if (!t.closest(".picker") && !t.closest(".gold-micro"))
     addingModelProvider.value = null;
 }
@@ -386,6 +455,7 @@ onMounted(async () => {
   });
   await invoke("resize_and_reposition", { height: 580, width: 480 });
   load();
+  loadProviderPresets().then(p => { providerPresets.value = p; }).catch(console.error);
 });
 
 onUnmounted(() => {
@@ -450,7 +520,46 @@ onUnmounted(() => {
             </div>
           </template>
 
+          <template #name-input="{ item, index }">
+            <input v-model="item.name" placeholder="Provider name…" class="name-input" @click.stop />
+            <button
+              class="preset-mini-btn"
+              :class="{ active: item.preset }"
+              @click.stop="togglePresetMenu($event, item, index)"
+              :title="item.preset ? `Preset: ${item.preset}` : 'Apply preset'"
+            >
+              <Wand2 :size="12" :stroke-width="1.8" />
+            </button>
+          </template>
+
           <template #content="{ item, index }">
+            <Teleport to="body">
+              <Transition name="drop">
+                <div v-if="showPresetMenu && presetMenuIndex === index" class="sel-menu preset-menu" :style="{ top: presetMenuPos.top + 'px', left: presetMenuPos.left + 'px', minWidth: '220px' }">
+                  <div class="sel-clip settings-scrollbar">
+                    <button
+                      v-for="p in providerPresets" :key="p.name"
+                      class="sel-opt"
+                      :class="{ hit: item.preset === p.name }"
+                      @click="applyPreset(item, p)"
+                    >
+                      <div class="opt-info">
+                        <span class="opt-id">{{ p.name }}</span>
+                        <span class="opt-src">{{ p.base_url }}</span>
+                      </div>
+                      <Check
+                        v-if="item.preset === p.name"
+                        :size="13" :stroke-width="2.5"
+                      />
+                    </button>
+                    <div v-if="providerPresets.length === 0" class="preset-empty">
+                      No presets found. Edit the presets file to add one.
+                    </div>
+                  </div>
+                </div>
+              </Transition>
+            </Teleport>
+
             <!-- fields -->
             <div class="fields">
               <div class="field">
@@ -864,6 +973,21 @@ onUnmounted(() => {
 
 .fields { display:grid; grid-template-columns:1fr; gap:10px; }
 .field { display:flex; flex-direction:column; gap:4px; }
+
+/* ── Preset mini button ── */
+.preset-mini-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 27px; height: 27px; border-radius: 6px; flex-shrink: 0;
+  color: rgba(255,255,255,.22); cursor: pointer;
+  border: none; background: none; transition: .12s;
+}
+.preset-mini-btn:hover { color: rgba(255,255,255,.55); background: rgba(255,255,255,.06); }
+.preset-mini-btn.active { color: rgba(212,160,72,.55); }
+.preset-mini-btn.active:hover { color: rgba(212,160,72,.85); background: rgba(212,160,72,.08); }
+.preset-empty {
+  padding: 12px; font-size: 10.5px; color: rgba(255,255,255,.2);
+  text-align: center; font-style: italic;
+}
 
 label {
   font-size: 9.5px; font-weight: 600; text-transform:uppercase;

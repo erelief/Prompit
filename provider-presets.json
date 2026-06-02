@@ -1,0 +1,39 @@
+{
+  "presets": [
+    {
+      "name": "OpenAI",
+      "provider_name": "OpenAI",
+      "base_url": "https://api.openai.com/v1",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "DeepSeek",
+      "provider_name": "DeepSeek",
+      "base_url": "https://api.deepseek.com",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "Ollama (local)",
+      "provider_name": "Ollama",
+      "base_url": "http://localhost:11434/v1",
+      "api_format": {
+        "auth_header": "",
+        "auth_prefix": "",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/tags",
+        "request": { "max_tokens": "num_predict" },
+        "response": { "models_list": "models.*.name" }
+      }
+    }
+  ]
+}

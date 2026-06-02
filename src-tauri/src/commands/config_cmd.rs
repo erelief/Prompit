@@ -56,6 +56,8 @@ mod tests {
                 models: vec![ProviderModel { id: "gpt-4o-mini".to_string() }],
                 temperature: Some(0.3),
                 max_tokens: Some(1024),
+                preset: None,
+                api_format: None,
             }],
             active_provider_index: 0,
             active_model_index: 0,

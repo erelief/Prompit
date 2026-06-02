@@ -1,4 +1,56 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ApiFormat {
+    #[serde(default = "default_auth_header")]
+    pub auth_header: String,
+    #[serde(default = "default_auth_prefix")]
+    pub auth_prefix: String,
+    #[serde(default)]
+    pub extra_headers: HashMap<String, String>,
+    #[serde(default = "default_chat_endpoint")]
+    pub chat_endpoint: String,
+    #[serde(default)]
+    pub models_endpoint: String,
+    #[serde(default)]
+    pub request: HashMap<String, serde_json::Value>,
+    #[serde(default)]
+    pub response: HashMap<String, String>,
+}
+
+fn default_auth_header() -> String {
+    "Authorization".to_string()
+}
+fn default_auth_prefix() -> String {
+    "Bearer ".to_string()
+}
+fn default_chat_endpoint() -> String {
+    "/chat/completions".to_string()
+}
+
+impl ApiFormat {
+    pub fn openai_default() -> Self {
+        Self {
+            auth_header: "Authorization".to_string(),
+            auth_prefix: "Bearer ".to_string(),
+            extra_headers: HashMap::new(),
+            chat_endpoint: "/chat/completions".to_string(),
+            models_endpoint: "/models".to_string(),
+            request: HashMap::new(),
+            response: HashMap::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderPreset {
+    pub name: String,
+    pub provider_name: String,
+    pub base_url: String,
+    #[serde(default)]
+    pub api_format: ApiFormat,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderModel {
@@ -15,6 +67,10 @@ pub struct ProviderConfig {
     pub temperature: Option<f32>,
     #[serde(default)]
     pub max_tokens: Option<u32>,
+    #[serde(default)]
+    pub preset: Option<String>,
+    #[serde(default)]
+    pub api_format: Option<ApiFormat>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,6 +130,8 @@ mod tests {
                 models: vec![ProviderModel { id: "gpt-4o-mini".to_string() }],
                 temperature: Some(0.3),
                 max_tokens: Some(1024),
+                preset: Some("OpenAI".to_string()),
+                api_format: None,
             }],
             active_provider_index: 0,
             active_model_index: 0,
