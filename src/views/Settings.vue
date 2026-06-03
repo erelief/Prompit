@@ -73,6 +73,33 @@ const langMenuPos = ref({ top: 0, left: 0 });
 const selBtnRef = ref<HTMLElement | null>(null);
 const langBtnRef = ref<HTMLElement | null>(null);
 
+// ── App language switcher ──
+const appLanguageOptions = [
+  { value: "en", label: "English" },
+  { value: "zh-CN", label: "简体中文" },
+];
+
+const showAppLangMenu = ref(false);
+const appLangMenuPos = ref({ top: 0, left: 0 });
+const appLangBtnRef = ref<HTMLElement | null>(null);
+
+function toggleAppLangMenu() {
+  showAppLangMenu.value = !showAppLangMenu.value;
+  if (showAppLangMenu.value && appLangBtnRef.value) {
+    const r = appLangBtnRef.value.getBoundingClientRect();
+    appLangMenuPos.value = { top: r.bottom + 5, left: r.left };
+  }
+}
+
+function selectAppLang(lang: string) {
+  appConfig.app_lang = lang;
+  showAppLangMenu.value = false;
+}
+
+const currentAppLangLabel = computed(() => {
+  return appLanguageOptions.find(o => o.value === appConfig.app_lang)?.label || "English";
+});
+
 // ── Persona management ──
 function validateProvider(p: ProviderConfig): string | null {
   const missing: string[] = [];
@@ -418,6 +445,8 @@ function onDocClick(e: MouseEvent) {
   const t = e.target as HTMLElement;
   if (!t.closest(".sel-menu") && !t.closest(".sel-btn"))
     showModelSelector.value = false;
+  if (!t.closest(".sel-menu") && !t.closest(".sel-btn"))
+    showAppLangMenu.value = false;
   if (!t.closest(".lang-menu") && !t.closest(".lang-btn"))
     showLangSelector.value = false;
   if (!t.closest(".preset-menu") && !t.closest(".preset-mini-btn")) {
@@ -673,6 +702,37 @@ onUnmounted(() => {
             <component :is="opt.icon" :size="13" :stroke-width="1.8" />
             {{ opt.label }}
           </button>
+        </div>
+
+        <!-- Language -->
+        <div class="section-head mt">
+          <span class="section-title"><Languages :size="13" />{{ t('settings.language') }}</span>
+        </div>
+        <div class="sel-wrap">
+          <button ref="appLangBtnRef" class="sel-btn" @click="toggleAppLangMenu()">
+            <span class="sel-text">{{ currentAppLangLabel }}</span>
+            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showAppLangMenu }" />
+          </button>
+
+          <Teleport to="body">
+            <Transition name="drop">
+              <div v-if="showAppLangMenu" class="sel-menu" :style="{ top: appLangMenuPos.top + 'px', left: appLangMenuPos.left + 'px' }">
+                <div class="sel-clip settings-scrollbar">
+                  <button
+                    v-for="opt in appLanguageOptions" :key="opt.value"
+                    class="sel-opt"
+                    :class="{ hit: appConfig.app_lang === opt.value }"
+                    @click="selectAppLang(opt.value)"
+                  >
+                    <div class="opt-info">
+                      <span class="opt-id">{{ opt.label }}</span>
+                    </div>
+                    <Check v-if="appConfig.app_lang === opt.value" :size="13" :stroke-width="2.5" />
+                  </button>
+                </div>
+              </div>
+            </Transition>
+          </Teleport>
         </div>
       </template>
 
