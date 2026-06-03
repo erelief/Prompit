@@ -89,6 +89,8 @@ pub struct AppConfig {
     pub custom_languages: Vec<String>,
     #[serde(default)]
     pub language_order: Vec<String>,
+    #[serde(default = "default_app_lang")]
+    pub app_lang: String,
     #[serde(default = "default_theme")]
     pub theme: String,
 }
@@ -98,6 +100,9 @@ fn default_target_lang() -> String {
 }
 fn default_theme() -> String {
     "system".to_string()
+}
+fn default_app_lang() -> String {
+    "en".to_string()
 }
 
 impl Default for AppConfig {
@@ -110,6 +115,7 @@ impl Default for AppConfig {
             user_dict_enabled: false,
             custom_languages: vec![],
             language_order: vec![],
+            app_lang: "en".to_string(),
             theme: "system".to_string(),
         }
     }
@@ -146,6 +152,7 @@ mod tests {
             user_dict_enabled: false,
             custom_languages: vec!["Klingon".to_string()],
             language_order: vec!["English".to_string(), "Japanese".to_string(), "Klingon".to_string()],
+            app_lang: "zh-CN".to_string(),
             theme: "dark".to_string(),
         };
         let json = serde_json::to_string(&config).unwrap();
@@ -155,6 +162,7 @@ mod tests {
         assert_eq!(deserialized.custom_languages, vec!["Klingon"]);
         assert_eq!(deserialized.language_order.len(), 3);
         assert_eq!(deserialized.theme, "dark");
+        assert_eq!(deserialized.app_lang, "zh-CN");
     }
 
     #[test]
@@ -169,6 +177,7 @@ mod tests {
         let config: AppConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.target_lang, "English");
         assert_eq!(config.theme, "system");
+        assert_eq!(config.app_lang, "en");
     }
 
     #[test]
@@ -183,6 +192,7 @@ mod tests {
         assert!(config.custom_languages.is_empty());
         assert!(config.language_order.is_empty());
         assert_eq!(config.theme, "system");
+        assert_eq!(config.app_lang, "en");
     }
 
     #[test]

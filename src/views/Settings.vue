@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
@@ -16,7 +17,7 @@ import {
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
 import { resolveFormat, resolvePath } from "../services/llm-client";
-import { BUILTIN_LANGUAGES } from "../constants/languages";
+import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
 import EditableCardList from "../components/EditableCardList.vue";
 import {
@@ -46,6 +47,8 @@ import {
   SunMoon,
 } from "@lucide/vue";
 
+const { t } = useI18n();
+
 type TabKey = "general" | "translation";
 
 const router = useRouter();
@@ -69,6 +72,33 @@ const selMenuPos = ref({ top: 0, left: 0 });
 const langMenuPos = ref({ top: 0, left: 0 });
 const selBtnRef = ref<HTMLElement | null>(null);
 const langBtnRef = ref<HTMLElement | null>(null);
+
+// ── App language switcher ──
+const appLanguageOptions = [
+  { value: "en", label: "English" },
+  { value: "zh-CN", label: "简体中文" },
+];
+
+const showAppLangMenu = ref(false);
+const appLangMenuPos = ref({ top: 0, left: 0 });
+const appLangBtnRef = ref<HTMLElement | null>(null);
+
+function toggleAppLangMenu() {
+  showAppLangMenu.value = !showAppLangMenu.value;
+  if (showAppLangMenu.value && appLangBtnRef.value) {
+    const r = appLangBtnRef.value.getBoundingClientRect();
+    appLangMenuPos.value = { top: r.bottom + 5, left: r.left };
+  }
+}
+
+function selectAppLang(lang: string) {
+  appConfig.app_lang = lang;
+  showAppLangMenu.value = false;
+}
+
+const currentAppLangLabel = computed(() => {
+  return appLanguageOptions.find(o => o.value === appConfig.app_lang)?.label || "English";
+});
 
 // ── Persona management ──
 function validateProvider(p: ProviderConfig): string | null {
@@ -415,6 +445,8 @@ function onDocClick(e: MouseEvent) {
   const t = e.target as HTMLElement;
   if (!t.closest(".sel-menu") && !t.closest(".sel-btn"))
     showModelSelector.value = false;
+  if (!t.closest(".sel-menu") && !t.closest(".sel-btn"))
+    showAppLangMenu.value = false;
   if (!t.closest(".lang-menu") && !t.closest(".lang-btn"))
     showLangSelector.value = false;
   if (!t.closest(".preset-menu") && !t.closest(".preset-mini-btn")) {
@@ -470,8 +502,8 @@ onUnmounted(() => {
       <button @click="goBack" class="back-btn" title="Back">
         <ArrowLeft :size="18" :stroke-width="1.8" />
       </button>
-      <h1 class="header-title">Settings</h1>
-      <button @click="closeWindow" class="close-btn" title="Close">
+      <h1 class="header-title">{{ t('common.settings') }}</h1>
+      <button @click="closeWindow" class="close-btn" :title="t('settings.close')">
         <X :size="16" :stroke-width="1.8" />
       </button>
     </header>
@@ -479,7 +511,7 @@ onUnmounted(() => {
     <!-- ═══ Tabs ═══ -->
     <nav class="tabs">
       <button
-        v-for="tab in [{ key: 'general' as TabKey, label: 'General', icon: Settings2 }, { key: 'translation' as TabKey, label: 'Translation', icon: Languages }]"
+        v-for="tab in [{ key: 'general' as TabKey, label: t('settings.general'), icon: Settings2 }, { key: 'translation' as TabKey, label: t('settings.translation'), icon: Languages }]"
         :key="tab.key"
         class="tab"
         :class="{ on: activeTab === tab.key }"
@@ -498,10 +530,10 @@ onUnmounted(() => {
         <!-- Providers -->
         <EditableCardList
           :items="appConfig.providers"
-          title="Providers"
+          :title="t('settings.providers')"
           :icon="Settings2"
-          empty-message="No providers yet."
-          empty-sub-message="Add one to get started."
+          :empty-message="t('settings.noProvidersYet')"
+          :empty-sub-message="t('settings.addOneToGetStarted')"
           :empty-icon="CircleDot"
           :validate="validateProvider"
           @add="onProviderAdd"
@@ -514,19 +546,19 @@ onUnmounted(() => {
             <div class="prov-lhs">
               <div class="prov-accent" />
               <div class="prov-meta">
-                <span class="prov-name" :class="{ dim: !item.name }">{{ item.name || 'Untitled Provider' }}</span>
-                <span class="prov-badge">{{ item.models.length }} model{{ item.models.length !== 1 ? 's' : '' }}</span>
+                <span class="prov-name" :class="{ dim: !item.name }">{{ item.name || t('settings.untitledProvider') }}</span>
+                <span class="prov-badge">{{ item.models.length }} {{ t('settings.model') }}</span>
               </div>
             </div>
           </template>
 
           <template #name-input="{ item, index }">
-            <input v-model="item.name" placeholder="Provider name…" class="name-input" @click.stop />
+            <input v-model="item.name" :placeholder="t('settings.providerName')" class="name-input" @click.stop />
             <button
               class="preset-mini-btn"
               :class="{ active: item.preset }"
               @click.stop="togglePresetMenu($event, item, index)"
-              :title="item.preset ? `Preset: ${item.preset}` : 'Apply preset'"
+              :title="item.preset ? `${t('settings.preset')}: ${item.preset}` : t('settings.applyPreset')"
             >
               <Wand2 :size="12" :stroke-width="1.8" />
             </button>
@@ -553,7 +585,7 @@ onUnmounted(() => {
                       />
                     </button>
                     <div v-if="providerPresets.length === 0" class="preset-empty">
-                      No presets found. Edit the presets file to add one.
+                      {{ t('settings.noPresetsFound') }}
                     </div>
                   </div>
                 </div>
@@ -563,7 +595,7 @@ onUnmounted(() => {
             <!-- fields -->
             <div class="fields">
               <div class="field">
-                <label>API Key</label>
+                <label>{{ t('settings.apiKey') }}</label>
                 <div class="key-wrap">
                   <input
                     v-model="item.api_key"
@@ -578,7 +610,7 @@ onUnmounted(() => {
                     class="icon-btn-sm linkish"
                     @click.stop="testConnection(item, index)"
                     :disabled="!item.api_key || testingProvider === index"
-                    title="Test connection"
+                    :title="t('settings.testConnection')"
                   >
                     <Loader2 v-if="testingProvider === index" :size="12" class="spin" :stroke-width="1.9" />
                     <Link2 v-else :size="12" :stroke-width="1.9" />
@@ -597,14 +629,14 @@ onUnmounted(() => {
               </div>
 
               <div class="field">
-                <label>Base URL</label>
+                <label>{{ t('settings.baseUrl') }}</label>
                 <input v-model="item.base_url" class="fi" placeholder="https://api.openai.com/v1" @click.stop />
               </div>
             </div>
 
             <!-- pool -->
             <div class="pool-bar">
-              <span class="pool-label">Models · {{ item.models.length }}</span>
+              <span class="pool-label">{{ t('settings.models') }} · {{ item.models.length }}</span>
               <div class="pool-actions">
                 <button
                   class="pill-btn micro"
@@ -657,11 +689,11 @@ onUnmounted(() => {
 
         <!-- Theme -->
         <div class="section-head mt">
-          <span class="section-title"><Settings2 :size="13" />Theme</span>
+          <span class="section-title"><Settings2 :size="13" />{{ t('settings.theme') }}</span>
         </div>
         <div class="theme-toggle">
           <button
-            v-for="opt in [{ value: 'light', icon: Sun, label: 'Light' }, { value: 'dark', icon: Moon, label: 'Dark' }, { value: 'system', icon: SunMoon, label: 'System' }]"
+            v-for="opt in [{ value: 'light', icon: Sun, label: t('settings.light') }, { value: 'dark', icon: Moon, label: t('settings.dark') }, { value: 'system', icon: SunMoon, label: t('settings.system') }]"
             :key="opt.value"
             class="theme-btn"
             :class="{ on: getTheme() === opt.value }"
@@ -671,13 +703,44 @@ onUnmounted(() => {
             {{ opt.label }}
           </button>
         </div>
+
+        <!-- Language -->
+        <div class="section-head mt">
+          <span class="section-title"><Languages :size="13" />{{ t('settings.language') }}</span>
+        </div>
+        <div class="sel-wrap">
+          <button ref="appLangBtnRef" class="sel-btn" @click="toggleAppLangMenu()">
+            <span class="sel-text">{{ currentAppLangLabel }}</span>
+            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showAppLangMenu }" />
+          </button>
+
+          <Teleport to="body">
+            <Transition name="drop">
+              <div v-if="showAppLangMenu" class="sel-menu" :style="{ top: appLangMenuPos.top + 'px', left: appLangMenuPos.left + 'px' }">
+                <div class="sel-clip settings-scrollbar">
+                  <button
+                    v-for="opt in appLanguageOptions" :key="opt.value"
+                    class="sel-opt"
+                    :class="{ hit: appConfig.app_lang === opt.value }"
+                    @click="selectAppLang(opt.value)"
+                  >
+                    <div class="opt-info">
+                      <span class="opt-id">{{ opt.label }}</span>
+                    </div>
+                    <Check v-if="appConfig.app_lang === opt.value" :size="13" :stroke-width="2.5" />
+                  </button>
+                </div>
+              </div>
+            </Transition>
+          </Teleport>
+        </div>
       </template>
 
       <!-- ─── Translation tab ─── -->
       <template v-if="activeTab === 'translation'">
         <!-- Model selector -->
         <div class="section-head">
-          <span class="section-title"><Cpu :size="13" />Translation Model</span>
+          <span class="section-title"><Cpu :size="13" />{{ t('settings.translationModel') }}</span>
         </div>
         <div class="sel-wrap">
           <button
@@ -686,7 +749,7 @@ onUnmounted(() => {
             :class="{ dead: allFlat.length === 0 }"
             @click="toggleSelMenu()"
           >
-            <span class="sel-text">{{ allFlat.length === 0 ? 'No models available' : activeLabel }}</span>
+            <span class="sel-text">{{ allFlat.length === 0 ? t('settings.noModelsAvailable') : activeLabel }}</span>
             <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showModelSelector }" />
           </button>
 
@@ -719,7 +782,7 @@ onUnmounted(() => {
 
         <!-- Target Language -->
         <div class="section-head mt">
-          <span class="section-title"><Languages :size="13" />Target Language</span>
+          <span class="section-title"><Languages :size="13" />{{ t('settings.targetLanguage') }}</span>
         </div>
         <div class="sel-wrap">
           <button
@@ -727,7 +790,7 @@ onUnmounted(() => {
             class="sel-btn lang-btn"
             @click="toggleLangMenu()"
           >
-            <span class="sel-text">{{ appConfig.target_lang }}</span>
+            <span class="sel-text">{{ getLangName(appConfig.target_lang) }}</span>
             <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showLangSelector }" />
           </button>
 
@@ -751,14 +814,14 @@ onUnmounted(() => {
                       @click="pickLang(element.name)"
                     >
                       <span class="lang-drag-handle"><GripVertical :size="11" :stroke-width="1.8" /></span>
-                      <span class="opt-label">{{ element.name }}</span>
+                      <span class="opt-label">{{ getLangName(element.name) }}</span>
                       <span class="lang-end">
                         <Check v-if="element.name === appConfig.target_lang" :size="13" :stroke-width="2.5" class="lang-item-check" />
                         <button
                           v-if="element.isCustom"
                           class="lang-item-delete"
                           @click.stop="deleteCustomLang(element.name)"
-                          title="Remove language"
+                          :title="t('settings.removeLanguage')"
                         >
                           <Trash2 :size="11" :stroke-width="1.8" />
                         </button>
@@ -773,7 +836,7 @@ onUnmounted(() => {
                   <input
                     v-model="newLangInput"
                     class="lang-add-input"
-                    placeholder="Language name…"
+                    :placeholder="t('settings.languageName')"
                     @keydown.enter="addCustomLang"
                     @click.stop
                     ref="langAddInputRef"
@@ -786,12 +849,12 @@ onUnmounted(() => {
                   </button>
                 </div>
                 <button v-else class="lang-add-btn" @click="showAddLang = true">
-                  <Plus :size="11" :stroke-width="2" />Add language…
+                  <Plus :size="11" :stroke-width="2" />{{ t('settings.addLanguage') }}
                 </button>
 
                 <!-- Restore default order -->
                 <button class="lang-restore-btn" @click="restoreDefaultOrder">
-                  <RotateCcw :size="10" :stroke-width="1.8" />Restore default order
+                  <RotateCcw :size="10" :stroke-width="1.8" />{{ t('settings.restoreDefaultOrder') }}
                 </button>
                 </div>
               </div>
@@ -801,19 +864,19 @@ onUnmounted(() => {
 
         <!-- User Dictionary -->
         <div class="section-head mt">
-          <span class="section-title"><BookText :size="13" />User Dictionary</span>
+          <span class="section-title"><BookText :size="13" />{{ t('settings.userDictionary') }}</span>
         </div>
         <div class="dict-toggle-row">
           <label class="persona-check" :class="{ on: appConfig.user_dict_enabled }" @click.stop>
             <input type="checkbox" :checked="appConfig.user_dict_enabled" @change="appConfig.user_dict_enabled = !appConfig.user_dict_enabled" />
             <Check v-if="appConfig.user_dict_enabled" :size="9" :stroke-width="3" />
           </label>
-          <span class="dict-toggle-label">{{ appConfig.user_dict_enabled ? 'Enabled' : 'Disabled' }}</span>
+          <span class="dict-toggle-label">{{ appConfig.user_dict_enabled ? t('common.enabled') : t('common.disabled') }}</span>
           <button
             class="pill-btn micro dict-edit-btn"
             @click="router.push('/settings/dictionary?tab=translation')"
           >
-            <Pencil :size="10" :stroke-width="2" />Edit
+            <Pencil :size="10" :stroke-width="2" />{{ t('common.edit') }}
           </button>
         </div>
 
@@ -821,10 +884,10 @@ onUnmounted(() => {
         <EditableCardList
           class="mt"
           :items="personaStore.personas"
-          title="Translation Persona"
+          :title="t('settings.translationPersona')"
           :icon="UserCircle"
-          empty-message="No personas yet."
-          empty-sub-message="Add one to customize translation style."
+          :empty-message="t('settings.noPersonasYet')"
+          :empty-sub-message="t('settings.addOneToCustomize')"
           :validate="validatePersona"
           @add="personaStore.personas.push({ name: '', prompt: '', enabled: false })"
           @confirm="() => persistPersonas()"
@@ -842,7 +905,7 @@ onUnmounted(() => {
               <input type="checkbox" :checked="item.enabled" @change="togglePersona(index)" />
               <Check v-if="item.enabled" :size="9" :stroke-width="3" />
             </label>
-            <input v-model="item.name" placeholder="Persona name…" class="name-input" @click.stop />
+            <input v-model="item.name" :placeholder="t('settings.personaName')" class="name-input" @click.stop />
           </template>
 
           <template #content="{ item }">

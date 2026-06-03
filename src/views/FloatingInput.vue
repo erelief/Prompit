@@ -7,9 +7,11 @@ import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { loadConfig, saveConfig, getActiveModel, appConfig, personaStore, savePersonas, getOrderedLanguages } from "../stores/config";
 import { translate } from "../services/llm-client";
-import { LANG_CODE_MAP } from "../constants/languages";
+import { getLangName, getLangCode } from "../constants/languages";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages, BookText } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 
 const router = useRouter();
 
@@ -171,8 +173,7 @@ function selectPersona(index: number) {
 }
 
 // ── Language selector ──
-const langCodeMap = LANG_CODE_MAP;
-const langCode = computed(() => langCodeMap[appConfig.target_lang] || appConfig.target_lang?.slice(0, 2).toUpperCase() || "EN");
+const langCode = computed(() => getLangCode(appConfig.target_lang));
 const showLangDropdown = ref(false);
 const langDropdownRef = ref<HTMLDivElement | null>(null);
 const langBtnRef = ref<HTMLButtonElement | null>(null);
@@ -399,7 +400,7 @@ useShortcutTriggered(() => {
             class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            Sending...
+            {{ t('floating.sending') }}
           </div>
         </Transition>
 
@@ -420,7 +421,7 @@ useShortcutTriggered(() => {
             ref="textareaRef"
             v-model="inputText"
             @keydown="handleKeydown"
-            :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to send...'"
+            :placeholder="hasResult ? t('floating.pressEnterToPaste') : t('floating.typeToSend')"
             rows="1"
             class="floating-input floating-input-with-btn w-full resize-none text-[13px] leading-relaxed outline-none"
           />
@@ -429,7 +430,7 @@ useShortcutTriggered(() => {
             :disabled="(!inputText.trim() && !hasResult) || isLoading"
             class="send-btn-inline"
             :class="{ 'paste-mode': hasResult }"
-            :title="hasResult ? 'Paste into active field (Enter)' : 'Send (Enter)'"
+            :title="hasResult ? t('floating.pasteIntoActiveField') : t('floating.send')"
           >
             <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
             <ClipboardPaste v-else-if="hasResult" :size="13" />
@@ -485,7 +486,7 @@ useShortcutTriggered(() => {
               @click="toggleLangDropdown"
               class="lang-btn"
               :class="{ active: showLangDropdown }"
-              title="Target Language"
+              :title="t('floating.targetLanguage')"
             >
               <Languages :size="11" :stroke-width="1.8" />
               <span>{{ langCode }}</span>
@@ -508,7 +509,7 @@ useShortcutTriggered(() => {
                     class="model-option"
                     :class="{ selected: appConfig.target_lang === lang }"
                   >
-                    <span class="truncate">{{ lang }}</span>
+                    <span class="truncate">{{ getLangName(lang) }}</span>
                     <span v-if="appConfig.target_lang === lang" class="check-mark">&#10003;</span>
                   </button>
                 </div>
@@ -522,7 +523,7 @@ useShortcutTriggered(() => {
               @click="togglePersona"
               class="persona-toggle"
               :class="{ on: personaOn }"
-              :title="personaOn ? 'Disable persona' : 'Enable persona'"
+              :title="personaOn ? t('floating.disablePersona') : t('floating.enablePersona')"
             >
               <UserCircle :size="11" :stroke-width="1.8" />
               <span v-if="personaOn" class="persona-dot on" />
@@ -567,7 +568,7 @@ useShortcutTriggered(() => {
             @click="toggleDict"
             class="dict-toggle"
             :class="{ on: appConfig.user_dict_enabled }"
-            :title="appConfig.user_dict_enabled ? 'Disable user dictionary' : 'Enable user dictionary'"
+            :title="appConfig.user_dict_enabled ? t('floating.disableDict') : t('floating.enableDict')"
           >
             <BookText :size="11" :stroke-width="1.8" />
             <span v-if="appConfig.user_dict_enabled" class="dict-dot on" />
@@ -578,12 +579,12 @@ useShortcutTriggered(() => {
           <button
             @click="handleOpenSettings"
             class="icon-btn"
-            title="Settings"
+            :title="t('common.settings')"
           >
             <Settings :size="14" :stroke-width="1.8" />
           </button>
 
-          <button @click="handleHide" class="icon-btn" title="Hide (Esc)">
+          <button @click="handleHide" class="icon-btn" :title="t('common.hide')">
             <X :size="14" :stroke-width="1.8" />
           </button>
         </div>
@@ -639,7 +640,7 @@ useShortcutTriggered(() => {
               @click="toggleLangDropdown"
               class="lang-btn"
               :class="{ active: showLangDropdown }"
-              title="Target Language"
+              :title="t('floating.targetLanguage')"
             >
               <Languages :size="11" :stroke-width="1.8" />
               <span>{{ langCode }}</span>
@@ -662,7 +663,7 @@ useShortcutTriggered(() => {
                     class="model-option"
                     :class="{ selected: appConfig.target_lang === lang }"
                   >
-                    <span class="truncate">{{ lang }}</span>
+                    <span class="truncate">{{ getLangName(lang) }}</span>
                     <span v-if="appConfig.target_lang === lang" class="check-mark">&#10003;</span>
                   </button>
                 </div>
@@ -676,7 +677,7 @@ useShortcutTriggered(() => {
               @click="togglePersona"
               class="persona-toggle"
               :class="{ on: personaOn }"
-              :title="personaOn ? 'Disable persona' : 'Enable persona'"
+              :title="personaOn ? t('floating.disablePersona') : t('floating.enablePersona')"
             >
               <UserCircle :size="11" :stroke-width="1.8" />
               <span v-if="personaOn" class="persona-dot on" />
@@ -721,7 +722,7 @@ useShortcutTriggered(() => {
             @click="toggleDict"
             class="dict-toggle"
             :class="{ on: appConfig.user_dict_enabled }"
-            :title="appConfig.user_dict_enabled ? 'Disable user dictionary' : 'Enable user dictionary'"
+            :title="appConfig.user_dict_enabled ? t('floating.disableDict') : t('floating.enableDict')"
           >
             <BookText :size="11" :stroke-width="1.8" />
             <span v-if="appConfig.user_dict_enabled" class="dict-dot on" />
@@ -732,12 +733,12 @@ useShortcutTriggered(() => {
           <button
             @click="handleOpenSettings"
             class="icon-btn"
-            title="Settings"
+            :title="t('common.settings')"
           >
             <Settings :size="14" :stroke-width="1.8" />
           </button>
 
-          <button @click="handleHide" class="icon-btn" title="Hide (Esc)">
+          <button @click="handleHide" class="icon-btn" :title="t('common.hide')">
             <X :size="14" :stroke-width="1.8" />
           </button>
         </div>
@@ -748,7 +749,7 @@ useShortcutTriggered(() => {
             ref="textareaRef"
             v-model="inputText"
             @keydown="handleKeydown"
-            :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to send...'"
+            :placeholder="hasResult ? t('floating.pressEnterToPaste') : t('floating.typeToSend')"
             rows="1"
             class="floating-input floating-input-with-btn w-full resize-none text-[13px] leading-relaxed outline-none"
           />
@@ -757,7 +758,7 @@ useShortcutTriggered(() => {
             :disabled="(!inputText.trim() && !hasResult) || isLoading"
             class="send-btn-inline"
             :class="{ 'paste-mode': hasResult }"
-            :title="hasResult ? 'Paste into active field (Enter)' : 'Send (Enter)'"
+            :title="hasResult ? t('floating.pasteIntoActiveField') : t('floating.send')"
           >
             <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
             <ClipboardPaste v-else-if="hasResult" :size="13" />
@@ -772,7 +773,7 @@ useShortcutTriggered(() => {
             class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            Sending...
+            {{ t('floating.sending') }}
           </div>
         </Transition>
 

@@ -1,7 +1,8 @@
-import { reactive, toRaw } from "vue";
+import { reactive, toRaw, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { readTextFile } from "@tauri-apps/plugin-fs";
-import { BUILTIN_LANGUAGES } from "../constants/languages";
+import { BUILTIN_LANGUAGES, LANGUAGE_GROUPS } from "../constants/languages";
+import i18n from "../i18n";
 
 export interface ApiFormat {
   auth_header?: string;
@@ -54,6 +55,7 @@ export interface AppConfig {
   user_dict_enabled: boolean;
   custom_languages: string[];
   language_order: string[];
+  app_lang: string;
   theme: "light" | "dark" | "system";
 }
 
@@ -65,6 +67,7 @@ const defaultConfig: AppConfig = {
   user_dict_enabled: false,
   custom_languages: [],
   language_order: [],
+  app_lang: "en",
   theme: "system",
 };
 
@@ -75,6 +78,76 @@ export function getOrderedLanguages(): string[] {
     return appConfig.language_order;
   }
   return [...BUILTIN_LANGUAGES, ...appConfig.custom_languages];
+}
+
+export function rebuildLanguageOrder(appLang: string): void {
+  // Map BCP 47 → display name used in BUILTIN_LANGUAGES
+  const BCP_TO_DISPLAY: Record<string, string> = {
+    "en": "English",
+    "zh-CN": "Simplified Chinese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "fr": "French",
+    "de": "German",
+    "es": "Spanish",
+    "ru": "Russian",
+  };
+
+  const appLangDisplay = BCP_TO_DISPLAY[appLang] || "English";
+
+  // Find which group contains the app language
+  let appGroupKey: string | null = null;
+  for (const [key, members] of Object.entries(LANGUAGE_GROUPS)) {
+    if (members.includes(appLangDisplay)) {
+      appGroupKey = key;
+      break;
+    }
+  }
+  if (!appGroupKey) appGroupKey = "English";
+
+  const isEnglish = appGroupKey === "English";
+
+  // Build ordered groups from BUILTIN_LANGUAGES, preserving original order
+  const seen = new Set<string>();
+  const groups: string[][] = [];
+  for (const lang of BUILTIN_LANGUAGES) {
+    let groupKey: string | null = null;
+    for (const [key, members] of Object.entries(LANGUAGE_GROUPS)) {
+      if (members.includes(lang)) { groupKey = key; break; }
+    }
+    if (groupKey && seen.has(groupKey)) continue;
+    if (groupKey) {
+      seen.add(groupKey);
+      groups.push(LANGUAGE_GROUPS[groupKey]);
+    } else {
+      groups.push([lang]);
+    }
+  }
+
+  // Find the app language's group
+  const appGroupIdx = groups.findIndex(g => g.includes(appLangDisplay));
+  const appGroup = appGroupIdx >= 0 ? groups.splice(appGroupIdx, 1)[0] : [];
+
+  // Rebuild: English first if app is not English, then others, app group last
+  const result: string[] = [];
+  if (!isEnglish) {
+    const enGroupIdx = groups.findIndex(g => LANGUAGE_GROUPS["English"]?.every(l => g.includes(l)));
+    if (enGroupIdx >= 0) {
+      result.push(...groups.splice(enGroupIdx, 1)[0]);
+    }
+  }
+  for (const g of groups) result.push(...g);
+  result.push(...appGroup);
+
+  // Append custom languages (deduplicated, excluding builtins)
+  const builtinSet = new Set(BUILTIN_LANGUAGES);
+  for (const cl of appConfig.custom_languages) {
+    if (!builtinSet.has(cl) && !result.includes(cl)) {
+      result.push(cl);
+    }
+  }
+
+  appConfig.language_order = result;
 }
 
 export const personaStore = reactive<{ personas: PersonaConfig[] }>({
@@ -126,12 +199,21 @@ export async function loadConfig(): Promise<void> {
     if (appConfig.target_lang === "Chinese") {
       appConfig.target_lang = "Simplified Chinese";
     }
+    i18n.global.locale.value = appConfig.app_lang as any;
     await loadSecrets();
     await loadPersonas();
   } catch {
     Object.assign(appConfig, { ...defaultConfig });
   }
 }
+
+watch(
+  () => appConfig.app_lang,
+  (lang) => {
+    i18n.global.locale.value = lang as any;
+    rebuildLanguageOrder(lang);
+  },
+);
 
 export async function saveConfig(): Promise<void> {
   await saveSecrets();

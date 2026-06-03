@@ -65,6 +65,7 @@ mod tests {
             user_dict_enabled: false,
             custom_languages: vec![],
             language_order: vec![],
+            app_lang: "en".to_string(),
             theme: "system".to_string(),
         };
 

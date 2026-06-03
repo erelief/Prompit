@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { getLangName } from "../constants/languages";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
   appConfig,
@@ -12,6 +14,7 @@ import {
 import type { DictEntry } from "../stores/config";
 import { ArrowLeft, Download, Upload, Trash2, Plus, Save } from "@lucide/vue";
 
+const { t } = useI18n();
 const entries = ref<DictEntry[]>([]);
 const loading = ref(true);
 const router = useRouter();
@@ -32,15 +35,15 @@ async function handleSave() {
     const hasSource = e.source.trim() !== "";
     const hasTarget = e.target.trim() !== "";
     if (!hasSource && !hasTarget) {
-      saveError.value = `Row ${i + 1} is empty — fill it or delete it.`;
+      saveError.value = t('dictionary.rowIsEmpty', { n: i + 1 });
       return;
     }
     if (!hasSource) {
-      saveError.value = `Row ${i + 1}: Translation requires a Source.`;
+      saveError.value = t('dictionary.sourceRequired', { n: i + 1 });
       return;
     }
     if (!hasTarget) {
-      saveError.value = `Row ${i + 1}: Source requires a Translation.`;
+      saveError.value = t('dictionary.translationRequired', { n: i + 1 });
       return;
     }
   }
@@ -111,23 +114,23 @@ onMounted(async () => {
       <button class="back-btn" @click="router.push('/settings?tab=translation')">
         <ArrowLeft :size="16" />
       </button>
-      <span class="header-title">User Dictionary</span>
+      <span class="header-title">{{ t('dictionary.userDictionary') }}</span>
       <button class="pill-btn micro" @click="handleImport">
         <Download :size="12" />
-        <span>Import</span>
+        <span>{{ t('dictionary.import') }}</span>
       </button>
       <button class="pill-btn micro" @click="handleExport">
         <Upload :size="12" />
-        <span>Export</span>
+        <span>{{ t('dictionary.export') }}</span>
       </button>
     </div>
 
     <!-- Language label + Add Entry -->
     <div class="dict-lang-row">
-      <span class="dict-lang">Target: {{ appConfig.target_lang }}</span>
+      <span class="dict-lang">{{ t('dictionary.target') }}: {{ getLangName(appConfig.target_lang) }}</span>
       <button class="pill-btn add-pill" @click="addEntry">
         <Plus :size="12" :stroke-width="2" />
-        <span>Add Entry</span>
+        <span>{{ t('dictionary.addEntry') }}</span>
       </button>
     </div>
 
@@ -136,8 +139,8 @@ onMounted(async () => {
       <div class="dict-table settings-scrollbar">
         <!-- Sticky header row -->
         <div class="dict-row dict-header-row">
-          <div class="dict-col col-source">Source</div>
-          <div class="dict-col col-trans">Translation</div>
+          <div class="dict-col col-source">{{ t('dictionary.source') }}</div>
+          <div class="dict-col col-trans">{{ t('dictionary.translation') }}</div>
           <div class="dict-col col-action"></div>
         </div>
 
@@ -173,11 +176,11 @@ onMounted(async () => {
 
     <!-- Footer -->
     <div class="dict-footer">
-      <span class="footer-count">Entries: {{ entries.length }}</span>
+      <span class="footer-count">{{ t('dictionary.entries') }}: {{ entries.length }}</span>
       <span v-if="saveError" class="footer-error">{{ saveError }}</span>
       <button class="pill-btn save-btn" :disabled="!dirty" @click="handleSave">
         <Save :size="12" />
-        <span>Save</span>
+        <span>{{ t('common.save') }}</span>
       </button>
     </div>
   </div>
