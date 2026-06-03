@@ -76,5 +76,16 @@
     "rowIsEmpty": "第 {n} 行为空 — 请填写或删除。",
     "sourceRequired": "第 {n} 行：译文需要原文。",
     "translationRequired": "第 {n} 行：原文需要译文。"
+  },
+  "languages": {
+    "English": { "name": "英语", "code": "英" },
+    "Japanese": { "name": "日语", "code": "日" },
+    "Korean": { "name": "韩语", "code": "韩" },
+    "French": { "name": "法语", "code": "法" },
+    "German": { "name": "德语", "code": "德" },
+    "Spanish": { "name": "西班牙语", "code": "西" },
+    "Russian": { "name": "俄语", "code": "俄" },
+    "Simplified Chinese": { "name": "简体中文", "code": "简中" },
+    "Traditional Chinese": { "name": "繁体中文", "code": "繁中" }
   }
 }

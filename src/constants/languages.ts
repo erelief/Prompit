@@ -1,3 +1,5 @@
+import i18n from "../i18n";
+
 export const BUILTIN_LANGUAGES: string[] = [
   "English", "Japanese", "Korean", "French", "German", "Spanish", "Russian",
   "Simplified Chinese", "Traditional Chinese",
@@ -25,3 +27,15 @@ export const LANGUAGE_GROUPS: Record<string, string[]> = {
   "Russian": ["Russian"],
   "Simplified Chinese": ["Simplified Chinese", "Traditional Chinese"],
 };
+
+export function getLangName(lang: string): string {
+  const entry = i18n.global.tm(`languages.${lang}`) as Record<string, string> | undefined;
+  if (entry && typeof entry === "object" && "name" in entry) return entry.name;
+  return lang;
+}
+
+export function getLangCode(lang: string): string {
+  const entry = i18n.global.tm(`languages.${lang}`) as Record<string, string> | undefined;
+  if (entry && typeof entry === "object" && "code" in entry) return entry.code;
+  return LANG_CODE_MAP[lang] || lang.slice(0, 2).toUpperCase();
+}

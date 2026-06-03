@@ -7,7 +7,7 @@ import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { loadConfig, saveConfig, getActiveModel, appConfig, personaStore, savePersonas, getOrderedLanguages } from "../stores/config";
 import { translate } from "../services/llm-client";
-import { LANG_CODE_MAP } from "../constants/languages";
+import { getLangName, getLangCode } from "../constants/languages";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages, BookText } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
@@ -173,8 +173,7 @@ function selectPersona(index: number) {
 }
 
 // ── Language selector ──
-const langCodeMap = LANG_CODE_MAP;
-const langCode = computed(() => langCodeMap[appConfig.target_lang] || appConfig.target_lang?.slice(0, 2).toUpperCase() || "EN");
+const langCode = computed(() => getLangCode(appConfig.target_lang));
 const showLangDropdown = ref(false);
 const langDropdownRef = ref<HTMLDivElement | null>(null);
 const langBtnRef = ref<HTMLButtonElement | null>(null);
@@ -510,7 +509,7 @@ useShortcutTriggered(() => {
                     class="model-option"
                     :class="{ selected: appConfig.target_lang === lang }"
                   >
-                    <span class="truncate">{{ lang }}</span>
+                    <span class="truncate">{{ getLangName(lang) }}</span>
                     <span v-if="appConfig.target_lang === lang" class="check-mark">&#10003;</span>
                   </button>
                 </div>
@@ -664,7 +663,7 @@ useShortcutTriggered(() => {
                     class="model-option"
                     :class="{ selected: appConfig.target_lang === lang }"
                   >
-                    <span class="truncate">{{ lang }}</span>
+                    <span class="truncate">{{ getLangName(lang) }}</span>
                     <span v-if="appConfig.target_lang === lang" class="check-mark">&#10003;</span>
                   </button>
                 </div>

@@ -76,5 +76,16 @@
     "rowIsEmpty": "Row {n} is empty — fill it or delete it.",
     "sourceRequired": "Row {n}: Translation requires a Source.",
     "translationRequired": "Row {n}: Source requires a Translation."
+  },
+  "languages": {
+    "English": { "name": "English", "code": "EN" },
+    "Japanese": { "name": "Japanese", "code": "JA" },
+    "Korean": { "name": "Korean", "code": "KO" },
+    "French": { "name": "French", "code": "FR" },
+    "German": { "name": "German", "code": "DE" },
+    "Spanish": { "name": "Spanish", "code": "ES" },
+    "Russian": { "name": "Russian", "code": "RU" },
+    "Simplified Chinese": { "name": "Simplified Chinese", "code": "简中" },
+    "Traditional Chinese": { "name": "Traditional Chinese", "code": "繁中" }
   }
 }

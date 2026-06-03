@@ -17,7 +17,7 @@ import {
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
 import { resolveFormat, resolvePath } from "../services/llm-client";
-import { BUILTIN_LANGUAGES } from "../constants/languages";
+import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
 import EditableCardList from "../components/EditableCardList.vue";
 import {
@@ -790,7 +790,7 @@ onUnmounted(() => {
             class="sel-btn lang-btn"
             @click="toggleLangMenu()"
           >
-            <span class="sel-text">{{ appConfig.target_lang }}</span>
+            <span class="sel-text">{{ getLangName(appConfig.target_lang) }}</span>
             <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showLangSelector }" />
           </button>
 
@@ -814,7 +814,7 @@ onUnmounted(() => {
                       @click="pickLang(element.name)"
                     >
                       <span class="lang-drag-handle"><GripVertical :size="11" :stroke-width="1.8" /></span>
-                      <span class="opt-label">{{ element.name }}</span>
+                      <span class="opt-label">{{ getLangName(element.name) }}</span>
                       <span class="lang-end">
                         <Check v-if="element.name === appConfig.target_lang" :size="13" :stroke-width="2.5" class="lang-item-check" />
                         <button

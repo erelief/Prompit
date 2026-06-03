@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { getLangName } from "../constants/languages";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
   appConfig,
@@ -126,7 +127,7 @@ onMounted(async () => {
 
     <!-- Language label + Add Entry -->
     <div class="dict-lang-row">
-      <span class="dict-lang">{{ t('dictionary.target') }}: {{ appConfig.target_lang }}</span>
+      <span class="dict-lang">{{ t('dictionary.target') }}: {{ getLangName(appConfig.target_lang) }}</span>
       <button class="pill-btn add-pill" @click="addEntry">
         <Plus :size="12" :stroke-width="2" />
         <span>{{ t('dictionary.addEntry') }}</span>
