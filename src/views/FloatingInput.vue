@@ -524,7 +524,7 @@ useShortcutTriggered(() => {
               @click="togglePersona"
               class="persona-toggle"
               :class="{ on: personaOn }"
-              :title="personaOn ? 'Disable persona' : 'Enable persona'"
+              :title="personaOn ? t('floating.disablePersona') : t('floating.enablePersona')"
             >
               <UserCircle :size="11" :stroke-width="1.8" />
               <span v-if="personaOn" class="persona-dot on" />
@@ -569,7 +569,7 @@ useShortcutTriggered(() => {
             @click="toggleDict"
             class="dict-toggle"
             :class="{ on: appConfig.user_dict_enabled }"
-            :title="appConfig.user_dict_enabled ? 'Disable user dictionary' : 'Enable user dictionary'"
+            :title="appConfig.user_dict_enabled ? t('floating.disableDict') : t('floating.enableDict')"
           >
             <BookText :size="11" :stroke-width="1.8" />
             <span v-if="appConfig.user_dict_enabled" class="dict-dot on" />
@@ -580,12 +580,12 @@ useShortcutTriggered(() => {
           <button
             @click="handleOpenSettings"
             class="icon-btn"
-            title="Settings"
+            :title="t('common.settings')"
           >
             <Settings :size="14" :stroke-width="1.8" />
           </button>
 
-          <button @click="handleHide" class="icon-btn" title="Hide (Esc)">
+          <button @click="handleHide" class="icon-btn" :title="t('common.hide')">
             <X :size="14" :stroke-width="1.8" />
           </button>
         </div>
@@ -678,7 +678,7 @@ useShortcutTriggered(() => {
               @click="togglePersona"
               class="persona-toggle"
               :class="{ on: personaOn }"
-              :title="personaOn ? 'Disable persona' : 'Enable persona'"
+              :title="personaOn ? t('floating.disablePersona') : t('floating.enablePersona')"
             >
               <UserCircle :size="11" :stroke-width="1.8" />
               <span v-if="personaOn" class="persona-dot on" />
@@ -723,7 +723,7 @@ useShortcutTriggered(() => {
             @click="toggleDict"
             class="dict-toggle"
             :class="{ on: appConfig.user_dict_enabled }"
-            :title="appConfig.user_dict_enabled ? 'Disable user dictionary' : 'Enable user dictionary'"
+            :title="appConfig.user_dict_enabled ? t('floating.disableDict') : t('floating.enableDict')"
           >
             <BookText :size="11" :stroke-width="1.8" />
             <span v-if="appConfig.user_dict_enabled" class="dict-dot on" />
@@ -734,12 +734,12 @@ useShortcutTriggered(() => {
           <button
             @click="handleOpenSettings"
             class="icon-btn"
-            title="Settings"
+            :title="t('common.settings')"
           >
             <Settings :size="14" :stroke-width="1.8" />
           </button>
 
-          <button @click="handleHide" class="icon-btn" title="Hide (Esc)">
+          <button @click="handleHide" class="icon-btn" :title="t('common.hide')">
             <X :size="14" :stroke-width="1.8" />
           </button>
         </div>

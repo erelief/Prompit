@@ -205,7 +205,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   <div class="section-head" v-bind="$attrs">
     <span class="section-title"><component :is="icon" :size="13" />{{ title }}</span>
     <button class="pill-btn add-pill" @click="handleAdd" :disabled="adding">
-      <Plus :size="12" :stroke-width="2" />Add {{ title }}
+      <Plus :size="12" :stroke-width="2" />{{ t('common.add') }} {{ title }}
     </button>
   </div>
 

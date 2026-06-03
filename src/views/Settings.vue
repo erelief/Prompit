@@ -502,7 +502,7 @@ onUnmounted(() => {
       <button @click="goBack" class="back-btn" title="Back">
         <ArrowLeft :size="18" :stroke-width="1.8" />
       </button>
-      <h1 class="header-title">Settings</h1>
+      <h1 class="header-title">{{ t('common.settings') }}</h1>
       <button @click="closeWindow" class="close-btn" :title="t('settings.close')">
         <X :size="16" :stroke-width="1.8" />
       </button>

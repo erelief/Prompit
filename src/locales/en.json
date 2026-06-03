@@ -6,6 +6,8 @@
     "delete": "Delete",
     "edit": "Edit",
     "add": "Add",
+    "settings": "Settings",
+    "hide": "Hide (Esc)",
     "enabled": "Enabled",
     "disabled": "Disabled"
   },
@@ -56,6 +58,10 @@
     "send": "Send (Enter)",
     "targetLanguage": "Target Language",
     "noPersonasAvailable": "No personas available",
+    "enablePersona": "Enable persona",
+    "disablePersona": "Disable persona",
+    "enableDict": "Enable user dictionary",
+    "disableDict": "Disable user dictionary",
     "dictionary": "Dictionary"
   },
   "dictionary": {
