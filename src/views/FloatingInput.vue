@@ -838,14 +838,14 @@ useShortcutTriggered(() => {
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: linear-gradient(135deg, #d4a048 0%, #c4922e 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 85%, white) 0%, var(--color-accent) 100%);
   color: #1a1a1a;
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
 
 .send-btn-inline:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ddb35a 0%, #d4a048 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 70%, white) 0%, color-mix(in srgb, var(--color-accent) 85%, white) 100%);
   box-shadow: 0 2px 8px var(--color-accent-bg);
 }
 
@@ -859,12 +859,12 @@ useShortcutTriggered(() => {
 }
 
 .send-btn-inline.paste-mode {
-  background: linear-gradient(135deg, #e8b84a 0%, #d4a048 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 70%, white) 0%, color-mix(in srgb, var(--color-accent) 85%, white) 100%);
   box-shadow: 0 0 8px var(--color-accent-bg);
 }
 
 .send-btn-inline.paste-mode:hover:not(:disabled) {
-  background: linear-gradient(135deg, #f0c55e 0%, #e8b84a 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 55%, white) 0%, color-mix(in srgb, var(--color-accent) 70%, white) 100%);
   box-shadow: 0 2px 10px var(--color-accent-bg);
 }
 

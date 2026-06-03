@@ -191,15 +191,13 @@ onMounted(async () => {
    Design tokens & base
    ══════════════════════════════════════ */
 .dict-root {
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
   color: var(--color-text);
   overflow: hidden;
   border-radius: 11px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
-    sans-serif;
 }
 
 /* ── Header ── */

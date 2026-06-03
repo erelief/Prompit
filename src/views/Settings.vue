@@ -928,10 +928,9 @@ onUnmounted(() => {
    Design tokens & base
    ══════════════════════════════════════ */
 .settings-root {
-  height: 100vh; display: flex; flex-direction: column;
+  height: 100dvh; display: flex; flex-direction: column;
   background: var(--color-bg); color: var(--color-text); overflow: hidden;
   border-radius: 11px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 .settings-root.grow-above .settings-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
 .settings-root.grow-above .tabs { order: 1; border-bottom: none; border-top: 1px solid var(--color-surface); }
@@ -1148,7 +1147,7 @@ label {
   color: var(--color-text-secondary); cursor:pointer;
   border:none; background:none; text-align:left; transition:.1s;
 }
-.pick-item:hover:not(.dim){ background: var(--color-accent-bg); color: rgba(255,255,255,.9); }
+.pick-item:hover:not(.dim){ background: var(--color-accent-bg); color: var(--color-text); }
 .pick-item.dim{ color: var(--color-text-muted); cursor:default; }
 .picker-done {
   display:block; width:100%; padding:5px; font-size:10px;
@@ -1156,7 +1155,7 @@ label {
   border-top: 1px solid var(--color-surface);
   background:none; cursor:pointer; transition:color .12s;
 }
-.picker-done:hover{ color: rgba(255,255,255,.45); }
+.picker-done:hover{ color: var(--color-text-secondary); }
 
 /* Tags (pool items) */
 .tags {
@@ -1169,7 +1168,7 @@ label {
   font-size: 10px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   color: var(--color-text-secondary); transition:.12s;
 }
-.tag:hover{ background: rgba(255,255,255,.052); border-color: var(--color-border); }
+.tag:hover{ background: var(--color-surface-hover); border-color: var(--color-border); }
 .tag-x {
   display:flex; align-items:center; justify-content:center;
   width:15px; height:15px; border-radius:3px;
@@ -1274,7 +1273,7 @@ label {
   border-color: var(--color-accent-border); background: var(--color-accent);
 }
 .persona-check:hover { border-color: var(--color-text-placeholder); }
-.persona-check.on:hover { border-color: rgba(212,160,72,.9); }
+.persona-check.on:hover { border-color: var(--color-accent); }
 
 /* ── Persona textarea ── */
 .persona-textarea {
@@ -1311,15 +1310,15 @@ label {
 }
 .lang-drag-handle:hover {
   color: var(--color-text-muted);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface-hover);
 }
 .lang-drag-handle:active {
   cursor: grabbing;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-secondary);
 }
 .lang-item-check {
   flex-shrink: 0;
-  color: rgba(212, 160, 72, 0.9);
+  color: var(--color-accent);
 }
 .lang-item-delete {
   display: flex;
@@ -1340,8 +1339,8 @@ label {
   opacity: 1;
 }
 .lang-item-delete:hover {
-  color: rgba(239, 68, 68, 0.7);
-  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
 }
 .lang-ghost {
   opacity: 0.9;
@@ -1369,7 +1368,7 @@ label {
   border-radius: 7px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text);
   font-size: 12px;
   outline: none;
   transition: border-color 0.15s;
@@ -1395,7 +1394,7 @@ label {
 }
 .lang-add-confirm {
   background: var(--color-accent-bg);
-  color: rgba(212, 160, 72, 0.8);
+  color: var(--color-accent-text);
 }
 .lang-add-confirm:hover:not(:disabled) {
   background: var(--color-accent-border);
@@ -1410,7 +1409,7 @@ label {
 }
 .lang-add-cancel:hover {
   background: var(--color-scrollbar);
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-secondary);
 }
 .lang-add-btn {
   display: flex;
@@ -1427,7 +1426,7 @@ label {
   transition: all 0.12s;
 }
 .lang-add-btn:hover {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   background: var(--color-surface);
 }
 .lang-restore-btn {
@@ -1445,7 +1444,7 @@ label {
   transition: all 0.12s;
 }
 .lang-restore-btn:hover {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   background: var(--color-surface);
 }
 
