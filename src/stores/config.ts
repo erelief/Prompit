@@ -2,6 +2,7 @@ import { reactive, toRaw } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { BUILTIN_LANGUAGES } from "../constants/languages";
+import i18n from "../i18n";
 
 export interface ApiFormat {
   auth_header?: string;
@@ -54,6 +55,7 @@ export interface AppConfig {
   user_dict_enabled: boolean;
   custom_languages: string[];
   language_order: string[];
+  app_lang: string;
   theme: "light" | "dark" | "system";
 }
 
@@ -65,6 +67,7 @@ const defaultConfig: AppConfig = {
   user_dict_enabled: false,
   custom_languages: [],
   language_order: [],
+  app_lang: "en",
   theme: "system",
 };
 
@@ -126,6 +129,7 @@ export async function loadConfig(): Promise<void> {
     if (appConfig.target_lang === "Chinese") {
       appConfig.target_lang = "Simplified Chinese";
     }
+    i18n.global.locale.value = appConfig.app_lang as any;
     await loadSecrets();
     await loadPersonas();
   } catch {
