@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, shallowRef, computed, watch, nextTick, triggerRef, type Component } from "vue";
+import { useI18n } from "vue-i18n";
 import draggable from "vuedraggable";
 import {
   Plus, Trash2, Check, Pencil, GripVertical,
 } from "@lucide/vue";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   items: any[];
@@ -225,9 +228,9 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
         <div v-if="validationError" class="validation-error">{{ validationError }}</div>
         <div class="ecl-actions">
           <button class="pill-btn gold-micro" @click.stop="handleConfirm">
-            <Check :size="10" :stroke-width="2.5" />Confirm
+            <Check :size="10" :stroke-width="2.5" />{{ t('common.confirm') }}
           </button>
-          <button class="pill-btn micro" @click.stop="handleCancel">Cancel</button>
+          <button class="pill-btn micro" @click.stop="handleCancel">{{ t('common.cancel') }}</button>
         </div>
       </div>
     </div>
@@ -314,9 +317,9 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
             <div v-if="validationError" class="validation-error">{{ validationError }}</div>
             <div class="ecl-actions">
               <button class="pill-btn gold-micro" @click.stop="confirmEdit(oi)">
-                <Check :size="10" :stroke-width="2.5" />Confirm
+                <Check :size="10" :stroke-width="2.5" />{{ t('common.confirm') }}
               </button>
-              <button class="pill-btn micro" @click.stop="cancelEdit(oi)">Cancel</button>
+              <button class="pill-btn micro" @click.stop="cancelEdit(oi)">{{ t('common.cancel') }}</button>
             </div>
           </div>
         </div>
