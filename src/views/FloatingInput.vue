@@ -10,6 +10,8 @@ import { translate } from "../services/llm-client";
 import { LANG_CODE_MAP } from "../constants/languages";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages, BookText } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 
 const router = useRouter();
 
@@ -399,7 +401,7 @@ useShortcutTriggered(() => {
             class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            Sending...
+            {{ t('floating.sending') }}
           </div>
         </Transition>
 
@@ -420,7 +422,7 @@ useShortcutTriggered(() => {
             ref="textareaRef"
             v-model="inputText"
             @keydown="handleKeydown"
-            :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to send...'"
+            :placeholder="hasResult ? t('floating.pressEnterToPaste') : t('floating.typeToSend')"
             rows="1"
             class="floating-input floating-input-with-btn w-full resize-none text-[13px] leading-relaxed outline-none"
           />
@@ -429,7 +431,7 @@ useShortcutTriggered(() => {
             :disabled="(!inputText.trim() && !hasResult) || isLoading"
             class="send-btn-inline"
             :class="{ 'paste-mode': hasResult }"
-            :title="hasResult ? 'Paste into active field (Enter)' : 'Send (Enter)'"
+            :title="hasResult ? t('floating.pasteIntoActiveField') : t('floating.send')"
           >
             <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
             <ClipboardPaste v-else-if="hasResult" :size="13" />
@@ -485,7 +487,7 @@ useShortcutTriggered(() => {
               @click="toggleLangDropdown"
               class="lang-btn"
               :class="{ active: showLangDropdown }"
-              title="Target Language"
+              :title="t('floating.targetLanguage')"
             >
               <Languages :size="11" :stroke-width="1.8" />
               <span>{{ langCode }}</span>
@@ -639,7 +641,7 @@ useShortcutTriggered(() => {
               @click="toggleLangDropdown"
               class="lang-btn"
               :class="{ active: showLangDropdown }"
-              title="Target Language"
+              :title="t('floating.targetLanguage')"
             >
               <Languages :size="11" :stroke-width="1.8" />
               <span>{{ langCode }}</span>
@@ -748,7 +750,7 @@ useShortcutTriggered(() => {
             ref="textareaRef"
             v-model="inputText"
             @keydown="handleKeydown"
-            :placeholder="hasResult ? 'Press Enter to paste result...' : 'Type to send...'"
+            :placeholder="hasResult ? t('floating.pressEnterToPaste') : t('floating.typeToSend')"
             rows="1"
             class="floating-input floating-input-with-btn w-full resize-none text-[13px] leading-relaxed outline-none"
           />
@@ -757,7 +759,7 @@ useShortcutTriggered(() => {
             :disabled="(!inputText.trim() && !hasResult) || isLoading"
             class="send-btn-inline"
             :class="{ 'paste-mode': hasResult }"
-            :title="hasResult ? 'Paste into active field (Enter)' : 'Send (Enter)'"
+            :title="hasResult ? t('floating.pasteIntoActiveField') : t('floating.send')"
           >
             <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
             <ClipboardPaste v-else-if="hasResult" :size="13" />
@@ -772,7 +774,7 @@ useShortcutTriggered(() => {
             class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            Sending...
+            {{ t('floating.sending') }}
           </div>
         </Transition>
 
