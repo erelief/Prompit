@@ -1,12 +1,14 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
+import i18n from "./i18n";
 import { loadConfig } from "./stores/config";
 import { initTheme } from "./composables/useTheme";
 import "./style.css";
 
 const app = createApp(App);
 app.use(router);
+app.use(i18n);
 
 function applyRouteTheme(path: string) {
   const isSettings = path === "/settings" || path === "/settings/dictionary";
