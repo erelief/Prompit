@@ -14,7 +14,7 @@
    Theme tokens
    ══════════════════════════════════════ */
 :root {
-  --color-bg:              #ffffff;
+  --color-bg:              #F8F7F4;
   --color-surface:         rgba(0,0,0,0.03);
   --color-surface-hover:   rgba(0,0,0,0.05);
   --color-border:          rgba(0,0,0,0.08);
