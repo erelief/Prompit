@@ -66,9 +66,9 @@ const canProceed = computed(() => {
         providerForm.value.base_url.trim() !== ""
       );
     case 3:
-      return !isConnecting.value && !isFetching.value;
-    case 4:
       return selectedModels.value.size > 0;
+    case 4:
+      return true;
     default: return false;
   }
 });
@@ -137,7 +137,7 @@ async function confirmProviderAndAdvance() {
 
   const modelsResult = await fetchProviderModels(providerForm.value);
   if (!modelsResult.ok || !modelsResult.models || modelsResult.models.length === 0) {
-    fetchError.value = modelsResult.error || "No models found";
+    fetchError.value = modelsResult.error || t('onboarding.noModelsFound');
     isFetching.value = false;
     return;
   }
@@ -147,6 +147,22 @@ async function confirmProviderAndAdvance() {
 
   direction.value = "forward";
   currentStep.value = 3;
+}
+
+// ── Step 3 retry ──
+async function retryFetchModels() {
+  fetchError.value = "";
+  isFetching.value = true;
+
+  const modelsResult = await fetchProviderModels(providerForm.value);
+  if (!modelsResult.ok || !modelsResult.models || modelsResult.models.length === 0) {
+    fetchError.value = modelsResult.error || t('onboarding.noModelsFound');
+    isFetching.value = false;
+    return;
+  }
+
+  availableModels.value = modelsResult.models;
+  isFetching.value = false;
 }
 
 // ── Step 4 logic ──
@@ -373,10 +389,20 @@ onMounted(async () => {
               </label>
             </div>
 
-            <!-- Error -->
-            <p v-if="fetchError" class="text-xs mt-3" style="color: var(--color-danger)">
-              {{ fetchError }}
-            </p>
+            <!-- Error + Retry -->
+            <div v-if="fetchError" class="flex items-center gap-2 mt-3">
+              <p class="text-xs" style="color: var(--color-danger)">
+                {{ fetchError }}
+              </p>
+              <button
+                @click="retryFetchModels"
+                :disabled="isFetching"
+                class="text-xs font-medium px-3 py-1 rounded-md transition-colors"
+                style="color: var(--color-accent); background: var(--color-accent-bg)"
+              >
+                {{ t('onboarding.retryFetch') }}
+              </button>
+            </div>
           </div>
 
           <!-- Step 4: Done -->
