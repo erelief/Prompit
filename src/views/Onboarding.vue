@@ -188,11 +188,16 @@ async function finishOnboarding() {
 
   await invoke("set_onboarding_complete");
 
+  // Restore window to normal floating input size
+  await invoke("resize_main_window", { width: 480, height: 120 });
+
   router.replace("/");
 }
 
 // ── Init ──
 onMounted(async () => {
+  // Ensure window is properly sized and visible for onboarding
+  invoke("show_onboarding_window");
   try {
     providerPresets.value = await loadProviderPresets();
   } catch (err) {

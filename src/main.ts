@@ -1,8 +1,9 @@
 import { createApp } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import App from "./App.vue";
 import router from "./router";
 import i18n from "./i18n";
-import { loadConfig } from "./stores/config";
+import { loadConfig, appConfig } from "./stores/config";
 import { initTheme } from "./composables/useTheme";
 import "./style.css";
 
@@ -29,4 +30,9 @@ router.isReady().then(async () => {
   initTheme();
   applyRouteTheme(router.currentRoute.value.path);
   app.mount("#app");
+
+  // Show window immediately if onboarding is needed
+  if (appConfig.providers.length === 0) {
+    invoke("show_onboarding_window");
+  }
 });
