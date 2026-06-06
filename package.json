@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "node scripts/validate-i18n.mjs && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:sandbox": "set SANDBOX=1 && tauri dev"
   },
   "dependencies": {
     "@lucide/vue": "^1.17.0",

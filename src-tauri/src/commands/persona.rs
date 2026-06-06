@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersonaEntry {
@@ -37,10 +37,7 @@ fn derive_key() -> [u8; 32] {
 }
 
 fn personas_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_config_dir()
-        .map_err(|e| format!("config dir: {e}"))?;
+    let dir = crate::get_data_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("create dir: {e}"))?;
     Ok(dir.join("personas.json"))
 }

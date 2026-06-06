@@ -1,4 +1,5 @@
-use tauri::Manager;
+use std::path::PathBuf;
+use tauri::{AppHandle, Manager};
 
 pub mod commands;
 pub mod config;
@@ -67,6 +68,19 @@ fn get_proxy_url() -> Option<String> {
     read_proxy_url()
 }
 
+/// Returns the data directory to use for persistent storage.
+/// In sandbox mode, returns the temp dir; otherwise falls back to the default.
+pub fn get_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    if let Some(dir) = app.try_state::<state::DataDir>() {
+        if let Some(ref path) = dir.0 {
+            return Ok(path.clone());
+        }
+    }
+    app.path()
+        .app_config_dir()
+        .map_err(|e| format!("config dir: {e}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -102,6 +116,22 @@ pub fn run() {
             get_proxy_url,
         ])
         .setup(|app| {
+            // Sandbox mode: redirect all persistent data to a temp directory
+            if std::env::var("SANDBOX").is_ok() {
+                let temp_dir = std::env::temp_dir().join(format!(
+                    "prompit-sandbox-{}",
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis()
+                ));
+                std::fs::create_dir_all(&temp_dir).expect("create sandbox dir");
+                eprintln!("[sandbox] using temp dir: {:?}", temp_dir);
+                app.manage(state::DataDir(Some(temp_dir)));
+            } else {
+                app.manage(state::DataDir(None));
+            }
+
             let handle = app.handle().clone();
             shortcut::register(&handle)?;
 

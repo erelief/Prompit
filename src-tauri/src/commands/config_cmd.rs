@@ -1,13 +1,10 @@
 use crate::config::AppConfig;
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_config_dir()
-        .map_err(|e| format!("config dir: {e}"))?;
+    let dir = crate::get_data_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("create dir: {e}"))?;
     Ok(dir.join("config.json"))
 }
@@ -33,10 +30,7 @@ pub fn save_config(app: AppHandle, config: AppConfig) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_config_dir(app: AppHandle) -> Result<String, String> {
-    let dir = app
-        .path()
-        .app_config_dir()
-        .map_err(|e| format!("config dir: {e}"))?;
+    let dir = crate::get_data_dir(&app)?;
     Ok(dir.to_string_lossy().into_owned())
 }
 

@@ -1,4 +1,17 @@
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Override for app_config_dir in sandbox mode.
+/// The temp directory is deleted on drop (normal exit or panic).
+pub struct DataDir(pub Option<PathBuf>);
+
+impl Drop for DataDir {
+    fn drop(&mut self) {
+        if let Some(ref path) = self.0 {
+            let _ = std::fs::remove_dir_all(path);
+        }
+    }
+}
 
 pub struct WindowConfig {
     pub grow_above: AtomicBool,
