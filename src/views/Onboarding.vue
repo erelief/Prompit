@@ -47,6 +47,10 @@ const currentAppLangLabel = computed(() => {
   return appLanguageOptions.find(o => o.value === appConfig.app_lang)?.label || "English";
 });
 
+const currentPresetLabel = computed(() => {
+  return selectedPreset.value || t('onboarding.selectPreset');
+});
+
 // ── Step 2: Provider form ──
 const providerForm = ref<ProviderConfig>({
   name: "",
@@ -59,6 +63,7 @@ const providerForm = ref<ProviderConfig>({
 const providerPresets = ref<ProviderPreset[]>([]);
 const selectedPreset = ref("");
 const showApiKey = ref(false);
+const showPresetMenu = ref(false);
 
 // ── Step 3: Models ──
 const availableModels = ref<string[]>([]);
@@ -125,6 +130,7 @@ function applyPreset(presetName: string) {
   providerForm.value.base_url = preset.base_url;
   providerForm.value.preset = presetName;
   providerForm.value.api_format = { ...preset.api_format };
+  showPresetMenu.value = false;
 }
 
 // ── Step 3 flow ──
@@ -201,6 +207,15 @@ async function finishOnboarding() {
   router.replace("/");
 }
 
+// ── Click outside to close dropdowns ──
+function onRootClick(e: MouseEvent) {
+  const t = e.target as HTMLElement;
+  if (!t.closest(".sel-wrap")) {
+    showAppLangMenu.value = false;
+    showPresetMenu.value = false;
+  }
+}
+
 // ── Init ──
 onMounted(async () => {
   // Ensure window is properly sized and visible for onboarding
@@ -214,7 +229,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-dvh px-6" style="background: var(--color-bg)" data-tauri-drag-region>
+  <div class="flex items-center justify-center min-h-dvh px-6" style="background: var(--color-bg)" data-tauri-drag-region @click="onRootClick">
     <div class="w-full max-w-[520px] flex flex-col" style="min-height: 480px">
 
       <!-- Content area with transitions -->
@@ -283,17 +298,29 @@ onMounted(async () => {
               <label class="block text-xs font-medium mb-1.5 tracking-wide uppercase" style="color: var(--color-text-muted)">
                 {{ t('onboarding.preset') }}
               </label>
-              <select
-                :value="selectedPreset"
-                @change="applyPreset(($event.target as HTMLSelectElement).value)"
-                class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors cursor-pointer"
-                style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
-              >
-                <option value="">{{ t('onboarding.selectPreset') }}</option>
-                <option v-for="p in providerPresets" :key="p.name" :value="p.name">
-                  {{ p.name }}
-                </option>
-              </select>
+              <div class="sel-wrap" style="position: relative">
+                <button class="sel-btn w-full" @click="showPresetMenu = !showPresetMenu">
+                  <span class="sel-text" :style="{ opacity: selectedPreset ? 1 : 0.5 }">{{ currentPresetLabel }}</span>
+                  <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showPresetMenu }" />
+                </button>
+                <Transition name="drop">
+                  <div v-if="showPresetMenu" class="sel-menu" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 10">
+                    <div class="sel-clip">
+                      <button
+                        v-for="p in providerPresets" :key="p.name"
+                        class="sel-opt"
+                        :class="{ hit: selectedPreset === p.name }"
+                        @click="applyPreset(p.name)"
+                      >
+                        <div class="opt-info">
+                          <span class="opt-id">{{ p.name }}</span>
+                        </div>
+                        <Check v-if="selectedPreset === p.name" :size="13" :stroke-width="2.5" />
+                      </button>
+                    </div>
+                  </div>
+                </Transition>
+              </div>
             </div>
 
             <!-- Name -->
@@ -538,12 +565,10 @@ onMounted(async () => {
   to { transform: rotate(360deg); }
 }
 
-select,
 input {
   transition: border-color 0.15s ease;
 }
 
-select:focus,
 input:focus {
   border-color: var(--color-accent) !important;
 }
