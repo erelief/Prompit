@@ -252,11 +252,18 @@ function togglePresetMenu(e: MouseEvent, _item: ProviderConfig, index: number) {
   presetMenuPos.value = { top: r.bottom + 5, left: r.right - 220 };
 }
 
-function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
-  item.preset = preset.name;
-  item.base_url = preset.base_url;
-  item.api_format = { ...preset.api_format };
-  if (!item.name.trim()) item.name = preset.provider_name;
+function applyPreset(item: ProviderConfig, preset: ProviderPreset | { name: "Custom" }) {
+  if (preset.name === "Custom") {
+    item.preset = undefined;
+    item.base_url = "";
+    item.api_format = undefined;
+  } else {
+    const p = preset as ProviderPreset;
+    item.preset = p.name;
+    item.base_url = p.base_url;
+    item.api_format = { ...p.api_format };
+    if (!item.name.trim()) item.name = p.provider_name;
+  }
   showPresetMenu.value = false;
   presetMenuIndex.value = null;
 }
@@ -615,6 +622,16 @@ onUnmounted(() => {
                 <div v-if="showPresetMenu && presetMenuIndex === index" class="sel-menu preset-menu" :style="{ top: presetMenuPos.top + 'px', left: presetMenuPos.left + 'px', minWidth: '220px' }">
                   <div class="sel-clip settings-scrollbar">
                     <button
+                      class="sel-opt"
+                      :class="{ hit: !item.preset }"
+                      @click="applyPreset(item, { name: 'Custom' })"
+                    >
+                      <div class="opt-info">
+                        <span class="opt-id">{{ t('onboarding.custom') }}</span>
+                      </div>
+                      <Check v-if="!item.preset" :size="13" :stroke-width="2.5" />
+                    </button>
+                    <button
                       v-for="p in providerPresets" :key="p.name"
                       class="sel-opt"
                       :class="{ hit: item.preset === p.name }"
@@ -636,6 +653,11 @@ onUnmounted(() => {
                 </div>
               </Transition>
             </Teleport>
+
+            <!-- hint: no preset -->
+            <p v-if="!item.preset" class="preset-hint" @click.stop>
+              {{ t('settings.openaiCompatHint') }}
+            </p>
 
             <!-- fields -->
             <div class="fields">
@@ -1162,6 +1184,10 @@ onUnmounted(() => {
 .preset-empty {
   padding: 12px; font-size: 10.5px; color: var(--color-text-muted);
   text-align: center; font-style: italic;
+}
+.preset-hint {
+  font-size: 10.5px; color: var(--color-text-muted);
+  margin: -2px 0 8px 0; line-height: 1.4;
 }
 
 label {

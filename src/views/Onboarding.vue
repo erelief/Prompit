@@ -348,6 +348,7 @@ onMounted(async () => {
                       >
                         <div class="opt-info">
                           <span class="opt-id">{{ p.name }}</span>
+                          <span class="opt-src">{{ p.base_url }}</span>
                         </div>
                         <Check v-if="selectedPreset === p.name" :size="13" :stroke-width="2.5" />
                       </button>
@@ -368,6 +369,9 @@ onMounted(async () => {
                 class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
                 style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
               />
+              <p v-if="!selectedPreset || selectedPreset === 'Custom'" class="mt-1.5" style="font-size: 10.5px; color: var(--color-text-muted); line-height: 1.4">
+                {{ t('settings.openaiCompatHint') }}
+              </p>
             </div>
 
             <!-- Base URL -->
@@ -677,6 +681,7 @@ div::-webkit-scrollbar-thumb {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+.opt-src{ font-size: 9px; color: var(--color-text-muted); letter-spacing: .02em; }
 .drop-enter-active,.drop-leave-active{ transition:opacity .14s ease,transform .14s ease; }
 .drop-enter-from,.drop-leave-to{ opacity:0; transform: translateY(-5px) scale(.967); }
 </style>

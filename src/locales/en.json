@@ -29,6 +29,7 @@
     "testConnection": "Test connection",
     "preset": "Preset",
     "applyPreset": "Apply preset",
+    "openaiCompatHint": "Requires an OpenAI-compatible API.",
     "noPresetsFound": "No presets found. Edit the presets file to add one.",
     "theme": "Theme",
     "light": "Light",

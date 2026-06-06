@@ -29,6 +29,7 @@
     "testConnection": "测试连接",
     "preset": "预设",
     "applyPreset": "应用预设",
+    "openaiCompatHint": "需要 OpenAI 兼容的 API。",
     "noPresetsFound": "未找到预设。编辑预设文件以添加。",
     "theme": "主题",
     "light": "浅色",
