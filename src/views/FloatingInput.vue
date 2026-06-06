@@ -36,11 +36,12 @@ const activeModelName = computed(() => {
   return m.model || null;
 });
 
-const glassBg = computed(() =>
-  isDark()
-    ? "linear-gradient(135deg, rgba(15,15,20,0.85) 0%, rgba(20,20,30,0.8) 100%)"
-    : "linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(245,245,250,0.8) 100%)"
-);
+const glassBg = computed(() => {
+  const o = (appConfig.floating_opacity ?? 85) / 100;
+  return isDark()
+    ? `linear-gradient(135deg, rgba(15,15,20,${o}) 0%, rgba(20,20,30,${o * 0.94}) 100%)`
+    : `linear-gradient(135deg, rgba(255,255,255,${o}) 0%, rgba(245,245,250,${o * 0.94}) 100%)`;
+});
 
 const showModelDropdown = ref(false);
 const modelDropdownRef = ref<HTMLDivElement | null>(null);

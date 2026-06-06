@@ -36,6 +36,8 @@
     "fetching": "获取中",
     "done": "完成",
     "theme": "主题",
+    "floatingOpacity": "浮动窗口透明度",
+    "resetToDefault": "恢复默认",
     "light": "浅色",
     "dark": "深色",
     "system": "跟随系统",

@@ -95,6 +95,8 @@ pub struct AppConfig {
     pub app_lang: String,
     #[serde(default = "default_theme")]
     pub theme: String,
+    #[serde(default = "default_floating_opacity")]
+    pub floating_opacity: u8,
 }
 
 fn default_target_lang() -> String {
@@ -105,6 +107,9 @@ fn default_theme() -> String {
 }
 fn default_app_lang() -> String {
     "en".to_string()
+}
+fn default_floating_opacity() -> u8 {
+    85
 }
 
 impl Default for AppConfig {
@@ -119,6 +124,7 @@ impl Default for AppConfig {
             language_order: vec![],
             app_lang: "en".to_string(),
             theme: "system".to_string(),
+            floating_opacity: 85,
         }
     }
 }

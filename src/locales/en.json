@@ -36,6 +36,8 @@
     "fetching": "Fetching",
     "done": "Done",
     "theme": "Theme",
+    "floatingOpacity": "Floating Window Opacity",
+    "resetToDefault": "Reset to default",
     "light": "Light",
     "dark": "Dark",
     "system": "System",

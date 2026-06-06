@@ -48,6 +48,7 @@ import {
   Info,
   ToggleLeft,
   ToggleRight,
+  Droplet,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -739,6 +740,36 @@ onUnmounted(() => {
             <component :is="opt.icon" :size="13" :stroke-width="1.8" />
             {{ opt.label }}
           </button>
+        </div>
+
+        <!-- Floating Window Opacity -->
+        <div class="section-head mt">
+          <span class="section-title"><Droplet :size="13" />{{ t('settings.floatingOpacity') }}</span>
+        </div>
+        <div class="opacity-row">
+          <input
+            type="range" min="10" max="100" step="1"
+            :value="appConfig.floating_opacity"
+            @input="appConfig.floating_opacity = +($event.target as HTMLInputElement).value"
+            class="opacity-slider"
+          />
+          <div class="opacity-value-wrap">
+            <input
+              type="number" min="10" max="100"
+              :value="appConfig.floating_opacity"
+              @change="appConfig.floating_opacity = Math.min(100, Math.max(10, +($event.target as HTMLInputElement).value || 85))"
+              class="opacity-value-input"
+            />
+            <span class="opacity-pct">%</span>
+            <button
+              v-if="appConfig.floating_opacity !== 85"
+              class="opacity-reset"
+              @click="appConfig.floating_opacity = 85"
+              :title="t('settings.resetToDefault')"
+            >
+              <RotateCcw :size="10" :stroke-width="2" />
+            </button>
+          </div>
         </div>
 
         <!-- Language -->
@@ -1577,6 +1608,90 @@ label {
   color: var(--color-text);
   background: var(--color-surface);
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* ── Floating opacity slider ── */
+.opacity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-scrollbar);
+  border-radius: 9px;
+  padding: 10px 14px;
+}
+.opacity-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  outline: none;
+}
+.opacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  cursor: pointer;
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  transition: transform 0.12s ease;
+}
+.opacity-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.opacity-value-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  flex-shrink: 0;
+}
+.opacity-value-input {
+  width: 32px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.opacity-value-input::-webkit-outer-spin-button,
+.opacity-value-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.opacity-pct {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.opacity-reset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  margin-left: 2px;
+  transition: all 0.12s ease;
+}
+.opacity-reset:hover {
+  background: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 /* ── About row ── */

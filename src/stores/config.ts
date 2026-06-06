@@ -58,6 +58,7 @@ export interface AppConfig {
   language_order: string[];
   app_lang: string;
   theme: "light" | "dark" | "system";
+  floating_opacity: number;
 }
 
 const defaultConfig: AppConfig = {
@@ -70,6 +71,7 @@ const defaultConfig: AppConfig = {
   language_order: [],
   app_lang: "en",
   theme: "system",
+  floating_opacity: 85,
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
