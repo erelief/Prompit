@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -74,8 +74,9 @@ const editStates = ref<Map<number, ProviderEditState>>(new Map());
 function getEditState(index: number): ProviderEditState {
   let s = editStates.value.get(index);
   if (!s) {
-    s = { keyVisible: false, fetching: false, fetched: [], status: "" };
+    s = reactive({ keyVisible: false, fetching: false, fetched: [], status: "" });
     editStates.value.set(index, s);
+    editStates.value = new Map(editStates.value);
   }
   return s;
 }
