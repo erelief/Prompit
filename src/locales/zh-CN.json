@@ -55,7 +55,7 @@
     "pressEnterToPaste": "按 Enter 粘贴结果...",
     "typeToSend": "输入以发送...",
     "sending": "发送中...",
-    "pasteIntoActiveField": "粘贴到活动字段 (Enter)",
+    "pasteIntoActiveField": "粘贴到当前文本输入框 (Enter)",
     "send": "发送 (Enter)",
     "targetLanguage": "目标语言",
     "noPersonasAvailable": "暂无可用角色",
