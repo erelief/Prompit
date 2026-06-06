@@ -1,7 +1,7 @@
 use crate::config::AppConfig;
 use std::fs;
 use std::path::PathBuf;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = crate::get_data_dir(app)?;
@@ -26,6 +26,13 @@ pub fn save_config(app: AppHandle, config: AppConfig) -> Result<(), String> {
         serde_json::to_string_pretty(&config).map_err(|e| format!("serialize: {e}"))?;
     fs::write(&path, json).map_err(|e| format!("write: {e}"))?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn set_onboarding_complete(app: AppHandle) {
+    if let Some(state) = app.try_state::<crate::state::OnboardingState>() {
+        state.set_complete(true);
+    }
 }
 
 #[tauri::command]
