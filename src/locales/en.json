@@ -116,6 +116,7 @@
     "addProviderTitle": "Add a provider",
     "preset": "Preset",
     "selectPreset": "Select a preset…",
+    "custom": "Custom",
     "providerName": "Provider name",
     "apiKey": "API Key",
     "baseUrl": "Base URL",

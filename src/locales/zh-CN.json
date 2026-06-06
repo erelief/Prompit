@@ -116,6 +116,7 @@
     "addProviderTitle": "添加供应商",
     "preset": "预设",
     "selectPreset": "选择预设…",
+    "custom": "自定义",
     "providerName": "供应商名称",
     "apiKey": "API Key",
     "baseUrl": "Base URL",

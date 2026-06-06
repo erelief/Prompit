@@ -23,6 +23,7 @@ import {
   EyeOff,
   Zap,
   PartyPopper,
+  Link2,
 } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -49,8 +50,19 @@ const currentAppLangLabel = computed(() => {
 });
 
 const currentPresetLabel = computed(() => {
+  if (selectedPreset.value === "Custom") return t('onboarding.custom');
   return selectedPreset.value || t('onboarding.selectPreset');
 });
+
+async function testKeyConnection() {
+  if (!providerForm.value.api_key || !providerForm.value.base_url) return;
+  isTestingKey.value = true;
+  testKeyStatus.value = "";
+  const result = await testProviderConnection(providerForm.value);
+  testKeyStatus.value = result.ok ? "ok" : "fail";
+  isTestingKey.value = false;
+  setTimeout(() => { testKeyStatus.value = ""; }, 3000);
+}
 
 // ── Step 2: Provider form ──
 const providerForm = ref<ProviderConfig>({
@@ -65,6 +77,8 @@ const providerPresets = ref<ProviderPreset[]>([]);
 const selectedPreset = ref("");
 const showApiKey = ref(false);
 const showPresetMenu = ref(false);
+const isTestingKey = ref(false);
+const testKeyStatus = ref<"ok" | "fail" | "">("");
 
 // ── Step 3: Models ──
 const availableModels = ref<string[]>([]);
@@ -124,13 +138,21 @@ function goPrev() {
 
 // ── Step 2 logic ──
 function applyPreset(presetName: string) {
-  const preset = providerPresets.value.find((p) => p.name === presetName);
-  if (!preset) return;
-  selectedPreset.value = presetName;
-  providerForm.value.name = preset.provider_name;
-  providerForm.value.base_url = preset.base_url;
-  providerForm.value.preset = presetName;
-  providerForm.value.api_format = { ...preset.api_format };
+  if (presetName === "Custom") {
+    selectedPreset.value = "Custom";
+    providerForm.value.name = "";
+    providerForm.value.base_url = "";
+    providerForm.value.preset = undefined;
+    providerForm.value.api_format = undefined;
+  } else {
+    const preset = providerPresets.value.find((p) => p.name === presetName);
+    if (!preset) return;
+    selectedPreset.value = presetName;
+    providerForm.value.name = preset.provider_name;
+    providerForm.value.base_url = preset.base_url;
+    providerForm.value.preset = presetName;
+    providerForm.value.api_format = { ...preset.api_format };
+  }
   showPresetMenu.value = false;
 }
 
@@ -231,7 +253,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-dvh px-6" style="background: var(--color-bg)" data-tauri-drag-region @click="onRootClick">
+  <div class="flex items-center justify-center min-h-dvh px-6 select-none" style="background: var(--color-bg)" data-tauri-drag-region @click="onRootClick">
     <div class="w-full max-w-[520px] flex flex-col" style="min-height: 480px">
 
       <!-- Content area with transitions -->
@@ -296,7 +318,7 @@ onMounted(async () => {
             </h2>
 
             <!-- Preset selector -->
-            <div v-if="providerPresets.length > 0" class="mb-5">
+            <div class="mb-5">
               <label class="block text-xs font-medium mb-1.5 tracking-wide uppercase" style="color: var(--color-text-muted)">
                 {{ t('onboarding.preset') }}
               </label>
@@ -308,6 +330,16 @@ onMounted(async () => {
                 <Transition name="drop">
                   <div v-if="showPresetMenu" class="sel-menu" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 10">
                     <div class="sel-clip">
+                      <button
+                        class="sel-opt"
+                        :class="{ hit: selectedPreset === 'Custom' }"
+                        @click="applyPreset('Custom')"
+                      >
+                        <div class="opt-info">
+                          <span class="opt-id">{{ t('onboarding.custom') }}</span>
+                        </div>
+                        <Check v-if="selectedPreset === 'Custom'" :size="13" :stroke-width="2.5" />
+                      </button>
                       <button
                         v-for="p in providerPresets" :key="p.name"
                         class="sel-opt"
@@ -333,33 +365,9 @@ onMounted(async () => {
               <input
                 v-model="providerForm.name"
                 type="text"
-                class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors"
+                class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
                 style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
               />
-            </div>
-
-            <!-- API Key -->
-            <div class="mb-4">
-              <label class="block text-xs font-medium mb-1.5 tracking-wide uppercase" style="color: var(--color-text-muted)">
-                {{ t('onboarding.apiKey') }}
-              </label>
-              <div class="relative">
-                <input
-                  v-model="providerForm.api_key"
-                  :type="showApiKey ? 'text' : 'password'"
-                  class="w-full h-9 pl-3 pr-9 rounded-lg text-sm outline-none transition-colors"
-                  style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
-                />
-                <button
-                  @click="showApiKey = !showApiKey"
-                  class="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded opacity-40 hover:opacity-80 transition-opacity"
-                  style="color: var(--color-text)"
-                  tabindex="-1"
-                >
-                  <Eye v-if="showApiKey" :size="16" />
-                  <EyeOff v-else :size="16" />
-                </button>
-              </div>
             </div>
 
             <!-- Base URL -->
@@ -370,9 +378,54 @@ onMounted(async () => {
               <input
                 v-model="providerForm.base_url"
                 type="text"
-                class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors"
+                class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
                 style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
               />
+            </div>
+
+            <!-- API Key -->
+            <div class="mb-4">
+              <label class="block text-xs font-medium mb-1.5 tracking-wide uppercase" style="color: var(--color-text-muted)">
+                {{ t('onboarding.apiKey') }}
+              </label>
+              <div class="flex gap-2">
+                <div class="relative flex-1">
+                  <input
+                    v-model="providerForm.api_key"
+                    :type="showApiKey ? 'text' : 'password'"
+                    class="w-full h-9 pl-3 pr-9 rounded-lg text-sm outline-none transition-colors select-text"
+                    style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
+                  />
+                  <button
+                    @click="showApiKey = !showApiKey"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded opacity-40 hover:opacity-80 transition-opacity"
+                    style="color: var(--color-text)"
+                    tabindex="-1"
+                  >
+                    <Eye v-if="showApiKey" :size="16" />
+                    <EyeOff v-else :size="16" />
+                  </button>
+                </div>
+                <button
+                  class="flex items-center justify-center h-9 w-9 rounded-lg transition-colors"
+                  :style="{
+                    background: testKeyStatus === 'ok' ? 'var(--color-accent-bg)' : testKeyStatus === 'fail' ? 'rgba(239,68,68,0.1)' : 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    cursor: (!providerForm.api_key || !providerForm.base_url || isTestingKey) ? 'not-allowed' : 'pointer',
+                    opacity: (!providerForm.api_key || !providerForm.base_url) ? 0.4 : 1,
+                  }"
+                  :disabled="!providerForm.api_key || !providerForm.base_url || isTestingKey"
+                  @click="testKeyConnection"
+                  :title="t('settings.testConnection')"
+                >
+                  <Loader2 v-if="isTestingKey" :size="14" class="spin" style="color: var(--color-accent)" />
+                  <Check v-else-if="testKeyStatus === 'ok'" :size="14" style="color: var(--color-accent)" />
+                  <Link2 v-else :size="14" style="color: var(--color-text-muted)" />
+                </button>
+              </div>
+              <p v-if="testKeyStatus === 'fail'" class="text-xs mt-1.5" style="color: var(--color-danger)">
+                {{ t('onboarding.connectionFailed') }}
+              </p>
             </div>
 
             <!-- Error -->
@@ -517,7 +570,7 @@ onMounted(async () => {
         >
           <Loader2 v-if="isConnecting || isFetching" :size="14" class="spin" />
           <template v-else>
-            {{ isLastStep ? t('onboarding.finish') : currentStep === 2 ? t('onboarding.testAndContinue') : t('onboarding.next') }}
+            {{ isLastStep ? t('onboarding.finish') : t('onboarding.next') }}
             <ChevronRight v-if="!isLastStep" :size="16" />
           </template>
         </button>
