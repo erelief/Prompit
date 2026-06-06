@@ -48,7 +48,8 @@
     "addOneToCustomize": "Add one to customize translation style.",
     "addTranslationPersona": "Add Translation Persona",
     "personaName": "Persona name…",
-    "close": "Close"
+    "close": "Close",
+    "about": "About"
   },
   "floating": {
     "pressEnterToPaste": "Press Enter to paste result...",
@@ -76,6 +77,24 @@
     "rowIsEmpty": "Row {n} is empty — fill it or delete it.",
     "sourceRequired": "Row {n}: Translation requires a Source.",
     "translationRequired": "Row {n}: Source requires a Translation."
+  },
+  "about": {
+    "title": "About",
+    "repository": "Repository",
+    "license": "License",
+    "acknowledgments": "Acknowledgments",
+    "checkUpdate": "Check for Updates",
+    "autoUpdate": "Auto Update",
+    "checking": "Checking...",
+    "upToDate": "Up to date",
+    "newVersion": "New version v{version}",
+    "install": "Install",
+    "preparing": "Preparing...",
+    "downloading": "Downloading...",
+    "installing": "Installing...",
+    "restarting": "Restarting...",
+    "updateFailed": "Update failed",
+    "checkFailed": "Failed"
   },
   "languages": {
     "English": { "name": "English", "code": "EN" },

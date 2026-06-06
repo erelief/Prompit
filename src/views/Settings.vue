@@ -45,7 +45,12 @@ import {
   Sun,
   Moon,
   SunMoon,
+  Info,
+  ToggleLeft,
+  ToggleRight,
 } from "@lucide/vue";
+
+declare const __APP_VERSION__: string;
 
 const { t } = useI18n();
 
@@ -99,6 +104,90 @@ function selectAppLang(lang: string) {
 const currentAppLangLabel = computed(() => {
   return appLanguageOptions.find(o => o.value === appConfig.app_lang)?.label || "English";
 });
+
+// ── Auto-update ──
+// idle | checking | up-to-date | has-update | preparing | downloading | installing | restarting | error
+const updateStatus = ref("idle");
+const updateVersion = ref("");
+const downloaded = ref(0);
+const contentLength = ref(0);
+const updateError = ref("");
+const autoUpdate = ref(localStorage.getItem("app-auto-update") !== "false");
+const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
+function toggleAutoUpdate() {
+  autoUpdate.value = !autoUpdate.value;
+  localStorage.setItem("app-auto-update", String(autoUpdate.value));
+}
+
+async function checkForUpdate(silent = false) {
+  if (!isTauri) return;
+  updateStatus.value = "checking";
+  updateError.value = "";
+  try {
+    const { check } = await import("@tauri-apps/plugin-updater");
+    const proxy = await invoke<string | null>("get_proxy_url");
+    const update = await check(proxy ? { proxy } : {});
+    if (!update) {
+      if (!silent) {
+        updateStatus.value = "up-to-date";
+        setTimeout(() => { updateStatus.value = "idle"; }, 2000);
+      } else {
+        updateStatus.value = "idle";
+      }
+      return;
+    }
+    updateVersion.value = update.version;
+    updateStatus.value = "has-update";
+  } catch (e) {
+    if (!silent) {
+      updateStatus.value = "error";
+      updateError.value = e instanceof Error ? e.message : String(e);
+      setTimeout(() => { updateStatus.value = "idle"; updateError.value = ""; }, 3000);
+    } else {
+      updateStatus.value = "idle";
+    }
+  }
+}
+
+async function installUpdate() {
+  if (!isTauri) return;
+  try {
+    const { check } = await import("@tauri-apps/plugin-updater");
+    const { relaunch } = await import("@tauri-apps/plugin-process");
+    const proxy = await invoke<string | null>("get_proxy_url");
+    const update = await check(proxy ? { proxy } : {});
+    if (!update) return;
+    updateStatus.value = "preparing";
+    downloaded.value = 0;
+    contentLength.value = 0;
+    await update.downloadAndInstall((event) => {
+      switch (event.event) {
+        case "Started":
+          contentLength.value = event.data.contentLength || 0;
+          updateStatus.value = "downloading";
+          break;
+        case "Progress":
+          downloaded.value += event.data.chunkLength;
+          break;
+        case "Finished":
+          updateStatus.value = "installing";
+          break;
+      }
+    });
+    updateStatus.value = "restarting";
+    await relaunch();
+  } catch (e) {
+    updateStatus.value = "error";
+    updateError.value = e instanceof Error ? e.message : String(e);
+    setTimeout(() => { updateStatus.value = "idle"; updateError.value = ""; }, 3000);
+  }
+}
+
+function handleUpdateClick() {
+  if (updateStatus.value === "has-update") installUpdate();
+  else if (["idle", "up-to-date", "error"].includes(updateStatus.value)) checkForUpdate(false);
+}
 
 // ── Persona management ──
 function validateProvider(p: ProviderConfig): string | null {
@@ -487,6 +576,7 @@ onMounted(async () => {
   await invoke("resize_and_reposition", { height: 580, width: 480 });
   load();
   loadProviderPresets().then(p => { providerPresets.value = p; }).catch(console.error);
+  if (autoUpdate.value) checkForUpdate(true);
 });
 
 onUnmounted(() => {
@@ -679,7 +769,7 @@ onUnmounted(() => {
             <div v-if="item.models.length > 0" class="tags">
               <span v-for="(m, mi) in item.models" :key="mi" class="tag">
                 {{ m.id }}
-                <button class="tag-x" @click.stop="removeModel(+index, mi)">
+                <button class="tag-x" @click.stop="removeModel(+index, +mi)">
                   <Trash2 :size="9" :stroke-width="2" />
                 </button>
               </span>
@@ -733,6 +823,52 @@ onUnmounted(() => {
               </div>
             </Transition>
           </Teleport>
+        </div>
+
+        <!-- About -->
+        <div class="section-head mt">
+          <span class="section-title"><Info :size="13" />{{ t('settings.about') }}</span>
+        </div>
+        <div class="about-row">
+          <button class="about-row-info" @click="router.push('/settings/about')">
+            <img class="about-row-icon" src="/prompit_logo.svg" alt="" />
+            <span class="about-row-name">Prompit</span>
+            <span class="about-row-ver">v{{ __APP_VERSION__ }}</span>
+          </button>
+          <div v-if="isTauri" class="about-row-actions">
+            <button
+              class="pill-btn micro about-update-btn"
+              :class="{
+                'au-checking': updateStatus === 'checking',
+                'au-ok': updateStatus === 'up-to-date',
+                'au-has': updateStatus === 'has-update',
+                'au-dl': updateStatus === 'preparing' || updateStatus === 'downloading',
+                'au-err': updateStatus === 'error',
+              }"
+              :disabled="['checking','preparing','downloading','installing','restarting'].includes(updateStatus)"
+              @click.stop="handleUpdateClick"
+            >
+              <Loader2 v-if="updateStatus === 'checking'" :size="10" class="spin" :stroke-width="2" />
+              <Check v-else-if="updateStatus === 'up-to-date'" :size="10" :stroke-width="2.5" />
+              <RefreshCw v-else-if="updateStatus === 'idle' || updateStatus === 'error'" :size="10" :stroke-width="2" />
+              <span v-if="updateStatus === 'has-update'" class="au-ver">v{{ updateVersion }}</span>
+              <span v-if="updateStatus === 'downloading' && contentLength > 0">{{ Math.round(downloaded / contentLength * 100) }}%</span>
+              <span>{{ updateStatus === 'checking' ? t('about.checking')
+                : updateStatus === 'up-to-date' ? t('about.upToDate')
+                : updateStatus === 'has-update' ? t('about.install')
+                : updateStatus === 'preparing' ? t('about.preparing')
+                : updateStatus === 'downloading' ? (contentLength > 0 ? '' : t('about.downloading'))
+                : updateStatus === 'installing' ? t('about.installing')
+                : updateStatus === 'restarting' ? t('about.restarting')
+                : updateStatus === 'error' ? (updateError || t('about.checkFailed'))
+                : t('about.checkUpdate')
+              }}</span>
+            </button>
+            <button class="about-auto-btn" @click.stop="toggleAutoUpdate" :title="t('about.autoUpdate')">
+              <ToggleRight v-if="autoUpdate" :size="15" :stroke-width="1.7" />
+              <ToggleLeft v-else :size="15" :stroke-width="1.7" />
+            </button>
+          </div>
         </div>
       </template>
 
@@ -1480,5 +1616,103 @@ label {
   color: var(--color-text);
   background: var(--color-surface);
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* ── About row ── */
+.about-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-scrollbar);
+  border-radius: 9px;
+  padding: 6px 8px 6px 12px;
+}
+.about-row-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: 0.15s;
+  text-align: left;
+}
+.about-row-info:hover {
+  background: var(--color-surface-hover);
+}
+.about-row-icon {
+  height: 1.2em;
+  width: auto;
+  flex-shrink: 0;
+}
+.about-row-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+.about-row-ver {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  flex-shrink: 0;
+}
+.about-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.about-update-btn {
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+.about-update-btn.au-checking {
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+.about-update-btn.au-ok {
+  color: var(--color-success);
+  pointer-events: none;
+}
+.about-update-btn.au-has {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+.about-update-btn.au-has:hover {
+  color: var(--color-accent);
+}
+.about-update-btn.au-dl {
+  color: var(--color-accent-text);
+  pointer-events: none;
+}
+.about-update-btn.au-err {
+  color: var(--color-danger);
+  pointer-events: none;
+}
+.au-ver {
+  font-weight: 700;
+}
+.about-auto-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: 0.15s;
+}
+.about-auto-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-accent);
 }
 </style>

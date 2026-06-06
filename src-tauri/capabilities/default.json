@@ -20,6 +20,8 @@
     "global-shortcut:allow-register",
     "opener:default",
     "dialog:default",
-    "fs:default"
+    "fs:default",
+    "shell:allow-open",
+    "updater:default"
   ]
 }

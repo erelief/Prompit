@@ -5,6 +5,68 @@ pub mod config;
 pub mod shortcut;
 pub mod state;
 
+#[cfg(target_os = "windows")]
+fn read_windows_system_proxy() -> Option<String> {
+    use winreg::enums::*;
+    use winreg::RegKey;
+
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let settings = hkcu
+        .open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Internet Settings")
+        .ok()?;
+
+    let enabled: u32 = settings.get_value("ProxyEnable").ok()?;
+    if enabled == 0 {
+        return None;
+    }
+
+    let server: String = settings.get_value("ProxyServer").ok()?;
+    if server.is_empty() {
+        return None;
+    }
+
+    if server.contains('=') {
+        for prefix in ["https=", "http="] {
+            for part in server.split(';') {
+                if let Some(addr) = part.strip_prefix(prefix) {
+                    return Some(prefix_url(addr));
+                }
+            }
+        }
+    }
+
+    Some(prefix_url(&server))
+}
+
+#[cfg(not(target_os = "windows"))]
+fn read_windows_system_proxy() -> Option<String> {
+    None
+}
+
+fn prefix_url(addr: &str) -> String {
+    if addr.starts_with("http") {
+        addr.to_string()
+    } else {
+        format!("http://{}", addr)
+    }
+}
+
+fn read_proxy_url() -> Option<String> {
+    std::env::var("HTTPS_PROXY")
+        .or_else(|_| std::env::var("https_proxy"))
+        .or_else(|_| std::env::var("HTTP_PROXY"))
+        .or_else(|_| std::env::var("http_proxy"))
+        .or_else(|_| std::env::var("ALL_PROXY"))
+        .or_else(|_| std::env::var("all_proxy"))
+        .ok()
+        .or_else(read_windows_system_proxy)
+}
+
+#[tauri::command]
+fn get_proxy_url() -> Option<String> {
+    read_proxy_url()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -12,6 +74,9 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(state::WindowConfig::default())
         .invoke_handler(tauri::generate_handler![
             commands::window::hide_main_window,
@@ -34,6 +99,7 @@ pub fn run() {
             commands::persona::read_personas,
             commands::persona::save_personas,
             commands::presets::read_provider_presets,
+            get_proxy_url,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

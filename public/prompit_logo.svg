@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 417 417" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <rect id="画板1" x="0" y="0" width="416.667" height="416.667" style="fill:none;"/>
+    <g id="画板11" serif:id="画板1">
+        <g transform="matrix(4.626538,0,0,4.626538,0,-45.987174)">
+            <path d="M22.5,90.999L5,90.999C2.24,90.999 0,88.759 0,85.999L0.06,14.969C0.06,12.209 2.3,9.969 5.06,9.969L85.06,9.969C87.82,9.969 90.06,12.209 90.06,14.969L90,85.999C90,88.759 87.76,90.999 85,90.999L37.5,90.999C35.076,95.073 28.361,99.457 18.053,100C20.925,97.525 22.108,94.784 22.5,90.999Z" style="fill:rgb(162,0,37);fill-rule:nonzero;"/>
+            <g transform="matrix(0.24,0,0,0.24,-9.234094,43.856491)">
+                <g transform="matrix(360.240534,0,0,360.240534,324.986697,154.418182)">
+                </g>
+                <text x="116.047px" y="154.418px" style="font-family:'MadimiOne-Regular', 'Madimi One';font-size:360.241px;fill:white;">P</text>
+            </g>
+        </g>
+    </g>
+</svg>

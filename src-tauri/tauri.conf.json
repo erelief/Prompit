@@ -29,8 +29,18 @@
       "csp": null
     }
   },
+  "plugins": {
+    "shell": { "open": true },
+    "updater": {
+      "endpoints": [
+        "https://github.com/erelief/Prompit/releases/latest/download/latest.json"
+      ],
+      "pubkey": ""
+    }
+  },
   "bundle": {
     "active": true,
-    "icon": ["icons/icon.png"]
+    "icon": ["icons/icon.png"],
+    "createUpdaterArtifacts": true
   }
 }

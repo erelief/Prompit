@@ -1,6 +1,10 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const pkg = require("./package.json");
 
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
@@ -13,4 +17,8 @@ export default defineConfig({
     },
   },
   envPrefix: ["VITE_", "TAURI_"],
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    __APP_ICON__: JSON.stringify("/prompit_logo.svg"),
+  },
 });

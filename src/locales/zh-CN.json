@@ -48,7 +48,8 @@
     "addOneToCustomize": "添加一个以自定义翻译风格。",
     "addTranslationPersona": "添加翻译角色",
     "personaName": "角色名称…",
-    "close": "关闭"
+    "close": "关闭",
+    "about": "关于"
   },
   "floating": {
     "pressEnterToPaste": "按 Enter 粘贴结果...",
@@ -76,6 +77,24 @@
     "rowIsEmpty": "第 {n} 行为空 — 请填写或删除。",
     "sourceRequired": "第 {n} 行：译文需要原文。",
     "translationRequired": "第 {n} 行：原文需要译文。"
+  },
+  "about": {
+    "title": "关于",
+    "repository": "项目地址",
+    "license": "开源许可",
+    "acknowledgments": "致谢",
+    "checkUpdate": "检查更新",
+    "autoUpdate": "自动更新",
+    "checking": "检查中...",
+    "upToDate": "已是最新",
+    "newVersion": "发现新版本 v{version}",
+    "install": "立即更新",
+    "preparing": "准备下载...",
+    "downloading": "下载中...",
+    "installing": "安装中...",
+    "restarting": "重启中...",
+    "updateFailed": "更新失败",
+    "checkFailed": "检查失败"
   },
   "languages": {
     "English": { "name": "英语", "code": "英" },
