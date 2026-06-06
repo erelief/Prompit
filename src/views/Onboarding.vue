@@ -270,7 +270,7 @@ onMounted(async () => {
 
 <template>
   <div class="flex items-center justify-center min-h-dvh px-6 select-none" style="background: var(--color-bg)" data-tauri-drag-region @click="onRootClick">
-    <div class="w-full max-w-[520px] flex flex-col relative" style="min-height: 480px">
+    <div class="w-full max-w-[520px] flex flex-col relative" style="height: 480px">
 
       <!-- Close button -->
       <button
@@ -310,7 +310,7 @@ onMounted(async () => {
       </Transition>
 
       <!-- Content area with transitions -->
-      <div class="flex-1 relative overflow-hidden min-h-0" style="min-height: 340px">
+      <div class="flex-1 relative overflow-hidden min-h-0">
         <Transition :name="direction === 'forward' ? 'slide-left' : 'slide-right'" mode="out-in">
 
           <!-- Step 0: Welcome -->
