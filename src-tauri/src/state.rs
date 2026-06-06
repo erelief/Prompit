@@ -34,3 +34,25 @@ impl WindowConfig {
         self.grow_above.load(Ordering::Relaxed)
     }
 }
+
+pub struct OnboardingState {
+    pub complete: AtomicBool,
+}
+
+impl Default for OnboardingState {
+    fn default() -> Self {
+        Self {
+            complete: AtomicBool::new(false),
+        }
+    }
+}
+
+impl OnboardingState {
+    pub fn set_complete(&self, value: bool) {
+        self.complete.store(value, Ordering::Relaxed);
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.complete.load(Ordering::Relaxed)
+    }
+}

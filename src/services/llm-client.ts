@@ -1,5 +1,5 @@
 import { getActiveModel, appConfig, personaStore, loadDictionary } from "../stores/config";
-import type { ApiFormat } from "../stores/config";
+import type { ApiFormat, ProviderConfig } from "../stores/config";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -144,4 +144,77 @@ function buildSystemPrompt(): string {
   rules += "\n- If the input is already in the target language, output it as-is.";
 
   return `You are a translation engine. Translate the user's input text to the target language.\nRules:${rules}\nTarget language: ${appConfig.target_lang}.`;
+}
+
+export async function testProviderConnection(
+  provider: Pick<ProviderConfig, "api_key" | "base_url" | "api_format">
+): Promise<{ ok: boolean; status?: number; error?: string }> {
+  if (!provider.api_key || !provider.base_url) {
+    return { ok: false, error: "Missing API key or base URL" };
+  }
+  try {
+    const fmt = resolveFormat(provider.api_format);
+    const url = provider.base_url.replace(/\/$/, "");
+    const headers: Record<string, string> = {};
+    if (fmt.auth_header && provider.api_key) {
+      headers[fmt.auth_header] = `${fmt.auth_prefix}${provider.api_key}`;
+    }
+    for (const [k, v] of Object.entries(fmt.extra_headers)) {
+      headers[k] = v;
+    }
+    const modelsEndpoint = fmt.models_endpoint || "/models";
+    const r = await fetch(`${url}${modelsEndpoint}`, {
+      method: "GET",
+      headers,
+    });
+    if (r.ok) {
+      return { ok: true };
+    } else {
+      await r.text();
+      return { ok: false, status: r.status, error: `Failed (${r.status})` };
+    }
+  } catch {
+    return { ok: false, error: "Connection failed" };
+  }
+}
+
+export async function fetchProviderModels(
+  provider: Pick<ProviderConfig, "api_key" | "base_url" | "api_format">
+): Promise<{ ok: boolean; models?: string[]; error?: string }> {
+  if (!provider.api_key || !provider.base_url) {
+    return { ok: false, error: "Missing API key or base URL" };
+  }
+  try {
+    const fmt = resolveFormat(provider.api_format);
+    const url = provider.base_url.replace(/\/$/, "");
+    const headers: Record<string, string> = {};
+    if (fmt.auth_header && provider.api_key) {
+      headers[fmt.auth_header] = `${fmt.auth_prefix}${provider.api_key}`;
+    }
+    for (const [k, v] of Object.entries(fmt.extra_headers)) {
+      headers[k] = v;
+    }
+    const modelsEndpoint = fmt.models_endpoint || "/models";
+    const r = await fetch(`${url}${modelsEndpoint}`, {
+      method: "GET",
+      headers,
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+
+    const modelsListPath = fmt.response["models_list"];
+    let modelIds: string[];
+    if (modelsListPath) {
+      const raw = resolvePath(data, modelsListPath.replace(/\.\*$/, ""));
+      modelIds = Array.isArray(raw) ? raw.filter((m: any) => typeof m === "string").sort() : [];
+    } else {
+      modelIds = data.data?.map((m: any) => m.id).sort() || [];
+    }
+    return { ok: true, models: modelIds };
+  } catch (err) {
+    return {
+      ok: false,
+      error: `Fetch failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
 }

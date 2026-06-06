@@ -16,7 +16,7 @@ import {
 } from "../stores/config";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
-import { resolveFormat, resolvePath } from "../services/llm-client";
+import { testProviderConnection, fetchProviderModels } from "../services/llm-client";
 import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
 import EditableCardList from "../components/EditableCardList.vue";
@@ -252,11 +252,18 @@ function togglePresetMenu(e: MouseEvent, _item: ProviderConfig, index: number) {
   presetMenuPos.value = { top: r.bottom + 5, left: r.right - 220 };
 }
 
-function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
-  item.preset = preset.name;
-  item.base_url = preset.base_url;
-  item.api_format = { ...preset.api_format };
-  if (!item.name.trim()) item.name = preset.provider_name;
+function applyPreset(item: ProviderConfig, preset: ProviderPreset | { name: "Custom" }) {
+  if (preset.name === "Custom") {
+    item.preset = undefined;
+    item.base_url = "";
+    item.api_format = undefined;
+  } else {
+    const p = preset as ProviderPreset;
+    item.preset = p.name;
+    item.base_url = p.base_url;
+    item.api_format = { ...p.api_format };
+    if (!item.name.trim()) item.name = p.provider_name;
+  }
   showPresetMenu.value = false;
   presetMenuIndex.value = null;
 }
@@ -363,14 +370,11 @@ watch(
 );
 
 function onProviderAdd() {
-  const openai = providerPresets.value.find(p => p.name === "OpenAI");
   appConfig.providers.push({
     name: "",
     api_key: "",
     base_url: "",
     models: [], temperature: 0.3, max_tokens: 1024,
-    preset: openai?.name,
-    api_format: openai ? { ...openai.api_format } : undefined,
   });
 }
 
@@ -414,76 +418,30 @@ function removeModel(pIndex: number, mIndex: number) {
 async function testConnection(provider: ProviderConfig, index: number) {
   if (!provider.api_key || !provider.base_url) return;
   testingProvider.value = index;
-  try {
-    const fmt = resolveFormat(provider.api_format);
-    const url = provider.base_url.replace(/\/$/, "");
-    const headers: Record<string, string> = {};
-    if (fmt.auth_header && provider.api_key) {
-      headers[fmt.auth_header] = `${fmt.auth_prefix}${provider.api_key}`;
-    }
-    for (const [k, v] of Object.entries(fmt.extra_headers)) {
-      headers[k] = v;
-    }
-    const modelsEndpoint = fmt.models_endpoint || "/models";
-    const r = await fetch(`${url}${modelsEndpoint}`, {
-      method: "GET",
-      headers,
-    });
-    if (r.ok) {
-      fetchStatuses.value.set(index, "Connected");
-      setTimeout(() => fetchStatuses.value.delete(index), 3000);
-    } else {
-      await r.text();
-      fetchStatuses.value.set(index, `Failed (${r.status})`);
-      setTimeout(() => fetchStatuses.value.delete(index), 4000);
-    }
-  } catch {
-    fetchStatuses.value.set(index, "Connection failed");
+  const result = await testProviderConnection(provider);
+  if (result.ok) {
+    fetchStatuses.value.set(index, "Connected");
+    setTimeout(() => fetchStatuses.value.delete(index), 3000);
+  } else {
+    fetchStatuses.value.set(index, result.error || "Connection failed");
     setTimeout(() => fetchStatuses.value.delete(index), 4000);
-  } finally {
-    testingProvider.value = null;
   }
+  testingProvider.value = null;
 }
 
 async function fetchModels(provider: ProviderConfig, index: number) {
   if (!provider.api_key || !provider.base_url) return;
   fetchingProviders.value.add(index);
-  try {
-    const fmt = resolveFormat(provider.api_format);
-    const url = provider.base_url.replace(/\/$/, "");
-    const headers: Record<string, string> = {};
-    if (fmt.auth_header && provider.api_key) {
-      headers[fmt.auth_header] = `${fmt.auth_prefix}${provider.api_key}`;
-    }
-    for (const [k, v] of Object.entries(fmt.extra_headers)) {
-      headers[k] = v;
-    }
-    const modelsEndpoint = fmt.models_endpoint || "/models";
-    const r = await fetch(`${url}${modelsEndpoint}`, {
-      method: "GET",
-      headers,
-    });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-
-    // Parse models list using api_format response mapping
-    const modelsListPath = fmt.response["models_list"];
-    let modelIds: string[];
-    if (modelsListPath) {
-      const raw = resolvePath(data, modelsListPath.replace(/\.\*$/, ""));
-      modelIds = Array.isArray(raw) ? raw.filter((m: any) => typeof m === "string").sort() : [];
-    } else {
-      modelIds = data.data?.map((m: any) => m.id).sort() || [];
-    }
-    fetchedModels.value.set(`p${index}`, modelIds);
+  const result = await fetchProviderModels(provider);
+  if (result.ok && result.models) {
+    fetchedModels.value.set(`p${index}`, result.models);
     fetchSuccess.value.add(index);
     setTimeout(() => { fetchSuccess.value.delete(index); fetchSuccess.value = new Set(fetchSuccess.value); }, 2000);
-  } catch (err) {
-    fetchStatuses.value.set(index, `Fetch failed: ${err instanceof Error ? err.message : String(err)}`);
+  } else {
+    fetchStatuses.value.set(index, result.error || "Fetch failed");
     setTimeout(() => fetchStatuses.value.delete(index), 5000);
-  } finally {
-    fetchingProviders.value.delete(index);
   }
+  fetchingProviders.value.delete(index);
 }
 
 function addModelFromList(pi: number, mid: string) {
@@ -661,6 +619,16 @@ onUnmounted(() => {
                 <div v-if="showPresetMenu && presetMenuIndex === index" class="sel-menu preset-menu" :style="{ top: presetMenuPos.top + 'px', left: presetMenuPos.left + 'px', minWidth: '220px' }">
                   <div class="sel-clip settings-scrollbar">
                     <button
+                      class="sel-opt"
+                      :class="{ hit: !item.preset }"
+                      @click="applyPreset(item, { name: 'Custom' })"
+                    >
+                      <div class="opt-info">
+                        <span class="opt-id">{{ t('onboarding.custom') }}</span>
+                      </div>
+                      <Check v-if="!item.preset" :size="13" :stroke-width="2.5" />
+                    </button>
+                    <button
                       v-for="p in providerPresets" :key="p.name"
                       class="sel-opt"
                       :class="{ hit: item.preset === p.name }"
@@ -682,6 +650,11 @@ onUnmounted(() => {
                 </div>
               </Transition>
             </Teleport>
+
+            <!-- hint: no preset -->
+            <p v-if="!item.preset" class="preset-hint" @click.stop>
+              {{ t('settings.openaiCompatHint') }}
+            </p>
 
             <!-- fields -->
             <div class="fields">
@@ -1208,6 +1181,10 @@ onUnmounted(() => {
 .preset-empty {
   padding: 12px; font-size: 10.5px; color: var(--color-text-muted);
   text-align: center; font-style: italic;
+}
+.preset-hint {
+  font-size: 10.5px; color: var(--color-text-muted);
+  margin: -2px 0 8px 0; line-height: 1.4;
 }
 
 label {

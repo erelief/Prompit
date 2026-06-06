@@ -86,6 +86,31 @@ pub fn open_settings_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn show_onboarding_window(app: AppHandle) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or("Main window not found")?;
+
+    let scale = window
+        .current_monitor()
+        .ok()
+        .flatten()
+        .map(|m| m.scale_factor())
+        .unwrap_or(1.0);
+
+    let w = (380.0 * scale) as u32;
+    let h = (560.0 * scale) as u32;
+
+    window
+        .set_size(tauri::PhysicalSize { width: w, height: h })
+        .map_err(|e| e.to_string())?;
+    window.center().map_err(|e| e.to_string())?;
+    window.show().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn get_grow_above(app: AppHandle) -> bool {
     app.state::<WindowConfig>().get_grow_above()
 }

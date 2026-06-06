@@ -1,8 +1,9 @@
 import { createApp } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import App from "./App.vue";
 import router from "./router";
 import i18n from "./i18n";
-import { loadConfig } from "./stores/config";
+import { loadConfig, appConfig } from "./stores/config";
 import { initTheme } from "./composables/useTheme";
 import "./style.css";
 
@@ -11,7 +12,7 @@ app.use(router);
 app.use(i18n);
 
 function applyRouteTheme(path: string) {
-  const isSettings = path === "/settings" || path === "/settings/dictionary";
+  const isSettings = path === "/settings" || path === "/settings/dictionary" || path === "/onboarding";
   const bg = isSettings ? "var(--color-bg)" : "transparent";
   document.documentElement.style.background = bg;
   document.body.style.background = bg;
@@ -29,4 +30,9 @@ router.isReady().then(async () => {
   initTheme();
   applyRouteTheme(router.currentRoute.value.path);
   app.mount("#app");
+
+  // Show window immediately if onboarding is needed
+  if (appConfig.providers.length === 0) {
+    invoke("show_onboarding_window");
+  }
 });

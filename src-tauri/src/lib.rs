@@ -92,17 +92,20 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(state::WindowConfig::default())
+        .manage(state::OnboardingState::default())
         .invoke_handler(tauri::generate_handler![
             commands::window::hide_main_window,
             commands::window::show_main_window,
             commands::window::open_settings_window,
             commands::window::resize_main_window,
             commands::window::resize_and_reposition,
+            commands::window::show_onboarding_window,
             commands::window::get_grow_above,
             commands::clipboard::simulate_paste,
             commands::config_cmd::read_config,
             commands::config_cmd::save_config,
             commands::config_cmd::get_config_dir,
+            commands::config_cmd::set_onboarding_complete,
             commands::secrets::save_secret,
             commands::secrets::read_secret,
             commands::secrets::delete_secret,
