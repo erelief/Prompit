@@ -119,6 +119,10 @@ Detect platform via `navigator.userAgent` or Tauri's `os.platform()`:
 
 All onboarding text uses vue-i18n keys under `onboarding.*`. Minimum translations: `en` and `zh-CN`.
 
+## Workflow
+
+Implementation will be done on a dedicated feature branch (e.g. `feat/onboarding`). After user review and approval, the branch will be merged into `master`.
+
 ## Files Changed
 
 | File | Change |
