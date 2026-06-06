@@ -310,7 +310,7 @@ onMounted(async () => {
       </Transition>
 
       <!-- Content area with transitions -->
-      <div class="flex-1 relative overflow-hidden">
+      <div class="flex-1 relative overflow-hidden min-h-0" style="min-height: 340px">
         <Transition :name="direction === 'forward' ? 'slide-left' : 'slide-right'" mode="out-in">
 
           <!-- Step 0: Welcome -->
