@@ -5,6 +5,7 @@ import { useI18n } from "vue-i18n";
 import { ArrowLeft, ExternalLink } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
+const appVersion = __APP_VERSION__;
 
 const { t } = useI18n();
 const router = useRouter();
@@ -48,7 +49,7 @@ onMounted(() => {
     <div class="about-title-row">
       <img class="about-icon" src="/prompit_logo.svg" alt="" />
       <span class="about-name">Prompit</span>
-      <span class="about-version">v{{ __APP_VERSION__ }}</span>
+      <span class="about-version">v{{ appVersion }}</span>
     </div>
 
     <!-- Info -->

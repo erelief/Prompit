@@ -51,6 +51,7 @@ import {
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
+const appVersion = __APP_VERSION__;
 
 const { t } = useI18n();
 
@@ -833,7 +834,7 @@ onUnmounted(() => {
           <button class="about-row-info" @click="router.push('/settings/about')">
             <img class="about-row-icon" src="/prompit_logo.svg" alt="" />
             <span class="about-row-name">Prompit</span>
-            <span class="about-row-ver">v{{ __APP_VERSION__ }}</span>
+            <span class="about-row-ver">v{{ appVersion }}</span>
           </button>
           <div v-if="isTauri" class="about-row-actions">
             <button
