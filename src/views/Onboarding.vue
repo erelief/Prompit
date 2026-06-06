@@ -6,6 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   appConfig,
   loadProviderPresets,
+  saveConfig as persistConfig,
 } from "../stores/config";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import {
@@ -199,10 +200,11 @@ async function finishOnboarding() {
   appConfig.active_provider_index = 0;
   appConfig.active_model_index = 0;
 
+  await persistConfig();
   await invoke("set_onboarding_complete");
 
-  // Restore window to normal floating input size
-  await invoke("resize_main_window", { width: 480, height: 120 });
+  // Hide window — don't show anything after finishing
+  await invoke("hide_main_window");
 
   router.replace("/");
 }
@@ -455,20 +457,17 @@ onMounted(async () => {
 
           <!-- Step 4: Done -->
           <div v-else-if="currentStep === 4" key="step4" class="flex flex-col items-center justify-center h-full py-10">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-success-bg)">
-              <PartyPopper :size="22" style="color: var(--color-success)" />
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
+              <PartyPopper :size="22" style="color: var(--color-accent)" />
             </div>
             <h2 class="text-xl font-medium mb-2" style="color: var(--color-text)">
               {{ t('onboarding.doneTitle') }}
             </h2>
-            <p class="text-sm mb-4" style="color: var(--color-text-secondary)">
-              {{ t('onboarding.doneBody') }}
-            </p>
-            <p class="text-xs px-3 py-1.5 rounded-md" style="color: var(--color-text-secondary); background: var(--color-surface)">
-              {{ t('onboarding.shortcutHint', { shortcut: shortcutKey }) }}
+            <p class="text-sm mb-4 text-center max-w-xs" style="color: var(--color-text-secondary)">
+              {{ t('onboarding.doneBody', { shortcut: shortcutKey }) }}
             </p>
             <p class="text-xs mt-4" style="color: var(--color-text-muted)">
-              {{ t('onboarding.addMoreProviders') }}
+              {{ t('onboarding.shortcutHint') }}
             </p>
           </div>
 
