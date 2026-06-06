@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from "vue-router";
+import { appConfig } from "../stores/config";
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -23,7 +24,21 @@ const router = createRouter({
       name: "about",
       component: () => import("../views/About.vue"),
     },
+    {
+      path: "/onboarding",
+      name: "onboarding",
+      component: () => import("../views/Onboarding.vue"),
+    },
   ],
+});
+
+router.beforeEach((to) => {
+  if (appConfig.providers.length === 0 && to.name !== "onboarding") {
+    return { name: "onboarding" };
+  }
+  if (appConfig.providers.length > 0 && to.name === "onboarding") {
+    return { name: "floating-input" };
+  }
 });
 
 export default router;

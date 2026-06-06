@@ -11,7 +11,7 @@ app.use(router);
 app.use(i18n);
 
 function applyRouteTheme(path: string) {
-  const isSettings = path === "/settings" || path === "/settings/dictionary";
+  const isSettings = path === "/settings" || path === "/settings/dictionary" || path === "/onboarding";
   const bg = isSettings ? "var(--color-bg)" : "transparent";
   document.documentElement.style.background = bg;
   document.body.style.background = bg;
