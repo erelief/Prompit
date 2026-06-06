@@ -370,14 +370,11 @@ watch(
 );
 
 function onProviderAdd() {
-  const openai = providerPresets.value.find(p => p.name === "OpenAI");
   appConfig.providers.push({
     name: "",
     api_key: "",
     base_url: "",
     models: [], temperature: 0.3, max_tokens: 1024,
-    preset: openai?.name,
-    api_format: openai ? { ...openai.api_format } : undefined,
   });
 }
 
