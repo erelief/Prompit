@@ -51,8 +51,14 @@ const currentAppLangLabel = computed(() => {
 });
 
 const currentPresetLabel = computed(() => {
-  if (selectedPreset.value === "Custom") return t('onboarding.custom');
-  return selectedPreset.value || t('onboarding.selectPreset');
+  if (!selectedPreset.value || selectedPreset.value === "Custom") return t('onboarding.custom');
+  return selectedPreset.value;
+});
+
+// Computed: current preset object (for api_url)
+const currentPresetObj = computed(() => {
+  if (!selectedPreset.value) return null;
+  return providerPresets.value.find((p) => p.name === selectedPreset.value) || null;
 });
 
 async function testKeyConnection() {
@@ -140,21 +146,13 @@ function goPrev() {
 
 // ── Step 2 logic ──
 function applyPreset(presetName: string) {
-  if (presetName === "Custom") {
-    selectedPreset.value = "Custom";
-    providerForm.value.name = "";
-    providerForm.value.base_url = "";
-    providerForm.value.preset = undefined;
-    providerForm.value.api_format = undefined;
-  } else {
-    const preset = providerPresets.value.find((p) => p.name === presetName);
-    if (!preset) return;
-    selectedPreset.value = presetName;
-    providerForm.value.name = preset.provider_name;
-    providerForm.value.base_url = preset.base_url;
-    providerForm.value.preset = presetName;
-    providerForm.value.api_format = { ...preset.api_format };
-  }
+  const preset = providerPresets.value.find((p) => p.name === presetName);
+  if (!preset) return;
+  selectedPreset.value = presetName;
+  providerForm.value.name = preset.provider_name;
+  providerForm.value.base_url = preset.base_url;
+  providerForm.value.preset = presetName !== "Custom" ? presetName : undefined;
+  providerForm.value.api_format = preset.api_format && Object.keys(preset.api_format).length > 0 ? { ...preset.api_format } : undefined;
   showPresetMenu.value = false;
 }
 
@@ -384,24 +382,14 @@ onMounted(async () => {
                   <div v-if="showPresetMenu" class="sel-menu" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 10">
                     <div class="sel-clip">
                       <button
-                        class="sel-opt"
-                        :class="{ hit: selectedPreset === 'Custom' }"
-                        @click="applyPreset('Custom')"
-                      >
-                        <div class="opt-info">
-                          <span class="opt-id">{{ t('onboarding.custom') }}</span>
-                        </div>
-                        <Check v-if="selectedPreset === 'Custom'" :size="13" :stroke-width="2.5" />
-                      </button>
-                      <button
                         v-for="p in providerPresets" :key="p.name"
                         class="sel-opt"
                         :class="{ hit: selectedPreset === p.name }"
                         @click="applyPreset(p.name)"
                       >
                         <div class="opt-info">
-                          <span class="opt-id">{{ p.name }}</span>
-                          <span class="opt-src">{{ p.base_url }}</span>
+                          <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
+                          <span v-if="p.base_url" class="opt-src">{{ p.base_url }}</span>
                         </div>
                         <Check v-if="selectedPreset === p.name" :size="13" :stroke-width="2.5" />
                       </button>
@@ -424,6 +412,11 @@ onMounted(async () => {
               />
               <p v-if="!selectedPreset || selectedPreset === 'Custom'" class="mt-1.5" style="font-size: 10.5px; color: var(--color-text-muted); line-height: 1.4">
                 {{ t('settings.openaiCompatHint') }}
+              </p>
+              <p v-else-if="currentPresetObj?.api_url" class="mt-1.5" style="font-size: 10.5px; line-height: 1.4">
+                <a :href="currentPresetObj.api_url" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
+                  {{ t('settings.getApiKeyAt', { name: currentPresetObj.name }) }}
+                </a>
               </p>
             </div>
 

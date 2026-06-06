@@ -30,6 +30,7 @@
     "preset": "预设",
     "applyPreset": "应用预设",
     "openaiCompatHint": "需要 OpenAI 兼容的 API。",
+    "getApiKeyAt": "在 {name} 获取 API 密钥",
     "noPresetsFound": "未找到预设。编辑预设文件以添加。",
     "theme": "主题",
     "light": "浅色",

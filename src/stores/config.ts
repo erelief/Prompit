@@ -33,6 +33,7 @@ export interface ProviderPreset {
   name: string;
   provider_name: string;
   base_url: string;
+  api_url: string;
   api_format: ApiFormat;
 }
 

@@ -49,6 +49,8 @@ pub struct ProviderPreset {
     pub provider_name: String,
     pub base_url: String,
     #[serde(default)]
+    pub api_url: String,
+    #[serde(default)]
     pub api_format: ApiFormat,
 }
 

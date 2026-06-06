@@ -1,9 +1,17 @@
 {
   "presets": [
     {
+      "name": "Custom",
+      "provider_name": "",
+      "base_url": "",
+      "api_url": "",
+      "api_format": {}
+    },
+    {
       "name": "OpenAI",
       "provider_name": "OpenAI",
       "base_url": "https://api.openai.com/v1",
+      "api_url": "https://platform.openai.com/apikeys",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
@@ -15,6 +23,7 @@
       "name": "DeepSeek",
       "provider_name": "DeepSeek",
       "base_url": "https://api.deepseek.com",
+      "api_url": "https://platform.deepseek.com/apikeys",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
@@ -26,6 +35,7 @@
       "name": "Kimi",
       "provider_name": "Kimi",
       "base_url": "https://api.moonshot.cn/v1",
+      "api_url": "https://platform.moonshot.cn/console/api-keys",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
@@ -37,6 +47,7 @@
       "name": "Ollama (local)",
       "provider_name": "Ollama",
       "base_url": "http://localhost:11434/v1",
+      "api_url": "https://ollama.com",
       "api_format": {
         "auth_header": "",
         "auth_prefix": "",
