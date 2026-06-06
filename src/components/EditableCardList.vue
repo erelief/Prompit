@@ -71,6 +71,7 @@ function confirmEdit(index: number) {
   const s = new Set(editing.value);
   s.delete(index);
   editing.value = s;
+  emit("confirm", { index });
 }
 
 function cancelEdit(index: number) {

@@ -61,12 +61,29 @@ const router = useRouter();
 const route = useRoute();
 const growAbove = ref(false);
 const activeTab = ref<TabKey>("general");
-const visibleKeys = ref<Set<number>>(new Set());
 const testingProvider = ref<number | null>(null);
-const fetchStatuses = ref<Map<number, string>>(new Map());
-const fetchedModels = ref<Map<string, string[]>>(new Map());
-const fetchingProviders = ref(new Set<number>());
-const fetchSuccess = ref(new Set<number>());
+
+interface ProviderEditState {
+  keyVisible: boolean;
+  fetching: boolean;
+  fetched: string[];
+  status: string;
+}
+const editStates = ref<Map<number, ProviderEditState>>(new Map());
+
+function getEditState(index: number): ProviderEditState {
+  let s = editStates.value.get(index);
+  if (!s) {
+    s = { keyVisible: false, fetching: false, fetched: [], status: "" };
+    editStates.value.set(index, s);
+  }
+  return s;
+}
+
+function clearEditState(index: number) {
+  editStates.value.delete(index);
+}
+
 const addingModelProvider = ref<number | null>(null);
 const showModelSelector = ref(false);
 const showLangSelector = ref(false);
@@ -291,24 +308,12 @@ function onLangDragEnd() {
 function onProviderDragEnd({ indexMap }: { indexMap: Map<number, number> }) {
   appConfig.active_provider_index = indexMap.get(appConfig.active_provider_index) ?? 0;
 
-  const rv = new Set<number>();
-  for (const i of visibleKeys.value) { const m = indexMap.get(i); if (m !== undefined) rv.add(m); }
-  visibleKeys.value = rv;
-
-  const rf = new Map<string, string[]>();
-  for (const [k, v] of fetchedModels.value) {
-    const ni = indexMap.get(parseInt(k.slice(1)));
-    if (ni !== undefined) rf.set(`p${ni}`, v);
+  const re = new Map<number, ProviderEditState>();
+  for (const [k, v] of editStates.value) {
+    const m = indexMap.get(k);
+    if (m !== undefined) re.set(m, v);
   }
-  fetchedModels.value = rf;
-
-  const rfp = new Set<number>();
-  for (const i of fetchingProviders.value) { const m = indexMap.get(i); if (m !== undefined) rfp.add(m); }
-  fetchingProviders.value = rfp;
-
-  const rfs = new Map<number, string>();
-  for (const [k, v] of fetchStatuses.value) { const m = indexMap.get(k); if (m !== undefined) rfs.set(m, v); }
-  fetchStatuses.value = rfs;
+  editStates.value = re;
 
   if (testingProvider.value !== null) testingProvider.value = indexMap.get(testingProvider.value) ?? null;
   if (addingModelProvider.value !== null) addingModelProvider.value = indexMap.get(addingModelProvider.value) ?? null;
@@ -341,9 +346,8 @@ function restoreDefaultOrder() {
 }
 
 function toggleKeyVisibility(index: number) {
-  const s = new Set(visibleKeys.value);
-  s.has(index) ? s.delete(index) : s.add(index);
-  visibleKeys.value = s;
+  const s = getEditState(index);
+  s.keyVisible = !s.keyVisible;
 }
 
 async function load() {
@@ -371,29 +375,26 @@ function onProviderAdd() {
   });
 }
 
+function onProviderConfirm({ index }: { index: number }) {
+  clearEditState(index);
+  persistConfig();
+}
+
 function onProviderCancel({ index }: { index: number }) {
-  visibleKeys.value.delete(index);
-  fetchStatuses.value.delete(index);
-  fetchedModels.value.delete(`p${index}`);
-  fetchingProviders.value.delete(index);
-  if (addingModelProvider.value === index) addingModelProvider.value = null;
+  clearEditState(index);
   if (testingProvider.value === index) testingProvider.value = null;
   showPresetMenu.value = false;
   presetMenuIndex.value = null;
 }
 
 function onProviderRemove({ index, indexMap }: { index: number; indexMap: Map<number, number> }) {
-  visibleKeys.value.delete(index);
-  fetchedModels.value.delete(`p${index}`);
-  const rv = new Set<number>();
-  for (const i of visibleKeys.value) { const m = indexMap.get(i); if (m !== undefined) rv.add(m); }
-  visibleKeys.value = rv;
-  const rf = new Map<string, string[]>();
-  for (const [k, v] of fetchedModels.value) {
-    const ni = indexMap.get(parseInt(k.slice(1)));
-    if (ni !== undefined) rf.set(`p${ni}`, v);
+  clearEditState(index);
+  const re = new Map<number, ProviderEditState>();
+  for (const [k, v] of editStates.value) {
+    const m = indexMap.get(k);
+    if (m !== undefined) re.set(m, v);
   }
-  fetchedModels.value = rf;
+  editStates.value = re;
   if (appConfig.active_provider_index >= appConfig.providers.length)
     appConfig.active_provider_index = Math.max(0, appConfig.providers.length - 1);
   const ap = appConfig.providers[appConfig.active_provider_index];
@@ -401,55 +402,50 @@ function onProviderRemove({ index, indexMap }: { index: number; indexMap: Map<nu
     appConfig.active_model_index = Math.max(0, ap.models.length - 1);
 }
 
-function removeModel(pIndex: number, mIndex: number) {
-  appConfig.providers[pIndex].models.splice(mIndex, 1);
-  const p = appConfig.providers[pIndex];
-  if (pIndex === appConfig.active_provider_index && appConfig.active_model_index >= p.models.length)
-    appConfig.active_model_index = Math.max(0, p.models.length - 1);
+function removeModel(item: ProviderConfig, mIndex: number) {
+  item.models.splice(mIndex, 1);
 }
 
 async function testConnection(provider: ProviderConfig, index: number) {
   if (!provider.api_key || !provider.base_url) return;
   testingProvider.value = index;
+  const s = getEditState(index);
   const result = await testProviderConnection(provider);
   if (result.ok) {
-    fetchStatuses.value.set(index, "Connected");
-    setTimeout(() => fetchStatuses.value.delete(index), 3000);
+    s.status = "Connected";
+    setTimeout(() => { s.status = ""; }, 3000);
   } else {
-    fetchStatuses.value.set(index, result.error || "Connection failed");
-    setTimeout(() => fetchStatuses.value.delete(index), 4000);
+    s.status = result.error || "Connection failed";
+    setTimeout(() => { s.status = ""; }, 4000);
   }
   testingProvider.value = null;
 }
 
 async function fetchModels(provider: ProviderConfig, index: number) {
   if (!provider.api_key || !provider.base_url) return;
-  fetchingProviders.value.add(index);
+  const s = getEditState(index);
+  s.fetching = true;
   const result = await fetchProviderModels(provider);
   if (result.ok && result.models) {
-    fetchedModels.value.set(`p${index}`, result.models);
-    fetchSuccess.value.add(index);
-    setTimeout(() => { fetchSuccess.value.delete(index); fetchSuccess.value = new Set(fetchSuccess.value); }, 2000);
+    s.fetched = result.models;
   } else {
-    fetchStatuses.value.set(index, result.error || "Fetch failed");
-    setTimeout(() => fetchStatuses.value.delete(index), 5000);
+    s.status = result.error || "Fetch failed";
+    setTimeout(() => { s.status = ""; }, 5000);
   }
-  fetchingProviders.value.delete(index);
+  s.fetching = false;
 }
 
-function addModelFromList(pi: number, mid: string) {
-  const p = appConfig.providers[pi];
-  if (!p || p.models.some((m) => m.id === mid)) return;
-  p.models.push({ id: mid });
-  if (appConfig.providers.reduce((s, p) => s + p.models.length, 0) === 1) {
-    appConfig.active_provider_index = pi;
-    appConfig.active_model_index = 0;
+function toggleModel(item: ProviderConfig, mid: string) {
+  const idx = item.models.findIndex((m) => m.id === mid);
+  if (idx >= 0) {
+    item.models.splice(idx, 1);
+  } else {
+    item.models.push({ id: mid });
   }
-  addingModelProvider.value = null;
 }
 
 function getFetchedModels(pi: number): string[] {
-  return fetchedModels.value.get(`p${pi}`) || [];
+  return editStates.value.get(pi)?.fetched || [];
 }
 
 // ── Translation model selector ──
@@ -494,7 +490,7 @@ function onDocClick(e: MouseEvent) {
     showPresetMenu.value = false;
     presetMenuIndex.value = null;
   }
-  if (!t.closest(".picker") && !t.closest(".gold-micro"))
+  if (!t.closest(".pickable"))
     addingModelProvider.value = null;
 }
 
@@ -579,7 +575,7 @@ onUnmounted(() => {
           :empty-icon="CircleDot"
           :validate="validateProvider"
           @add="onProviderAdd"
-          @confirm="() => persistConfig()"
+          @confirm="onProviderConfirm"
           @cancel="onProviderCancel"
           @remove="onProviderRemove"
           @drag-end="onProviderDragEnd"
@@ -595,15 +591,17 @@ onUnmounted(() => {
           </template>
 
           <template #name-input="{ item, index }">
-            <input v-model="item.name" :placeholder="t('settings.providerName')" class="name-input" @click.stop />
-            <button
-              class="preset-mini-btn"
-              :class="{ active: item.preset }"
-              @click.stop="togglePresetMenu($event, item, index)"
-              :title="item.preset ? `${t('settings.preset')}: ${item.preset}` : t('settings.applyPreset')"
-            >
-              <Wand2 :size="12" :stroke-width="1.8" />
-            </button>
+            <div class="name-row-wrap">
+              <input v-model="item.name" :placeholder="t('settings.providerName')" class="fi name-fi" @click.stop />
+              <button
+                class="preset-mini-btn"
+                :class="{ active: item.preset }"
+                @click.stop="togglePresetMenu($event, item, index)"
+                :title="item.preset ? `${t('settings.preset')}: ${item.preset}` : t('settings.applyPreset')"
+              >
+                <Wand2 :size="12" :stroke-width="1.8" />
+              </button>
+            </div>
           </template>
 
           <template #content="{ item, index }">
@@ -651,11 +649,11 @@ onUnmounted(() => {
                 <div class="key-wrap">
                   <input
                     v-model="item.api_key"
-                    :type="visibleKeys.has(index) ? 'text' : 'password'"
+                    :type="editStates.get(index)?.keyVisible ? 'text' : 'password'"
                     class="fi key-fi" placeholder="sk-…" @click.stop
                   />
-                  <button class="icon-btn-sm" @click.stop="toggleKeyVisibility(index)" :title="visibleKeys.has(index) ? 'Hide' : 'Show'">
-                    <EyeOff v-if="visibleKeys.has(index)" :size="12" :stroke-width="1.9" />
+                  <button class="icon-btn-sm" @click.stop="toggleKeyVisibility(index)" :title="editStates.get(index)?.keyVisible ? 'Hide' : 'Show'">
+                    <EyeOff v-if="editStates.get(index)?.keyVisible" :size="12" :stroke-width="1.9" />
                     <Eye v-else :size="12" :stroke-width="1.9" />
                   </button>
                   <button
@@ -670,12 +668,12 @@ onUnmounted(() => {
                 </div>
                 <Transition name="fade">
                   <span
-                    v-if="fetchStatuses.get(index)"
+                    v-if="editStates.get(index)?.status"
                     class="status-pill"
-                    :class="{ ok: fetchStatuses.get(index) === 'Connected', err: fetchStatuses.get(index) !== 'Connected' }"
+                    :class="{ ok: editStates.get(index)?.status === 'Connected', err: editStates.get(index)?.status !== 'Connected' }"
                   >
                     <span class="status-dot" />
-                    {{ fetchStatuses.get(index) }}
+                    {{ editStates.get(index)?.status }}
                   </span>
                 </Transition>
               </div>
@@ -692,49 +690,35 @@ onUnmounted(() => {
               <div class="pool-actions">
                 <button
                   class="pill-btn micro"
-                  :class="{ 'fetch-ok': fetchSuccess.has(index) }"
                   @click.stop="fetchModels(item, index)"
-                  :disabled="!item.api_key || fetchingProviders.has(index) || fetchSuccess.has(index)"
+                  :disabled="!item.api_key || !item.base_url || editStates.get(index)?.fetching"
                 >
-                  <Loader2 v-if="fetchingProviders.has(index)" :size="10" class="spin" :stroke-width="2" />
-                  <Check v-else-if="fetchSuccess.has(index)" :size="10" :stroke-width="2.5" />
+                  <Loader2 v-if="editStates.get(index)?.fetching" :size="10" class="spin" :stroke-width="2" />
                   <RefreshCw v-else :size="10" :stroke-width="2" />
-                  {{ fetchingProviders.has(index) ? 'Fetching' : fetchSuccess.has(index) ? 'Done' : 'Fetch' }}
-                </button>
-                <button
-                  v-if="getFetchedModels(index).length > 0 && addingModelProvider !== index"
-                  class="pill-btn micro gold-micro"
-                  @click.stop="addingModelProvider = index"
-                >
-                  <Plus :size="10" :stroke-width="2" />Add
+                  {{ editStates.get(index)?.fetching ? t('settings.fetching') : t('settings.fetch') }}
                 </button>
               </div>
             </div>
 
-            <!-- fetched picker -->
-            <div v-if="addingModelProvider === index" class="picker" @click.stop>
-              <div class="picker-scroll settings-scrollbar">
-                <button
-                  v-for="mid in getFetchedModels(index)" :key="mid"
-                  class="pick-item"
-                  :class="{ dim: item.models.some((m: any) => m.id === mid) }"
-                  @click="addModelFromList(index, mid)"
-                >
-                  <span>{{ mid }}</span>
-                  <Check v-if="item.models.some((m: any) => m.id === mid)" :size="11" :stroke-width="2.6" />
-                </button>
-              </div>
-              <button class="picker-done" @click.stop="addingModelProvider = null">Done</button>
-            </div>
-
-            <!-- tags -->
-            <div v-if="item.models.length > 0" class="tags">
+            <!-- model tags -->
+            <div v-if="item.models.length > 0 && getFetchedModels(index).length === 0" class="tags">
               <span v-for="(m, mi) in item.models" :key="mi" class="tag">
                 {{ m.id }}
-                <button class="tag-x" @click.stop="removeModel(+index, +mi)">
+                <button class="tag-x" @click.stop="removeModel(item, +mi)">
                   <Trash2 :size="9" :stroke-width="2" />
                 </button>
               </span>
+            </div>
+            <div v-if="getFetchedModels(index).length > 0" class="tags pickable">
+              <button
+                v-for="mid in getFetchedModels(index)" :key="mid"
+                class="tag"
+                :class="{ selected: item.models.some((m: any) => m.id === mid) }"
+                @click.stop="toggleModel(item, mid)"
+              >
+                <Check v-if="item.models.some((m: any) => m.id === mid)" :size="10" :stroke-width="2.5" />
+                {{ mid }}
+              </button>
             </div>
           </template>
         </EditableCardList>
@@ -1144,14 +1128,13 @@ onUnmounted(() => {
 .name-row {
   display:flex; align-items:center; gap:7px; margin-bottom:13px;
 }
-.name-input {
-  flex:1; background:none; border:none;
-  font-size:14px; font-weight:700; letter-spacing: -.02em;
-  color: var(--color-text); outline:none;
-  padding:3px 5px; border-radius:5px; transition:background .15s;
+.name-row-wrap {
+  display:flex; align-items:center; gap:4px; flex:1; min-width:0;
 }
-.name-input::placeholder{ color: var(--color-text-muted); }
-.name-input:focus{ background: var(--color-surface); }
+.name-fi {
+  flex:1; min-width:0;
+  font-size:14px; font-weight:700; letter-spacing: -.02em;
+}
 
 .fields { display:grid; grid-template-columns:1fr; gap:10px; }
 .field { display:flex; flex-direction:column; gap:4px; }
@@ -1279,6 +1262,17 @@ label {
 }
 .tag:hover .tag-x{ opacity:1; }
 .tag-x:hover{ color: var(--color-danger); background: var(--color-danger-bg); }
+
+/* Tags: pickable mode */
+.tags.pickable .tag {
+  cursor: pointer;
+  user-select: none;
+}
+.tags.pickable .tag.selected {
+  background: var(--color-accent-bg);
+  border-color: var(--color-accent-border);
+  color: var(--color-accent);
+}
 
 /* ── Model selector (Translation tab) ── */
 .sel-wrap { position:relative; }
