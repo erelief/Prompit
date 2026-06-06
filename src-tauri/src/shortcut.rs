@@ -74,6 +74,13 @@ pub fn register(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         shortcut,
         move |_app, _event, event: ShortcutEvent| {
             if event.state() == ShortcutState::Pressed {
+                // Skip shortcut during onboarding
+                if let Some(state) = app_handle.try_state::<crate::state::OnboardingState>() {
+                    if !state.is_complete() {
+                        return;
+                    }
+                }
+
                 let main_window = app_handle
                     .get_webview_window("main")
                     .expect("main window not found");
