@@ -98,8 +98,8 @@ pub fn show_onboarding_window(app: AppHandle) -> Result<(), String> {
         .map(|m| m.scale_factor())
         .unwrap_or(1.0);
 
-    let w = (600.0 * scale) as u32;
-    let h = (500.0 * scale) as u32;
+    let w = (640.0 * scale) as u32;
+    let h = (440.0 * scale) as u32;
 
     window
         .set_size(tauri::PhysicalSize { width: w, height: h })

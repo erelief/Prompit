@@ -12,10 +12,10 @@ import {
   testProviderConnection,
   fetchProviderModels,
 } from "../services/llm-client";
-import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import {
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Loader2,
   Check,
   Eye,
@@ -31,8 +31,21 @@ const router = useRouter();
 const currentStep = ref(0);
 const direction = ref<"forward" | "backward">("forward");
 
-// ── Step 0: Language ──
-const selectedLang = ref(appConfig.app_lang || "en");
+// ── Step 0: App language ──
+const appLanguageOptions = [
+  { value: "en", label: "English" },
+  { value: "zh-CN", label: "简体中文" },
+];
+const showAppLangMenu = ref(false);
+
+function selectAppLang(lang: string) {
+  appConfig.app_lang = lang;
+  showAppLangMenu.value = false;
+}
+
+const currentAppLangLabel = computed(() => {
+  return appLanguageOptions.find(o => o.value === appConfig.app_lang)?.label || "English";
+});
 
 // ── Step 2: Provider form ──
 const providerForm = ref<ProviderConfig>({
@@ -91,9 +104,6 @@ function goNext() {
     finishOnboarding();
     return;
   }
-  if (currentStep.value === 0) {
-    applyLanguage();
-  }
   direction.value = "forward";
   currentStep.value++;
 }
@@ -104,10 +114,7 @@ function goPrev() {
   currentStep.value--;
 }
 
-// ── Step 0 logic ──
-function applyLanguage() {
-  appConfig.app_lang = selectedLang.value;
-}
+// ── Step 0 logic: language is applied immediately via selectAppLang ──
 
 // ── Step 2 logic ──
 function applyPreset(presetName: string) {
@@ -207,8 +214,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-dvh px-6" style="background: var(--color-bg)">
-    <div class="w-full max-w-[480px] flex flex-col" style="min-height: 520px">
+  <div class="flex items-center justify-center min-h-dvh px-6" style="background: var(--color-bg)" data-tauri-drag-region>
+    <div class="w-full max-w-[520px] flex flex-col" style="min-height: 480px">
 
       <!-- Content area with transitions -->
       <div class="flex-1 relative overflow-hidden">
@@ -226,20 +233,29 @@ onMounted(async () => {
               <label class="block text-xs font-medium mb-2 tracking-wide uppercase" style="color: var(--color-text-muted)">
                 {{ t('onboarding.selectLanguage') }}
               </label>
-              <select
-                v-model="selectedLang"
-                @change="applyLanguage()"
-                class="w-full h-10 px-3 rounded-lg text-sm outline-none transition-colors cursor-pointer"
-                style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
-              >
-                <option
-                  v-for="lang in BUILTIN_LANGUAGES"
-                  :key="lang"
-                  :value="lang"
-                >
-                  {{ getLangName(lang) }}
-                </option>
-              </select>
+              <div class="sel-wrap" style="position: relative">
+                <button class="sel-btn w-full" @click="showAppLangMenu = !showAppLangMenu">
+                  <span class="sel-text">{{ currentAppLangLabel }}</span>
+                  <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showAppLangMenu }" />
+                </button>
+                <Transition name="drop">
+                  <div v-if="showAppLangMenu" class="sel-menu" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 10">
+                    <div class="sel-clip">
+                      <button
+                        v-for="opt in appLanguageOptions" :key="opt.value"
+                        class="sel-opt"
+                        :class="{ hit: appConfig.app_lang === opt.value }"
+                        @click="selectAppLang(opt.value)"
+                      >
+                        <div class="opt-info">
+                          <span class="opt-id">{{ opt.label }}</span>
+                        </div>
+                        <Check v-if="appConfig.app_lang === opt.value" :size="13" :stroke-width="2.5" />
+                      </button>
+                    </div>
+                  </div>
+                </Transition>
+              </div>
             </div>
           </div>
 
@@ -545,4 +561,45 @@ div::-webkit-scrollbar-thumb {
   background: var(--color-scrollbar);
   border-radius: 2px;
 }
+
+/* ── Dropdown (matching Settings style) ── */
+.sel-btn {
+  display:flex; align-items:center; gap:8px; width:100%;
+  padding: 9px 13px; border-radius:9px; font-size:12px;
+  background: var(--color-surface); border: 1px solid var(--color-scrollbar);
+  color: var(--color-text); cursor:pointer; transition:.15s; text-align:left;
+}
+.sel-btn:hover{ border-color: var(--color-border-hover); background: var(--color-surface); }
+.sel-text {
+  flex:1; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.sel-arrow { color: var(--color-text-muted); transition: transform .18s; flex-shrink:0; }
+.sel-arrow.rot{ transform: rotate(180deg); }
+.sel-menu {
+  min-width:200px; max-width:320px; max-height:180px;
+  padding: 0; border-radius: 11px;
+  background: var(--color-overlay); backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 16px 40px rgba(0,0,0,.55), 0 0 0 1px var(--color-surface);
+  overflow:hidden;
+}
+.sel-clip{ max-height:inherit; overflow-y:auto; overflow-x:hidden; padding:5px 7px 5px 5px; }
+.sel-opt {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  width:100%; padding: 8px 11px; border-radius:7px; font-size:11.5px;
+  color: var(--color-text-secondary); cursor:pointer;
+  border:none; background:none; text-align:left; transition:.1s;
+}
+.sel-opt:hover{ background: var(--color-surface-hover); color: var(--color-text); }
+.sel-opt.hit{
+  background: var(--color-accent-bg); color: var(--color-accent);
+}
+.opt-info{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.opt-id{
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.drop-enter-active,.drop-leave-active{ transition:opacity .14s ease,transform .14s ease; }
+.drop-enter-from,.drop-leave-to{ opacity:0; transform: translateY(-5px) scale(.967); }
 </style>
