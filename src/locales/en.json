@@ -139,6 +139,8 @@
     "finish": "Finish",
     "next": "Next",
     "previous": "Previous",
-    "back": "Back"
+    "back": "Back",
+    "exitConfirm": "Setup is not complete. If you exit now, you'll need to go through the setup again next time.",
+    "exitAnyway": "Exit anyway"
   }
 }

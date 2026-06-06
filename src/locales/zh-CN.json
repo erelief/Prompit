@@ -139,6 +139,8 @@
     "finish": "完成",
     "next": "下一步",
     "previous": "上一步",
-    "back": "返回"
+    "back": "返回",
+    "exitConfirm": "设置尚未完成。如果现在退出，下次启动时需要重新进行初始设置。",
+    "exitAnyway": "仍然退出"
   }
 }

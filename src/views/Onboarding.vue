@@ -24,6 +24,7 @@ import {
   Zap,
   PartyPopper,
   Link2,
+  X,
 } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -79,6 +80,7 @@ const showApiKey = ref(false);
 const showPresetMenu = ref(false);
 const isTestingKey = ref(false);
 const testKeyStatus = ref<"ok" | "fail" | "">("");
+const showCloseConfirm = ref(false);
 
 // ── Step 3: Models ──
 const availableModels = ref<string[]>([]);
@@ -240,6 +242,20 @@ function onRootClick(e: MouseEvent) {
   }
 }
 
+// ── Close button ──
+function handleClose() {
+  if (currentStep.value === 4) {
+    finishOnboarding();
+  } else {
+    showCloseConfirm.value = true;
+  }
+}
+
+function confirmClose() {
+  showCloseConfirm.value = false;
+  invoke("hide_main_window");
+}
+
 // ── Init ──
 onMounted(async () => {
   // Ensure window is properly sized and visible for onboarding
@@ -254,7 +270,44 @@ onMounted(async () => {
 
 <template>
   <div class="flex items-center justify-center min-h-dvh px-6 select-none" style="background: var(--color-bg)" data-tauri-drag-region @click="onRootClick">
-    <div class="w-full max-w-[520px] flex flex-col" style="min-height: 480px">
+    <div class="w-full max-w-[520px] flex flex-col relative" style="min-height: 480px">
+
+      <!-- Close button -->
+      <button
+        class="absolute top-0 right-0 z-10 flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+        style="color: var(--color-text-muted)"
+        @click="handleClose"
+        :title="t('common.hide')"
+      >
+        <X :size="18" :stroke-width="1.5" />
+      </button>
+
+      <!-- Close confirmation modal -->
+      <Transition name="drop">
+        <div v-if="showCloseConfirm" class="absolute inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.4); backdrop-filter: blur(4px)">
+          <div class="rounded-xl p-6 mx-4 max-w-xs w-full" style="background: var(--color-surface); border: 1px solid var(--color-border)">
+            <p class="text-sm mb-5" style="color: var(--color-text); line-height: 1.5">
+              {{ t('onboarding.exitConfirm') }}
+            </p>
+            <div class="flex gap-2 justify-end">
+              <button
+                class="h-8 px-4 rounded-lg text-xs font-medium transition-colors"
+                style="background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-secondary)"
+                @click="showCloseConfirm = false"
+              >
+                {{ t('common.cancel') }}
+              </button>
+              <button
+                class="h-8 px-4 rounded-lg text-xs font-medium transition-colors"
+                style="background: var(--color-danger); color: white"
+                @click="confirmClose"
+              >
+                {{ t('onboarding.exitAnyway') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
 
       <!-- Content area with transitions -->
       <div class="flex-1 relative overflow-hidden">
@@ -538,7 +591,7 @@ onMounted(async () => {
           v-if="currentStep > 0"
           @click="goPrev"
           class="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium transition-colors"
-          style="color: var(--color-text-secondary)"
+          style="background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-secondary)"
         >
           <ChevronLeft :size="16" />
           {{ t('onboarding.previous') }}
