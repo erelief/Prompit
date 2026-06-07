@@ -1713,17 +1713,25 @@ label {
   color: var(--color-text-secondary);
 }
 
-/* ── Interface section (theme + opacity grouped) ── */
+/* ── Interface section (theme + opacity + language grouped) ── */
 .interface-section {
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-scrollbar);
+  border-radius: 10px;
+  padding: 12px 14px;
 }
 .interface-row {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
 }
+.interface-row + .interface-row {
+  border-top: 1px solid var(--color-border);
+  padding-top: 8px;
+}
 .interface-label {
-  font-size: 11.5px; font-weight: 550;
-  color: var(--color-text-secondary);
+  font-size: 11px; font-weight: 500;
+  color: var(--color-text-muted);
   white-space: nowrap; flex-shrink: 0;
 }
 .theme-toggle.compact {
