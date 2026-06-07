@@ -115,7 +115,7 @@
     "Traditional Chinese": { "name": "繁体中文", "code": "繁中" }
   },
   "onboarding": {
-    "hello": "Hello",
+    "hello": "你好",
     "selectLanguage": "选择你的语言",
     "welcomeTitle": "欢迎使用 Prompit",
     "infoTitle": "还需一步",
