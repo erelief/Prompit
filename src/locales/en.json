@@ -6,6 +6,8 @@
     "delete": "Delete",
     "edit": "Edit",
     "add": "Add",
+    "remove": "Remove",
+    "confirmRemove": "Confirm remove",
     "settings": "Settings",
     "hide": "Hide (Esc)",
     "enabled": "Enabled",

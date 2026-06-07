@@ -273,18 +273,18 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
             </div>
             <div class="ecl-rhs" @click.stop>
               <template v-if="pendingRemove === oi">
-                <button class="mini-btn danger-active" title="Confirm remove" @click="confirmRemove(oi)">
+                <button class="mini-btn danger-active" :title="t('common.confirmRemove')" @click="confirmRemove(oi)">
                   <Check :size="11" :stroke-width="2.5" />
                 </button>
-                <button class="mini-btn" title="Cancel" @click="cancelRemove">
+                <button class="mini-btn" :title="t('common.cancel')" @click="cancelRemove">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </template>
               <template v-else>
-                <button class="mini-btn" title="Edit" @click="toggleEdit(oi)">
+                <button class="mini-btn" :title="t('common.edit')" @click="toggleEdit(oi)">
                   <Pencil :size="11" :stroke-width="1.9" />
                 </button>
-                <button class="mini-btn warn" title="Remove" @click="requestRemove(oi)">
+                <button class="mini-btn warn" :title="t('common.remove')" @click="requestRemove(oi)">
                   <Trash2 :size="11" :stroke-width="1.9" />
                 </button>
               </template>
@@ -298,15 +298,15 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
                 <input :value="drafts.get(oi)?.name" @input="drafts.get(oi) && (drafts.get(oi)!.name = ($event.target as HTMLInputElement).value)" placeholder="Name…" class="name-input" @click.stop />
               </slot>
               <template v-if="pendingRemove === oi">
-                <button class="mini-btn danger-active" title="Confirm remove" @click.stop="confirmRemove(oi)">
+                <button class="mini-btn danger-active" :title="t('common.confirmRemove')" @click.stop="confirmRemove(oi)">
                   <Check :size="12" :stroke-width="2.5" />
                 </button>
-                <button class="mini-btn ghost" title="Cancel" @click.stop="cancelRemove">
+                <button class="mini-btn ghost" :title="t('common.cancel')" @click.stop="cancelRemove">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </template>
               <template v-else>
-                <button class="mini-btn warn" title="Remove" @click.stop="requestRemove(oi)">
+                <button class="mini-btn warn" :title="t('common.remove')" @click.stop="requestRemove(oi)">
                   <Trash2 :size="12" :stroke-width="1.8" />
                 </button>
               </template>
