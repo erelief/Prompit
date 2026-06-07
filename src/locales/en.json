@@ -37,6 +37,7 @@
     "fetch": "Fetch",
     "fetching": "Fetching",
     "done": "Done",
+    "interface": "Interface",
     "theme": "Theme",
     "floatingOpacity": "Floating Window Opacity",
     "resetToDefault": "Reset to default",

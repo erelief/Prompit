@@ -50,6 +50,7 @@ import {
   ToggleRight,
   Droplet,
   Database,
+  Monitor,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -726,50 +727,56 @@ onUnmounted(() => {
           </template>
         </EditableCardList>
 
-        <!-- Theme -->
+        <!-- Interface -->
         <div class="section-head mt">
-          <span class="section-title"><Settings2 :size="13" />{{ t('settings.theme') }}</span>
+          <span class="section-title"><Monitor :size="13" />{{ t('settings.interface') }}</span>
         </div>
-        <div class="theme-toggle">
-          <button
-            v-for="opt in [{ value: 'light', icon: Sun, label: t('settings.light') }, { value: 'dark', icon: Moon, label: t('settings.dark') }, { value: 'system', icon: SunMoon, label: t('settings.system') }]"
-            :key="opt.value"
-            class="theme-btn"
-            :class="{ on: getTheme() === opt.value }"
-            @click="setTheme(opt.value as 'light' | 'dark' | 'system')"
-          >
-            <component :is="opt.icon" :size="13" :stroke-width="1.8" />
-            {{ opt.label }}
-          </button>
-        </div>
-
-        <!-- Floating Window Opacity -->
-        <div class="section-head mt">
-          <span class="section-title"><Droplet :size="13" />{{ t('settings.floatingOpacity') }}</span>
-        </div>
-        <div class="opacity-row">
-          <input
-            type="range" min="10" max="100" step="1"
-            :value="appConfig.floating_opacity"
-            @input="appConfig.floating_opacity = +($event.target as HTMLInputElement).value"
-            class="opacity-slider"
-          />
-          <div class="opacity-value-wrap">
-            <input
-              type="number" min="10" max="100"
-              :value="appConfig.floating_opacity"
-              @change="appConfig.floating_opacity = Math.min(100, Math.max(10, +($event.target as HTMLInputElement).value || 85))"
-              class="opacity-value-input"
-            />
-            <span class="opacity-pct">%</span>
-            <button
-              v-if="appConfig.floating_opacity !== 85"
-              class="opacity-reset"
-              @click="appConfig.floating_opacity = 85"
-              :title="t('settings.resetToDefault')"
-            >
-              <RotateCcw :size="10" :stroke-width="2" />
-            </button>
+        <div class="interface-section">
+          <!-- Theme -->
+          <div class="interface-row">
+            <span class="interface-label">{{ t('settings.theme') }}</span>
+            <div class="theme-toggle compact">
+              <button
+                v-for="opt in [{ value: 'light', icon: Sun, label: t('settings.light') }, { value: 'dark', icon: Moon, label: t('settings.dark') }, { value: 'system', icon: SunMoon, label: t('settings.system') }]"
+                :key="opt.value"
+                class="theme-btn"
+                :class="{ on: getTheme() === opt.value }"
+                @click="setTheme(opt.value as 'light' | 'dark' | 'system')"
+              >
+                <component :is="opt.icon" :size="13" :stroke-width="1.8" />
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+          <!-- Floating Window Opacity -->
+          <div class="interface-row">
+            <span class="interface-label">{{ t('settings.floatingOpacity') }}</span>
+            <div class="opacity-row compact">
+              <Droplet :size="13" class="opacity-row-icon" />
+              <input
+                type="range" min="10" max="100" step="1"
+                :value="appConfig.floating_opacity"
+                @input="appConfig.floating_opacity = +($event.target as HTMLInputElement).value"
+                class="opacity-slider"
+              />
+              <div class="opacity-value-wrap">
+                <input
+                  type="number" min="10" max="100"
+                  :value="appConfig.floating_opacity"
+                  @change="appConfig.floating_opacity = Math.min(100, Math.max(10, +($event.target as HTMLInputElement).value || 85))"
+                  class="opacity-value-input"
+                />
+                <span class="opacity-pct">%</span>
+                <button
+                  v-if="appConfig.floating_opacity !== 85"
+                  class="opacity-reset"
+                  @click="appConfig.floating_opacity = 85"
+                  :title="t('settings.resetToDefault')"
+                >
+                  <RotateCcw :size="10" :stroke-width="2" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1704,6 +1711,39 @@ label {
 .opacity-reset:hover {
   background: var(--color-border);
   color: var(--color-text-secondary);
+}
+
+/* ── Interface section (theme + opacity grouped) ── */
+.interface-section {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.interface-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.interface-label {
+  font-size: 11.5px; font-weight: 550;
+  color: var(--color-text-secondary);
+  white-space: nowrap; flex-shrink: 0;
+}
+.theme-toggle.compact {
+  flex: 0 1 auto;
+  margin-bottom: 0;
+  width: 240px;
+}
+.theme-toggle.compact .theme-btn {
+  padding: 5px 0;
+}
+.opacity-row.compact {
+  width: 240px;
+  flex: none;
+  padding: 5px 0;
+  background: none;
+  border: none;
+}
+.opacity-row-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 
 /* ── About row ── */
