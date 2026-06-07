@@ -778,37 +778,37 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
-        </div>
+          <!-- Language -->
+          <div class="interface-row">
+            <span class="interface-label">{{ t('settings.language') }}</span>
+            <div class="sel-wrap compact">
+              <button ref="appLangBtnRef" class="sel-btn" @click="toggleAppLangMenu()">
+                <Languages :size="13" class="sel-btn-icon" />
+                <span class="sel-text">{{ currentAppLangLabel }}</span>
+                <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showAppLangMenu }" />
+              </button>
 
-        <!-- Language -->
-        <div class="section-head mt">
-          <span class="section-title"><Languages :size="13" />{{ t('settings.language') }}</span>
-        </div>
-        <div class="sel-wrap">
-          <button ref="appLangBtnRef" class="sel-btn" @click="toggleAppLangMenu()">
-            <span class="sel-text">{{ currentAppLangLabel }}</span>
-            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showAppLangMenu }" />
-          </button>
-
-          <Teleport to="body">
-            <Transition name="drop">
-              <div v-if="showAppLangMenu" class="sel-menu" :style="{ top: appLangMenuPos.top + 'px', left: appLangMenuPos.left + 'px' }">
-                <div class="sel-clip settings-scrollbar">
-                  <button
-                    v-for="opt in appLanguageOptions" :key="opt.value"
-                    class="sel-opt"
-                    :class="{ hit: appConfig.app_lang === opt.value }"
-                    @click="selectAppLang(opt.value)"
-                  >
-                    <div class="opt-info">
-                      <span class="opt-id">{{ opt.label }}</span>
+              <Teleport to="body">
+                <Transition name="drop">
+                  <div v-if="showAppLangMenu" class="sel-menu" :style="{ top: appLangMenuPos.top + 'px', left: appLangMenuPos.left + 'px' }">
+                    <div class="sel-clip settings-scrollbar">
+                      <button
+                        v-for="opt in appLanguageOptions" :key="opt.value"
+                        class="sel-opt"
+                        :class="{ hit: appConfig.app_lang === opt.value }"
+                        @click="selectAppLang(opt.value)"
+                      >
+                        <div class="opt-info">
+                          <span class="opt-id">{{ opt.label }}</span>
+                        </div>
+                        <Check v-if="appConfig.app_lang === opt.value" :size="13" :stroke-width="2.5" />
+                      </button>
                     </div>
-                    <Check v-if="appConfig.app_lang === opt.value" :size="13" :stroke-width="2.5" />
-                  </button>
-                </div>
-              </div>
-            </Transition>
-          </Teleport>
+                  </div>
+                </Transition>
+              </Teleport>
+            </div>
+          </div>
         </div>
 
         <!-- About -->
@@ -1742,6 +1742,18 @@ label {
   border: none;
 }
 .opacity-row-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.sel-wrap.compact {
+  width: 240px;
+}
+.sel-wrap.compact .sel-btn {
+  width: 100%;
+  padding: 5px 10px;
+  font-size: 11px;
+}
+.sel-btn-icon {
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
