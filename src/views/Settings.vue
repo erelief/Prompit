@@ -856,7 +856,7 @@ onUnmounted(() => {
         </div>
         <div class="reset-row">
           <span class="reset-desc">{{ t('settings.reset.description') }}</span>
-          <button class="mini-btn warn" @click="router.push('/settings/reset')">
+          <button class="reset-btn" @click="router.push('/settings/reset')">
             <Trash2 :size="11" :stroke-width="1.9" />{{ t('settings.reset.button') }}
           </button>
         </div>
@@ -1732,10 +1732,21 @@ label {
   font-size: 11.5px;
   color: var(--color-text-muted);
 }
-.reset-trigger-btn {
+.reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-weight: 550;
   color: var(--color-text-muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: 0.15s;
 }
-.pill-btn.micro.reset-trigger-btn:hover {
+.reset-btn:hover {
   color: var(--color-danger);
   background: var(--color-danger-bg);
 }
