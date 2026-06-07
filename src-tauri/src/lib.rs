@@ -101,6 +101,7 @@ pub fn run() {
             commands::window::resize_and_reposition,
             commands::window::show_onboarding_window,
             commands::window::get_grow_above,
+            commands::window::reset_app_data,
             commands::clipboard::simulate_paste,
             commands::config_cmd::read_config,
             commands::config_cmd::save_config,

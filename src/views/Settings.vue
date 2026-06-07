@@ -49,6 +49,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Droplet,
+  Database,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -847,6 +848,17 @@ onUnmounted(() => {
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
             </button>
           </div>
+        </div>
+
+        <!-- User Data -->
+        <div class="section-head mt">
+          <span class="section-title"><Database :size="13" />{{ t('settings.userData') }}</span>
+        </div>
+        <div class="reset-row">
+          <span class="reset-desc">{{ t('settings.reset.description') }}</span>
+          <button class="mini-btn warn" @click="router.push('/settings/reset')">
+            <Trash2 :size="11" :stroke-width="1.9" />{{ t('settings.reset.button') }}
+          </button>
         </div>
       </template>
 
@@ -1703,6 +1715,29 @@ label {
   border: 1px solid var(--color-scrollbar);
   border-radius: 9px;
   padding: 6px 8px 6px 12px;
+}
+
+/* ── Reset row ── */
+.reset-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-scrollbar);
+  border-radius: 9px;
+  padding: 8px 8px 8px 14px;
+}
+.reset-desc {
+  flex: 1;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+.reset-trigger-btn {
+  color: var(--color-text-muted);
+}
+.pill-btn.micro.reset-trigger-btn:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
 }
 .about-row-info {
   display: flex;

@@ -56,7 +56,18 @@
     "addTranslationPersona": "Add Translation Persona",
     "personaName": "Persona name…",
     "close": "Close",
-    "about": "About"
+    "about": "About",
+    "userData": "User Data",
+    "reset": {
+      "description": "Delete all user data and settings.",
+      "button": "Reset Software",
+      "pageTitle": "Reset Software",
+      "warning": "This action will permanently delete all your data and settings. The application will close after the reset is complete.",
+      "irreversible": "This action cannot be undone.",
+      "understood": "I understand the risk",
+      "confirmCountdown": "Confirm ({n}s)",
+      "confirm": "Confirm"
+    }
   },
   "floating": {
     "pressEnterToPaste": "Press Enter to paste result...",

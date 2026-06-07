@@ -111,6 +111,16 @@ pub fn show_onboarding_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn reset_app_data(app: AppHandle) -> Result<(), String> {
+    let dir = crate::get_data_dir(&app)?;
+    if dir.exists() {
+        std::fs::remove_dir_all(&dir).map_err(|e| format!("delete: {e}"))?;
+    }
+    app.exit(0);
+    Ok(())
+}
+
+#[tauri::command]
 pub fn get_grow_above(app: AppHandle) -> bool {
     app.state::<WindowConfig>().get_grow_above()
 }

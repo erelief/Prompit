@@ -56,7 +56,18 @@
     "addTranslationPersona": "添加翻译角色",
     "personaName": "角色名称…",
     "close": "关闭",
-    "about": "关于"
+    "about": "关于",
+    "userData": "用户数据",
+    "reset": {
+      "description": "删除所有用户数据和设置。",
+      "button": "重置软件",
+      "pageTitle": "重置软件",
+      "warning": "此操作将永久删除你的所有数据和设置。重置完成后应用将自动关闭。",
+      "irreversible": "此操作不可撤销。",
+      "understood": "我已了解风险",
+      "confirmCountdown": "确认 ({n}s)",
+      "confirm": "确认"
+    }
   },
   "floating": {
     "pressEnterToPaste": "按 Enter 粘贴结果...",

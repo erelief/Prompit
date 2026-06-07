@@ -25,6 +25,11 @@ const router = createRouter({
       component: () => import("../views/About.vue"),
     },
     {
+      path: "/settings/reset",
+      name: "reset",
+      component: () => import("../views/ResetSoftware.vue"),
+    },
+    {
       path: "/onboarding",
       name: "onboarding",
       component: () => import("../views/Onboarding.vue"),
