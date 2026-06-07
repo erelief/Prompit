@@ -282,8 +282,8 @@ onMounted(async () => {
 
       <!-- Close confirmation modal -->
       <Transition name="drop">
-        <div v-if="showCloseConfirm" class="absolute inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.4); backdrop-filter: blur(4px)">
-          <div class="rounded-xl p-6 mx-4 max-w-xs w-full" style="background: var(--color-surface); border: 1px solid var(--color-border)">
+        <div v-if="showCloseConfirm" class="fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.4); backdrop-filter: blur(4px)">
+          <div class="rounded-xl p-6 mx-6 max-w-xs w-full" style="background: var(--color-bg); border: 1px solid var(--color-border)">
             <p class="text-sm mb-5" style="color: var(--color-text); line-height: 1.5">
               {{ t('onboarding.exitConfirm') }}
             </p>
