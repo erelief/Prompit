@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
-import { ArrowLeft, AlertTriangle } from "@lucide/vue";
+import { ArrowLeft, ShieldAlert } from "@lucide/vue";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -49,26 +49,28 @@ async function handleConfirm() {
       <span class="header-title">{{ t('settings.reset.pageTitle') }}</span>
     </div>
 
-    <!-- Warning -->
+    <!-- Body -->
     <div class="reset-body">
       <div class="warn-card">
         <div class="warn-icon-wrap">
-          <AlertTriangle :size="20" :stroke-width="1.6" />
+          <ShieldAlert :size="22" :stroke-width="1.5" />
         </div>
-        <p class="warn-text">{{ t('settings.reset.warning') }}</p>
-        <p class="warn-sub">{{ t('settings.reset.irreversible') }}</p>
+        <div class="warn-content">
+          <p class="warn-text">{{ t('settings.reset.warning') }}</p>
+          <p class="warn-irreversible">{{ t('settings.reset.irreversible') }}</p>
+        </div>
       </div>
     </div>
 
     <!-- Footer -->
     <div class="reset-footer">
-      <span class="understood-text">{{ t('settings.reset.understood') }}</span>
+      <span class="understood-label">{{ t('settings.reset.understood') }}</span>
       <div class="footer-actions">
-        <button class="cancel-btn" @click="cancel">
+        <button class="action-btn cancel-btn" @click="cancel">
           {{ t('common.cancel') }}
         </button>
         <button
-          class="confirm-btn"
+          class="action-btn confirm-btn"
           :class="{ ready }"
           :disabled="!ready"
           @click="handleConfirm"
@@ -129,36 +131,40 @@ async function handleConfirm() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 24px 28px;
 }
-
 .warn-card {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  max-width: 300px;
-  text-align: center;
+  align-items: flex-start;
+  gap: 16px;
+  max-width: 340px;
 }
 .warn-icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
   background: var(--color-danger-bg);
   color: var(--color-danger);
+  flex-shrink: 0;
+}
+.warn-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
 }
 .warn-text {
   font-size: 13px;
-  font-weight: 550;
+  font-weight: 500;
   line-height: 1.55;
-  color: var(--color-text);
+  color: var(--color-text-secondary);
 }
-.warn-sub {
-  font-size: 11.5px;
-  font-weight: 700;
+.warn-irreversible {
+  font-size: 11px;
+  font-weight: 650;
   color: var(--color-danger);
   letter-spacing: 0.01em;
 }
@@ -172,7 +178,7 @@ async function handleConfirm() {
   border-top: 1px solid var(--color-surface);
   flex-shrink: 0;
 }
-.understood-text {
+.understood-label {
   font-size: 11px;
   font-weight: 500;
   color: var(--color-text-muted);
@@ -185,33 +191,33 @@ async function handleConfirm() {
   margin-left: auto;
 }
 
-.cancel-btn {
+/* ── Action buttons (shared base) ── */
+.action-btn {
   padding: 6px 16px;
   border-radius: 8px;
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
   border: none;
+  transition: all 0.15s;
+}
+
+/* Cancel: always prominent (accent) */
+.cancel-btn {
   background: var(--color-accent-bg);
   color: var(--color-accent-text);
-  transition: 0.15s;
 }
 .cancel-btn:hover {
   background: var(--color-accent-border);
   color: var(--color-text);
 }
 
+/* Confirm: countdown -> red */
 .confirm-btn {
-  padding: 6px 16px;
-  border-radius: 8px;
-  font-size: 11.5px;
-  font-weight: 600;
   cursor: default;
-  border: none;
   background: var(--color-surface);
   color: var(--color-text-muted);
   opacity: 0.55;
-  transition: 0.15s;
   font-variant-numeric: tabular-nums;
 }
 .confirm-btn.ready {
