@@ -107,14 +107,14 @@ const appLanguageOptions = [
 ];
 
 const showAppLangMenu = ref(false);
-const appLangMenuPos = ref({ top: 0, left: 0 });
+const appLangMenuPos = ref({ top: 0, left: 0, width: 0 });
 const appLangBtnRef = ref<HTMLElement | null>(null);
 
 function toggleAppLangMenu() {
   showAppLangMenu.value = !showAppLangMenu.value;
   if (showAppLangMenu.value && appLangBtnRef.value) {
     const r = appLangBtnRef.value.getBoundingClientRect();
-    appLangMenuPos.value = { top: r.bottom + 5, left: r.left };
+    appLangMenuPos.value = { top: r.bottom + 5, left: r.left, width: r.width };
   }
 }
 
@@ -731,10 +731,10 @@ onUnmounted(() => {
         <div class="section-head mt">
           <span class="section-title"><Monitor :size="13" />{{ t('settings.interface') }}</span>
         </div>
-        <div class="interface-section">
+        <div class="card-section">
           <!-- Theme -->
-          <div class="interface-row">
-            <span class="interface-label">{{ t('settings.theme') }}</span>
+          <div class="card-row">
+            <span class="card-label">{{ t('settings.theme') }}</span>
             <div class="theme-toggle compact">
               <button
                 v-for="opt in [{ value: 'light', icon: Sun, label: t('settings.light') }, { value: 'dark', icon: Moon, label: t('settings.dark') }, { value: 'system', icon: SunMoon, label: t('settings.system') }]"
@@ -749,8 +749,8 @@ onUnmounted(() => {
             </div>
           </div>
           <!-- Floating Window Opacity -->
-          <div class="interface-row">
-            <span class="interface-label">{{ t('settings.floatingOpacity') }}</span>
+          <div class="card-row">
+            <span class="card-label">{{ t('settings.floatingOpacity') }}</span>
             <div class="opacity-row compact">
               <Droplet :size="13" class="opacity-row-icon" />
               <input
@@ -779,8 +779,8 @@ onUnmounted(() => {
             </div>
           </div>
           <!-- Language -->
-          <div class="interface-row">
-            <span class="interface-label">{{ t('settings.language') }}</span>
+          <div class="card-row">
+            <span class="card-label">{{ t('settings.language') }}</span>
             <div class="sel-wrap compact">
               <button ref="appLangBtnRef" class="sel-btn" @click="toggleAppLangMenu()">
                 <Languages :size="13" class="sel-btn-icon" />
@@ -790,7 +790,7 @@ onUnmounted(() => {
 
               <Teleport to="body">
                 <Transition name="drop">
-                  <div v-if="showAppLangMenu" class="sel-menu" :style="{ top: appLangMenuPos.top + 'px', left: appLangMenuPos.left + 'px' }">
+                  <div v-if="showAppLangMenu" class="sel-menu" :style="{ top: appLangMenuPos.top + 'px', left: appLangMenuPos.left + 'px', width: appLangMenuPos.width + 'px' }">
                     <div class="sel-clip settings-scrollbar">
                       <button
                         v-for="opt in appLanguageOptions" :key="opt.value"
@@ -1713,23 +1713,24 @@ label {
   color: var(--color-text-secondary);
 }
 
-/* ── Interface section (theme + opacity + language grouped) ── */
-.interface-section {
+/* ── Card section: reusable grouped-settings container ── */
+/* Usage: section-head (title) + card-section (rows inside a card) */
+.card-section {
   display: flex; flex-direction: column; gap: 8px;
   background: var(--color-surface);
   border: 1px solid var(--color-scrollbar);
   border-radius: 10px;
   padding: 12px 14px;
 }
-.interface-row {
+.card-row {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
 }
-.interface-row + .interface-row {
+.card-row + .card-row {
   border-top: 1px solid var(--color-border);
   padding-top: 8px;
 }
-.interface-label {
+.card-label {
   font-size: 11px; font-weight: 500;
   color: var(--color-text-muted);
   white-space: nowrap; flex-shrink: 0;
