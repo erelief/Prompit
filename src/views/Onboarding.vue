@@ -268,7 +268,7 @@ onMounted(async () => {
 
 <template>
   <div class="flex items-center justify-center min-h-dvh px-6 select-none" style="background: var(--color-bg)" data-tauri-drag-region @click="onRootClick">
-    <div class="w-full max-w-[520px] flex flex-col relative" style="height: 480px">
+    <div class="w-full max-w-[520px] flex flex-col relative" style="height: 500px">
 
       <!-- Close button -->
       <button
