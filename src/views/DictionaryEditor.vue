@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -12,9 +12,10 @@ import {
   importDictionaryCsv,
   exportDictionaryCsv,
   clearAllDictionaries,
+  getOrderedLanguages,
 } from "../stores/config";
 import type { DictEntry } from "../stores/config";
-import { ArrowLeft, Download, Upload, Trash2, Plus, Save } from "@lucide/vue";
+import { ArrowLeft, Download, Upload, Trash2, Plus, Save, ChevronDown, Check } from "@lucide/vue";
 
 const { t } = useI18n();
 const entries = ref<DictEntry[]>([]);
@@ -22,6 +23,43 @@ const loading = ref(true);
 const router = useRouter();
 const saveError = ref("");
 const dirty = ref(false);
+
+/* ── View-local target language ── */
+const viewLang = ref(appConfig.target_lang);
+const showLangMenu = ref(false);
+const langMenuPos = ref({ top: 0, left: 0 });
+const langBtnRef = ref<HTMLButtonElement | null>(null);
+const langItems = computed(() =>
+  getOrderedLanguages().map(name => ({ id: name, name }))
+);
+
+async function pickViewLang(lang: string) {
+  if (lang === viewLang.value) { showLangMenu.value = false; return; }
+  viewLang.value = lang;
+  showLangMenu.value = false;
+  dirty.value = false;
+  saveError.value = "";
+  try {
+    entries.value = await loadDictionary(viewLang.value);
+  } catch {
+    entries.value = [];
+  }
+}
+
+function toggleLangMenu() {
+  showLangMenu.value = !showLangMenu.value;
+  if (showLangMenu.value && langBtnRef.value) {
+    const r = langBtnRef.value.getBoundingClientRect();
+    langMenuPos.value = { top: r.bottom + 5, left: r.left };
+  }
+}
+
+function closeLangMenu(e: MouseEvent) {
+  const t = e.target as HTMLElement;
+  if (!t.closest(".sel-menu") && !t.closest(".sel-btn")) {
+    showLangMenu.value = false;
+  }
+}
 
 /* ── Window drag ── */
 async function handleDrag(e: MouseEvent) {
@@ -60,7 +98,7 @@ async function handleSave() {
     .filter((e) => e.source.trim() !== "" && e.target.trim() !== "")
     .map((e) => ({ source: e.source.trim(), target: e.target.trim() }));
   try {
-    await saveDictionary(appConfig.target_lang, valid);
+    await saveDictionary(viewLang.value, valid);
     dirty.value = false;
   } catch (err) {
     saveError.value = "Failed to save dictionary.";
@@ -135,7 +173,7 @@ async function confirmOverwrite() {
 async function executeImport(mode: "add" | "overwrite") {
   try {
     const result = await importDictionaryCsv(pendingImportPath.value, mode);
-    entries.value = await loadDictionary(appConfig.target_lang);
+    entries.value = await loadDictionary(viewLang.value);
     dirty.value = false;
     saveError.value = "";
     const langs = result.languages_affected.join(", ");
@@ -218,11 +256,15 @@ async function confirmClear() {
 /* ── Lifecycle ── */
 onMounted(async () => {
   try {
-    entries.value = await loadDictionary(appConfig.target_lang);
+    entries.value = await loadDictionary(viewLang.value);
   } catch {
     entries.value = [];
   }
   loading.value = false;
+  document.addEventListener("click", closeLangMenu);
+});
+onUnmounted(() => {
+  document.removeEventListener("click", closeLangMenu);
 });
 </script>
 
@@ -244,9 +286,12 @@ onMounted(async () => {
       </button>
     </div>
 
-    <!-- Language label + Add Entry -->
+    <!-- Language selector + Add Entry -->
     <div class="dict-lang-row">
-      <span class="dict-lang">{{ t('dictionary.target') }}: {{ getLangName(appConfig.target_lang) }}</span>
+      <button ref="langBtnRef" class="sel-btn lang-sel-btn" @click="toggleLangMenu">
+        <span class="sel-text">{{ getLangName(viewLang) }}</span>
+        <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showLangMenu }" />
+      </button>
       <button class="pill-btn add-pill" @click="addEntry">
         <Plus :size="12" :stroke-width="2" />
         <span>{{ t('dictionary.addEntry') }}</span>
@@ -292,6 +337,25 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- Language selector dropdown -->
+    <Teleport to="body">
+      <Transition name="drop">
+        <div v-if="showLangMenu" class="sel-menu lang-menu" :style="{ top: langMenuPos.top + 'px', left: langMenuPos.left + 'px' }">
+          <div class="sel-clip settings-scrollbar">
+            <div
+              v-for="item in langItems" :key="item.id"
+              class="sel-opt lang-opt"
+              :class="{ hit: item.name === viewLang }"
+              @click="pickViewLang(item.name)"
+            >
+              <span class="opt-label">{{ getLangName(item.name) }}</span>
+              <Check v-if="item.name === viewLang" :size="13" :stroke-width="2.5" class="lang-item-check" />
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Footer -->
     <div class="dict-footer">
@@ -364,7 +428,7 @@ onMounted(async () => {
           <div class="modal-card">
             <div class="modal-title">
               {{ pendingClear === 'current'
-                ? t('dictionary.clearCurrentConfirm', { lang: getLangName(appConfig.target_lang) })
+                ? t('dictionary.clearCurrentConfirm', { lang: getLangName(viewLang) })
                 : t('dictionary.clearAllConfirm') }}
             </div>
             <div class="modal-warn-row">
@@ -470,15 +534,94 @@ onMounted(async () => {
 .dict-lang-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 10px 24px 6px;
   flex-shrink: 0;
 }
-.dict-lang {
-  flex: 1;
-  font-size: 11.5px;
-  font-weight: 550;
+
+/* ── Language selector (mirrors Settings.vue) ── */
+.lang-sel-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-scrollbar);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: .15s;
+}
+.lang-sel-btn:hover {
+  border-color: var(--color-border-hover);
+}
+.lang-sel-btn .sel-text {
+  font-family: inherit;
+  font-size: 12px;
+}
+.sel-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sel-arrow {
   color: var(--color-text-muted);
+  transition: transform .18s;
+  flex-shrink: 0;
+}
+.sel-arrow.rot {
+  transform: rotate(180deg);
+}
+.sel-menu {
+  position: fixed;
+  min-width: 200px;
+  max-height: 200px;
+  padding: 0;
+  border-radius: 11px;
+  background: var(--color-overlay);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 16px 40px rgba(0,0,0,.55), 0 0 0 1px var(--color-surface);
+  z-index: 99999;
+  overflow: hidden;
+}
+.sel-clip {
+  max-height: inherit;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 5px 7px 5px 5px;
+}
+.sel-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 11px;
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border: none;
+  background: none;
+  text-align: left;
+  transition: .1s;
+}
+.sel-opt:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+.sel-opt.hit {
+  background: var(--color-accent-bg);
+  color: var(--color-accent-text);
+}
+.opt-label {
+  font-family: inherit;
+}
+.lang-item-check {
+  color: var(--color-accent);
+  flex-shrink: 0;
 }
 
 /* ── Table ── */
