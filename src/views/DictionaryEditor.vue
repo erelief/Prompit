@@ -293,7 +293,7 @@ onUnmounted(() => {
         <span class="sel-text">{{ getLangName(viewLang) }}</span>
         <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showLangMenu }" />
       </button>
-      <button class="pill-btn add-pill" @click="addEntry">
+      <button class="pill-btn add-pill" style="margin-left: auto" @click="addEntry">
         <Plus :size="12" :stroke-width="2" />
         <span>{{ t('dictionary.addEntry') }}</span>
       </button>
@@ -635,7 +635,7 @@ onUnmounted(() => {
 .dict-table {
   height: 100%;
   overflow-y: auto;
-  border: 1px solid var(--color-surface);
+  border: 1px solid var(--color-border-hover);
   border-radius: 9px;
 }
 
@@ -655,7 +655,7 @@ onUnmounted(() => {
 .dict-row {
   display: flex;
   align-items: stretch;
-  border-bottom: 1px solid var(--color-surface);
+  border-bottom: 1px solid var(--color-border-hover);
 }
 .dict-row:last-child {
   border-bottom: none;
@@ -686,7 +686,7 @@ onUnmounted(() => {
 }
 .col-source {
   flex: 1;
-  border-right: 1px solid var(--color-surface);
+  border-right: 1px solid var(--color-border-hover);
 }
 .col-trans {
   flex: 1;
