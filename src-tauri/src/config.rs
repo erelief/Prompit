@@ -97,6 +97,8 @@ pub struct AppConfig {
     pub theme: String,
     #[serde(default = "default_floating_opacity")]
     pub floating_opacity: u8,
+    #[serde(default = "default_true")]
+    pub show_startup_reminder: bool,
 }
 
 fn default_target_lang() -> String {
@@ -110,6 +112,9 @@ fn default_app_lang() -> String {
 }
 fn default_floating_opacity() -> u8 {
     85
+}
+fn default_true() -> bool {
+    true
 }
 
 impl Default for AppConfig {
@@ -125,6 +130,7 @@ impl Default for AppConfig {
             app_lang: "en".to_string(),
             theme: "system".to_string(),
             floating_opacity: 85,
+            show_startup_reminder: true,
         }
     }
 }
@@ -162,6 +168,8 @@ mod tests {
             language_order: vec!["English".to_string(), "Japanese".to_string(), "Klingon".to_string()],
             app_lang: "zh-CN".to_string(),
             theme: "dark".to_string(),
+            floating_opacity: 85,
+            show_startup_reminder: true,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();

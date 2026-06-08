@@ -41,6 +41,11 @@ pub fn get_config_dir(app: AppHandle) -> Result<String, String> {
     Ok(dir.to_string_lossy().into_owned())
 }
 
+#[tauri::command]
+pub fn get_shortcut_label() -> String {
+    "Alt+Y".to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

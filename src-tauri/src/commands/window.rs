@@ -111,6 +111,31 @@ pub fn show_onboarding_window(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn show_startup_reminder_window(app: AppHandle) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or("Main window not found")?;
+
+    let scale = window
+        .current_monitor()
+        .ok()
+        .flatten()
+        .map(|m| m.scale_factor())
+        .unwrap_or(1.0);
+
+    let w = (380.0 * scale) as u32;
+    let h = (280.0 * scale) as u32;
+
+    window
+        .set_size(tauri::PhysicalSize { width: w, height: h })
+        .map_err(|e| e.to_string())?;
+    window.center().map_err(|e| e.to_string())?;
+    window.show().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn reset_app_data(app: AppHandle) -> Result<(), String> {
     let dir = crate::get_data_dir(&app)?;
     if dir.exists() {
