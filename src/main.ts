@@ -29,6 +29,13 @@ router.isReady().then(async () => {
   await loadConfig();
   initTheme();
 
+  // Mark onboarding complete for returning users
+  // (OnboardingState defaults to false on each launch; only set to true
+  // inside Onboarding.vue. Without this, the global shortcut is blocked.)
+  if (appConfig.providers.length > 0) {
+    invoke("set_onboarding_complete");
+  }
+
   // Decide initial route based on state
   if (appConfig.providers.length === 0) {
     // First-run: show onboarding

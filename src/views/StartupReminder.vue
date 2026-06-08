@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { isDark } from "../composables/useTheme";
 import { X } from "@lucide/vue";
 
 const { t } = useI18n();
+const router = useRouter();
 
 const shortcutLabel = ref("...");
 const countdown = ref(10);
@@ -17,6 +19,7 @@ function close() {
     clearInterval(timer);
     timer = null;
   }
+  router.replace("/");
   invoke("hide_main_window");
 }
 
