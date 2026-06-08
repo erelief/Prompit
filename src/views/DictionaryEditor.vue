@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getLangName } from "../constants/languages";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
@@ -10,6 +11,7 @@ import {
   saveDictionary,
   importDictionaryCsv,
   exportDictionaryCsv,
+  clearAllDictionaries,
 } from "../stores/config";
 import type { DictEntry } from "../stores/config";
 import { ArrowLeft, Download, Upload, Trash2, Plus, Save } from "@lucide/vue";
@@ -20,6 +22,13 @@ const loading = ref(true);
 const router = useRouter();
 const saveError = ref("");
 const dirty = ref(false);
+
+/* ── Window drag ── */
+async function handleDrag(e: MouseEvent) {
+  const t = e.target as HTMLElement;
+  if (t.closest("textarea, button, input, select, a")) return;
+  await getCurrentWindow().startDragging();
+}
 
 /* ── Add entry ── */
 function addEntry() {
@@ -66,34 +75,111 @@ function removeEntry(index: number) {
   saveError.value = "";
 }
 
-/* ── Import / Export ── */
-async function handleImport() {
+/* ── Import flow ── */
+const showImportMode = ref(false);
+const pendingImportPath = ref("");
+const showOverwriteWarn = ref(false);
+const importMessage = ref("");
+
+function cancelImportMode() {
+  showImportMode.value = false;
+  showOverwriteWarn.value = false;
+  pendingImportPath.value = "";
+}
+
+async function requestImport() {
   const filePath = await open({
     multiple: false,
     filters: [{ name: "CSV", extensions: ["csv"] }],
   });
   if (!filePath) return;
+  pendingImportPath.value = filePath as string;
+  const currentEntries = entries.value;
+  const isEmpty = currentEntries.length === 0;
+  if (isEmpty) {
+    await executeImport("add");
+  } else {
+    showImportMode.value = true;
+  }
+}
+
+async function chooseImportMode(mode: "add" | "overwrite") {
+  if (mode === "overwrite") {
+    showOverwriteWarn.value = true;
+    return;
+  }
+  showImportMode.value = false;
+  await executeImport("add");
+}
+
+async function confirmOverwrite() {
+  showOverwriteWarn.value = false;
+  showImportMode.value = false;
+  await executeImport("overwrite");
+}
+
+async function executeImport(mode: "add" | "overwrite") {
   try {
-    await importDictionaryCsv(appConfig.target_lang, filePath as string);
+    const result = await importDictionaryCsv(pendingImportPath.value, mode);
     entries.value = await loadDictionary(appConfig.target_lang);
     dirty.value = false;
     saveError.value = "";
+    const langs = result.languages_affected.join(", ");
+    importMessage.value = t('dictionary.imported', { n: result.imported, langs });
+    setTimeout(() => { importMessage.value = ""; }, 4000);
   } catch (err) {
     console.error("Failed to import dictionary:", err);
+  } finally {
+    pendingImportPath.value = "";
   }
 }
 
 async function handleExport() {
+  const now = new Date();
+  const ts = [
+    String(now.getFullYear()).slice(2),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+    String(now.getHours()).padStart(2, "0"),
+    String(now.getMinutes()).padStart(2, "0"),
+  ].join("");
   const filePath = await save({
-    defaultPath: `dictionary-${appConfig.target_lang.toLowerCase()}.csv`,
+    defaultPath: `Prompit_Translation_UD-${ts}.csv`,
     filters: [{ name: "CSV", extensions: ["csv"] }],
   });
   if (!filePath) return;
   try {
-    await exportDictionaryCsv(appConfig.target_lang, filePath);
+    await exportDictionaryCsv(filePath);
   } catch (err) {
     console.error("Failed to export dictionary:", err);
   }
+}
+
+/* ── Clear flow ── */
+const pendingClear = ref<"current" | "all" | null>(null);
+
+function requestClearCurrent() {
+  pendingClear.value = "current";
+}
+
+function requestClearAll() {
+  pendingClear.value = "all";
+}
+
+function cancelClear() {
+  pendingClear.value = null;
+}
+
+async function confirmClear() {
+  if (pendingClear.value === "current") {
+    entries.value = [];
+    await handleSave();
+  } else if (pendingClear.value === "all") {
+    await clearAllDictionaries();
+    entries.value = [];
+    dirty.value = false;
+  }
+  pendingClear.value = null;
 }
 
 /* ── Lifecycle ── */
@@ -108,14 +194,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="dict-root">
+  <div class="dict-root" @mousedown="handleDrag">
     <!-- Header -->
     <div class="dict-header">
       <button class="back-btn" @click="router.push('/settings?tab=translation')">
         <ArrowLeft :size="16" />
       </button>
       <span class="header-title">{{ t('dictionary.userDictionary') }}</span>
-      <button class="pill-btn micro" @click="handleImport">
+      <button class="pill-btn micro" @click="requestImport">
         <Download :size="12" />
         <span>{{ t('dictionary.import') }}</span>
       </button>
@@ -177,12 +263,85 @@ onMounted(async () => {
     <!-- Footer -->
     <div class="dict-footer">
       <span class="footer-count">{{ t('dictionary.entries') }}: {{ entries.length }}</span>
+      <span v-if="importMessage" class="footer-import-msg">{{ importMessage }}</span>
       <span v-if="saveError" class="footer-error">{{ saveError }}</span>
+
+      <!-- Clear buttons -->
+      <button class="pill-btn micro clear-btn" @click="requestClearCurrent" :disabled="entries.length === 0">
+        <Trash2 :size="11" />
+        <span>{{ t('dictionary.clearCurrent') }}</span>
+      </button>
+      <button class="pill-btn micro clear-btn" @click="requestClearAll">
+        <Trash2 :size="11" />
+        <span>{{ t('dictionary.clearAll') }}</span>
+      </button>
+
       <button class="pill-btn save-btn" :disabled="!dirty" @click="handleSave">
         <Save :size="12" />
         <span>{{ t('common.save') }}</span>
       </button>
     </div>
+
+    <!-- Import mode dialog -->
+    <Teleport to="body">
+      <Transition name="drop">
+        <div v-if="showImportMode" class="modal-overlay" @click.self="cancelImportMode">
+          <div class="modal-card">
+            <div class="modal-title">{{ t('dictionary.importModeTitle') }}</div>
+            <div class="modal-hint">{{ t('dictionary.importModeHint') }}</div>
+            <template v-if="!showOverwriteWarn">
+              <div class="modal-actions">
+                <button class="pill-btn modal-btn" @click="chooseImportMode('add')">
+                  {{ t('dictionary.addToExisting') }}
+                </button>
+                <button class="pill-btn modal-btn warn-btn" @click="chooseImportMode('overwrite')">
+                  {{ t('dictionary.overwritePerLang') }}
+                </button>
+              </div>
+            </template>
+            <template v-else>
+              <div class="modal-warn-row">
+                <span class="remove-warning-text">{{ t('dictionary.overwriteWarning') }}</span>
+              </div>
+              <div class="modal-actions">
+                <button class="pill-btn modal-btn" @click="cancelImportMode">
+                  {{ t('common.cancel') }}
+                </button>
+                <button class="pill-btn modal-btn danger-active" @click="confirmOverwrite">
+                  {{ t('common.confirm') }}
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Clear confirm dialog -->
+    <Teleport to="body">
+      <Transition name="drop">
+        <div v-if="pendingClear" class="modal-overlay" @click.self="cancelClear">
+          <div class="modal-card">
+            <div class="modal-title">
+              {{ pendingClear === 'current'
+                ? t('dictionary.clearCurrentConfirm', { lang: getLangName(appConfig.target_lang) })
+                : t('dictionary.clearAllConfirm') }}
+            </div>
+            <div class="modal-warn-row">
+              <span class="remove-warning-text">{{ t('dictionary.overwriteWarning') }}</span>
+            </div>
+            <div class="modal-actions">
+              <button class="pill-btn modal-btn" @click="cancelClear">
+                {{ t('common.cancel') }}
+              </button>
+              <button class="pill-btn modal-btn danger-active" @click="confirmClear">
+                {{ t('common.confirm') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -420,5 +579,101 @@ onMounted(async () => {
 .save-btn:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+/* ── Footer extras ── */
+.footer-import-msg {
+  flex: 1;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+.clear-btn {
+  color: var(--color-text-muted);
+}
+.clear-btn:hover:not(:disabled) {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+.clear-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ── Modal overlay ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  backdrop-filter: blur(2px);
+}
+.modal-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-surface);
+  border-radius: 11px;
+  padding: 20px 24px;
+  min-width: 280px;
+  max-width: 360px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.25);
+}
+.modal-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+.modal-hint {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+.modal-warn-row {
+  margin-bottom: 12px;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.modal-btn {
+  padding: 5px 14px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border-radius: 7px;
+}
+.modal-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+.warn-btn {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+.warn-btn:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+.danger-active {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  animation: danger-pulse .8s ease-in-out infinite alternate;
+}
+@keyframes danger-pulse {
+  from { opacity: .75; }
+  to { opacity: 1; }
+}
+
+/* ── Modal transition ── */
+.drop-enter-active,
+.drop-leave-active {
+  transition: opacity .15s ease;
+}
+.drop-enter-from,
+.drop-leave-to {
+  opacity: 0;
 }
 </style>
