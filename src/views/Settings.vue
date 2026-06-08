@@ -1794,7 +1794,7 @@ label {
   background: var(--color-surface);
   border: 1px solid var(--color-scrollbar);
   border-radius: 9px;
-  padding: 8px 8px 8px 14px;
+  padding: 10px 14px 10px 14px;
 }
 .reset-desc {
   flex: 1;
