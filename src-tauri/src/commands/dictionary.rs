@@ -160,22 +160,21 @@ pub fn import_dictionary_csv(
 }
 
 #[tauri::command]
-pub fn export_dictionary_csv(
-    app: AppHandle,
-    target_lang: String,
-    file_path: String,
-) -> Result<(), String> {
+pub fn export_dictionary_csv(app: AppHandle, file_path: String) -> Result<(), String> {
     let store = load_dict_store(&app)?;
-    let entries = store.get(&target_lang).cloned().unwrap_or_default();
     let mut wtr = csv::WriterBuilder::new()
         .has_headers(false)
         .from_path(&file_path)
         .map_err(|e| format!("create csv: {e}"))?;
-    wtr.write_record(["source", "target"])
+    wtr.write_record(["lang", "source", "target"])
         .map_err(|e| format!("write header: {e}"))?;
-    for entry in &entries {
-        wtr.serialize((entry.source.as_str(), entry.target.as_str()))
-            .map_err(|e| format!("write csv: {e}"))?;
+    let mut langs: Vec<&String> = store.keys().collect();
+    langs.sort();
+    for lang in langs {
+        for entry in &store[lang] {
+            wtr.serialize((lang.as_str(), entry.source.as_str(), entry.target.as_str()))
+                .map_err(|e| format!("write csv: {e}"))?;
+        }
     }
     wtr.flush().map_err(|e| format!("flush csv: {e}"))?;
     Ok(())
