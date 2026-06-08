@@ -116,10 +116,7 @@ const canProceed = computed(() => {
 
 const isLastStep = computed(() => currentStep.value === 4);
 
-const shortcutKey = computed(() => {
-  const isMac = navigator.userAgent.includes("Mac");
-  return isMac ? "⌥Y" : "Alt+Y";
-});
+const shortcutKey = ref("...");
 
 // ── Navigation ──
 function goNext() {
@@ -256,6 +253,7 @@ function confirmClose() {
 
 // ── Init ──
 onMounted(async () => {
+  invoke<string>("get_shortcut_label").then(s => { shortcutKey.value = s; }).catch(() => {});
   // Ensure window is properly sized and visible for onboarding
   invoke("show_onboarding_window");
   try {
