@@ -72,7 +72,7 @@ const defaultConfig: AppConfig = {
   language_order: [],
   app_lang: "en",
   theme: "system",
-  floating_opacity: 85,
+  floating_opacity: 90,
   show_startup_reminder: true,
 };
 

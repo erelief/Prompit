@@ -766,14 +766,14 @@ onUnmounted(() => {
                 <input
                   type="number" min="10" max="100"
                   :value="appConfig.floating_opacity"
-                  @change="appConfig.floating_opacity = Math.min(100, Math.max(10, +($event.target as HTMLInputElement).value || 85))"
+                  @change="appConfig.floating_opacity = Math.min(100, Math.max(10, +($event.target as HTMLInputElement).value || 90))"
                   class="opacity-value-input"
                 />
                 <span class="opacity-pct">%</span>
                 <button
-                  v-if="appConfig.floating_opacity !== 85"
+                  v-if="appConfig.floating_opacity !== 90"
                   class="opacity-reset"
-                  @click="appConfig.floating_opacity = 85"
+                  @click="appConfig.floating_opacity = 90"
                   :title="t('settings.resetToDefault')"
                 >
                   <RotateCcw :size="10" :stroke-width="2" />

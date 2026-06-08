@@ -111,7 +111,7 @@ fn default_app_lang() -> String {
     "en".to_string()
 }
 fn default_floating_opacity() -> u8 {
-    85
+    90
 }
 fn default_true() -> bool {
     true
@@ -129,7 +129,7 @@ impl Default for AppConfig {
             language_order: vec![],
             app_lang: "en".to_string(),
             theme: "system".to_string(),
-            floating_opacity: 85,
+            floating_opacity: 90,
             show_startup_reminder: true,
         }
     }
@@ -168,7 +168,7 @@ mod tests {
             language_order: vec!["English".to_string(), "Japanese".to_string(), "Klingon".to_string()],
             app_lang: "zh-CN".to_string(),
             theme: "dark".to_string(),
-            floating_opacity: 85,
+            floating_opacity: 90,
             show_startup_reminder: true,
         };
         let json = serde_json::to_string(&config).unwrap();

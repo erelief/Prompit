@@ -37,7 +37,12 @@ const activeModelName = computed(() => {
 });
 
 const glassBg = computed(() => {
-  const o = (appConfig.floating_opacity ?? 85) / 100;
+  const o = (appConfig.floating_opacity ?? 90) / 100;
+  if (o >= 1) {
+    return isDark()
+      ? "linear-gradient(135deg, rgb(15,15,20) 0%, rgb(20,20,30) 100%)"
+      : "linear-gradient(135deg, rgb(255,255,255) 0%, rgb(245,245,250) 100%)";
+  }
   return isDark()
     ? `linear-gradient(135deg, rgba(15,15,20,${o}) 0%, rgba(20,20,30,${o * 0.94}) 100%)`
     : `linear-gradient(135deg, rgba(255,255,255,${o}) 0%, rgba(245,245,250,${o * 0.94}) 100%)`;
