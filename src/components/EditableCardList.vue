@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, watch, nextTick, triggerRef, type Component } from "vue";
+import { ref, shallowRef, computed, watch, nextTick, triggerRef, onBeforeUnmount, type Component } from "vue";
 import { useI18n } from "vue-i18n";
 import draggable from "vuedraggable";
 import {
@@ -110,6 +110,11 @@ function handleCancel() {
   const indexMap = buildIndexMap(props.items.length, -1);
   emit("cancel", { index: idx, indexMap });
 }
+
+// ── Cleanup: discard unconfirmed new item on unmount ──
+onBeforeUnmount(() => {
+  if (adding.value) props.items.pop();
+});
 
 // ── Remove (two-step confirm) ──
 function requestRemove(index: number) {
