@@ -19,6 +19,13 @@ struct EncryptedDict {
 
 type DictStore = HashMap<String, Vec<DictEntry>>;
 
+#[derive(Debug, Clone, Serialize)]
+pub struct ImportResult {
+    pub total_entries: usize,
+    pub imported: usize,
+    pub languages_affected: Vec<String>,
+}
+
 fn derive_key() -> [u8; 32] {
     use sha2::{Digest, Sha256};
     let hostname = std::env::var("COMPUTERNAME")
@@ -119,9 +126,9 @@ pub fn save_dictionary(
 #[tauri::command]
 pub fn import_dictionary_csv(
     app: AppHandle,
-    target_lang: String,
     file_path: String,
-) -> Result<usize, String> {
+    mode: String,
+) -> Result<ImportResult, String> {
     let raw = fs::read(&file_path).map_err(|e| format!("read file: {e}"))?;
     let data = if raw.starts_with(&[0xEF, 0xBB, 0xBF]) {
         &raw[3..]
@@ -131,32 +138,69 @@ pub fn import_dictionary_csv(
     let mut rdr = csv::ReaderBuilder::new()
         .has_headers(true)
         .from_reader(data);
-    let mut new_entries: Vec<DictEntry> = Vec::new();
+    let mut parsed: Vec<(String, DictEntry)> = Vec::new();
     for result in rdr.records() {
         let record = result.map_err(|e| format!("csv parse: {e}"))?;
-        if record.len() < 2 {
+        if record.len() < 3 {
             continue;
         }
-        let source = record[0].trim().to_string();
-        let target = record[1].trim().to_string();
-        if source.is_empty() || target.is_empty() {
+        let lang = record[0].trim().to_string();
+        let source = record[1].trim().to_string();
+        let target = record[2].trim().to_string();
+        if lang.is_empty() || source.is_empty() || target.is_empty() {
             continue;
         }
-        new_entries.push(DictEntry { source, target });
+        parsed.push((lang, DictEntry { source, target }));
     }
 
     let mut store = load_dict_store(&app)?;
-    let existing = store.entry(target_lang).or_default();
-    let existing_sources: std::collections::HashSet<String> =
-        existing.iter().map(|e| e.source.clone()).collect();
-    for entry in new_entries {
-        if !existing_sources.contains(&entry.source) {
-            existing.push(entry);
+    let mut langs_affected: Vec<String> = Vec::new();
+    let mut imported = 0usize;
+
+    if mode == "overwrite" {
+        let csv_langs: std::collections::HashSet<String> =
+            parsed.iter().map(|(l, _)| l.clone()).collect();
+        for lang in &csv_langs {
+            store.remove(lang);
+        }
+        for (lang, entry) in parsed {
+            store.entry(lang.clone()).or_default().push(entry);
+            imported += 1;
+            if !langs_affected.contains(&lang) {
+                langs_affected.push(lang);
+            }
+        }
+    } else {
+        // "add" mode — dedup on (lang, source, target)
+        for (lang, entry) in parsed {
+            let existing = store.entry(lang.clone()).or_default();
+            let exists = existing
+                .iter()
+                .any(|e| e.source == entry.source && e.target == entry.target);
+            if !exists {
+                existing.push(entry);
+                imported += 1;
+                if !langs_affected.contains(&lang) {
+                    langs_affected.push(lang);
+                }
+            }
         }
     }
-    let count = existing.len();
+
+    let total_entries: usize = store.values().map(|v| v.len()).sum();
     save_dict_store(&app, &store)?;
-    Ok(count)
+    langs_affected.sort();
+    Ok(ImportResult {
+        total_entries,
+        imported,
+        languages_affected: langs_affected,
+    })
+}
+
+#[tauri::command]
+pub fn clear_all_dictionaries(app: AppHandle) -> Result<(), String> {
+    let store: DictStore = HashMap::new();
+    save_dict_store(&app, &store)
 }
 
 #[tauri::command]

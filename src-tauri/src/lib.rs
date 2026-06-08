@@ -121,6 +121,7 @@ pub fn run() {
             commands::dictionary::save_dictionary,
             commands::dictionary::import_dictionary_csv,
             commands::dictionary::export_dictionary_csv,
+            commands::dictionary::clear_all_dictionaries,
             commands::persona::read_personas,
             commands::persona::save_personas,
             commands::presets::read_provider_presets,
