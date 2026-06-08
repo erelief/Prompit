@@ -10,9 +10,11 @@ const router = useRouter();
 
 const countdown = ref(5);
 const ready = ref(false);
+const isSandbox = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-onMounted(() => {
+onMounted(async () => {
+  isSandbox.value = await invoke<boolean>("is_sandbox");
   timer = setInterval(() => {
     countdown.value--;
     if (countdown.value <= 0) {
@@ -47,6 +49,7 @@ async function handleConfirm() {
         <ArrowLeft :size="16" />
       </button>
       <span class="header-title">{{ t('settings.reset.pageTitle') }}</span>
+      <span v-if="isSandbox" class="sandbox-badge">{{ t('settings.reset.sandboxBadge') }}</span>
     </div>
 
     <!-- Body -->
@@ -60,6 +63,7 @@ async function handleConfirm() {
           <p class="warn-irreversible">{{ t('settings.reset.irreversible') }}</p>
         </div>
       </div>
+      <p v-if="isSandbox" class="sandbox-hint">{{ t('settings.reset.sandboxHint') }}</p>
     </div>
 
     <!-- Footer -->
@@ -124,6 +128,16 @@ async function handleConfirm() {
   color: var(--color-text);
   background: var(--color-surface-hover);
 }
+.sandbox-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  flex-shrink: 0;
+}
 
 /* ── Body ── */
 .reset-body {
@@ -167,6 +181,13 @@ async function handleConfirm() {
   font-weight: 650;
   color: var(--color-danger);
   letter-spacing: 0.01em;
+}
+.sandbox-hint {
+  margin-top: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #16a34a;
+  text-align: center;
 }
 
 /* ── Footer ── */

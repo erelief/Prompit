@@ -68,6 +68,11 @@ fn get_proxy_url() -> Option<String> {
     read_proxy_url()
 }
 
+#[tauri::command]
+fn is_sandbox() -> bool {
+    std::env::var("SANDBOX").is_ok()
+}
+
 /// Returns the data directory to use for persistent storage.
 /// In sandbox mode, returns the temp dir; otherwise falls back to the default.
 pub fn get_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -120,6 +125,7 @@ pub fn run() {
             commands::persona::save_personas,
             commands::presets::read_provider_presets,
             get_proxy_url,
+            is_sandbox,
         ])
         .setup(|app| {
             // Sandbox mode: redirect all persistent data to a temp directory

@@ -138,6 +138,21 @@ pub fn show_startup_reminder_window(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn reset_app_data(app: AppHandle) -> Result<(), String> {
     let dir = crate::get_data_dir(&app)?;
+
+    // Safety check: if SANDBOX env is set, the data dir must be the sandbox
+    // temp dir, not the real app config dir. If they don't match, abort.
+    if std::env::var("SANDBOX").is_ok() {
+        let real_dir = app
+            .path()
+            .app_config_dir()
+            .map_err(|e| format!("config dir: {e}"))?;
+        if dir == real_dir {
+            return Err(
+                "Sandbox safety check failed: data dir is real config dir. Aborting reset.".into(),
+            );
+        }
+    }
+
     if dir.exists() {
         std::fs::remove_dir_all(&dir).map_err(|e| format!("delete: {e}"))?;
     }

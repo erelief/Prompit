@@ -70,7 +70,9 @@
       "irreversible": "此操作不可撤销。",
       "understood": "我已了解风险",
       "confirmCountdown": "确认 ({n}s)",
-      "confirm": "确认"
+      "confirm": "确认",
+      "sandboxBadge": "沙盒",
+      "sandboxHint": "沙盒模式 — 仅影响临时数据。"
     }
   },
   "floating": {

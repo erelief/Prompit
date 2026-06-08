@@ -70,7 +70,9 @@
       "irreversible": "This action cannot be undone.",
       "understood": "I understand the risk",
       "confirmCountdown": "Confirm ({n}s)",
-      "confirm": "Confirm"
+      "confirm": "Confirm",
+      "sandboxBadge": "Sandbox",
+      "sandboxHint": "Sandbox mode — only temporary data will be affected."
     }
   },
   "floating": {
