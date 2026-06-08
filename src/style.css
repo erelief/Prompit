@@ -15,24 +15,24 @@
    ══════════════════════════════════════ */
 :root {
   --color-bg:              #F8F7F4;
-  --color-surface:         rgba(0,0,0,0.03);
-  --color-surface-hover:   rgba(0,0,0,0.05);
-  --color-border:          rgba(0,0,0,0.08);
-  --color-border-hover:    rgba(0,0,0,0.14);
+  --color-surface:         rgba(0,0,0,0.055);
+  --color-surface-hover:   rgba(0,0,0,0.085);
+  --color-border:          rgba(0,0,0,0.13);
+  --color-border-hover:    rgba(0,0,0,0.22);
   --color-text:            rgba(0,0,0,0.88);
-  --color-text-secondary:  rgba(0,0,0,0.52);
-  --color-text-muted:      rgba(0,0,0,0.3);
-  --color-text-placeholder:rgba(0,0,0,0.22);
+  --color-text-secondary:  rgba(0,0,0,0.68);
+  --color-text-muted:      rgba(0,0,0,0.48);
+  --color-text-placeholder:rgba(0,0,0,0.38);
   --color-accent:          rgba(180,130,40,0.9);
-  --color-accent-text:     rgba(180,130,40,0.72);
-  --color-accent-bg:       rgba(180,130,40,0.08);
-  --color-accent-border:   rgba(180,130,40,0.3);
+  --color-accent-text:     rgba(160,110,20,0.92);
+  --color-accent-bg:       rgba(180,130,40,0.10);
+  --color-accent-border:   rgba(180,130,40,0.40);
   --color-danger:          #dc2626;
   --color-danger-bg:       rgba(220,38,38,0.1);
   --color-success:         #16a34a;
   --color-success-bg:      rgba(22,163,74,0.08);
   --color-overlay:         rgba(255,255,255,0.96);
-  --color-scrollbar:       rgba(0,0,0,0.12);
+  --color-scrollbar:       rgba(0,0,0,0.18);
 }
 
 html.dark {
