@@ -781,7 +781,7 @@ onUnmounted(() => {
           <!-- Show Shortcut Hint on Launch -->
           <div class="card-row">
             <span class="card-label">{{ t('settings.showShortcutHintLabel') }}</span>
-            <button class="toggle-btn" @click="appConfig.show_startup_reminder = !appConfig.show_startup_reminder">
+            <button class="about-auto-btn" :class="{ 'toggle-on': appConfig.show_startup_reminder }" @click="appConfig.show_startup_reminder = !appConfig.show_startup_reminder">
               <ToggleRight v-if="appConfig.show_startup_reminder" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
             </button>
@@ -858,7 +858,7 @@ onUnmounted(() => {
                 : t('about.checkUpdate')
               }}</span>
             </button>
-            <button class="about-auto-btn" @click.stop="toggleAutoUpdate" :title="t('about.autoUpdate')">
+            <button class="about-auto-btn" :class="{ 'toggle-on': autoUpdate }" @click.stop="toggleAutoUpdate" :title="t('about.autoUpdate')">
               <ToggleRight v-if="autoUpdate" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
             </button>
@@ -1783,7 +1783,7 @@ label {
   background: var(--color-surface);
   border: 1px solid var(--color-scrollbar);
   border-radius: 9px;
-  padding: 6px 8px 6px 12px;
+  padding: 10px 14px 10px 12px;
 }
 
 /* ── Reset row ── */
@@ -1904,20 +1904,12 @@ label {
 }
 .about-auto-btn:hover {
   background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+.about-auto-btn.toggle-on {
   color: var(--color-accent);
 }
-.toggle-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: none;
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 5px;
-  transition: 0.15s;
-}
-.toggle-btn:hover {
-  background: var(--color-surface-hover);
+.about-auto-btn.toggle-on:hover {
+  color: var(--color-accent);
 }
 </style>
