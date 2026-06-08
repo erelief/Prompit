@@ -290,12 +290,14 @@ onMounted(async () => {
             <div class="modal-title">{{ t('dictionary.importModeTitle') }}</div>
             <div class="modal-hint">{{ t('dictionary.importModeHint') }}</div>
             <template v-if="!showOverwriteWarn">
-              <div class="modal-actions">
-                <button class="pill-btn modal-btn" @click="chooseImportMode('add')">
-                  {{ t('dictionary.addToExisting') }}
+              <div class="modal-actions modal-actions--stacked">
+                <button class="modal-choice" @click="chooseImportMode('add')">
+                  <span class="choice-label">{{ t('dictionary.addToExisting') }}</span>
+                  <span class="choice-desc">{{ t('common.cancel') }}</span>
                 </button>
-                <button class="pill-btn modal-btn warn-btn" @click="chooseImportMode('overwrite')">
-                  {{ t('dictionary.overwritePerLang') }}
+                <button class="modal-choice modal-choice--danger" @click="chooseImportMode('overwrite')">
+                  <span class="choice-label">{{ t('dictionary.overwritePerLang') }}</span>
+                  <span class="choice-desc">{{ t('dictionary.overwriteWarning') }}</span>
                 </button>
               </div>
             </template>
@@ -589,6 +591,7 @@ onMounted(async () => {
 }
 .clear-btn {
   color: var(--color-text-muted);
+  margin-left: auto;
 }
 .clear-btn:hover:not(:disabled) {
   color: var(--color-danger);
@@ -617,33 +620,92 @@ onMounted(async () => {
   padding: 20px 24px;
   min-width: 280px;
   max-width: 360px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  box-shadow:
+    0 4px 16px rgba(0,0,0,.12),
+    0 8px 32px rgba(0,0,0,.14),
+    0 2px 6px rgba(0,0,0,.08);
 }
 .modal-title {
   font-size: 13px;
   font-weight: 700;
-  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
   color: var(--color-text);
+  line-height: 1.3;
 }
 .modal-hint {
   font-size: 11.5px;
   color: var(--color-text-muted);
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  line-height: 1.45;
 }
 .modal-warn-row {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 7px;
+  background: var(--color-danger-bg);
+}
+.modal-warn-row .remove-warning-text {
+  display: block;
+  font-size: 10px;
+  font-weight: 550;
+  letter-spacing: .01em;
+  color: var(--color-danger);
 }
 .modal-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
 }
+.modal-actions--stacked {
+  flex-direction: column;
+  gap: 6px;
+}
+.modal-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-surface);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  text-align: left;
+}
+.modal-choice:hover {
+  border-color: var(--color-accent-border);
+  background: var(--color-bg);
+}
+.modal-choice--danger {
+  border-color: rgba(220,38,38,.25);
+  background: rgba(220,38,38,.04);
+}
+.modal-choice--danger:hover {
+  border-color: rgba(220,38,38,.45);
+  background: rgba(220,38,38,.08);
+}
+.choice-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.choice-desc {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-left: auto;
+  padding-left: 10px;
+}
 .modal-btn {
-  padding: 5px 14px;
+  padding: 6px 16px;
   font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .01em;
   color: var(--color-text-secondary);
   background: var(--color-surface);
   border-radius: 7px;
+  transition: color .15s, background .15s;
 }
 .modal-btn:hover {
   color: var(--color-text);
@@ -656,6 +718,7 @@ onMounted(async () => {
 .warn-btn:hover {
   color: var(--color-danger);
   background: var(--color-danger-bg);
+  filter: brightness(.92);
 }
 .danger-active {
   color: var(--color-danger);
@@ -663,16 +726,20 @@ onMounted(async () => {
   animation: danger-pulse .8s ease-in-out infinite alternate;
 }
 @keyframes danger-pulse {
-  from { opacity: .75; }
-  to { opacity: 1; }
+  to { background: var(--color-danger-bg); filter: brightness(.88); }
 }
 
 /* ── Modal transition ── */
-.drop-enter-active,
-.drop-leave-active {
-  transition: opacity .15s ease;
+.drop-enter-active {
+  transition: opacity .18s ease, transform .2s cubic-bezier(.16,1,.3,1);
 }
-.drop-enter-from,
+.drop-leave-active {
+  transition: opacity .12s ease;
+}
+.drop-enter-from {
+  opacity: 0;
+  transform: scale(.96) translateY(4px);
+}
 .drop-leave-to {
   opacity: 0;
 }
