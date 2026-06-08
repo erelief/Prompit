@@ -328,24 +328,32 @@ export async function saveDictionary(
   await invoke("save_dictionary", { targetLang: lang, entries });
 }
 
+export interface ImportResult {
+  total_entries: number;
+  imported: number;
+  languages_affected: string[];
+}
+
 export async function importDictionaryCsv(
-  lang: string,
-  filePath: string
-): Promise<number> {
-  return await invoke<number>("import_dictionary_csv", {
-    targetLang: lang,
+  filePath: string,
+  mode: "add" | "overwrite"
+): Promise<ImportResult> {
+  return await invoke<ImportResult>("import_dictionary_csv", {
     filePath,
+    mode,
   });
 }
 
 export async function exportDictionaryCsv(
-  lang: string,
   filePath: string
 ): Promise<void> {
   await invoke("export_dictionary_csv", {
-    targetLang: lang,
     filePath,
   });
+}
+
+export async function clearAllDictionaries(): Promise<void> {
+  await invoke("clear_all_dictionaries");
 }
 
 export async function loadProviderPresets(): Promise<ProviderPreset[]> {
