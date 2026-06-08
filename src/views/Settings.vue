@@ -1042,11 +1042,7 @@ onUnmounted(() => {
           </template>
 
           <template #name-input="{ item, index, isAdding }">
-            <label v-if="!isAdding" class="persona-check" :class="{ on: item.enabled }" @click.stop>
-              <input type="checkbox" :checked="item.enabled" @change="togglePersona(index)" />
-              <Check v-if="item.enabled" :size="9" :stroke-width="3" />
-            </label>
-            <input v-model="item.name" :placeholder="t('settings.personaName')" class="name-input" @click.stop />
+            <input v-model="item.name" :placeholder="t('settings.personaName')" class="fi name-fi" @click.stop />
           </template>
 
           <template #content="{ item }">
