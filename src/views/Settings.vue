@@ -13,6 +13,8 @@ import {
   savePersonas as persistPersonas,
   getOrderedLanguages,
   loadProviderPresets,
+  dictStore,
+  refreshDictStatus,
 } from "../stores/config";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
@@ -357,6 +359,7 @@ function toggleKeyVisibility(index: number) {
 async function load() {
   try { await loadConfig(); }
   catch (err) { console.error("Failed to load config:", err); }
+  refreshDictStatus();
 }
 
 // ── Auto-save (instant) ──
@@ -1008,11 +1011,16 @@ onUnmounted(() => {
           <span class="section-title"><BookText :size="13" />{{ t('settings.userDictionary') }}</span>
         </div>
         <div class="dict-toggle-row">
-          <label class="persona-check" :class="{ on: appConfig.user_dict_enabled }" @click.stop>
-            <input type="checkbox" :checked="appConfig.user_dict_enabled" @change="appConfig.user_dict_enabled = !appConfig.user_dict_enabled" />
-            <Check v-if="appConfig.user_dict_enabled" :size="9" :stroke-width="3" />
-          </label>
-          <span class="dict-toggle-label">{{ appConfig.user_dict_enabled ? t('common.enabled') : t('common.disabled') }}</span>
+          <template v-if="dictStore.hasEntries">
+            <label class="persona-check" :class="{ on: appConfig.user_dict_enabled }" @click.stop>
+              <input type="checkbox" :checked="appConfig.user_dict_enabled" @change="appConfig.user_dict_enabled = !appConfig.user_dict_enabled" />
+              <Check v-if="appConfig.user_dict_enabled" :size="9" :stroke-width="3" />
+            </label>
+            <span class="dict-toggle-label">{{ appConfig.user_dict_enabled ? t('common.enabled') : t('common.disabled') }}</span>
+          </template>
+          <template v-else>
+            <span class="dict-toggle-label">{{ t('settings.dictEmpty') }}</span>
+          </template>
           <button
             class="pill-btn micro dict-edit-btn"
             @click="router.push('/settings/dictionary?tab=translation')"

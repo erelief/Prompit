@@ -11,7 +11,7 @@
     "settings": "设置",
     "hide": "隐藏 (Esc)",
     "enabled": "已启用",
-    "disabled": "已禁用"
+    "disabled": "未启用"
   },
   "settings": {
     "general": "通用",
@@ -54,6 +54,7 @@
     "restoreDefaultOrder": "恢复默认排序",
     "removeLanguage": "移除语言",
     "userDictionary": "用户词典",
+    "dictEmpty": "词典为空",
     "translationPersona": "翻译角色",
     "noPersonasYet": "暂无角色。",
     "addOneToCustomize": "添加一个以自定义翻译风格。",

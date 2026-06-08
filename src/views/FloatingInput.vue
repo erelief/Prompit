@@ -5,7 +5,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
-import { loadConfig, saveConfig, getActiveModel, appConfig, personaStore, savePersonas, getOrderedLanguages } from "../stores/config";
+import { loadConfig, saveConfig, getActiveModel, appConfig, personaStore, savePersonas, getOrderedLanguages, dictStore, refreshDictStatus } from "../stores/config";
 import { translate } from "../services/llm-client";
 import { getLangName, getLangCode } from "../constants/languages";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages, BookText } from "@lucide/vue";
@@ -320,6 +320,7 @@ onMounted(async () => {
   lastSentHeight = 0;
 
   await loadConfig();
+  refreshDictStatus();
   document.addEventListener("mousedown", onDocumentClick);
   nextTick(() => {
     textareaRef.value?.focus();
@@ -566,6 +567,7 @@ useShortcutTriggered(() => {
 
           <!-- Dictionary toggle -->
           <button
+            v-if="dictStore.hasEntries"
             @click="toggleDict"
             class="dict-toggle"
             :class="{ on: appConfig.user_dict_enabled }"
@@ -720,6 +722,7 @@ useShortcutTriggered(() => {
 
           <!-- Dictionary toggle -->
           <button
+            v-if="dictStore.hasEntries"
             @click="toggleDict"
             class="dict-toggle"
             :class="{ on: appConfig.user_dict_enabled }"

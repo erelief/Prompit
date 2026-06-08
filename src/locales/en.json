@@ -11,7 +11,7 @@
     "settings": "Settings",
     "hide": "Hide (Esc)",
     "enabled": "Enabled",
-    "disabled": "Disabled"
+    "disabled": "Not enabled"
   },
   "settings": {
     "general": "General",
@@ -54,6 +54,7 @@
     "restoreDefaultOrder": "Restore default order",
     "removeLanguage": "Remove language",
     "userDictionary": "User Dictionary",
+    "dictEmpty": "Dictionary is empty",
     "translationPersona": "Translation Persona",
     "noPersonasYet": "No personas yet.",
     "addOneToCustomize": "Add one to customize translation style.",

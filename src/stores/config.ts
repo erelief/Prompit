@@ -78,6 +78,18 @@ const defaultConfig: AppConfig = {
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
 
+export const dictStore = reactive({
+  hasEntries: false,
+});
+
+export async function refreshDictStatus(): Promise<void> {
+  const entries = await loadDictionary(appConfig.target_lang);
+  dictStore.hasEntries = entries.length > 0;
+  if (!dictStore.hasEntries && appConfig.user_dict_enabled) {
+    appConfig.user_dict_enabled = false;
+  }
+}
+
 export function getOrderedLanguages(): string[] {
   if (appConfig.language_order.length > 0) {
     return appConfig.language_order;
