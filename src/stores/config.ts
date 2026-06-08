@@ -59,6 +59,7 @@ export interface AppConfig {
   app_lang: string;
   theme: "light" | "dark" | "system";
   floating_opacity: number;
+  show_startup_reminder: boolean;
 }
 
 const defaultConfig: AppConfig = {
@@ -72,6 +73,7 @@ const defaultConfig: AppConfig = {
   app_lang: "en",
   theme: "system",
   floating_opacity: 85,
+  show_startup_reminder: true,
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });

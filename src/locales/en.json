@@ -41,6 +41,7 @@
     "theme": "Theme",
     "floatingOpacity": "Floating Window Opacity",
     "resetToDefault": "Reset to default",
+    "showShortcutHintLabel": "Show shortcut hint on launch",
     "light": "Light",
     "dark": "Dark",
     "system": "System",
@@ -162,5 +163,8 @@
     "back": "Back",
     "exitConfirm": "Setup is not complete. If you exit now, you'll need to go through the setup again next time.",
     "exitAnyway": "Exit anyway"
+  },
+  "startupReminder": {
+    "hint": "Press {shortcut} to open the input"
   }
 }
