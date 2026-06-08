@@ -34,6 +34,11 @@ const router = createRouter({
       name: "onboarding",
       component: () => import("../views/Onboarding.vue"),
     },
+    {
+      path: "/startup-reminder",
+      name: "startup-reminder",
+      component: () => import("../views/StartupReminder.vue"),
+    },
   ],
 });
 
