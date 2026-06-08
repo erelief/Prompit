@@ -64,7 +64,8 @@ function closeLangMenu(e: MouseEvent) {
 /* ── Window drag ── */
 async function handleDrag(e: MouseEvent) {
   const t = e.target as HTMLElement;
-  if (t.closest("textarea, button, input, select, a")) return;
+  if (t.closest("textarea, button, input, select, a, .sel-menu")) return;
+  showLangMenu.value = false;
   await getCurrentWindow().startDragging();
 }
 
