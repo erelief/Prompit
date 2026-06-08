@@ -101,7 +101,18 @@
     "entries": "词条数",
     "rowIsEmpty": "第 {n} 行为空 — 请填写或删除。",
     "sourceRequired": "第 {n} 行：译文需要原文。",
-    "translationRequired": "第 {n} 行：原文需要译文。"
+    "translationRequired": "第 {n} 行：原文需要译文。",
+    "importModeTitle": "导入词典",
+    "importModeHint": "你想如何导入这个文件？",
+    "addToExisting": "添加到现有词典",
+    "overwritePerLang": "按语言覆盖",
+    "overwriteWarning": "此操作不可撤销。",
+    "clearCurrent": "清空当前",
+    "clearAll": "清空全部",
+    "clearCurrentConfirm": "清空 {lang} 的所有词条？",
+    "clearAllConfirm": "清空所有语言的所有词条？",
+    "imported": "已导入 {n} 条，涉及 {langs} 种语言。",
+    "noEntriesToExport": "没有可导出的词条。"
   },
   "about": {
     "title": "关于",

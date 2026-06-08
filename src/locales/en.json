@@ -101,7 +101,18 @@
     "entries": "Entries",
     "rowIsEmpty": "Row {n} is empty — fill it or delete it.",
     "sourceRequired": "Row {n}: Translation requires a Source.",
-    "translationRequired": "Row {n}: Source requires a Translation."
+    "translationRequired": "Row {n}: Source requires a Translation.",
+    "importModeTitle": "Import Dictionary",
+    "importModeHint": "How would you like to import this file?",
+    "addToExisting": "Add to existing",
+    "overwritePerLang": "Overwrite per-language",
+    "overwriteWarning": "This cannot be undone.",
+    "clearCurrent": "Clear current",
+    "clearAll": "Clear all",
+    "clearCurrentConfirm": "Clear all entries for {lang}?",
+    "clearAllConfirm": "Clear all entries for all languages?",
+    "imported": "Imported {n} entries across {langs} languages.",
+    "noEntriesToExport": "No entries to export."
   },
   "about": {
     "title": "About",
