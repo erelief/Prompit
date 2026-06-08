@@ -24,7 +24,12 @@ function close() {
 }
 
 useShortcutTriggered(() => {
-  close();
+  // Shortcut pressed: transition to input view without hiding window
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+  router.replace("/");
 });
 
 onMounted(async () => {

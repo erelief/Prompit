@@ -86,7 +86,17 @@ pub fn register(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                     .expect("main window not found");
 
                 if main_window.is_visible().unwrap_or(false) {
-                    let _ = main_window.hide();
+                    // If on startup-reminder, transition to input view instead of hiding
+                    let is_startup_reminder = main_window
+                        .url()
+                        .map(|u| u.as_str().contains("#/startup-reminder"))
+                        .unwrap_or(false);
+
+                    if is_startup_reminder {
+                        let _ = main_window.eval("window.location.hash = '/'");
+                    } else {
+                        let _ = main_window.hide();
+                    }
                 } else {
                     let grow_above = match compute_position(&main_window) {
                         Some((pos, ga)) => {
