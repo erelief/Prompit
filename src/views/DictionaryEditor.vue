@@ -80,11 +80,15 @@ const showImportMode = ref(false);
 const pendingImportPath = ref("");
 const showOverwriteWarn = ref(false);
 const importMessage = ref("");
+const overwriteCountdown = ref(5);
+let overwriteTimer: ReturnType<typeof setInterval> | null = null;
 
 function cancelImportMode() {
   showImportMode.value = false;
   showOverwriteWarn.value = false;
   pendingImportPath.value = "";
+  if (overwriteTimer) { clearInterval(overwriteTimer); overwriteTimer = null; }
+  overwriteCountdown.value = 5;
 }
 
 async function requestImport() {
@@ -106,6 +110,16 @@ async function requestImport() {
 async function chooseImportMode(mode: "add" | "overwrite") {
   if (mode === "overwrite") {
     showOverwriteWarn.value = true;
+    overwriteCountdown.value = 5;
+    if (overwriteTimer) clearInterval(overwriteTimer);
+    overwriteTimer = setInterval(() => {
+      if (overwriteCountdown.value > 0) {
+        overwriteCountdown.value--;
+      } else {
+        clearInterval(overwriteTimer!);
+        overwriteTimer = null;
+      }
+    }, 1000);
     return;
   }
   showImportMode.value = false;
@@ -157,17 +171,36 @@ async function handleExport() {
 
 /* ── Clear flow ── */
 const pendingClear = ref<"current" | "all" | null>(null);
+const clearCountdown = ref(5);
+let clearTimer: ReturnType<typeof setInterval> | null = null;
 
 function requestClearCurrent() {
   pendingClear.value = "current";
+  startClearCountdown();
 }
 
 function requestClearAll() {
   pendingClear.value = "all";
+  startClearCountdown();
+}
+
+function startClearCountdown() {
+  clearCountdown.value = 5;
+  if (clearTimer) clearInterval(clearTimer);
+  clearTimer = setInterval(() => {
+    if (clearCountdown.value > 0) {
+      clearCountdown.value--;
+    } else {
+      clearInterval(clearTimer!);
+      clearTimer = null;
+    }
+  }, 1000);
 }
 
 function cancelClear() {
   pendingClear.value = null;
+  if (clearTimer) { clearInterval(clearTimer); clearTimer = null; }
+  clearCountdown.value = 5;
 }
 
 async function confirmClear() {
@@ -309,8 +342,13 @@ onMounted(async () => {
                 <button class="pill-btn modal-btn" @click="cancelImportMode">
                   {{ t('common.cancel') }}
                 </button>
-                <button class="pill-btn modal-btn danger-active" @click="confirmOverwrite">
-                  {{ t('common.confirm') }}
+                <button
+                  class="pill-btn modal-btn danger-active"
+                  :class="{ 'confirm-counting': overwriteCountdown > 0 }"
+                  :disabled="overwriteCountdown > 0"
+                  @click="confirmOverwrite"
+                >
+                  {{ t('common.confirm') }}<span v-if="overwriteCountdown > 0" class="countdown-label"> ({{ overwriteCountdown }}s)</span>
                 </button>
               </div>
             </template>
@@ -336,8 +374,13 @@ onMounted(async () => {
               <button class="pill-btn modal-btn" @click="cancelClear">
                 {{ t('common.cancel') }}
               </button>
-              <button class="pill-btn modal-btn danger-active" @click="confirmClear">
-                {{ t('common.confirm') }}
+              <button
+                class="pill-btn modal-btn danger-active"
+                :class="{ 'confirm-counting': clearCountdown > 0 }"
+                :disabled="clearCountdown > 0"
+                @click="confirmClear"
+              >
+                {{ t('common.confirm') }}<span v-if="clearCountdown > 0" class="countdown-label"> ({{ clearCountdown }}s)</span>
               </button>
             </div>
           </div>
@@ -640,15 +683,19 @@ onMounted(async () => {
   line-height: 1.45;
 }
 .modal-warn-row {
-  margin-bottom: 14px;
-  padding: 10px 14px;
-  border-radius: 7px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
   background: var(--color-danger-bg);
+  border-left: 3px solid var(--color-danger);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .modal-warn-row .remove-warning-text {
   display: block;
-  font-size: 10px;
-  font-weight: 550;
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: .01em;
   color: var(--color-danger);
 }
@@ -724,6 +771,18 @@ onMounted(async () => {
   color: var(--color-danger);
   background: var(--color-danger-bg);
   animation: danger-pulse .8s ease-in-out infinite alternate;
+}
+.confirm-counting {
+  opacity: .5;
+  cursor: not-allowed;
+  animation: none;
+}
+.countdown-label {
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  opacity: .85;
+  margin-left: 2px;
 }
 @keyframes danger-pulse {
   to { background: var(--color-danger-bg); filter: brightness(.88); }
