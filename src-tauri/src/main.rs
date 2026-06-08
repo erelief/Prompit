@@ -3,5 +3,5 @@
 
 fn main() {
     dotenvy::dotenv().ok();
-    realtime_translator_tauri_lib::run()
+    prompit_lib::run()
 }
