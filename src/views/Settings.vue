@@ -778,6 +778,14 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
+          <!-- Show Shortcut Hint on Launch -->
+          <div class="card-row">
+            <span class="card-label">{{ t('settings.showShortcutHintLabel') }}</span>
+            <button class="toggle-btn" @click="appConfig.show_startup_reminder = !appConfig.show_startup_reminder">
+              <ToggleRight v-if="appConfig.show_startup_reminder" :size="15" :stroke-width="1.7" />
+              <ToggleLeft v-else :size="15" :stroke-width="1.7" />
+            </button>
+          </div>
           <!-- Language -->
           <div class="card-row">
             <span class="card-label">{{ t('settings.language') }}</span>
@@ -1897,5 +1905,19 @@ label {
 .about-auto-btn:hover {
   background: var(--color-surface-hover);
   color: var(--color-accent);
+}
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 5px;
+  transition: 0.15s;
+}
+.toggle-btn:hover {
+  background: var(--color-surface-hover);
 }
 </style>
