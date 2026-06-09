@@ -3,7 +3,7 @@ import { ref, shallowRef, computed, watch, nextTick, triggerRef, onBeforeUnmount
 import { useI18n } from "vue-i18n";
 import draggable from "vuedraggable";
 import {
-  Plus, Trash2, Check, Pencil, GripVertical,
+  Plus, Trash2, Check, X, Pencil, GripVertical,
 } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -233,10 +233,12 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
         <slot name="content" :item="items[NI]" :index="NI" :is-adding="true" />
         <div v-if="validationError" class="validation-error">{{ validationError }}</div>
         <div class="ecl-actions">
-          <button class="pill-btn gold-micro" @click.stop="handleConfirm">
-            <Check :size="10" :stroke-width="2.5" />{{ t('common.confirm') }}
+          <button class="mini-btn gold-active" :title="t('common.confirm')" @click.stop="handleConfirm">
+            <Check :size="11" :stroke-width="2.5" />
           </button>
-          <button class="pill-btn micro" @click.stop="handleCancel">{{ t('common.cancel') }}</button>
+          <button class="mini-btn" :title="t('common.cancel')" @click.stop="handleCancel">
+            <X :size="11" :stroke-width="2.5" />
+          </button>
         </div>
       </div>
     </div>
@@ -282,7 +284,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
                   <Check :size="11" :stroke-width="2.5" />
                 </button>
                 <button class="mini-btn" :title="t('common.cancel')" @click="cancelRemove">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <X :size="11" :stroke-width="2.5" />
                 </button>
               </template>
               <template v-else>
@@ -307,7 +309,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
                   <Check :size="12" :stroke-width="2.5" />
                 </button>
                 <button class="mini-btn ghost" :title="t('common.cancel')" @click.stop="cancelRemove">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <X :size="12" :stroke-width="2.5" />
                 </button>
               </template>
               <template v-else>
@@ -322,10 +324,12 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
             <slot name="content" :item="drafts.get(oi)" :index="oi" :is-adding="false" />
             <div v-if="validationError" class="validation-error">{{ validationError }}</div>
             <div class="ecl-actions">
-              <button class="pill-btn gold-micro" @click.stop="confirmEdit(oi)">
-                <Check :size="10" :stroke-width="2.5" />{{ t('common.confirm') }}
+              <button class="mini-btn gold-active" :title="t('common.confirm')" @click.stop="confirmEdit(oi)">
+                <Check :size="11" :stroke-width="2.5" />
               </button>
-              <button class="pill-btn micro" @click.stop="cancelEdit(oi)">{{ t('common.cancel') }}</button>
+              <button class="mini-btn" :title="t('common.cancel')" @click.stop="cancelEdit(oi)">
+                <X :size="11" :stroke-width="2.5" />
+              </button>
             </div>
           </div>
         </div>
@@ -442,6 +446,8 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 }
 .mini-btn.ghost { color: var(--color-text-muted); }
 .mini-btn.ghost:hover { color: var(--color-text-secondary); background: var(--color-surface); }
+.mini-btn.gold-active { color: var(--color-accent-text); }
+.mini-btn.gold-active:hover { color: var(--color-accent); background: var(--color-accent-bg); }
 
 /* ── Name input ── */
 .name-input {

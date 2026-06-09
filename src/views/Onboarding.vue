@@ -287,18 +287,18 @@ onMounted(async () => {
             </p>
             <div class="flex gap-2 justify-end">
               <button
-                class="h-8 px-4 rounded-lg text-xs font-medium transition-colors"
-                style="background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-secondary)"
+                class="mini-btn"
+                :title="t('common.cancel')"
                 @click="showCloseConfirm = false"
               >
-                {{ t('common.cancel') }}
+                <X :size="12" :stroke-width="2.5" />
               </button>
               <button
-                class="h-8 px-4 rounded-lg text-xs font-medium transition-colors"
-                style="background: var(--color-danger); color: white"
+                class="mini-btn danger-active"
+                :title="t('onboarding.exitAnyway')"
                 @click="confirmClose"
               >
-                {{ t('onboarding.exitAnyway') }}
+                <Check :size="12" :stroke-width="2.5" />
               </button>
             </div>
           </div>
@@ -629,6 +629,21 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.mini-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 27px; height: 27px; border-radius: 7px;
+  color: var(--color-text-muted); cursor: pointer;
+  border: none; background: none; transition: .12s;
+}
+.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
+.mini-btn.danger-active {
+  color: var(--color-danger); background: var(--color-danger-bg);
+  animation: danger-pulse .8s ease-in-out infinite alternate;
+}
+@keyframes danger-pulse {
+  to { background: var(--color-danger-bg); filter: brightness(.88); }
+}
+
 .slide-left-enter-active,
 .slide-left-leave-active,
 .slide-right-enter-active,

@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
-import { ArrowLeft, ShieldAlert } from "@lucide/vue";
+import { ArrowLeft, ShieldAlert, Check, X } from "@lucide/vue";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -70,17 +70,21 @@ async function handleConfirm() {
     <div class="reset-footer">
       <span class="understood-label">{{ t('settings.reset.understood') }}</span>
       <div class="footer-actions">
-        <button class="action-btn cancel-btn" @click="cancel">
-          {{ t('common.cancel') }}
+        <button class="mini-btn" :title="t('common.cancel')" @click="cancel">
+          <X :size="12" :stroke-width="2.5" />
         </button>
-        <button
-          class="action-btn confirm-btn"
-          :class="{ ready }"
-          :disabled="!ready"
-          @click="handleConfirm"
-        >
-          {{ ready ? t('common.confirm') : t('settings.reset.confirmCountdown', { n: countdown }) }}
-        </button>
+        <div class="confirm-with-countdown">
+          <button
+            class="mini-btn danger-active"
+            :class="{ 'confirm-counting': !ready }"
+            :title="ready ? t('common.confirm') : t('settings.reset.confirmCountdown', { n: countdown })"
+            :disabled="!ready"
+            @click="handleConfirm"
+          >
+            <Check :size="12" :stroke-width="2.5" />
+          </button>
+          <span v-if="!ready" class="countdown-label">{{ countdown }}s</span>
+        </div>
       </div>
     </div>
   </div>
@@ -213,42 +217,38 @@ async function handleConfirm() {
 }
 
 /* ── Action buttons (shared base) ── */
-.action-btn {
-  padding: 6px 16px;
-  border-radius: 8px;
-  font-size: 11.5px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: all 0.15s;
+.mini-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 27px; height: 27px; border-radius: 7px;
+  color: var(--color-text-muted); cursor: pointer;
+  border: none; background: none; transition: .12s;
 }
-
-/* Cancel: always prominent (accent) */
-.cancel-btn {
-  background: var(--color-accent-bg);
-  color: var(--color-accent-text);
+.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
+.mini-btn.danger-active {
+  color: var(--color-danger); background: var(--color-danger-bg);
+  animation: danger-pulse .8s ease-in-out infinite alternate;
 }
-.cancel-btn:hover {
-  background: var(--color-accent-border);
-  color: var(--color-text);
-}
-
-/* Confirm: countdown -> red */
-.confirm-btn {
-  cursor: default;
-  background: var(--color-surface);
+.mini-btn.confirm-counting {
+  opacity: .55;
+  cursor: not-allowed;
+  animation: none;
   color: var(--color-text-muted);
-  opacity: 0.55;
+  background: var(--color-surface);
+}
+.confirm-with-countdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.countdown-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
+  opacity: .85;
+  min-width: 20px;
 }
-.confirm-btn.ready {
-  opacity: 1;
-  cursor: pointer;
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-}
-.confirm-btn.ready:hover {
-  background: var(--color-danger);
-  color: #fff;
+@keyframes danger-pulse {
+  to { background: var(--color-danger-bg); filter: brightness(.88); }
 }
 </style>

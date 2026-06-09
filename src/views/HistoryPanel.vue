@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ArrowLeft, History, Trash2 } from "@lucide/vue";
+import { ArrowLeft, History, Trash2, Check, X } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { appConfig, historyStore, loadHistory, clearAllHistory } from "../stores/config";
 import { isDark } from "../composables/useTheme";
@@ -88,11 +88,11 @@ function formatTime(ts: number): string {
           <Trash2 :size="13" :stroke-width="1.8" />
         </button>
         <template v-if="showClearConfirm">
-          <button class="confirm-clear-btn" @click.stop="handleClear">
-            {{ t('common.confirm') }}
+          <button class="mini-btn danger-active" :title="t('common.confirm')" @click.stop="handleClear">
+            <Check :size="11" :stroke-width="2.5" />
           </button>
-          <button class="cancel-clear-btn" @click.stop="showClearConfirm = false">
-            {{ t('common.cancel') }}
+          <button class="mini-btn" :title="t('common.cancel')" @click.stop="showClearConfirm = false">
+            <X :size="11" :stroke-width="2.5" />
           </button>
         </template>
       </div>
@@ -194,22 +194,19 @@ function formatTime(ts: number): string {
 }
 .clear-btn:hover { background: var(--color-danger-bg, rgba(239,68,68,0.1)); color: var(--color-danger, #ef4444); }
 
-.confirm-clear-btn,
-.cancel-clear-btn {
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s;
+.mini-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 27px; height: 27px; border-radius: 7px;
+  color: var(--color-text-muted); cursor: pointer;
+  border: none; background: none; transition: .12s;
 }
-.confirm-clear-btn {
-  background: var(--color-danger, #ef4444);
-  color: #fff;
+.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
+.mini-btn.danger-active {
+  color: var(--color-danger); background: var(--color-danger-bg);
+  animation: danger-pulse .8s ease-in-out infinite alternate;
 }
-.cancel-clear-btn {
-  background: var(--color-surface-hover);
-  color: var(--color-text-secondary);
+@keyframes danger-pulse {
+  to { background: var(--color-danger-bg); filter: brightness(.88); }
 }
 
 /* Body */

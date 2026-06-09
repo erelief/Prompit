@@ -16,7 +16,7 @@ import {
   getOrderedLanguages,
 } from "../stores/config";
 import type { DictEntry } from "../stores/config";
-import { ArrowLeft, Download, Upload, Trash2, Plus, Save, ChevronDown, Check } from "@lucide/vue";
+import { ArrowLeft, Download, Upload, Trash2, Plus, Save, ChevronDown, Check, X } from "@lucide/vue";
 
 const { t } = useI18n();
 const entries = ref<DictEntry[]>([]);
@@ -406,17 +406,21 @@ onUnmounted(() => {
                 <span class="remove-warning-text">{{ t('dictionary.overwriteWarning') }}</span>
               </div>
               <div class="modal-actions">
-                <button class="pill-btn modal-btn" @click="cancelImportMode">
-                  {{ t('common.cancel') }}
+                <button class="mini-btn" :title="t('common.cancel')" @click="cancelImportMode">
+                  <X :size="12" :stroke-width="2.5" />
                 </button>
-                <button
-                  class="pill-btn modal-btn danger-active"
-                  :class="{ 'confirm-counting': overwriteCountdown > 0 }"
-                  :disabled="overwriteCountdown > 0"
-                  @click="confirmOverwrite"
-                >
-                  {{ t('common.confirm') }}<span v-if="overwriteCountdown > 0" class="countdown-label"> ({{ overwriteCountdown }}s)</span>
-                </button>
+                <div class="confirm-with-countdown" :class="{ counting: overwriteCountdown > 0 }">
+                  <button
+                    class="mini-btn danger-active"
+                    :title="overwriteCountdown > 0 ? t('settings.reset.confirmCountdown', { n: overwriteCountdown }) : t('common.confirm')"
+                    :class="{ 'confirm-counting': overwriteCountdown > 0 }"
+                    :disabled="overwriteCountdown > 0"
+                    @click="confirmOverwrite"
+                  >
+                    <Check :size="12" :stroke-width="2.5" />
+                  </button>
+                  <span v-if="overwriteCountdown > 0" class="countdown-label">{{ overwriteCountdown }}s</span>
+                </div>
               </div>
             </template>
           </div>
@@ -438,17 +442,21 @@ onUnmounted(() => {
               <span class="remove-warning-text">{{ t('dictionary.overwriteWarning') }}</span>
             </div>
             <div class="modal-actions">
-              <button class="pill-btn modal-btn" @click="cancelClear">
-                {{ t('common.cancel') }}
+              <button class="mini-btn" :title="t('common.cancel')" @click="cancelClear">
+                <X :size="12" :stroke-width="2.5" />
               </button>
-              <button
-                class="pill-btn modal-btn danger-active"
-                :class="{ 'confirm-counting': clearCountdown > 0 }"
-                :disabled="clearCountdown > 0"
-                @click="confirmClear"
-              >
-                {{ t('common.confirm') }}<span v-if="clearCountdown > 0" class="countdown-label"> ({{ clearCountdown }}s)</span>
-              </button>
+              <div class="confirm-with-countdown" :class="{ counting: clearCountdown > 0 }">
+                <button
+                  class="mini-btn danger-active"
+                  :title="clearCountdown > 0 ? t('settings.reset.confirmCountdown', { n: clearCountdown }) : t('common.confirm')"
+                  :class="{ 'confirm-counting': clearCountdown > 0 }"
+                  :disabled="clearCountdown > 0"
+                  @click="confirmClear"
+                >
+                  <Check :size="12" :stroke-width="2.5" />
+                </button>
+                <span v-if="clearCountdown > 0" class="countdown-label">{{ clearCountdown }}s</span>
+              </div>
             </div>
           </div>
         </div>
@@ -920,16 +928,24 @@ onUnmounted(() => {
   animation: danger-pulse .8s ease-in-out infinite alternate;
 }
 .confirm-counting {
-  opacity: .5;
+  opacity: .55;
   cursor: not-allowed;
   animation: none;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+}
+.confirm-with-countdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .countdown-label {
   font-size: 10px;
   font-weight: 600;
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
   opacity: .85;
-  margin-left: 2px;
+  min-width: 20px;
 }
 @keyframes danger-pulse {
   to { background: var(--color-danger-bg); filter: brightness(.88); }
