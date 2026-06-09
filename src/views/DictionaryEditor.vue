@@ -478,8 +478,7 @@ onUnmounted(() => {
   overflow: hidden;
   border-radius: 11px;
 }
-.dict-root.grow-above .dict-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
-.dict-root.grow-above { flex-direction: column-reverse; }
+.dict-root.grow-above .dict-header { order: 99; border-bottom: none; border-top: 1px solid var(--color-surface); }
 
 /* ── Header ── */
 .dict-header {
