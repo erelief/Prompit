@@ -18,7 +18,7 @@ import {
 } from "../stores/config";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
-import { testProviderConnection, fetchProviderModels } from "../services/llm-client";
+import { testProviderConnection, fetchProviderModels, optimizePrompt } from "../services/llm-client";
 import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
 import EditableCardList from "../components/EditableCardList.vue";
@@ -67,6 +67,8 @@ const route = useRoute();
 const growAbove = ref(false);
 const activeTab = ref<TabKey>("general");
 const testingProvider = ref<number | null>(null);
+const optimizingIndex = ref<number | null>(null);
+const promptUndoStack = new Map<number, string>();
 
 interface ProviderEditState {
   keyVisible: boolean;
@@ -234,6 +236,29 @@ function togglePersona(index: number) {
   const wasOn = personaStore.personas[index].enabled;
   for (const p of personaStore.personas) p.enabled = false;
   if (!wasOn) personaStore.personas[index].enabled = true;
+}
+
+async function handleOptimizePrompt(item: { prompt: string }, index: number) {
+  if (!item.prompt.trim() || optimizingIndex.value !== null) return;
+  promptUndoStack.set(index, item.prompt);
+  optimizingIndex.value = index;
+  try {
+    item.prompt = await optimizePrompt(item.prompt);
+  } catch (err) {
+    console.error("Optimize failed:", err);
+    promptUndoStack.delete(index);
+  } finally {
+    optimizingIndex.value = null;
+  }
+}
+
+function handleTextareaKeydown(e: KeyboardEvent, item: { prompt: string }, index: number) {
+  const isMod = e.ctrlKey || e.metaKey;
+  if (isMod && e.key === "z" && !e.shiftKey && promptUndoStack.has(index)) {
+    e.preventDefault();
+    item.prompt = promptUndoStack.get(index)!;
+    promptUndoStack.delete(index);
+  }
 }
 
 function toggleSelMenu() {
@@ -1053,14 +1078,32 @@ onUnmounted(() => {
             <input v-model="item.name" :placeholder="t('settings.personaName')" class="fi name-fi" @click.stop />
           </template>
 
-          <template #content="{ item }">
-            <textarea
-              v-model="item.prompt"
-              placeholder="Enter the translation prompt for this persona…"
-              class="persona-textarea"
-              rows="3"
-              @click.stop
-            />
+          <template #content="{ item, index }">
+            <div class="persona-textarea-wrap">
+              <textarea
+                v-model="item.prompt"
+                placeholder="Enter the translation prompt for this persona…"
+                class="persona-textarea"
+                rows="3"
+                @click.stop
+                @keydown="handleTextareaKeydown($event, item, index)"
+              />
+              <button
+                v-if="item.prompt.trim()"
+                class="persona-wand-btn"
+                :class="{ active: optimizingIndex === index }"
+                :title="t('settings.optimizePrompt')"
+                @click.stop="handleOptimizePrompt(item, index)"
+              >
+                <Loader2
+                  v-if="optimizingIndex === index"
+                  :size="12"
+                  :stroke-width="1.9"
+                  class="spin"
+                />
+                <Wand2 v-else :size="13" :stroke-width="1.6" />
+              </button>
+            </div>
           </template>
         </EditableCardList>
       </template>
@@ -1444,6 +1487,24 @@ label {
 }
 .persona-textarea::placeholder { color: var(--color-text-placeholder); }
 .persona-textarea:focus { border-color: var(--color-accent-border); box-shadow: 0 0 0 2px var(--color-accent-bg); }
+
+/* ── Persona textarea wrapper (wand button) ── */
+.persona-textarea-wrap { position: relative; }
+.persona-wand-btn {
+  position:absolute; top:-11px; right:-11px;
+  width:22px; height:22px; border-radius:50%;
+  border: 1px solid var(--color-border); background:var(--color-bg);
+  color:var(--color-text-muted); cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .15s, color .15s, background .15s, border-color .15s; z-index:2;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+.persona-textarea-wrap:hover .persona-wand-btn,
+.persona-wand-btn.active { opacity:1; }
+.persona-wand-btn.active { color:var(--color-accent); border-color:var(--color-accent); }
+.persona-wand-btn:hover { color:var(--color-accent); border-color:var(--color-border-hover); }
+@keyframes persona-spin{ to{ transform:rotate(360deg)} }
+.persona-wand-btn .spin { animation:persona-spin .75s linear infinite; }
 
 /* ── Transitions ── */
 .fade-enter-active,.fade-leave-active{ transition:opacity .18s ease; }

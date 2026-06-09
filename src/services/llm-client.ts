@@ -132,6 +132,86 @@ export async function translate(text: string): Promise<string> {
   return String(content).trim();
 }
 
+export async function optimizePrompt(rawPrompt: string): Promise<string> {
+  const model = getActiveModel();
+  if (!model) {
+    throw new Error("No model configured. Please add a model in Settings.");
+  }
+
+  const fmt = resolveFormat(model.api_format);
+  const skipFields: string[] = fmt.request._skip_fields ?? [];
+
+  const messages: ChatMessage[] = [
+    {
+      role: "system",
+      content:
+        "You optimize persona prompts for a translation tool. The user writes a vague style description in any language; you convert it into a concise English instruction that tells the LLM how to translate.\n" +
+        "Output format: Start with an imperative verb (Use/Apply/Translate with/Simplify to), then specify tone, vocabulary domain, or formality level. Under 20 words.\n" +
+        'Examples:\n' +
+        '- "像个影视专业人员" → "Use professional film and television audiovisual language vocabulary."\n' +
+        '- "正式一点" → "Use formal academic tone and precise terminology."\n' +
+        '- "口语化" → "Use casual conversational tone with everyday vocabulary."\n' +
+        "- Output ONLY the optimized prompt, nothing else.",
+    },
+    { role: "user", content: rawPrompt },
+  ];
+
+  const body: Record<string, any> = {};
+  const fieldMap: Record<string, string> = {
+    model: "model",
+    messages: "messages",
+    temperature: "temperature",
+    max_tokens: "max_tokens",
+  };
+
+  const values: Record<string, any> = {
+    model: model.model,
+    messages,
+    temperature: model.temperature ?? 0.1,
+    max_tokens: model.max_tokens ?? 128,
+  };
+
+  for (const [stdKey, defaultTarget] of Object.entries(fieldMap)) {
+    if (skipFields.includes(stdKey)) continue;
+    const targetKey = fmt.request[stdKey] ?? defaultTarget;
+    body[targetKey] = values[stdKey];
+  }
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (fmt.auth_header && model.api_key) {
+    headers[fmt.auth_header] = `${fmt.auth_prefix}${model.api_key}`;
+  }
+  for (const [k, v] of Object.entries(fmt.extra_headers)) {
+    headers[k] = v;
+  }
+
+  const baseUrl = model.base_url.replace(/\/$/, "");
+
+  const response = await fetch(`${baseUrl}${fmt.chat_endpoint}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+
+  const contentPath = fmt.response["content"] ?? "choices.0.message.content";
+  const content = resolvePath(data, contentPath);
+
+  if (content == null) {
+    throw new Error("Empty response from LLM API");
+  }
+
+  return String(content).trim();
+}
+
 function buildSystemPrompt(): string {
   const enabledPersonas = personaStore.personas.filter((p) => p.enabled);
 
