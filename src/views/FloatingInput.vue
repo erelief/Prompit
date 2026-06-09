@@ -5,10 +5,10 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
-import { loadConfig, saveConfig, getActiveModel, appConfig, personaStore, savePersonas, getOrderedLanguages, dictStore, refreshDictStatus } from "../stores/config";
+import { loadConfig, saveConfig, getActiveModel, appConfig, personaStore, savePersonas, getOrderedLanguages, dictStore, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry } from "../stores/config";
 import { translate } from "../services/llm-client";
 import { getLangName, getLangCode } from "../constants/languages";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages, BookText } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, UserCircle, Languages, BookText, History } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
@@ -29,6 +29,9 @@ const bodyHeight = ref(0);
 let lastSentHeight = 0;
 let resizeObserver: ResizeObserver | null = null;
 let unlistenConfig: (() => void) | null = null;
+
+// ── History browsing (terminal-style ↑↓) ──
+const historyIndex = ref<number | null>(null);
 
 const activeModelName = computed(() => {
   const m = getActiveModel();
@@ -253,6 +256,9 @@ function onDocumentClick(e: MouseEvent) {
 }
 
 watch(inputText, () => {
+  if (historyIndex.value !== null) {
+    historyIndex.value = null;
+  }
   if (hasResult.value) {
     hasResult.value = false;
     translatedText.value = "";
@@ -260,6 +266,24 @@ watch(inputText, () => {
 });
 
 function handleKeydown(e: KeyboardEvent) {
+  // ── History navigation with ↑↓ ──
+  if (e.key === "ArrowUp" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+    const ta = textareaRef.value;
+    if (ta && ta.selectionStart === 0 && ta.selectionEnd === 0) {
+      e.preventDefault();
+      navigateHistory(-1);
+      return;
+    }
+  }
+  if (e.key === "ArrowDown" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+    const ta = textareaRef.value;
+    if (ta && ta.selectionStart === ta.value.length && ta.selectionEnd === ta.value.length) {
+      e.preventDefault();
+      navigateHistory(1);
+      return;
+    }
+  }
+
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     if (hasResult.value) {
@@ -267,10 +291,35 @@ function handleKeydown(e: KeyboardEvent) {
     } else {
       handleTranslate();
     }
+    historyIndex.value = null;
   }
   if (e.key === "Escape") {
-    handleHide();
+    if (historyIndex.value !== null) {
+      historyIndex.value = null;
+    } else {
+      handleHide();
+    }
   }
+}
+
+function navigateHistory(direction: -1 | 1) {
+  const entries = historyStore.entries;
+  if (entries.length === 0) return;
+
+  let next: number;
+  if (historyIndex.value === null) {
+    next = direction === -1 ? 0 : -1;
+  } else {
+    next = historyIndex.value + direction;
+  }
+
+  if (next < 0 || next >= entries.length) return;
+
+  historyIndex.value = next;
+  const entry = entries[next];
+  inputText.value = entry.input;
+  translatedText.value = entry.output;
+  hasResult.value = !!entry.output;
 }
 
 async function handleTranslate() {
@@ -285,6 +334,7 @@ async function handleTranslate() {
     const result = await translate(text);
     translatedText.value = result;
     hasResult.value = true;
+    await saveHistoryEntry(text, result);
   } catch (err) {
     errorMessage.value = String(err);
   } finally {
@@ -341,6 +391,19 @@ onMounted(async () => {
 
   await loadConfig();
   refreshDictStatus();
+  await loadHistory();
+
+  // Restore from history panel if applicable
+  const restore = sessionStorage.getItem("history-restore");
+  if (restore) {
+    sessionStorage.removeItem("history-restore");
+    try {
+      const entry = JSON.parse(restore);
+      inputText.value = entry.input || "";
+      translatedText.value = entry.output || "";
+      hasResult.value = !!entry.output;
+    } catch { /* ignore */ }
+  }
   document.addEventListener("mousedown", onDocumentClick);
   nextTick(() => {
     textareaRef.value?.focus();
@@ -620,6 +683,14 @@ useShortcutTriggered(() => {
           <div class="flex-1"></div>
 
           <button
+            @click="router.push('/history')"
+            class="icon-btn"
+            :title="t('floating.history')"
+          >
+            <History :size="14" :stroke-width="1.8" />
+          </button>
+
+          <button
             @click="handleOpenSettings"
             class="icon-btn"
             :title="t('common.settings')"
@@ -793,6 +864,14 @@ useShortcutTriggered(() => {
           </button>
 
           <div class="flex-1"></div>
+
+          <button
+            @click="router.push('/history')"
+            class="icon-btn"
+            :title="t('floating.history')"
+          >
+            <History :size="14" :stroke-width="1.8" />
+          </button>
 
           <button
             @click="handleOpenSettings"
