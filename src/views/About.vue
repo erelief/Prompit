@@ -3,12 +3,14 @@ import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { ArrowLeft, ExternalLink } from "@lucide/vue";
+import { useSettingsWindow } from "../composables/useSettingsWindow";
 
 declare const __APP_VERSION__: string;
 const appVersion = __APP_VERSION__;
 
 const { t } = useI18n();
 const router = useRouter();
+const { growAbove } = useSettingsWindow();
 
 const deps = [
   { name: "Tauri", version: "2.11.0", url: "https://tauri.app" },
@@ -36,7 +38,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="about-root">
+  <div class="about-root" :class="{ 'grow-above': growAbove }">
     <!-- Header -->
     <div class="about-header">
       <button class="back-btn" @click="router.push('/settings?tab=general')">
@@ -90,6 +92,8 @@ onMounted(() => {
   color: var(--color-text);
   overflow: hidden;
   border-radius: 11px;
+}
+.about-root.grow-above .about-header { order: 99; border-bottom: none; border-top: 1px solid var(--color-surface); }
 }
 
 /* ── Header ── */
