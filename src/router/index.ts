@@ -39,6 +39,11 @@ const router = createRouter({
       name: "startup-reminder",
       component: () => import("../views/StartupReminder.vue"),
     },
+    {
+      path: "/history",
+      name: "history",
+      component: () => import("../views/HistoryPanel.vue"),
+    },
   ],
 });
 
