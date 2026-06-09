@@ -380,7 +380,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   display:flex; align-items:center; gap:7px; margin-bottom:10px;
 }
 .ecl-actions {
-  display:flex; align-items:center; gap:6px; margin-top:10px;
+  display:flex; align-items:center; justify-content:flex-end; gap:6px; margin-top:10px;
 }
 
 /* ── Drag handle ── */
