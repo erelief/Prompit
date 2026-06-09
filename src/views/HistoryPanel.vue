@@ -1,16 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ArrowLeft, History, Trash2 } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
-import { historyStore, loadHistory, clearAllHistory } from "../stores/config";
+import { appConfig, historyStore, loadHistory, clearAllHistory } from "../stores/config";
+import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 const router = useRouter();
 const { growAbove } = useSettingsWindow(560, 480);
+
+const glassBg = computed(() => {
+  const o = (appConfig.floating_opacity ?? 90) / 100;
+  if (o >= 1) {
+    return isDark()
+      ? "linear-gradient(135deg, rgb(15,15,20) 0%, rgb(20,20,30) 100%)"
+      : "linear-gradient(135deg, rgb(255,255,255) 0%, rgb(245,245,250) 100%)";
+  }
+  return isDark()
+    ? `linear-gradient(135deg, rgba(15,15,20,${o}) 0%, rgba(20,20,30,${o * 0.94}) 100%)`
+    : `linear-gradient(135deg, rgba(255,255,255,${o}) 0%, rgba(245,245,250,${o * 0.94}) 100%)`;
+});
 
 const showClearConfirm = ref(false);
 
@@ -54,6 +67,7 @@ function formatTime(ts: number): string {
     class="history-root"
     :class="{ 'grow-above': growAbove }"
     @mousedown="handleDrag"
+    :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)' }"
   >
     <!-- Header -->
     <header class="history-header">
@@ -113,7 +127,6 @@ function formatTime(ts: number): string {
   width: 100%;
   height: 100dvh;
   overflow: hidden;
-  background: var(--color-bg);
   border-radius: 11px;
 }
 .history-root.grow-above {
