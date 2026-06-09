@@ -10,7 +10,7 @@ import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 const router = useRouter();
-const { growAbove } = useSettingsWindow(560, 380);
+const { growAbove } = useSettingsWindow(560, 480);
 
 const showClearConfirm = ref(false);
 
