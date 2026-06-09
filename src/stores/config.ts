@@ -361,3 +361,53 @@ export async function clearAllDictionaries(): Promise<void> {
 export async function loadProviderPresets(): Promise<ProviderPreset[]> {
   return await invoke<ProviderPreset[]>("read_provider_presets");
 }
+
+// ── History ──
+export interface HistoryEntry {
+  input: string;
+  output: string;
+  timestamp: number;
+}
+
+export const historyStore = reactive<{ entries: HistoryEntry[] }>({
+  entries: [],
+});
+
+export async function loadHistory(): Promise<void> {
+  try {
+    historyStore.entries = await invoke<HistoryEntry[]>("read_history");
+  } catch (err) {
+    console.error("Failed to load history:", err);
+    historyStore.entries = [];
+  }
+}
+
+export async function saveHistoryEntry(input: string, output: string): Promise<void> {
+  const entry: HistoryEntry = {
+    input,
+    output,
+    timestamp: Date.now(),
+  };
+  historyStore.entries.unshift(entry);
+  const limit = appConfig.history_limit || 50;
+  if (historyStore.entries.length > limit) {
+    historyStore.entries = historyStore.entries.slice(0, limit);
+  }
+  try {
+    await invoke("save_history", {
+      entries: toRaw(historyStore.entries),
+      limit,
+    });
+  } catch (err) {
+    console.error("Failed to save history:", err);
+  }
+}
+
+export async function clearAllHistory(): Promise<void> {
+  historyStore.entries = [];
+  try {
+    await invoke("clear_history");
+  } catch (err) {
+    console.error("Failed to clear history:", err);
+  }
+}
