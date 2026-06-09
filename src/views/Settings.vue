@@ -851,7 +851,7 @@ onUnmounted(() => {
         <div class="section-head mt">
           <span class="section-title"><History :size="13" />{{ t('history.historySettings') }}</span>
         </div>
-        <div class="card-section">
+        <div class="card-section" :class="{ 'remove-pending': showHistoryClearConfirm }">
           <div class="card-row">
             <span class="card-label">{{ t('history.historyLimit') }}</span>
             <div class="opacity-row compact" style="justify-content: flex-end;">
@@ -866,21 +866,29 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="card-row">
-            <span class="card-label">{{ t('history.clearHistory') }}</span>
-            <template v-if="!showHistoryClearConfirm">
-              <button class="reset-btn" @click="showHistoryClearConfirm = true">
-                <Trash2 :size="11" :stroke-width="1.9" />{{ t('history.clearAll') }}
-              </button>
-            </template>
-            <template v-else>
-              <div class="flex items-center gap-2">
-                <span class="text-[11px] text-[var(--color-text-secondary)]">{{ t('history.clearConfirm') }}</span>
-                <button class="reset-btn" style="color: var(--color-danger); background: var(--color-danger-bg);" @click="clearAllHistory().then(() => showHistoryClearConfirm = false)">
-                  {{ t('common.confirm') }}
+            <div class="ecl-lhs">
+              <template v-if="!showHistoryClearConfirm">
+                <span class="card-label">{{ t('history.clearHistory') }}</span>
+              </template>
+              <template v-else>
+                <span class="remove-warning-text">{{ t('common.cannotBeUndone') }}</span>
+              </template>
+            </div>
+            <div class="ecl-rhs" @click.stop>
+              <template v-if="!showHistoryClearConfirm">
+                <button class="reset-btn" @click="showHistoryClearConfirm = true">
+                  <Trash2 :size="11" :stroke-width="1.9" />{{ t('history.clearAll') }}
                 </button>
-                <button class="pill-btn micro" @click="showHistoryClearConfirm = false">{{ t('common.cancel') }}</button>
-              </div>
-            </template>
+              </template>
+              <template v-else>
+                <button class="mini-btn danger-active" :title="t('common.confirmRemove')" @click="clearAllHistory().then(() => showHistoryClearConfirm = false)">
+                  <Check :size="11" :stroke-width="2.5" />
+                </button>
+                <button class="mini-btn" :title="t('common.cancel')" @click="showHistoryClearConfirm = false">
+                  <X :size="11" :stroke-width="2.5" />
+                </button>
+              </template>
+            </div>
           </div>
         </div>
 
@@ -1926,6 +1934,26 @@ label {
   color: var(--color-danger);
   background: var(--color-danger-bg);
 }
+.card-section.remove-pending { background: var(--color-danger-bg); }
+.ecl-lhs { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
+.ecl-rhs { display:flex; align-items:center; gap:2px; opacity:.6; transition:opacity .12s; }
+.card-row:hover .ecl-rhs { opacity:1; }
+.remove-warning-text {
+  font-size: 10px; font-weight: 550; letter-spacing: .01em;
+  color: var(--color-danger);
+}
+.mini-btn {
+  display:flex; align-items:center; justify-content:center;
+  width:27px; height:27px; border-radius:7px;
+  color: var(--color-text-muted); cursor:pointer;
+  border:none; background:none; transition:.12s;
+}
+.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
+.mini-btn.danger-active {
+  color: var(--color-danger); background: var(--color-danger-bg);
+  animation: danger-pulse .8s ease-in-out infinite alternate;
+}
+@keyframes danger-pulse{ to{ background: var(--color-danger-bg)} }
 .about-row-info {
   display: flex;
   align-items: center;
