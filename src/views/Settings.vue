@@ -548,6 +548,11 @@ onMounted(async () => {
   if (route.query.tab === "translation") {
     activeTab.value = "translation";
   }
+  if (route.query.scrollTo === "persona") {
+    nextTick(() => {
+      document.getElementById("persona-section")?.scrollIntoView({ behavior: "smooth" });
+    });
+  }
   document.addEventListener("mousedown", onDocClick);
   growAbove.value = await invoke<boolean>("get_grow_above");
   unlistenConfig = await listen<boolean>("window-config", (e) => {
@@ -1056,6 +1061,7 @@ onUnmounted(() => {
 
         <!-- Persona -->
         <EditableCardList
+          id="persona-section"
           class="mt"
           :items="personaStore.personas"
           :title="t('settings.translationPersona')"
