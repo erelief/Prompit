@@ -860,34 +860,31 @@ useShortcutTriggered(() => {
         </Transition>
       </template>
     </div>
-    <!-- Empty-state hint modal -->
-    <Transition name="drop">
+    <!-- Empty-state hint -->
+    <Transition name="fade">
       <div
         v-if="emptyHintTarget"
-        class="fixed inset-0 z-50 flex items-center justify-center"
-        style="background: rgba(0,0,0,0.4); backdrop-filter: blur(4px)"
+        class="empty-hint-overlay"
       >
-        <div class="empty-hint-card">
-          <p class="empty-hint-title">
-            {{ emptyHintTarget === 'persona' ? t('floating.emptyPersonaTitle') : t('floating.emptyDictTitle') }}
-          </p>
-          <p class="empty-hint-body">
-            {{ emptyHintTarget === 'persona' ? t('floating.emptyPersonaBody') : t('floating.emptyDictBody') }}
-          </p>
-          <div class="empty-hint-actions">
-            <button
-              class="empty-hint-cancel"
-              @click="emptyHintTarget = null"
-            >
-              {{ t('common.cancel') }}
-            </button>
-            <button
-              class="empty-hint-go"
-              @click="handleEmptyHintGo"
-            >
-              {{ t('floating.goToSettings') }}
-            </button>
-          </div>
+        <p class="empty-hint-title">
+          {{ emptyHintTarget === 'persona' ? t('floating.emptyPersonaTitle') : t('floating.emptyDictTitle') }}
+        </p>
+        <p class="empty-hint-body">
+          {{ emptyHintTarget === 'persona' ? t('floating.emptyPersonaBody') : t('floating.emptyDictBody') }}
+        </p>
+        <div class="empty-hint-actions">
+          <button
+            class="empty-hint-cancel"
+            @click="emptyHintTarget = null"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            class="empty-hint-go"
+            @click="handleEmptyHintGo"
+          >
+            {{ t('floating.goToSettings') }}
+          </button>
         </div>
       </div>
     </Transition>
@@ -1285,22 +1282,25 @@ useShortcutTriggered(() => {
   background: transparent;
 }
 
-/* ── Empty-state hint modal ── */
-.empty-hint-card {
-  max-width: 280px;
-  width: calc(100% - 48px);
-  padding: 18px 20px;
-  border-radius: 12px;
+/* ── Empty-state hint (full-window overlay) ── */
+.empty-hint-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
   background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
 }
 .empty-hint-title {
   font-size: 13px;
   font-weight: 600;
   line-height: 1.4;
   color: var(--color-text);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .empty-hint-body {
   font-size: 12px;
@@ -1311,11 +1311,11 @@ useShortcutTriggered(() => {
 .empty-hint-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 .empty-hint-cancel {
   height: 32px;
-  padding: 0 14px;
+  padding: 0 16px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
@@ -1332,7 +1332,7 @@ useShortcutTriggered(() => {
 }
 .empty-hint-go {
   height: 32px;
-  padding: 0 14px;
+  padding: 0 16px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
