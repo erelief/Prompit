@@ -3,8 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { getLangName } from "../constants/languages";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
@@ -23,8 +22,7 @@ const { t } = useI18n();
 const entries = ref<DictEntry[]>([]);
 const loading = ref(true);
 const router = useRouter();
-const growAbove = ref(false);
-let unlistenConfig: (() => void) | null = null;
+const { growAbove } = useSettingsWindow();
 const saveError = ref("");
 const dirty = ref(false);
 
@@ -260,11 +258,6 @@ async function confirmClear() {
 
 /* ── Lifecycle ── */
 onMounted(async () => {
-  await invoke("resize_and_reposition", { height: 580, width: 480 });
-  growAbove.value = await invoke<boolean>("get_grow_above");
-  unlistenConfig = await listen<boolean>("window-config", (e) => {
-    growAbove.value = e.payload;
-  });
   try {
     entries.value = await loadDictionary(viewLang.value);
   } catch {
@@ -275,7 +268,6 @@ onMounted(async () => {
 });
 onUnmounted(() => {
   document.removeEventListener("click", closeLangMenu);
-  unlistenConfig?.();
 });
 </script>
 

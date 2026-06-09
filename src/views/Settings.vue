@@ -3,7 +3,6 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { listen } from "@tauri-apps/api/event";
 import { useRouter, useRoute } from "vue-router";
 import {
   appConfig,
@@ -18,6 +17,7 @@ import {
 } from "../stores/config";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
+import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { testProviderConnection, fetchProviderModels, optimizePrompt } from "../services/llm-client";
 import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
@@ -64,7 +64,7 @@ type TabKey = "general" | "translation";
 
 const router = useRouter();
 const route = useRoute();
-const growAbove = ref(false);
+const { growAbove } = useSettingsWindow();
 const activeTab = ref<TabKey>("general");
 const testingProvider = ref<number | null>(null);
 const optimizingIndex = ref<number | null>(null);
@@ -542,8 +542,6 @@ async function handleDrag(e: MouseEvent) {
   await getCurrentWindow().startDragging();
 }
 
-let unlistenConfig: (() => void) | null = null;
-
 onMounted(async () => {
   if (route.query.tab === "translation") {
     activeTab.value = "translation";
@@ -554,11 +552,6 @@ onMounted(async () => {
     });
   }
   document.addEventListener("mousedown", onDocClick);
-  growAbove.value = await invoke<boolean>("get_grow_above");
-  unlistenConfig = await listen<boolean>("window-config", (e) => {
-    growAbove.value = e.payload;
-  });
-  await invoke("resize_and_reposition", { height: 580, width: 480 });
   load();
   loadProviderPresets().then(p => { providerPresets.value = p; }).catch(console.error);
   if (autoUpdate.value) checkForUpdate(true);
@@ -566,7 +559,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener("mousedown", onDocClick);
-  unlistenConfig?.();
 });
 </script>
 
