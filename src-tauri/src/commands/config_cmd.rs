@@ -73,6 +73,9 @@ mod tests {
             language_order: vec![],
             app_lang: "en".to_string(),
             theme: "system".to_string(),
+            floating_opacity: 90,
+            show_startup_reminder: true,
+            history_limit: 50,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();

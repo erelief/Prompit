@@ -99,6 +99,8 @@ pub struct AppConfig {
     pub floating_opacity: u8,
     #[serde(default = "default_true")]
     pub show_startup_reminder: bool,
+    #[serde(default = "default_history_limit")]
+    pub history_limit: u32,
 }
 
 fn default_target_lang() -> String {
@@ -116,6 +118,9 @@ fn default_floating_opacity() -> u8 {
 fn default_true() -> bool {
     true
 }
+fn default_history_limit() -> u32 {
+    50
+}
 
 impl Default for AppConfig {
     fn default() -> Self {
@@ -131,6 +136,7 @@ impl Default for AppConfig {
             theme: "system".to_string(),
             floating_opacity: 90,
             show_startup_reminder: true,
+            history_limit: 50,
         }
     }
 }
@@ -170,6 +176,7 @@ mod tests {
             theme: "dark".to_string(),
             floating_opacity: 90,
             show_startup_reminder: true,
+            history_limit: 50,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();
@@ -209,6 +216,7 @@ mod tests {
         assert!(config.language_order.is_empty());
         assert_eq!(config.theme, "system");
         assert_eq!(config.app_lang, "en");
+        assert_eq!(config.history_limit, 50);
     }
 
     #[test]
