@@ -860,6 +860,37 @@ useShortcutTriggered(() => {
         </Transition>
       </template>
     </div>
+    <!-- Empty-state hint modal -->
+    <Transition name="drop">
+      <div
+        v-if="emptyHintTarget"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+        style="background: rgba(0,0,0,0.4); backdrop-filter: blur(4px)"
+      >
+        <div class="empty-hint-card">
+          <p class="empty-hint-title" style="color: var(--color-text)">
+            {{ emptyHintTarget === 'persona' ? t('floating.emptyPersonaTitle') : t('floating.emptyDictTitle') }}
+          </p>
+          <p class="empty-hint-body" style="color: var(--color-text-secondary)">
+            {{ emptyHintTarget === 'persona' ? t('floating.emptyPersonaBody') : t('floating.emptyDictBody') }}
+          </p>
+          <div class="empty-hint-actions">
+            <button
+              class="empty-hint-cancel"
+              @click="emptyHintTarget = null"
+            >
+              {{ t('common.cancel') }}
+            </button>
+            <button
+              class="empty-hint-go"
+              @click="handleEmptyHintGo"
+            >
+              {{ t('floating.goToSettings') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
