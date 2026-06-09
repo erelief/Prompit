@@ -950,8 +950,8 @@ onUnmounted(() => {
           </div>
         </div>
         <!-- Auto Check Update -->
-        <div v-if="isTauri" class="card-row">
-          <span class="card-label">{{ t('about.autoUpdate') }}</span>
+        <div v-if="isTauri" class="auto-check-row">
+          <span class="auto-check-label">{{ t('about.autoUpdate') }}</span>
           <button class="about-auto-btn" :class="{ 'toggle-on': autoUpdate }" @click.stop="toggleAutoUpdate">
             <ToggleRight v-if="autoUpdate" :size="15" :stroke-width="1.7" />
             <ToggleLeft v-else :size="15" :stroke-width="1.7" />
@@ -2017,6 +2017,18 @@ label {
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
+}
+.auto-check-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-right: 14px;
+}
+.auto-check-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
 }
 .about-update-btn {
   font-variant-numeric: tabular-nums;
