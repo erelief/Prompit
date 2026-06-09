@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { getLangName } from "../constants/languages";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
@@ -22,6 +23,8 @@ const { t } = useI18n();
 const entries = ref<DictEntry[]>([]);
 const loading = ref(true);
 const router = useRouter();
+const growAbove = ref(false);
+let unlistenConfig: (() => void) | null = null;
 const saveError = ref("");
 const dirty = ref(false);
 
@@ -258,6 +261,10 @@ async function confirmClear() {
 /* ── Lifecycle ── */
 onMounted(async () => {
   await invoke("resize_and_reposition", { height: 580, width: 480 });
+  growAbove.value = await invoke<boolean>("get_grow_above");
+  unlistenConfig = await listen<boolean>("window-config", (e) => {
+    growAbove.value = e.payload;
+  });
   try {
     entries.value = await loadDictionary(viewLang.value);
   } catch {
@@ -268,11 +275,12 @@ onMounted(async () => {
 });
 onUnmounted(() => {
   document.removeEventListener("click", closeLangMenu);
+  unlistenConfig?.();
 });
 </script>
 
 <template>
-  <div class="dict-root" @mousedown="handleDrag">
+  <div class="dict-root" :class="{ 'grow-above': growAbove }" @mousedown="handleDrag">
     <!-- Header -->
     <div class="dict-header">
       <button class="back-btn" @click="router.push('/settings?tab=translation')">
@@ -470,6 +478,8 @@ onUnmounted(() => {
   overflow: hidden;
   border-radius: 11px;
 }
+.dict-root.grow-above .dict-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
+.dict-root.grow-above { flex-direction: column-reverse; }
 
 /* ── Header ── */
 .dict-header {
