@@ -6,6 +6,11 @@ import { listen } from "@tauri-apps/api/event";
  * Shared setup for Settings-like sub-pages.
  * Handles window sizing, growAbove state, and window-config listener.
  * Call in <script setup> of any page that behaves like a Settings sub-page.
+ *
+ * Returns { growAbove, rootClass }.
+ * Apply `:class="rootClass"` on the root element — when growAbove is true,
+ * the class `grow-above` is added, which reverses the visual order so
+ * the header/tabs anchor to the bottom and content grows upward.
  */
 export function useSettingsWindow(height = 580, width = 480) {
   const growAbove = ref(false);

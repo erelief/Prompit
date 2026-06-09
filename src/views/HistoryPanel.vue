@@ -117,7 +117,11 @@ function formatTime(ts: number): string {
   border-radius: 11px;
 }
 .history-root.grow-above {
-  justify-content: flex-end;
+  flex-direction: column-reverse;
+}
+.history-root.grow-above .history-header {
+  border-bottom: none;
+  border-top: 1px solid var(--color-surface);
 }
 
 /* Header */
