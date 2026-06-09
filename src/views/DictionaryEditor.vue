@@ -679,6 +679,7 @@ onUnmounted(() => {
   z-index: 1;
   background: var(--color-surface);
   backdrop-filter: blur(6px);
+  border-radius: 8px 8px 0 0;
 }
 .dict-header-row .dict-col {
   font-size: 10.5px;

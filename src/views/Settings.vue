@@ -1100,23 +1100,28 @@ onUnmounted(() => {
         <div class="section-head mt">
           <span class="section-title"><BookText :size="13" />{{ t('settings.userDictionary') }}</span>
         </div>
-        <div class="dict-toggle-row">
-          <template v-if="dictStore.hasEntries">
-            <label class="persona-check" :class="{ on: appConfig.user_dict_enabled }" @click.stop>
-              <input type="checkbox" :checked="appConfig.user_dict_enabled" @change="appConfig.user_dict_enabled = !appConfig.user_dict_enabled" />
-              <Check v-if="appConfig.user_dict_enabled" :size="9" :stroke-width="3" />
-            </label>
-            <span class="dict-toggle-label">{{ appConfig.user_dict_enabled ? t('common.enabled') : t('common.disabled') }}</span>
-          </template>
-          <template v-else>
-            <span class="dict-toggle-label">{{ t('settings.dictEmpty') }}</span>
-          </template>
-          <button
-            class="pill-btn micro dict-edit-btn"
-            @click="router.push('/settings/dictionary?tab=translation')"
-          >
-            <Pencil :size="10" :stroke-width="2" />{{ t('common.edit') }}
-          </button>
+        <div class="card-section">
+          <div class="card-row">
+            <span class="card-label">{{ dictStore.hasEntries ? (appConfig.user_dict_enabled ? t('common.enabled') : t('common.disabled')) : t('settings.dictEmpty') }}</span>
+            <button
+              class="about-auto-btn"
+              :class="{ 'toggle-on': appConfig.user_dict_enabled }"
+              :disabled="!dictStore.hasEntries"
+              @click="appConfig.user_dict_enabled = !appConfig.user_dict_enabled"
+            >
+              <ToggleRight v-if="appConfig.user_dict_enabled" :size="15" :stroke-width="1.7" />
+              <ToggleLeft v-else :size="15" :stroke-width="1.7" />
+            </button>
+          </div>
+          <div class="card-row">
+            <span class="card-label">{{ t('settings.userDictionary') }}</span>
+            <button
+              class="pill-btn micro"
+              @click="router.push('/settings/dictionary?tab=translation')"
+            >
+              <Pencil :size="10" :stroke-width="2" />{{ t('common.edit') }}
+            </button>
+          </div>
         </div>
 
         <!-- Persona -->
@@ -1133,10 +1138,10 @@ onUnmounted(() => {
           @confirm="() => persistPersonas()"
         >
           <template #collapsed="{ item, index }">
-            <label class="persona-check" :class="{ on: item.enabled }" @click.stop>
-              <input type="checkbox" :checked="item.enabled" @change="togglePersona(index)" />
-              <Check v-if="item.enabled" :size="9" :stroke-width="3" />
-            </label>
+            <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="togglePersona(index)">
+              <ToggleRight v-if="item.enabled" :size="15" :stroke-width="1.7" />
+              <ToggleLeft v-else :size="15" :stroke-width="1.7" />
+            </button>
             <span class="persona-name">{{ item.name }}</span>
           </template>
 
@@ -1462,22 +1467,6 @@ label {
 }
 .lang-btn .sel-text{ font-family: inherit; font-size:12px; }
 
-/* ── Dictionary toggle row ── */
-.dict-toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 2px;
-}
-.dict-toggle-label {
-  font-size: 11.5px;
-  color: var(--color-text-muted);
-  min-width: 52px;
-}
-.dict-edit-btn {
-  margin-left: auto;
-}
-
 .sel-arrow { color: var(--color-text-muted); transition: transform .18s; flex-shrink:0; }
 .sel-arrow.rot{ transform: rotate(180deg); }
 
@@ -1525,23 +1514,6 @@ label {
   font-size: 12.5px; font-weight: 650; letter-spacing: -.01em;
   color: var(--color-text);
 }
-
-/* ── Checkbox ── */
-.persona-check {
-  position: relative; width:18px; height:18px; border-radius:5px;
-  display:inline-flex; align-items:center; justify-content:center;
-  border: 1.5px solid var(--color-scrollbar); background: var(--color-surface);
-  transition: .15s; color: #121210; cursor:pointer; flex-shrink:0;
-  z-index: 1;
-}
-.persona-check input {
-  position:absolute; inset:0; opacity:0; cursor:pointer; margin:0;
-}
-.persona-check.on {
-  border-color: var(--color-accent-border); background: var(--color-accent);
-}
-.persona-check:hover { border-color: var(--color-text-placeholder); }
-.persona-check.on:hover { border-color: var(--color-accent); }
 
 /* ── Persona textarea ── */
 .persona-textarea {
@@ -2082,5 +2054,13 @@ label {
 }
 .about-auto-btn.toggle-on:hover {
   color: var(--color-accent);
+}
+.about-auto-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.about-auto-btn:disabled:hover {
+  background: none;
+  color: var(--color-text-muted);
 }
 </style>
