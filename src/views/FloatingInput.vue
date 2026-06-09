@@ -21,6 +21,7 @@ const isLoading = ref(false);
 const errorMessage = ref("");
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const hasResult = ref(false);
+const isRestoringHistory = ref(false);
 const growAbove = ref(false);
 const chevronTransform = (open: boolean) =>
   `rotate(${open === growAbove.value ? 0 : 180}deg)`;
@@ -256,6 +257,7 @@ function onDocumentClick(e: MouseEvent) {
 }
 
 watch(inputText, () => {
+  if (isRestoringHistory.value) return;
   if (historyIndex.value !== null) {
     historyIndex.value = null;
   }
@@ -317,9 +319,11 @@ function navigateHistory(direction: -1 | 1) {
 
   historyIndex.value = next;
   const entry = entries[next];
+  isRestoringHistory.value = true;
   inputText.value = entry.input;
   translatedText.value = entry.output;
   hasResult.value = !!entry.output;
+  nextTick(() => { isRestoringHistory.value = false; });
 }
 
 async function handleTranslate() {
@@ -399,9 +403,11 @@ onMounted(async () => {
     sessionStorage.removeItem("history-restore");
     try {
       const entry = JSON.parse(restore);
+      isRestoringHistory.value = true;
       inputText.value = entry.input || "";
       translatedText.value = entry.output || "";
       hasResult.value = !!entry.output;
+      nextTick(() => { isRestoringHistory.value = false; });
     } catch { /* ignore */ }
   }
   document.addEventListener("mousedown", onDocumentClick);
