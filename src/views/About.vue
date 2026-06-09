@@ -94,7 +94,6 @@ onMounted(() => {
   border-radius: 11px;
 }
 .about-root.grow-above .about-header { order: 99; border-bottom: none; border-top: 1px solid var(--color-surface); }
-}
 
 /* ── Header ── */
 .about-header {
