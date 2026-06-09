@@ -94,11 +94,11 @@ function formatTime(ts: number): string {
       <div class="header-actions">
         <button
           v-if="!showClearConfirm && historyStore.entries.length > 0"
-          class="clear-btn"
+          class="reset-btn"
           @click.stop="showClearConfirm = true"
           :title="t('history.clearAll')"
         >
-          <Trash2 :size="13" :stroke-width="1.8" />
+          <Trash2 :size="11" :stroke-width="1.9" />{{ t('history.clearAll') }}
         </button>
         <template v-if="showClearConfirm">
           <button class="mini-btn danger-active" :title="t('common.confirm')" @click.stop="handleClear">
@@ -212,20 +212,24 @@ function formatTime(ts: number): string {
   align-items: center;
   gap: 4px;
 }
-.clear-btn {
-  display: flex;
+.reset-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-secondary);
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-weight: 550;
+  color: var(--color-text-muted);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  border: none;
+  background: none;
+  transition: 0.15s;
 }
-.clear-btn:hover { background: var(--color-danger-bg, rgba(239,68,68,0.1)); color: var(--color-danger, #ef4444); }
+.reset-btn:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
 
 .mini-btn {
   display: flex; align-items: center; justify-content: center;
