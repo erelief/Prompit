@@ -85,7 +85,7 @@
     "send": "Send (Enter)",
     "targetLanguage": "Target Language",
     "noPersonasAvailable": "No personas available",
-    "noDictAvailable": "Dictionary not available",
+    "noDictAvailable": "No dictionary entries",
     "enablePersona": "Enable persona",
     "disablePersona": "Disable persona",
     "enableDict": "Enable user dictionary",
