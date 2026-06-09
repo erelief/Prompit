@@ -11,7 +11,7 @@ import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 const router = useRouter();
-const { growAbove } = useSettingsWindow(560, 480);
+const { growAbove } = useSettingsWindow();
 
 const glassBg = computed(() => {
   const o = (appConfig.floating_opacity ?? 90) / 100;
