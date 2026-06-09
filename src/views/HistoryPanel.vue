@@ -5,7 +5,7 @@ import { useRouter } from "vue-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ArrowLeft, History, Trash2, Check, X } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
-import { appConfig, historyStore, loadHistory, clearAllHistory } from "../stores/config";
+import { appConfig, historyStore, loadHistory, clearAllHistory, saveHistory } from "../stores/config";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 
@@ -26,6 +26,7 @@ const glassBg = computed(() => {
 });
 
 const showClearConfirm = ref(false);
+const pendingRemove = ref<number | null>(null);
 
 async function goBack() {
   router.push("/");
@@ -45,6 +46,18 @@ function selectEntry(entry: { input: string; output: string }) {
 async function handleClear() {
   await clearAllHistory();
   showClearConfirm.value = false;
+}
+
+function requestRemove(index: number) {
+  pendingRemove.value = index;
+}
+function cancelRemove() {
+  pendingRemove.value = null;
+}
+async function confirmRemove(index: number) {
+  historyStore.entries.splice(index, 1);
+  pendingRemove.value = null;
+  await saveHistory();
 }
 
 onMounted(async () => {
@@ -105,16 +118,36 @@ function formatTime(ts: number): string {
         <span class="empty-text">{{ t('history.empty') }}<br><small>{{ t('history.emptySub') }}</small></span>
       </div>
       <div v-else class="history-list">
-        <button
-          v-for="entry in historyStore.entries"
+        <div
+          v-for="(entry, idx) in historyStore.entries"
           :key="entry.timestamp"
           class="history-item"
-          @click="selectEntry(entry)"
+          :class="{ 'remove-pending': pendingRemove === idx }"
         >
-          <div class="history-item-input">{{ entry.input }}</div>
-          <div class="history-item-output">{{ entry.output }}</div>
-          <span class="history-item-time">{{ formatTime(entry.timestamp) }}</span>
-        </button>
+          <template v-if="pendingRemove === idx">
+            <span class="remove-warning-text">{{ t('common.cannotBeUndone') }}</span>
+            <div class="remove-actions">
+              <button class="mini-btn danger-active" :title="t('common.confirm')" @click.stop="confirmRemove(idx)">
+                <Check :size="11" :stroke-width="2.5" />
+              </button>
+              <button class="mini-btn" :title="t('common.cancel')" @click.stop="cancelRemove">
+                <X :size="11" :stroke-width="2.5" />
+              </button>
+            </div>
+          </template>
+          <template v-else>
+            <button class="history-item-main" @click="selectEntry(entry)">
+              <div class="history-item-input">{{ entry.input }}</div>
+              <div class="history-item-output">{{ entry.output }}</div>
+              <span class="history-item-time">{{ formatTime(entry.timestamp) }}</span>
+            </button>
+            <div class="history-item-actions" @click.stop>
+              <button class="mini-btn warn" :title="t('common.remove')" @click="requestRemove(idx)">
+                <Trash2 :size="11" :stroke-width="1.9" />
+              </button>
+            </div>
+          </template>
+        </div>
       </div>
     </main>
   </div>
@@ -198,12 +231,13 @@ function formatTime(ts: number): string {
   display: flex; align-items: center; justify-content: center;
   width: 27px; height: 27px; border-radius: 7px;
   color: var(--color-text-muted); cursor: pointer;
-  border: none; background: none; transition: .12s;
+  border: none; background: none; transition: 0.12s;
 }
 .mini-btn:hover { color: var(--color-text); background: var(--color-border); }
+.mini-btn.warn:hover { color: var(--color-danger); background: var(--color-danger-bg); }
 .mini-btn.danger-active {
   color: var(--color-danger); background: var(--color-danger-bg);
-  animation: danger-pulse .8s ease-in-out infinite alternate;
+  animation: danger-pulse 0.8s ease-in-out infinite alternate;
 }
 @keyframes danger-pulse {
   to { background: var(--color-danger-bg); filter: brightness(.88); }
@@ -241,20 +275,33 @@ function formatTime(ts: number): string {
 }
 .history-item {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 4px;
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
-  cursor: pointer;
-  text-align: left;
-  width: 100%;
   transition: background 0.12s, border-color 0.12s;
 }
 .history-item:hover {
   background: var(--color-surface-hover);
   border-color: var(--color-border);
+}
+.history-item.remove-pending {
+  background: var(--color-danger-bg);
+  border-color: var(--color-border);
+  justify-content: space-between;
+}
+.history-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
 }
 .history-item-input {
   font-size: 12px;
@@ -276,5 +323,28 @@ function formatTime(ts: number): string {
   color: var(--color-text-tertiary, var(--color-text-secondary));
   opacity: 0.6;
   margin-top: 2px;
+}
+.history-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s;
+  flex-shrink: 0;
+}
+.history-item:hover .history-item-actions {
+  opacity: 1;
+}
+.remove-warning-text {
+  font-size: 10px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  color: var(--color-danger);
+}
+.remove-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 </style>

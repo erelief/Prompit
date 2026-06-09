@@ -1120,7 +1120,7 @@ onUnmounted(() => {
             <span class="persona-name">{{ item.name }}</span>
           </template>
 
-          <template #name-input="{ item, index, isAdding }">
+          <template #name-input="{ item }">
             <input v-model="item.name" :placeholder="t('settings.personaName')" class="fi name-fi" @click.stop />
           </template>
 

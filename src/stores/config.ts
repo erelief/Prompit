@@ -411,3 +411,15 @@ export async function clearAllHistory(): Promise<void> {
     console.error("Failed to clear history:", err);
   }
 }
+
+export async function saveHistory(): Promise<void> {
+  const limit = appConfig.history_limit || 50;
+  try {
+    await invoke("save_history", {
+      entries: toRaw(historyStore.entries),
+      limit,
+    });
+  } catch (err) {
+    console.error("Failed to save history:", err);
+  }
+}
