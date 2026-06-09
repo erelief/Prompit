@@ -139,7 +139,7 @@
     "license": "License",
     "acknowledgments": "Acknowledgments",
     "checkUpdate": "Check for Updates",
-    "autoUpdate": "Auto Update",
+    "autoUpdate": "Check for updates on launch",
     "checking": "Checking...",
     "upToDate": "Up to date",
     "newVersion": "New version v{version}",

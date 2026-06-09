@@ -947,11 +947,15 @@ onUnmounted(() => {
                 : t('about.checkUpdate')
               }}</span>
             </button>
-            <button class="about-auto-btn" :class="{ 'toggle-on': autoUpdate }" @click.stop="toggleAutoUpdate" :title="t('about.autoUpdate')">
-              <ToggleRight v-if="autoUpdate" :size="15" :stroke-width="1.7" />
-              <ToggleLeft v-else :size="15" :stroke-width="1.7" />
-            </button>
           </div>
+        </div>
+        <!-- Auto Check Update -->
+        <div v-if="isTauri" class="card-row">
+          <span class="card-label">{{ t('about.autoUpdate') }}</span>
+          <button class="about-auto-btn" :class="{ 'toggle-on': autoUpdate }" @click.stop="toggleAutoUpdate">
+            <ToggleRight v-if="autoUpdate" :size="15" :stroke-width="1.7" />
+            <ToggleLeft v-else :size="15" :stroke-width="1.7" />
+          </button>
         </div>
 
         <!-- User Data -->

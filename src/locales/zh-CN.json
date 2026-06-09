@@ -139,7 +139,7 @@
     "license": "开源许可",
     "acknowledgments": "致谢",
     "checkUpdate": "检查更新",
-    "autoUpdate": "自动更新",
+    "autoUpdate": "启动时自动检查更新",
     "checking": "检查中...",
     "upToDate": "已是最新",
     "newVersion": "发现新版本 v{version}",
