@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ArrowLeft, History, Trash2, Check, X } from "@lucide/vue";
+import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { appConfig, historyStore, loadHistory, clearAllHistory, saveHistory } from "../stores/config";
 import { isDark } from "../composables/useTheme";
@@ -63,16 +63,6 @@ async function confirmRemove(index: number) {
 onMounted(async () => {
   await loadHistory();
 });
-
-function formatTime(ts: number): string {
-  const d = new Date(ts);
-  const now = new Date();
-  const isToday = d.toDateString() === now.toDateString();
-  if (isToday) {
-    return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  }
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-}
 </script>
 
 <template>
@@ -137,9 +127,14 @@ function formatTime(ts: number): string {
           </template>
           <template v-else>
             <button class="history-item-main" @click="selectEntry(entry)">
-              <div class="history-item-input">{{ entry.input }}</div>
-              <div class="history-item-output">{{ entry.output }}</div>
-              <span class="history-item-time">{{ formatTime(entry.timestamp) }}</span>
+              <div class="history-item-input">
+                <Send :size="9" :stroke-width="2" class="input-icon" />
+                <span>{{ entry.input }}</span>
+              </div>
+              <div class="history-item-output">
+                <MessageSquare :size="9" :stroke-width="2" class="output-icon" />
+                <span>{{ entry.output }}</span>
+              </div>
             </button>
             <div class="history-item-actions" @click.stop>
               <button class="mini-btn warn" :title="t('common.remove')" @click="requestRemove(idx)">
@@ -298,34 +293,52 @@ function formatTime(ts: number): string {
 .history-item-main {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   cursor: pointer;
   text-align: left;
   width: 100%;
   background: none;
   border: none;
   padding: 0;
+  min-width: 0;
 }
 .history-item-input {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 550;
   color: var(--color-text);
+  line-height: 1.3;
+}
+.history-item-input span {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.history-item-input .input-icon {
+  flex-shrink: 0;
+  color: var(--color-accent);
+  opacity: 0.7;
 }
 .history-item-output {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
   font-size: 11px;
   color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+.history-item-output span {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.history-item-time {
-  font-size: 10px;
-  color: var(--color-text-tertiary, var(--color-text-secondary));
-  opacity: 0.6;
-  margin-top: 2px;
+.history-item-output .output-icon {
+  flex-shrink: 0;
+  color: var(--color-text-tertiary, var(--color-text-muted));
+  opacity: 0.5;
+  margin-top: 1px;
 }
 .history-item-actions {
   display: flex;
