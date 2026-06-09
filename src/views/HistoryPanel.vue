@@ -111,7 +111,7 @@ function formatTime(ts: number): string {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
+  height: 100dvh;
   overflow: hidden;
   background: var(--color-bg);
   border-radius: 11px;
