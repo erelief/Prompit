@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { invoke } from "@tauri-apps/api/core";
+
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ArrowLeft, History, Trash2 } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
@@ -92,7 +92,7 @@ function formatTime(ts: number): string {
       </div>
       <div v-else class="history-list">
         <button
-          v-for="(entry, i) in historyStore.entries"
+          v-for="entry in historyStore.entries"
           :key="entry.timestamp"
           class="history-item"
           @click="selectEntry(entry)"
