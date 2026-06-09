@@ -59,9 +59,10 @@ export async function translate(text: string): Promise<string> {
   ];
 
   if (appConfig.user_dict_enabled) {
-    const entries = await loadDictionary(appConfig.target_lang);
-    if (entries.length > 0) {
-      const dictLines = entries
+    const allEntries = await loadDictionary(appConfig.target_lang);
+    const matched = allEntries.filter((e) => text.includes(e.source));
+    if (matched.length > 0) {
+      const dictLines = matched
         .map((e) => `- "${e.source}" → "${e.target}"`)
         .join("\n");
       messages.push({
