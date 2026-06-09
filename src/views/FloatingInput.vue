@@ -1131,6 +1131,22 @@ useShortcutTriggered(() => {
   flex-shrink: 0;
 }
 
+/* ── Ghost button (empty state) ── */
+.ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  width: 28px;
+  border-radius: 8px;
+  border: 1px dashed var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  opacity: 0.4;
+  cursor: default;
+  flex-shrink: 0;
+}
+
 /* Model dropdown */
 .model-dropdown {
   position: fixed;
@@ -1251,5 +1267,63 @@ useShortcutTriggered(() => {
 }
 :deep(.overflow-y-auto)::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ── Empty-state hint modal ── */
+.empty-hint-card {
+  max-width: 280px;
+  width: calc(100% - 48px);
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+.empty-hint-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+.empty-hint-body {
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.empty-hint-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.empty-hint-cancel {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.empty-hint-cancel:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+.empty-hint-go {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 550;
+  color: white;
+  background: var(--color-accent);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.empty-hint-go:hover {
+  opacity: 0.9;
 }
 </style>
