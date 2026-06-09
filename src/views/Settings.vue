@@ -14,6 +14,7 @@ import {
   loadProviderPresets,
   dictStore,
   refreshDictStatus,
+  clearAllHistory,
 } from "../stores/config";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
@@ -53,6 +54,7 @@ import {
   Droplet,
   Database,
   Monitor,
+  History,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -111,6 +113,7 @@ const appLanguageOptions = [
 ];
 
 const showAppLangMenu = ref(false);
+const showHistoryClearConfirm = ref(false);
 const appLangMenuPos = ref({ top: 0, left: 0, width: 0 });
 const appLangBtnRef = ref<HTMLElement | null>(null);
 
@@ -841,6 +844,43 @@ onUnmounted(() => {
                 </Transition>
               </Teleport>
             </div>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="section-head mt">
+          <span class="section-title"><History :size="13" />{{ t('history.historySettings') }}</span>
+        </div>
+        <div class="card-section">
+          <div class="card-row">
+            <span class="card-label">{{ t('history.historyLimit') }}</span>
+            <div class="opacity-row compact">
+              <input
+                type="number" min="10" max="500" step="10"
+                :value="appConfig.history_limit"
+                @change="appConfig.history_limit = Math.min(500, Math.max(10, +($event.target as HTMLInputElement).value || 50))"
+                class="opacity-value-input"
+                style="width: 64px;"
+              />
+            </div>
+          </div>
+          <div class="card-row">
+            <span class="card-label">{{ t('history.clearHistory') }}</span>
+            <template v-if="!showHistoryClearConfirm">
+              <button class="pill-btn micro" @click="showHistoryClearConfirm = true">
+                <Trash2 :size="10" :stroke-width="2" />
+                {{ t('history.clearAll') }}
+              </button>
+            </template>
+            <template v-else>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] text-[var(--color-text-secondary)]">{{ t('history.clearConfirm') }}</span>
+                <button class="pill-btn gold-micro" @click="clearAllHistory().then(() => showHistoryClearConfirm = false)">
+                  {{ t('common.confirm') }}
+                </button>
+                <button class="pill-btn micro" @click="showHistoryClearConfirm = false">{{ t('common.cancel') }}</button>
+              </div>
+            </template>
           </div>
         </div>
 
