@@ -585,6 +585,16 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
+          <!-- Persona ghost (empty state) -->
+          <button
+            v-if="personaStore.personas.length === 0"
+            class="ghost-btn"
+            @click="emptyHintTarget = 'persona'"
+            :title="t('floating.noPersonasAvailable')"
+          >
+            <UserCircle :size="11" :stroke-width="1.8" />
+          </button>
+
           <!-- Dictionary toggle -->
           <button
             v-if="dictStore.hasEntries"
@@ -595,6 +605,16 @@ useShortcutTriggered(() => {
           >
             <BookText :size="11" :stroke-width="1.8" />
             <span v-if="appConfig.user_dict_enabled" class="dict-dot on" />
+          </button>
+
+          <!-- Dictionary ghost (empty state) -->
+          <button
+            v-if="!dictStore.hasEntries"
+            class="ghost-btn"
+            @click="emptyHintTarget = 'dict'"
+            :title="t('floating.dictionary')"
+          >
+            <BookText :size="11" :stroke-width="1.8" />
           </button>
 
           <div class="flex-1"></div>
@@ -740,6 +760,16 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
+          <!-- Persona ghost (empty state) -->
+          <button
+            v-if="personaStore.personas.length === 0"
+            class="ghost-btn"
+            @click="emptyHintTarget = 'persona'"
+            :title="t('floating.noPersonasAvailable')"
+          >
+            <UserCircle :size="11" :stroke-width="1.8" />
+          </button>
+
           <!-- Dictionary toggle -->
           <button
             v-if="dictStore.hasEntries"
@@ -750,6 +780,16 @@ useShortcutTriggered(() => {
           >
             <BookText :size="11" :stroke-width="1.8" />
             <span v-if="appConfig.user_dict_enabled" class="dict-dot on" />
+          </button>
+
+          <!-- Dictionary ghost (empty state) -->
+          <button
+            v-if="!dictStore.hasEntries"
+            class="ghost-btn"
+            @click="emptyHintTarget = 'dict'"
+            :title="t('floating.dictionary')"
+          >
+            <BookText :size="11" :stroke-width="1.8" />
           </button>
 
           <div class="flex-1"></div>
