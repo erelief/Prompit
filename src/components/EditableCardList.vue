@@ -270,7 +270,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
           <div v-if="!isEditing(oi)" class="ecl-collapsed" :class="{ 'remove-pending': pendingRemove === oi }">
             <div class="ecl-lhs">
               <template v-if="pendingRemove === oi">
-                <span class="remove-warning-text">This cannot be undone.</span>
+                <span class="remove-warning-text">{{ t('common.cannotBeUndone') }}</span>
               </template>
               <template v-else>
                 <slot name="collapsed" :item="items[oi]" :index="oi" />
@@ -317,7 +317,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
               </template>
             </div>
             <div v-if="pendingRemove === oi" class="remove-warning-row">
-              <span class="remove-warning-text">This cannot be undone.</span>
+              <span class="remove-warning-text">{{ t('common.cannotBeUndone') }}</span>
             </div>
             <slot name="content" :item="drafts.get(oi)" :index="oi" :is-adding="false" />
             <div v-if="validationError" class="validation-error">{{ validationError }}</div>

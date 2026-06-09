@@ -8,6 +8,7 @@
     "add": "Add",
     "remove": "Remove",
     "confirmRemove": "Confirm remove",
+    "cannotBeUndone": "This cannot be undone.",
     "settings": "Settings",
     "hide": "Hide (Esc)",
     "enabled": "Enabled",
