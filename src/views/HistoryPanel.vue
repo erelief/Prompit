@@ -143,6 +143,9 @@ onMounted(async () => {
             </div>
           </template>
         </div>
+        <div class="history-footer">
+          {{ t('history.entryCount', { current: historyStore.entries.length, limit: appConfig.history_limit || 50 }) }}
+        </div>
       </div>
     </main>
   </div>
@@ -362,5 +365,14 @@ onMounted(async () => {
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
+}
+.history-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-surface);
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--color-text-tertiary, var(--color-text-muted));
+  letter-spacing: 0.01em;
 }
 </style>

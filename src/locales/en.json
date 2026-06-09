@@ -107,7 +107,8 @@
     "clearConfirm": "Delete all history? This cannot be undone.",
     "historySettings": "History",
     "historyLimit": "Max History Entries",
-    "clearHistory": "Clear History"
+    "clearHistory": "Clear History",
+    "entryCount": "Max entries: {current}/{limit}"
   },
   "dictionary": {
     "userDictionary": "User Dictionary",
