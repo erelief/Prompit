@@ -95,7 +95,18 @@
     "emptyPersonaBody": "在设置中添加角色以自定义翻译风格。",
     "emptyDictTitle": "用户词典为空",
     "emptyDictBody": "在设置中添加词条以获得更准确的翻译。",
-    "goToSettings": "前往设置"
+    "goToSettings": "前往设置",
+    "history": "历史记录"
+  },
+  "history": {
+    "title": "历史记录",
+    "empty": "暂无历史记录。",
+    "emptySub": "翻译记录将显示在这里。",
+    "clearAll": "清除全部",
+    "clearConfirm": "确认删除所有历史记录？此操作不可撤销。",
+    "historySettings": "历史记录",
+    "historyLimit": "最大历史条数",
+    "clearHistory": "清除历史记录"
   },
   "dictionary": {
     "userDictionary": "用户词典",

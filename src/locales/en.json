@@ -95,7 +95,18 @@
     "emptyPersonaBody": "Add a persona in Settings to customize your translation style.",
     "emptyDictTitle": "User dictionary is empty",
     "emptyDictBody": "Add terms in Settings for more accurate translations.",
-    "goToSettings": "Go to Settings"
+    "goToSettings": "Go to Settings",
+    "history": "History"
+  },
+  "history": {
+    "title": "History",
+    "empty": "No history yet.",
+    "emptySub": "Translations will appear here.",
+    "clearAll": "Clear All",
+    "clearConfirm": "Delete all history? This cannot be undone.",
+    "historySettings": "History",
+    "historyLimit": "Max History Entries",
+    "clearHistory": "Clear History"
   },
   "dictionary": {
     "userDictionary": "User Dictionary",
