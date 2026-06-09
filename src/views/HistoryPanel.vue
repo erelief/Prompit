@@ -113,7 +113,8 @@ function formatTime(ts: number): string {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: var(--color-surface);
+  background: var(--color-bg);
+  border-radius: 11px;
 }
 .history-root.grow-above {
   justify-content: flex-end;
@@ -123,21 +124,21 @@ function formatTime(ts: number): string {
 .history-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: 16px 24px 12px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-surface);
 }
 .back-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
   border: none;
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -147,9 +148,11 @@ function formatTime(ts: number): string {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--color-text);
+  line-height: 1.2;
   margin: 0;
   flex: 1;
 }
@@ -196,7 +199,7 @@ function formatTime(ts: number): string {
 .history-body {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 10px;
+  padding: 10px 24px 16px;
 }
 .history-body::-webkit-scrollbar { width: 3px; }
 .history-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
