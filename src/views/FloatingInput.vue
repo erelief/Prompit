@@ -568,7 +568,7 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
-          <div class="w-px h-3 bg-[var(--color-border)]"></div>
+          <div class="w-px h-3 bg-[var(--color-border)] shrink-0"></div>
 
           <!-- Language selector -->
           <div class="lang-wrap" ref="langDropdownRef">
@@ -751,7 +751,7 @@ useShortcutTriggered(() => {
             </Teleport>
           </div>
 
-          <div class="w-px h-3 bg-[var(--color-border)]"></div>
+          <div class="w-px h-3 bg-[var(--color-border)] shrink-0"></div>
 
           <!-- Language selector -->
           <div class="lang-wrap" ref="langDropdownRef">
