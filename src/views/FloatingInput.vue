@@ -273,7 +273,7 @@ function handleKeydown(e: KeyboardEvent) {
     const ta = textareaRef.value;
     if (ta && ta.selectionStart === 0 && ta.selectionEnd === 0) {
       e.preventDefault();
-      navigateHistory(-1);
+      navigateHistory(1); // ↑ = toward older
       return;
     }
   }
@@ -281,7 +281,7 @@ function handleKeydown(e: KeyboardEvent) {
     const ta = textareaRef.value;
     if (ta && ta.selectionStart === ta.value.length && ta.selectionEnd === ta.value.length) {
       e.preventDefault();
-      navigateHistory(1);
+      navigateHistory(-1); // ↓ = toward newer
       return;
     }
   }
@@ -305,12 +305,13 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 function navigateHistory(direction: -1 | 1) {
+  // direction: -1 = toward newer (index--), +1 = toward older (index++)
   const entries = historyStore.entries;
   if (entries.length === 0) return;
 
   let next: number;
   if (historyIndex.value === null) {
-    next = direction === -1 ? 0 : -1;
+    next = direction === 1 ? 0 : -1;
   } else {
     next = historyIndex.value + direction;
   }
