@@ -5,3 +5,4 @@ pub mod persona;
 pub mod presets;
 pub mod secrets;
 pub mod window;
+pub mod history;
