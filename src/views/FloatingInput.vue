@@ -33,6 +33,7 @@ let unlistenConfig: (() => void) | null = null;
 
 // ── History browsing (terminal-style ↑↓) ──
 const historyIndex = ref<number | null>(null);
+let draftSnapshot: { input: string; output: string } | null = null;
 
 const activeModelName = computed(() => {
   const m = getActiveModel();
@@ -260,6 +261,7 @@ watch(inputText, () => {
   if (isRestoringHistory.value) return;
   if (historyIndex.value !== null) {
     historyIndex.value = null;
+    draftSnapshot = null;
   }
   if (hasResult.value) {
     hasResult.value = false;
@@ -294,10 +296,12 @@ function handleKeydown(e: KeyboardEvent) {
       handleTranslate();
     }
     historyIndex.value = null;
+    draftSnapshot = null;
   }
   if (e.key === "Escape") {
     if (historyIndex.value !== null) {
       historyIndex.value = null;
+      draftSnapshot = null;
     } else {
       handleHide();
     }
@@ -316,7 +320,26 @@ function navigateHistory(direction: -1 | 1) {
     next = historyIndex.value + direction;
   }
 
-  if (next < 0 || next >= entries.length) return;
+  // Save draft snapshot before first navigation
+  if (historyIndex.value === null && direction === 1 && (inputText.value || translatedText.value)) {
+    draftSnapshot = { input: inputText.value, output: translatedText.value };
+  }
+
+  // Going below index 0 (newer than newest) → restore draft or stay
+  if (next < 0) {
+    if (draftSnapshot) {
+      historyIndex.value = null;
+      isRestoringHistory.value = true;
+      inputText.value = draftSnapshot.input;
+      translatedText.value = draftSnapshot.output;
+      hasResult.value = !!draftSnapshot.output;
+      nextTick(() => { isRestoringHistory.value = false; });
+      draftSnapshot = null;
+    }
+    return;
+  }
+
+  if (next >= entries.length) return;
 
   historyIndex.value = next;
   const entry = entries[next];
