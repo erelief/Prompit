@@ -1847,7 +1847,7 @@ label {
   margin-left: 2px;
   transition: all 0.12s ease;
 }
-.opacity-reset:hover {
+.opacity-reset:not(:disabled):hover {
   background: var(--color-border);
   color: var(--color-text-secondary);
 }
