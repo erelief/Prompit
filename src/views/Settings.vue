@@ -854,28 +854,28 @@ onUnmounted(() => {
         <div class="card-section">
           <div class="card-row">
             <span class="card-label">{{ t('history.historyLimit') }}</span>
-            <div class="opacity-row compact">
-              <input
-                type="number" min="10" max="500" step="10"
-                :value="appConfig.history_limit"
-                @change="appConfig.history_limit = Math.min(500, Math.max(10, +($event.target as HTMLInputElement).value || 50))"
-                class="opacity-value-input"
-                style="width: 64px;"
-              />
+            <div class="opacity-row compact" style="justify-content: flex-end;">
+              <div class="opacity-value-wrap">
+                <input
+                  type="number" min="10" max="100" step="10"
+                  :value="appConfig.history_limit"
+                  @change="appConfig.history_limit = Math.min(100, Math.max(10, +($event.target as HTMLInputElement).value || 50))"
+                  class="opacity-value-input"
+                />
+              </div>
             </div>
           </div>
           <div class="card-row">
             <span class="card-label">{{ t('history.clearHistory') }}</span>
             <template v-if="!showHistoryClearConfirm">
-              <button class="pill-btn micro" @click="showHistoryClearConfirm = true">
-                <Trash2 :size="10" :stroke-width="2" />
-                {{ t('history.clearAll') }}
+              <button class="reset-btn" @click="showHistoryClearConfirm = true">
+                <Trash2 :size="11" :stroke-width="1.9" />{{ t('history.clearAll') }}
               </button>
             </template>
             <template v-else>
               <div class="flex items-center gap-2">
                 <span class="text-[11px] text-[var(--color-text-secondary)]">{{ t('history.clearConfirm') }}</span>
-                <button class="pill-btn gold-micro" @click="clearAllHistory().then(() => showHistoryClearConfirm = false)">
+                <button class="reset-btn" style="color: var(--color-danger); background: var(--color-danger-bg);" @click="clearAllHistory().then(() => showHistoryClearConfirm = false)">
                   {{ t('common.confirm') }}
                 </button>
                 <button class="pill-btn micro" @click="showHistoryClearConfirm = false">{{ t('common.cancel') }}</button>
@@ -1783,9 +1783,12 @@ label {
   border-radius: 6px;
   padding: 3px 6px;
   flex-shrink: 0;
+  width: fit-content;
 }
 .opacity-value-input {
-  width: 32px;
+  width: 28px;
+  min-width: 28px;
+  max-width: 28px;
   font-size: 11px;
   font-weight: 600;
   text-align: center;
@@ -1794,6 +1797,7 @@ label {
   border: none;
   outline: none;
   -moz-appearance: textfield;
+  box-sizing: border-box;
 }
 .opacity-value-input::-webkit-outer-spin-button,
 .opacity-value-input::-webkit-inner-spin-button {
