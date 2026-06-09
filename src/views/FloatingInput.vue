@@ -564,7 +564,7 @@ useShortcutTriggered(() => {
               class="model-btn"
               :class="{ active: showModelDropdown }"
             >
-              <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
+              <span class="truncate max-w-[120px] min-w-0">{{ activeModelName }}</span>
               <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
                 :style="{ transform: chevronTransform(showModelDropdown) }" />
             </button>
@@ -642,7 +642,7 @@ useShortcutTriggered(() => {
             >
               <UserCircle :size="11" :stroke-width="1.8" />
               <span v-if="personaOn" class="persona-dot on" />
-              <span class="truncate max-w-[90px]">{{ personaOn ? displayPersonaName : '' }}</span>
+              <span class="truncate max-w-[3em] min-w-0">{{ personaOn ? displayPersonaName : '' }}</span>
             </button>
             <button
               v-if="personaStore.personas.length > 0"
@@ -747,7 +747,7 @@ useShortcutTriggered(() => {
               class="model-btn"
               :class="{ active: showModelDropdown }"
             >
-              <span class="truncate max-w-[120px]">{{ activeModelName }}</span>
+              <span class="truncate max-w-[120px] min-w-0">{{ activeModelName }}</span>
               <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
                 :style="{ transform: chevronTransform(showModelDropdown) }" />
             </button>
@@ -825,7 +825,7 @@ useShortcutTriggered(() => {
             >
               <UserCircle :size="11" :stroke-width="1.8" />
               <span v-if="personaOn" class="persona-dot on" />
-              <span class="truncate max-w-[90px]">{{ personaOn ? displayPersonaName : '' }}</span>
+              <span class="truncate max-w-[3em] min-w-0">{{ personaOn ? displayPersonaName : '' }}</span>
             </button>
             <button
               v-if="personaStore.personas.length > 0"
