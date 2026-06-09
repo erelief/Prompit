@@ -375,7 +375,8 @@ export const historyStore = reactive<{ entries: HistoryEntry[] }>({
 
 export async function loadHistory(): Promise<void> {
   try {
-    historyStore.entries = await invoke<HistoryEntry[]>("read_history");
+    const entries = await invoke<HistoryEntry[]>("read_history");
+    historyStore.entries = entries.sort((a, b) => b.timestamp - a.timestamp);
   } catch (err) {
     console.error("Failed to load history:", err);
     historyStore.entries = [];
