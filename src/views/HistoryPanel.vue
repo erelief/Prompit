@@ -160,7 +160,6 @@ function formatTime(ts: number): string {
   width: 100%;
   height: 100dvh;
   overflow: hidden;
-  border-radius: 11px;
 }
 .history-root.grow-above {
   flex-direction: column-reverse;
