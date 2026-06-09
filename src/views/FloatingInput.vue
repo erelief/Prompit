@@ -119,6 +119,9 @@ const personaBtnRef = ref<HTMLButtonElement | null>(null);
 const personaMenuRef = ref<HTMLDivElement | null>(null);
 const personaDropdownPos = ref({ top: 0, left: 0 });
 
+// ── Empty-state hint modal ──
+const emptyHintTarget = ref<'persona' | 'dict' | null>(null);
+
 function togglePersona() {
   const active = personaStore.personas.findIndex((p) => p.enabled);
   if (active >= 0) {
@@ -312,6 +315,18 @@ async function handleDrag(e: MouseEvent) {
 async function handleOpenSettings() {
   await invoke("open_settings_window");
   router.push("/settings");
+}
+
+async function handleEmptyHintGo() {
+  const target = emptyHintTarget.value;
+  emptyHintTarget.value = null;
+  if (target === 'dict') {
+    await invoke("open_settings_window");
+    router.push('/settings/dictionary');
+  } else if (target === 'persona') {
+    await invoke("open_settings_window");
+    router.push('/settings?tab=translation&scrollTo=persona');
+  }
 }
 
 function clearAll() {
