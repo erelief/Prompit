@@ -796,8 +796,9 @@ onUnmounted(() => {
                 />
                 <span class="opacity-pct">%</span>
                 <button
-                  v-if="appConfig.floating_opacity !== 90"
                   class="opacity-reset"
+                  :class="{ 'opacity-reset-off': appConfig.floating_opacity === 90 }"
+                  :disabled="appConfig.floating_opacity === 90"
                   @click="appConfig.floating_opacity = 90"
                   :title="t('settings.resetToDefault')"
                 >
@@ -854,14 +855,29 @@ onUnmounted(() => {
         <div class="card-section" :class="{ 'remove-pending': showHistoryClearConfirm }">
           <div class="card-row">
             <span class="card-label">{{ t('history.historyLimit') }}</span>
-            <div class="opacity-row compact" style="justify-content: flex-end;">
+            <div class="opacity-row compact">
+              <input
+                type="range" min="1" max="100" step="1"
+                :value="appConfig.history_limit"
+                @input="appConfig.history_limit = +($event.target as HTMLInputElement).value"
+                class="opacity-slider"
+              />
               <div class="opacity-value-wrap">
                 <input
-                  type="number" min="10" max="100" step="10"
+                  type="number" min="1" max="100"
                   :value="appConfig.history_limit"
-                  @change="appConfig.history_limit = Math.min(100, Math.max(10, +($event.target as HTMLInputElement).value || 50))"
+                  @change="appConfig.history_limit = Math.min(100, Math.max(1, +($event.target as HTMLInputElement).value || 50))"
                   class="opacity-value-input"
                 />
+                <button
+                  class="opacity-reset"
+                  :class="{ 'opacity-reset-off': appConfig.history_limit === 50 }"
+                  :disabled="appConfig.history_limit === 50"
+                  @click="appConfig.history_limit = 50"
+                  :title="t('settings.resetToDefault')"
+                >
+                  <RotateCcw :size="10" :stroke-width="2" />
+                </button>
               </div>
             </div>
           </div>
@@ -1834,6 +1850,10 @@ label {
 .opacity-reset:hover {
   background: var(--color-border);
   color: var(--color-text-secondary);
+}
+.opacity-reset-off {
+  opacity: 0.25;
+  cursor: default;
 }
 
 /* ── Card section: reusable grouped-settings container ── */
