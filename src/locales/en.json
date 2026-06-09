@@ -89,7 +89,12 @@
     "disablePersona": "Disable persona",
     "enableDict": "Enable user dictionary",
     "disableDict": "Disable user dictionary",
-    "dictionary": "Dictionary"
+    "dictionary": "Dictionary",
+    "emptyPersonaTitle": "No translation persona configured",
+    "emptyPersonaBody": "Add a persona in Settings to customize your translation style.",
+    "emptyDictTitle": "User dictionary is empty",
+    "emptyDictBody": "Add terms in Settings for more accurate translations.",
+    "goToSettings": "Go to Settings"
   },
   "dictionary": {
     "userDictionary": "User Dictionary",

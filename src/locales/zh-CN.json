@@ -89,7 +89,12 @@
     "disablePersona": "禁用角色",
     "enableDict": "启用用户词典",
     "disableDict": "禁用用户词典",
-    "dictionary": "词典"
+    "dictionary": "词典",
+    "emptyPersonaTitle": "未配置翻译角色",
+    "emptyPersonaBody": "在设置中添加角色以自定义翻译风格。",
+    "emptyDictTitle": "用户词典为空",
+    "emptyDictBody": "在设置中添加词条以获得更准确的翻译。",
+    "goToSettings": "前往设置"
   },
   "dictionary": {
     "userDictionary": "用户词典",
