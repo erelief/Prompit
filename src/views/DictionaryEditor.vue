@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 import { getLangName } from "../constants/languages";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
@@ -256,6 +257,7 @@ async function confirmClear() {
 
 /* ── Lifecycle ── */
 onMounted(async () => {
+  await invoke("resize_and_reposition", { height: 580, width: 480 });
   try {
     entries.value = await loadDictionary(viewLang.value);
   } catch {

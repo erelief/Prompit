@@ -612,7 +612,7 @@ useShortcutTriggered(() => {
             v-if="!dictStore.hasEntries"
             class="ghost-btn"
             @click="emptyHintTarget = 'dict'"
-            :title="t('floating.dictionary')"
+            :title="t('floating.noDictAvailable')"
           >
             <BookText :size="11" :stroke-width="1.8" />
           </button>
@@ -787,7 +787,7 @@ useShortcutTriggered(() => {
             v-if="!dictStore.hasEntries"
             class="ghost-btn"
             @click="emptyHintTarget = 'dict'"
-            :title="t('floating.dictionary')"
+            :title="t('floating.noDictAvailable')"
           >
             <BookText :size="11" :stroke-width="1.8" />
           </button>
