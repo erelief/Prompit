@@ -868,10 +868,10 @@ useShortcutTriggered(() => {
         style="background: rgba(0,0,0,0.4); backdrop-filter: blur(4px)"
       >
         <div class="empty-hint-card">
-          <p class="empty-hint-title" style="color: var(--color-text)">
+          <p class="empty-hint-title">
             {{ emptyHintTarget === 'persona' ? t('floating.emptyPersonaTitle') : t('floating.emptyDictTitle') }}
           </p>
-          <p class="empty-hint-body" style="color: var(--color-text-secondary)">
+          <p class="empty-hint-body">
             {{ emptyHintTarget === 'persona' ? t('floating.emptyPersonaBody') : t('floating.emptyDictBody') }}
           </p>
           <div class="empty-hint-actions">
@@ -1139,12 +1139,17 @@ useShortcutTriggered(() => {
   height: 28px;
   width: 28px;
   border-radius: 8px;
-  border: 1px dashed var(--color-border);
+  border: 1px dashed var(--color-border-hover);
   background: transparent;
   color: var(--color-text-muted);
-  opacity: 0.4;
-  cursor: default;
+  cursor: pointer;
+  transition: all 0.15s ease;
   flex-shrink: 0;
+}
+.ghost-btn:hover {
+  border-color: var(--color-text-muted);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
 }
 
 /* Model dropdown */
@@ -1253,6 +1258,17 @@ useShortcutTriggered(() => {
   opacity: 0;
 }
 
+.drop-enter-active,
+.drop-leave-active {
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.drop-enter-from,
+.drop-leave-to {
+  opacity: 0;
+  transform: translateY(-5px) scale(0.967);
+}
+
 /* Thin scrollbar to prevent layout shift on appear */
 :deep(.overflow-y-auto) {
   scrollbar-width: thin;
@@ -1273,21 +1289,23 @@ useShortcutTriggered(() => {
 .empty-hint-card {
   max-width: 280px;
   width: calc(100% - 48px);
-  padding: 20px;
-  border-radius: 14px;
+  padding: 18px 20px;
+  border-radius: 12px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
 }
 .empty-hint-title {
   font-size: 13px;
   font-weight: 600;
   line-height: 1.4;
-  margin-bottom: 6px;
+  color: var(--color-text);
+  margin-bottom: 4px;
 }
 .empty-hint-body {
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
   margin-bottom: 16px;
 }
 .empty-hint-actions {
@@ -1296,11 +1314,11 @@ useShortcutTriggered(() => {
   justify-content: flex-end;
 }
 .empty-hint-cancel {
-  height: 30px;
+  height: 32px;
   padding: 0 14px;
   border-radius: 8px;
-  font-size: 11.5px;
-  font-weight: 550;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--color-text-secondary);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -1310,13 +1328,14 @@ useShortcutTriggered(() => {
 .empty-hint-cancel:hover {
   color: var(--color-text);
   background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
 }
 .empty-hint-go {
-  height: 30px;
+  height: 32px;
   padding: 0 14px;
   border-radius: 8px;
-  font-size: 11.5px;
-  font-weight: 550;
+  font-size: 12px;
+  font-weight: 500;
   color: white;
   background: var(--color-accent);
   border: none;
@@ -1324,6 +1343,6 @@ useShortcutTriggered(() => {
   transition: all 0.15s ease;
 }
 .empty-hint-go:hover {
-  opacity: 0.9;
+  filter: brightness(1.1);
 }
 </style>
