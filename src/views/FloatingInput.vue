@@ -53,6 +53,8 @@ const glassBg = computed(() => {
     : `linear-gradient(135deg, rgba(255,255,255,${o}) 0%, rgba(245,245,250,${o * 0.94}) 100%)`;
 });
 
+const floatingAlpha = computed(() => (appConfig.floating_opacity ?? 90) / 100);
+
 const showModelDropdown = ref(false);
 const modelDropdownRef = ref<HTMLDivElement | null>(null);
 const modelBtnRef = ref<HTMLButtonElement | null>(null);
@@ -532,14 +534,27 @@ useShortcutTriggered(() => {
 
         <!-- Input area + inline send -->
         <div class="relative">
-          <textarea
-            ref="textareaRef"
-            v-model="inputText"
-            @keydown="handleKeydown"
-            :placeholder="hasResult ? t('floating.pressEnterToPaste') : t('floating.typeToSend')"
-            rows="1"
-            class="floating-input floating-input-with-btn w-full resize-none text-[13px] leading-relaxed outline-none"
-          />
+          <div class="textarea-with-history">
+            <textarea
+              ref="textareaRef"
+              v-model="inputText"
+              @keydown="handleKeydown"
+              :placeholder="hasResult ? t('floating.pressEnterToPaste') : t('floating.typeToSend')"
+              rows="1"
+              class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
+            ></textarea>
+
+            <!-- History button (top-left corner of textarea) -->
+            <button
+              @click="router.push('/history')"
+              class="history-btn"
+              :title="t('floating.history')"
+              :style="{ background: glassBg, '--btn-alpha': floatingAlpha }"
+            >
+              <History :size="14" />
+            </button>
+          </div>
+
           <button
             @click="hasResult ? handlePasteResult() : handleTranslate()"
             :disabled="(!inputText.trim() && !hasResult) || isLoading"
@@ -711,14 +726,6 @@ useShortcutTriggered(() => {
           </button>
 
           <div class="flex-1"></div>
-
-          <button
-            @click="router.push('/history')"
-            class="icon-btn"
-            :title="t('floating.history')"
-          >
-            <History :size="14" :stroke-width="1.8" />
-          </button>
 
           <button
             @click="handleOpenSettings"
@@ -896,14 +903,6 @@ useShortcutTriggered(() => {
           <div class="flex-1"></div>
 
           <button
-            @click="router.push('/history')"
-            class="icon-btn"
-            :title="t('floating.history')"
-          >
-            <History :size="14" :stroke-width="1.8" />
-          </button>
-
-          <button
             @click="handleOpenSettings"
             class="icon-btn"
             :title="t('common.settings')"
@@ -918,14 +917,27 @@ useShortcutTriggered(() => {
 
         <!-- Input area + inline send -->
         <div class="relative">
-          <textarea
-            ref="textareaRef"
-            v-model="inputText"
-            @keydown="handleKeydown"
-            :placeholder="hasResult ? t('floating.pressEnterToPaste') : t('floating.typeToSend')"
-            rows="1"
-            class="floating-input floating-input-with-btn w-full resize-none text-[13px] leading-relaxed outline-none"
-          />
+          <div class="textarea-with-history">
+            <textarea
+              ref="textareaRef"
+              v-model="inputText"
+              @keydown="handleKeydown"
+              :placeholder="hasResult ? t('floating.pressEnterToPaste') : t('floating.typeToSend')"
+              rows="1"
+              class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
+            ></textarea>
+
+            <!-- History button (top-left corner of textarea) -->
+            <button
+              @click="router.push('/history')"
+              class="history-btn"
+              :title="t('floating.history')"
+              :style="{ background: glassBg, '--btn-alpha': floatingAlpha }"
+            >
+              <History :size="14" />
+            </button>
+          </div>
+
           <button
             @click="hasResult ? handlePasteResult() : handleTranslate()"
             :disabled="(!inputText.trim() && !hasResult) || isLoading"
@@ -1011,6 +1023,7 @@ useShortcutTriggered(() => {
   field-sizing: content;
   max-height: 200px;
   overflow-y: auto;
+  margin: 0;
 }
 
 .floating-input::placeholder {
@@ -1023,10 +1036,15 @@ useShortcutTriggered(() => {
 }
 
 /* Textarea with inline send button */
+/* Keep old floating-input-with-btn class for potential future use */
 .floating-input-with-btn {
   padding-right: 34px;
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
+}
+
+.floating-input-with-history {
+  padding-left: 35px;
 }
 
 .send-btn-inline {
@@ -1043,6 +1061,7 @@ useShortcutTriggered(() => {
   color: #1a1a1a;
   transition: all 0.15s ease;
   flex-shrink: 0;
+  z-index: 3;
 }
 
 .send-btn-inline:hover:not(:disabled) {
@@ -1453,5 +1472,46 @@ useShortcutTriggered(() => {
 }
 .empty-hint-go:hover {
   filter: brightness(1.1);
+}
+
+/* History button styling - exactly matches persona wand button pattern */
+.textarea-with-history {
+  position: relative !important;
+}
+
+.history-btn {
+  position: absolute !important;
+  top: -11px !important;
+  left: -11px !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 0 !important;
+  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s !important;
+  z-index: 9999 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
+}
+
+.textarea-with-history:hover .history-btn,
+.history-btn.active {
+  opacity: var(--btn-alpha, 1) !important;
+}
+
+.history-btn.active {
+  color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
+}
+
+.history-btn:hover {
+  color: var(--color-accent) !important;
+  border-color: var(--color-accent-border) !important;
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
 }
 </style>

@@ -1539,8 +1539,8 @@ label {
 }
 .persona-textarea-wrap:hover .persona-wand-btn,
 .persona-wand-btn.active { opacity:1; }
-.persona-wand-btn.active { color:var(--color-accent); border-color:var(--color-accent); }
-.persona-wand-btn:hover { color:var(--color-accent); border-color:var(--color-border-hover); }
+.persona-wand-btn.active { color:var(--color-accent); border-color:var(--color-accent); background:color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)); }
+.persona-wand-btn:hover { color:var(--color-accent); border-color:var(--color-border-hover); background:color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)); }
 @keyframes persona-spin{ to{ transform:rotate(360deg)} }
 .persona-wand-btn .spin { animation:persona-spin .75s linear infinite; }
 
