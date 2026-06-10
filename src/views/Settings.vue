@@ -647,6 +647,7 @@ onUnmounted(() => {
           :empty-sub-message="t('settings.addOneToGetStarted')"
           :empty-icon="CircleDot"
           :validate="validateProvider"
+          :allow-remove="appConfig.providers.length > 1"
           @add="onProviderAdd"
           @confirm="onProviderConfirm"
           @cancel="onProviderCancel"

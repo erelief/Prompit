@@ -17,6 +17,8 @@ const props = defineProps<{
   emptyIcon?: Component;
   /** Return an error message if the item is invalid, or null to allow. */
   validate?: (item: any) => string | null;
+  /** Whether to show the remove button. Default true. */
+  allowRemove?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -291,7 +293,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
                 <button class="mini-btn" :title="t('common.edit')" @click="toggleEdit(oi)">
                   <Pencil :size="11" :stroke-width="1.9" />
                 </button>
-                <button class="mini-btn warn" :title="t('common.remove')" @click="requestRemove(oi)">
+                <button v-if="allowRemove !== false" class="mini-btn warn" :title="t('common.remove')" @click="requestRemove(oi)">
                   <Trash2 :size="11" :stroke-width="1.9" />
                 </button>
               </template>
