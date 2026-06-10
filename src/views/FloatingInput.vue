@@ -499,7 +499,7 @@ useShortcutTriggered(() => {
     :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)' }"
   >
     <div ref="contentWrapRef"
-      class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-3 overflow-y-auto flex-shrink-0 h-fit"
+      class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-1.5 overflow-y-auto flex-shrink-0 h-fit"
       :class="{ 'justify-end': growAbove }">
       <!-- growAbove: result grows upward, input anchored at bottom -->
       <template v-if="growAbove">
@@ -1356,9 +1356,12 @@ useShortcutTriggered(() => {
 
 /* Result block */
 .result-block {
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface);
-  border-radius: 10px;
+  background: var(--color-accent-bg);
+  border-left: 2.5px solid var(--color-accent);
+  border-top: 1px solid var(--color-accent-border);
+  border-right: 1px solid var(--color-accent-border);
+  border-bottom: 1px solid var(--color-accent-border);
+  border-radius: 8px;
   overflow: hidden;
 }
 
