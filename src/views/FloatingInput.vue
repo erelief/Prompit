@@ -129,7 +129,32 @@ const personaDropdownPos = ref({ top: 0, left: 0 });
 // ── Empty-state hint modal ──
 const emptyHintTarget = ref<'persona' | 'dict' | null>(null);
 
-function togglePersona() {
+function burstParticles(el: HTMLElement) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const count = 7;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('span');
+    p.className = 'toggle-burst-particle';
+    const angle = (Math.PI * 2 / count) * i + (Math.random() - 0.5) * 0.8;
+    const dist = 12 + Math.random() * 14;
+    const size = 2.5 + Math.random() * 2;
+    p.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
+    p.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
+    p.style.width = `${size}px`;
+    p.style.height = `${size}px`;
+    p.style.left = `${cx}px`;
+    p.style.top = `${cy}px`;
+    p.style.animationDelay = `${Math.random() * 40}ms`;
+    document.body.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+  }
+}
+
+function togglePersona(e: MouseEvent) {
+  const wasOn = personaStore.personas.some((p) => p.enabled);
   const active = personaStore.personas.findIndex((p) => p.enabled);
   if (active >= 0) {
     personaStore.personas[active].enabled = false;
@@ -138,6 +163,8 @@ function togglePersona() {
       ? lastActivePersonaIndex.value : 0;
     personaStore.personas[i].enabled = true;
   }
+  const nowOn = !wasOn;
+  if (nowOn) burstParticles(e.currentTarget as HTMLElement);
   savePersonas();
   if (hasResult.value) {
     hasResult.value = false;
@@ -145,8 +172,10 @@ function togglePersona() {
   }
 }
 
-function toggleDict() {
-  appConfig.user_dict_enabled = !appConfig.user_dict_enabled;
+function toggleDict(e: MouseEvent) {
+  const turning = !appConfig.user_dict_enabled;
+  appConfig.user_dict_enabled = turning;
+  if (turning) burstParticles(e.currentTarget as HTMLElement);
   if (hasResult.value) {
     hasResult.value = false;
     translatedText.value = "";
@@ -650,7 +679,7 @@ useShortcutTriggered(() => {
           <!-- Persona toggle + selector -->
           <div v-if="personaStore.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
             <button
-              @click="togglePersona"
+              @click="togglePersona($event)"
               class="persona-toggle"
               :class="{ on: personaOn }"
               :title="personaOn ? t('floating.disablePersona') : t('floating.enablePersona')"
@@ -706,7 +735,7 @@ useShortcutTriggered(() => {
           <!-- Dictionary toggle -->
           <button
             v-if="dictStore.hasEntries"
-            @click="toggleDict"
+            @click="toggleDict($event)"
             class="dict-toggle"
             :class="{ on: appConfig.user_dict_enabled }"
             :title="appConfig.user_dict_enabled ? t('floating.disableDict') : t('floating.enableDict')"
@@ -825,7 +854,7 @@ useShortcutTriggered(() => {
           <!-- Persona toggle + selector -->
           <div v-if="personaStore.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
             <button
-              @click="togglePersona"
+              @click="togglePersona($event)"
               class="persona-toggle"
               :class="{ on: personaOn }"
               :title="personaOn ? t('floating.disablePersona') : t('floating.enablePersona')"
@@ -881,7 +910,7 @@ useShortcutTriggered(() => {
           <!-- Dictionary toggle -->
           <button
             v-if="dictStore.hasEntries"
-            @click="toggleDict"
+            @click="toggleDict($event)"
             class="dict-toggle"
             :class="{ on: appConfig.user_dict_enabled }"
             :title="appConfig.user_dict_enabled ? t('floating.disableDict') : t('floating.enableDict')"
@@ -1172,6 +1201,7 @@ useShortcutTriggered(() => {
   color: var(--color-accent);
   background: var(--color-accent-bg);
   border-color: var(--color-accent-border);
+  animation: toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .persona-toggle.on:hover {
   color: var(--color-accent);
@@ -1242,6 +1272,7 @@ useShortcutTriggered(() => {
   color: var(--color-accent);
   background: var(--color-accent-bg);
   border-color: var(--color-accent-border);
+  animation: toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .dict-toggle.on:hover {
   color: var(--color-accent);
@@ -1516,5 +1547,10 @@ useShortcutTriggered(() => {
   color: var(--color-accent) !important;
   border-color: var(--color-accent-border) !important;
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .persona-toggle.on,
+  .dict-toggle.on { animation: none; }
 }
 </style>

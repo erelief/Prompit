@@ -2105,40 +2105,7 @@ label {
   background: none;
   color: var(--color-text-muted);
 }
-@keyframes toggle-pop {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.18); }
-  100% { transform: scale(1); }
-}
 @media (prefers-reduced-motion: reduce) {
   .about-auto-btn.toggle-on { animation: none; }
-}
-</style>
-
-<style>
-@keyframes toggle-particle-burst {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.85;
-  }
-  60% {
-    opacity: 0.5;
-  }
-  100% {
-    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.15);
-    opacity: 0;
-  }
-}
-.toggle-burst-particle {
-  position: fixed;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 3px var(--color-accent);
-  pointer-events: none;
-  z-index: 999999;
-  animation: toggle-particle-burst 0.5s cubic-bezier(0.1, 0.85, 0.3, 1) forwards;
-}
-@media (prefers-reduced-motion: reduce) {
-  .toggle-burst-particle { display: none; }
 }
 </style>
