@@ -677,7 +677,7 @@ useShortcutTriggered(() => {
           </div>
 
           <!-- Persona toggle + selector -->
-          <div v-if="personaStore.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
+          <div v-if="personaStore.personas.length > 0" class="persona-wrap" :class="{ on: personaOn }" ref="personaDropdownRef">
             <button
               @click="togglePersona($event)"
               class="persona-toggle"
@@ -852,7 +852,7 @@ useShortcutTriggered(() => {
           </div>
 
           <!-- Persona toggle + selector -->
-          <div v-if="personaStore.personas.length > 0" class="persona-wrap" ref="personaDropdownRef">
+          <div v-if="personaStore.personas.length > 0" class="persona-wrap" :class="{ on: personaOn }" ref="personaDropdownRef">
             <button
               @click="togglePersona($event)"
               class="persona-toggle"
@@ -1177,6 +1177,9 @@ useShortcutTriggered(() => {
   gap: 0;
   flex-shrink: 0;
 }
+.persona-wrap.on {
+  animation: toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
 .persona-toggle {
   display: inline-flex;
   align-items: center;
@@ -1201,7 +1204,6 @@ useShortcutTriggered(() => {
   color: var(--color-accent);
   background: var(--color-accent-bg);
   border-color: var(--color-accent-border);
-  animation: toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .persona-toggle.on:hover {
   color: var(--color-accent);
@@ -1550,7 +1552,7 @@ useShortcutTriggered(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .persona-toggle.on,
+  .persona-wrap.on,
   .dict-toggle.on { animation: none; }
 }
 </style>
