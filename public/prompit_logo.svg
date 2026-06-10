@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100%" height="100%" viewBox="0 0 417 417" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-    <rect id="画板1" x="0" y="0" width="416.667" height="416.667" style="fill:none;"/>
-    <g id="画板11" serif:id="画板1">
-        <g transform="matrix(4.626538,0,0,4.626538,0,-45.987174)">
-            <path d="M22.5,90.999L5,90.999C2.24,90.999 0,88.759 0,85.999L0.06,14.969C0.06,12.209 2.3,9.969 5.06,9.969L85.06,9.969C87.82,9.969 90.06,12.209 90.06,14.969L90,85.999C90,88.759 87.76,90.999 85,90.999L37.5,90.999C35.076,95.073 28.361,99.457 18.053,100C20.925,97.525 22.108,94.784 22.5,90.999Z" style="fill:rgb(162,0,37);fill-rule:nonzero;"/>
-            <g transform="matrix(0.24,0,0,0.24,-9.234094,43.856491)">
-                <g transform="matrix(360.240534,0,0,360.240534,324.986697,154.418182)">
-                </g>
-                <text x="116.047px" y="154.418px" style="font-family:'MadimiOne-Regular', 'Madimi One';font-size:360.241px;fill:white;">P</text>
-            </g>
+<svg width="100%" height="100%" viewBox="0 0 22 22" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(1,0,0,1,-1,-1.5055)">
+        <path d="M22,17C22,18.097 21.097,19 20,19L6.828,19C6.298,19 5.789,19.211 5.414,19.586L3.212,21.788C3.08,21.93 2.894,22.011 2.7,22.011C2.316,22.011 2,21.695 2,21.311L2,5C2,3.903 2.903,3 4,3L20,3C21.097,3 22,3.903 22,5L22,17Z" style="fill:url(#_Linear1);fill-rule:nonzero;"/>
+    </g>
+    <g transform="matrix(1,0,0,1,0.578815,-0.35097)">
+        <g transform="matrix(1,0,0,1,5.533548,15.469071)">
+            <text x="0px" y="0px" style="font-family:'MadimiOne-Regular', 'Madimi One';font-size:16px;fill:white;">P</text>
         </g>
     </g>
+    <defs>
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0.051297,-19.011142,19.011142,0.051297,2.602479,22.011142)"><stop offset="0" style="stop-color:rgb(173,0,19);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(255,36,61);stop-opacity:1"/></linearGradient>
+    </defs>
 </svg>
