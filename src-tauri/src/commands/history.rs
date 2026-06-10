@@ -9,6 +9,8 @@ pub struct HistoryEntry {
     pub input: String,
     pub output: String,
     pub timestamp: u64,
+    #[serde(default)]
+    pub model: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]

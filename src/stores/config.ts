@@ -367,6 +367,7 @@ export interface HistoryEntry {
   input: string;
   output: string;
   timestamp: number;
+  model?: string;
 }
 
 export const historyStore = reactive<{ entries: HistoryEntry[] }>({
@@ -384,10 +385,12 @@ export async function loadHistory(): Promise<void> {
 }
 
 export async function saveHistoryEntry(input: string, output: string): Promise<void> {
+  const active = getActiveModel();
   const entry: HistoryEntry = {
     input,
     output,
     timestamp: Date.now(),
+    model: active?.model || undefined,
   };
   historyStore.entries.unshift(entry);
   const limit = appConfig.history_limit || 50;

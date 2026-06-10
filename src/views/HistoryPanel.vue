@@ -43,6 +43,14 @@ function selectEntry(entry: { input: string; output: string }) {
   router.push("/");
 }
 
+function shortModel(model: string): string {
+  // strip date suffix like "-2024-07-18"
+  let s = model.replace(/-\d{4}-\d{2}-\d{2}$/, "");
+  // strip common provider prefixes
+  s = s.replace(/^(openai|anthropic|google|deepseek|zhipu|minimax)-/i, "");
+  return s.length > 14 ? s.slice(0, 12) + "…" : s;
+}
+
 async function handleClear() {
   await clearAllHistory();
   showClearConfirm.value = false;
@@ -134,6 +142,7 @@ onMounted(async () => {
               <div class="history-item-output">
                 <MessageSquare :size="9" :stroke-width="2" class="output-icon" />
                 <span>{{ entry.output }}</span>
+                <span v-if="entry.model" class="model-badge">{{ shortModel(entry.model) }}</span>
               </div>
             </button>
             <div class="history-item-actions" @click.stop>
@@ -331,11 +340,25 @@ onMounted(async () => {
   font-size: 11px;
   color: var(--color-text-secondary);
   line-height: 1.3;
+  min-width: 0;
 }
 .history-item-output span {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+.model-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-tertiary, var(--color-text-muted));
+  background: var(--color-surface-hover);
+  padding: 0 5px;
+  border-radius: 4px;
+  line-height: 16px;
+  white-space: nowrap;
 }
 .history-item-output .output-icon {
   flex-shrink: 0;
