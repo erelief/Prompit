@@ -348,7 +348,7 @@ function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
   item.preset = preset.name !== "Custom" ? preset.name : undefined;
   item.base_url = preset.base_url;
   item.api_format = preset.api_format && Object.keys(preset.api_format).length > 0 ? { ...preset.api_format } : undefined;
-  if (!item.name.trim()) item.name = preset.provider_name;
+  if (preset.name !== "Custom") item.name = preset.provider_name;
   showPresetMenu.value = false;
   presetMenuIndex.value = null;
 }
@@ -442,8 +442,8 @@ watch(
   () => { persistPersonas(); },
 );
 
-function onProviderAdd() {
-  appConfig.providers.push({
+function onProviderAdd(draft: ProviderConfig) {
+  Object.assign(draft, {
     name: "",
     api_key: "",
     base_url: "",
@@ -452,13 +452,18 @@ function onProviderAdd() {
 }
 
 function onProviderConfirm({ index }: { index: number }) {
-  clearEditState(index);
+  // Migrate edit state from draft index (-1) to the real index
+  const draftState = editStates.value.get(-1);
+  if (draftState) {
+    editStates.value.delete(-1);
+    editStates.value.set(index, draftState);
+    editStates.value = new Map(editStates.value);
+  }
+  if (testingProvider.value === -1) testingProvider.value = index;
   persistConfig();
 }
 
-function onProviderCancel({ index }: { index: number }) {
-  clearEditState(index);
-  if (testingProvider.value === index) testingProvider.value = null;
+function onProviderCancel() {
   showPresetMenu.value = false;
   presetMenuIndex.value = null;
 }
@@ -1176,7 +1181,7 @@ onUnmounted(() => {
           :empty-message="t('settings.noPersonasYet')"
           :empty-sub-message="t('settings.addOneToCustomize')"
           :validate="validatePersona"
-          @add="personaStore.personas.push({ name: '', prompt: '', enabled: false })"
+          @add="Object.assign($event, { name: '', prompt: '', enabled: false })"
           @confirm="() => persistPersonas()"
         >
           <template #collapsed="{ item, index }">

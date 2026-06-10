@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, watch, nextTick, triggerRef, onBeforeUnmount, type Component } from "vue";
+import { ref, shallowRef, computed, watch, nextTick, triggerRef, type Component } from "vue";
 import { useI18n } from "vue-i18n";
 import draggable from "vuedraggable";
 import {
@@ -22,9 +22,9 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  add: [];
+  add: [draft: any];
   confirm: [payload: { index: number }];
-  cancel: [payload: { index: number; indexMap: Map<number, number> }];
+  cancel: [];
   remove: [payload: { index: number; indexMap: Map<number, number> }];
   "drag-end": [payload: { indexMap: Map<number, number> }];
 }>();
@@ -33,6 +33,7 @@ defineOptions({ inheritAttrs: false });
 
 // ── Internal state ──
 const adding = ref(false);
+const addDraft = ref<any>(null);
 const editing = ref<Set<number>>(new Set());
 const isEditingAny = computed(() => editing.value.size > 0);
 const order = shallowRef<number[]>([]);
@@ -43,8 +44,6 @@ const drafts = ref<Map<number, any>>(new Map());
 watch(() => props.items.length, (len) => {
   order.value = Array.from({ length: len }, (_, i) => i);
 }, { immediate: true });
-
-const NI = computed(() => props.items.length - 1);
 
 // ── Editing ──
 function isEditing(index: number): boolean {
@@ -87,36 +86,32 @@ function cancelEdit(index: number) {
 // ── Add / Confirm / Cancel ──
 function handleAdd() {
   validationError.value = null;
-  emit("add");
+  const draft = {};
+  emit("add", draft);
+  addDraft.value = draft;
   nextTick(() => { adding.value = true; });
 }
 
 function handleConfirm() {
-  const item = props.items[NI.value];
   if (props.validate) {
-    const error = props.validate(item);
+    const error = props.validate(addDraft.value);
     if (error) { validationError.value = error; return; }
   }
   validationError.value = null;
+  const newIndex = props.items.length;
+  props.items.push(addDraft.value);
+  order.value.push(newIndex);
+  addDraft.value = null;
   adding.value = false;
-  emit("confirm", { index: NI.value });
+  emit("confirm", { index: newIndex });
 }
 
 function handleCancel() {
   validationError.value = null;
-  const idx = NI.value;
-  props.items.pop();
-  order.value.pop();
-  editing.value.delete(idx);
+  addDraft.value = null;
   adding.value = false;
-  const indexMap = buildIndexMap(props.items.length, -1);
-  emit("cancel", { index: idx, indexMap });
+  emit("cancel");
 }
-
-// ── Cleanup: discard unconfirmed new item on unmount ──
-onBeforeUnmount(() => {
-  if (adding.value) props.items.pop();
-});
 
 // ── Remove (two-step confirm) ──
 function requestRemove(index: number) {
@@ -228,11 +223,11 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
     <div v-if="adding" class="ecl-card open">
       <div class="ecl-expanded">
         <div class="ecl-name-row">
-          <slot name="name-input" :item="items[NI]" :index="NI" :is-adding="true">
-            <input v-model="items[NI].name" placeholder="Name…" class="name-input" @click.stop />
+          <slot name="name-input" :item="addDraft" :index="-1" :is-adding="true">
+            <input v-model="addDraft.name" placeholder="Name…" class="name-input" @click.stop />
           </slot>
         </div>
-        <slot name="content" :item="items[NI]" :index="NI" :is-adding="true" />
+        <slot name="content" :item="addDraft" :index="-1" :is-adding="true" />
         <div v-if="validationError" class="validation-error">{{ validationError }}</div>
         <div class="ecl-actions">
           <button class="mini-btn gold-active" :title="t('common.confirm')" @click.stop="handleConfirm">
