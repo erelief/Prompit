@@ -364,6 +364,7 @@ function navigateHistory(direction: -1 | 1) {
       inputText.value = draftSnapshot.input;
       translatedText.value = draftSnapshot.output;
       hasResult.value = !!draftSnapshot.output;
+      errorMessage.value = "";
       nextTick(() => { isRestoringHistory.value = false; });
       draftSnapshot = null;
     }
@@ -378,7 +379,20 @@ function navigateHistory(direction: -1 | 1) {
   inputText.value = entry.input;
   translatedText.value = entry.output;
   hasResult.value = !!entry.output;
-  nextTick(() => { isRestoringHistory.value = false; });
+  errorMessage.value = "";
+  nextTick(() => {
+    isRestoringHistory.value = false;
+    const ta = textareaRef.value;
+    if (ta) {
+      if (direction === 1) {
+        // ↑ = cursor at start so next ↑ immediately navigates further
+        ta.selectionStart = ta.selectionEnd = 0;
+      } else {
+        // ↓ = cursor at end so next ↓ immediately navigates further
+        ta.selectionStart = ta.selectionEnd = ta.value.length;
+      }
+    }
+  });
 }
 
 async function handleTranslate() {
