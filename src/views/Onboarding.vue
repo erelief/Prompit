@@ -471,21 +471,14 @@ onMounted(async () => {
                   <Link2 v-else :size="14" style="color: var(--color-text-muted)" />
                 </button>
               </div>
-              <p v-if="testKeyStatus === 'fail'" class="text-xs mt-1.5" style="color: var(--color-danger)">
-                {{ t('onboarding.connectionFailed') }}
+              <p v-if="isTestingKey || testKeyStatus === 'fail' || isConnecting || isFetching || fetchError" class="text-xs mt-1.5 flex items-center gap-1.5" :style="{ color: (testKeyStatus === 'fail' || fetchError) ? 'var(--color-danger)' : 'var(--color-text-secondary)' }">
+                <Loader2 v-if="isTestingKey || isConnecting || isFetching" :size="14" class="spin" style="color: var(--color-accent)" />
+                <template v-if="isTestingKey || isConnecting">{{ t('onboarding.testingConnection') }}</template>
+                <template v-else-if="isFetching">{{ t('onboarding.fetchingModels') }}</template>
+                <template v-else-if="testKeyStatus === 'fail'">{{ t('onboarding.connectionFailed') }}</template>
+                <template v-else>{{ fetchError }}</template>
               </p>
             </div>
-
-            <!-- Error -->
-            <p v-if="fetchError" class="text-xs mt-1" style="color: var(--color-danger)">
-              {{ fetchError }}
-            </p>
-
-            <!-- Status -->
-            <p v-if="isConnecting || isFetching" class="text-xs mt-3 flex items-center gap-1.5" style="color: var(--color-text-secondary)">
-              <Loader2 :size="14" class="spin" style="color: var(--color-accent)" />
-              {{ isConnecting ? t('onboarding.testingConnection') : t('onboarding.fetchingModels') }}
-            </p>
           </div>
 
           <!-- Step 3: Select Models -->
