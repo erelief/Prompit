@@ -144,9 +144,47 @@ const updateError = ref("");
 const autoUpdate = ref(localStorage.getItem("app-auto-update") !== "false");
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
-function toggleAutoUpdate() {
-  autoUpdate.value = !autoUpdate.value;
-  localStorage.setItem("app-auto-update", String(autoUpdate.value));
+function burstParticles(el: HTMLElement) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const count = 7;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('span');
+    p.className = 'toggle-burst-particle';
+    const angle = (Math.PI * 2 / count) * i + (Math.random() - 0.5) * 0.8;
+    const dist = 12 + Math.random() * 14;
+    const size = 2.5 + Math.random() * 2;
+    p.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
+    p.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
+    p.style.width = `${size}px`;
+    p.style.height = `${size}px`;
+    p.style.left = `${cx}px`;
+    p.style.top = `${cy}px`;
+    p.style.animationDelay = `${Math.random() * 40}ms`;
+    document.body.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
+  }
+}
+
+function toggleAutoUpdate(e: MouseEvent) {
+  const turning = !autoUpdate.value;
+  autoUpdate.value = turning;
+  localStorage.setItem("app-auto-update", String(turning));
+  if (turning) burstParticles(e.currentTarget as HTMLElement);
+}
+
+function toggleShortcutHint(e: MouseEvent) {
+  const turning = !appConfig.show_startup_reminder;
+  appConfig.show_startup_reminder = turning;
+  if (turning) burstParticles(e.currentTarget as HTMLElement);
+}
+
+function toggleDict(e: MouseEvent) {
+  const turning = !appConfig.user_dict_enabled;
+  appConfig.user_dict_enabled = turning;
+  if (turning) burstParticles(e.currentTarget as HTMLElement);
 }
 
 async function checkForUpdate(silent = false) {
@@ -235,10 +273,13 @@ function validatePersona(p: { name: string; prompt: string }): string | null {
   return missing.length ? `Required: ${missing.join(", ")}` : null;
 }
 
-function togglePersona(index: number) {
+function togglePersona(index: number, e: MouseEvent) {
   const wasOn = personaStore.personas[index].enabled;
   for (const p of personaStore.personas) p.enabled = false;
-  if (!wasOn) personaStore.personas[index].enabled = true;
+  if (!wasOn) {
+    personaStore.personas[index].enabled = true;
+    burstParticles(e.currentTarget as HTMLElement);
+  }
 }
 
 async function handleOptimizePrompt(item: { prompt: string }, index: number) {
@@ -810,7 +851,7 @@ onUnmounted(() => {
           <!-- Show Shortcut Hint on Launch -->
           <div class="card-row">
             <span class="card-label">{{ t('settings.showShortcutHintLabel') }}</span>
-            <button class="about-auto-btn" :class="{ 'toggle-on': appConfig.show_startup_reminder }" @click="appConfig.show_startup_reminder = !appConfig.show_startup_reminder">
+            <button class="about-auto-btn" :class="{ 'toggle-on': appConfig.show_startup_reminder }" @click="toggleShortcutHint($event)">
               <ToggleRight v-if="appConfig.show_startup_reminder" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
             </button>
@@ -952,7 +993,7 @@ onUnmounted(() => {
         <!-- Auto Check Update -->
         <div v-if="isTauri" class="auto-check-row">
           <span class="auto-check-label">{{ t('about.autoUpdate') }}</span>
-          <button class="about-auto-btn" :class="{ 'toggle-on': autoUpdate }" @click.stop="toggleAutoUpdate">
+          <button class="about-auto-btn" :class="{ 'toggle-on': autoUpdate }" @click.stop="toggleAutoUpdate($event)">
             <ToggleRight v-if="autoUpdate" :size="15" :stroke-width="1.7" />
             <ToggleLeft v-else :size="15" :stroke-width="1.7" />
           </button>
@@ -1107,7 +1148,7 @@ onUnmounted(() => {
               class="about-auto-btn"
               :class="{ 'toggle-on': appConfig.user_dict_enabled }"
               :disabled="!dictStore.hasEntries"
-              @click="appConfig.user_dict_enabled = !appConfig.user_dict_enabled"
+              @click="toggleDict($event)"
             >
               <ToggleRight v-if="appConfig.user_dict_enabled" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
@@ -1138,7 +1179,7 @@ onUnmounted(() => {
           @confirm="() => persistPersonas()"
         >
           <template #collapsed="{ item, index }">
-            <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="togglePersona(index)">
+            <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="togglePersona(index, $event)">
               <ToggleRight v-if="item.enabled" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
             </button>
@@ -2051,6 +2092,7 @@ label {
 }
 .about-auto-btn.toggle-on {
   color: var(--color-accent);
+  animation: toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .about-auto-btn.toggle-on:hover {
   color: var(--color-accent);
@@ -2062,5 +2104,41 @@ label {
 .about-auto-btn:disabled:hover {
   background: none;
   color: var(--color-text-muted);
+}
+@keyframes toggle-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .about-auto-btn.toggle-on { animation: none; }
+}
+</style>
+
+<style>
+@keyframes toggle-particle-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.85;
+  }
+  60% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.15);
+    opacity: 0;
+  }
+}
+.toggle-burst-particle {
+  position: fixed;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 3px var(--color-accent);
+  pointer-events: none;
+  z-index: 999999;
+  animation: toggle-particle-burst 0.5s cubic-bezier(0.1, 0.85, 0.3, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toggle-burst-particle { display: none; }
 }
 </style>
