@@ -447,7 +447,7 @@ function onProviderAdd(draft: ProviderConfig) {
     name: "",
     api_key: "",
     base_url: "",
-    models: [], temperature: 0.3, max_tokens: 1024,
+    models: [], temperature: null, max_tokens: null,
   });
 }
 

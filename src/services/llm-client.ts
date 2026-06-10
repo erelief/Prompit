@@ -86,12 +86,13 @@ export async function translate(text: string): Promise<string> {
   const values: Record<string, any> = {
     model: model.model,
     messages,
-    temperature: model.temperature ?? 0.3,
-    max_tokens: model.max_tokens ?? 1024,
+    temperature: model.temperature,
+    max_tokens: model.max_tokens,
   };
 
   for (const [stdKey, defaultTarget] of Object.entries(fieldMap)) {
     if (skipFields.includes(stdKey)) continue;
+    if (values[stdKey] == null) continue;
     const targetKey = fmt.request[stdKey] ?? defaultTarget;
     body[targetKey] = values[stdKey];
   }
@@ -167,12 +168,13 @@ export async function optimizePrompt(rawPrompt: string): Promise<string> {
   const values: Record<string, any> = {
     model: model.model,
     messages,
-    temperature: model.temperature ?? 0.1,
-    max_tokens: model.max_tokens ?? 128,
+    temperature: model.temperature,
+    max_tokens: model.max_tokens,
   };
 
   for (const [stdKey, defaultTarget] of Object.entries(fieldMap)) {
     if (skipFields.includes(stdKey)) continue;
+    if (values[stdKey] == null) continue;
     const targetKey = fmt.request[stdKey] ?? defaultTarget;
     body[targetKey] = values[stdKey];
   }
