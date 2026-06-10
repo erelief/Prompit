@@ -65,10 +65,12 @@ async function testKeyConnection() {
   if (!providerForm.value.api_key || !providerForm.value.base_url) return;
   isTestingKey.value = true;
   testKeyStatus.value = "";
+  testKeyError.value = "";
   const result = await testProviderConnection(providerForm.value);
   testKeyStatus.value = result.ok ? "ok" : "fail";
+  if (!result.ok) testKeyError.value = result.error || "";
   isTestingKey.value = false;
-  setTimeout(() => { testKeyStatus.value = ""; }, 3000);
+  setTimeout(() => { testKeyStatus.value = ""; testKeyError.value = ""; }, 3000);
 }
 
 // ── Step 2: Provider form ──
@@ -84,19 +86,9 @@ const providerPresets = ref<ProviderPreset[]>([]);
 const selectedPreset = ref("");
 const showApiKey = ref(false);
 const showPresetMenu = ref(false);
-
-function maskKey(key: string): string {
-  if (!key) return '';
-  if (key.length <= 8) return '••••••••';
-  return key.slice(0, 4) + '••••••••' + key.slice(-4);
-}
-function onApiKeyInput(e: Event) {
-  const val = (e.target as HTMLInputElement).value;
-  if (val.includes('•')) return; // ignore edits while mask is displayed
-  providerForm.value.api_key = val;
-}
 const isTestingKey = ref(false);
 const testKeyStatus = ref<"ok" | "fail" | "">("");
+const testKeyError = ref("");
 const showCloseConfirm = ref(false);
 
 // ── Step 3: Models ──
@@ -450,10 +442,8 @@ onMounted(async () => {
               <div class="flex gap-2">
                 <div class="relative flex-1">
                   <input
-                    :value="showApiKey ? providerForm.api_key : maskKey(providerForm.api_key)"
-                    @input="onApiKeyInput($event)"
-                    @focus="!showApiKey && (showApiKey = true)"
-                    type="text"
+                    v-model="providerForm.api_key"
+                    :type="showApiKey ? 'text' : 'password'"
                     class="w-full h-9 pl-3 pr-9 rounded-lg text-sm outline-none transition-colors select-text"
                     style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
                   />
@@ -488,8 +478,8 @@ onMounted(async () => {
                 <Loader2 v-if="isTestingKey || isConnecting || isFetching" :size="14" class="spin" style="color: var(--color-accent)" />
                 <template v-if="isTestingKey || isConnecting">{{ t('onboarding.testingConnection') }}</template>
                 <template v-else-if="isFetching">{{ t('onboarding.fetchingModels') }}</template>
-                <template v-else-if="testKeyStatus === 'fail'">{{ t('onboarding.connectionFailed') }}</template>
-                <template v-else>{{ fetchError }}</template>
+                <template v-else-if="testKeyStatus === 'fail'">{{ t('onboarding.connectionFailed') }}{{ testKeyError ? ` (${testKeyError})` : '' }}</template>
+                <template v-else>{{ t('onboarding.connectionFailed') }}{{ fetchError ? ` (${fetchError})` : '' }}</template>
               </p>
             </div>
           </div>

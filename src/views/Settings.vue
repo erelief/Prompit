@@ -425,17 +425,6 @@ function toggleKeyVisibility(index: number) {
   s.keyVisible = !s.keyVisible;
 }
 
-function maskKey(key: string): string {
-  if (!key) return '';
-  if (key.length <= 8) return '••••••••';
-  return key.slice(0, 4) + '••••••••' + key.slice(-4);
-}
-function onSettingsKeyInput(e: Event, item: ProviderConfig) {
-  const val = (e.target as HTMLInputElement).value;
-  if (val.includes('•')) return;
-  item.api_key = val;
-}
-
 async function load() {
   try { await loadConfig(); }
   catch (err) { console.error("Failed to load config:", err); }
@@ -732,10 +721,8 @@ onUnmounted(() => {
                 <label>{{ t('settings.apiKey') }}</label>
                 <div class="key-wrap">
                   <input
-                    :value="editStates.get(index)?.keyVisible ? item.api_key : maskKey(item.api_key)"
-                    @input="onSettingsKeyInput($event, item)"
-                    @focus="!editStates.get(index)?.keyVisible && toggleKeyVisibility(index)"
-                    type="text"
+                    v-model="item.api_key"
+                    :type="editStates.get(index)?.keyVisible ? 'text' : 'password'"
                     class="fi key-fi" placeholder="sk-…" @click.stop
                   />
                   <button class="icon-btn-sm" @click.stop="toggleKeyVisibility(index)" :title="editStates.get(index)?.keyVisible ? 'Hide' : 'Show'">
