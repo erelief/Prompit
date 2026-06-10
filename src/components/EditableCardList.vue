@@ -304,22 +304,6 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
               <slot name="name-input" :item="drafts.get(oi)" :index="oi" :is-adding="false">
                 <input :value="drafts.get(oi)?.name" @input="drafts.get(oi) && (drafts.get(oi)!.name = ($event.target as HTMLInputElement).value)" placeholder="Name…" class="name-input" @click.stop />
               </slot>
-              <template v-if="pendingRemove === oi">
-                <button class="mini-btn danger-active" :title="t('common.confirmRemove')" @click.stop="confirmRemove(oi)">
-                  <Check :size="12" :stroke-width="2.5" />
-                </button>
-                <button class="mini-btn ghost" :title="t('common.cancel')" @click.stop="cancelRemove">
-                  <X :size="12" :stroke-width="2.5" />
-                </button>
-              </template>
-              <template v-else>
-                <button class="mini-btn warn" :title="t('common.remove')" @click.stop="requestRemove(oi)">
-                  <Trash2 :size="12" :stroke-width="1.8" />
-                </button>
-              </template>
-            </div>
-            <div v-if="pendingRemove === oi" class="remove-warning-row">
-              <span class="remove-warning-text">{{ t('common.cannotBeUndone') }}</span>
             </div>
             <slot name="content" :item="drafts.get(oi)" :index="oi" :is-adding="false" />
             <div v-if="validationError" class="validation-error">{{ validationError }}</div>
