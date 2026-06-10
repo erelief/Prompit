@@ -1018,7 +1018,7 @@ useShortcutTriggered(() => {
   color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  padding: 9px 14px;
+  padding: 9px 36px 9px 14px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   field-sizing: content;
   max-height: 200px;
