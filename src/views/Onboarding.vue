@@ -84,6 +84,17 @@ const providerPresets = ref<ProviderPreset[]>([]);
 const selectedPreset = ref("");
 const showApiKey = ref(false);
 const showPresetMenu = ref(false);
+
+function maskKey(key: string): string {
+  if (!key) return '';
+  if (key.length <= 8) return '••••••••';
+  return key.slice(0, 4) + '••••••••' + key.slice(-4);
+}
+function onApiKeyInput(e: Event) {
+  const val = (e.target as HTMLInputElement).value;
+  if (val.includes('•')) return; // ignore edits while mask is displayed
+  providerForm.value.api_key = val;
+}
 const isTestingKey = ref(false);
 const testKeyStatus = ref<"ok" | "fail" | "">("");
 const showCloseConfirm = ref(false);
@@ -439,8 +450,10 @@ onMounted(async () => {
               <div class="flex gap-2">
                 <div class="relative flex-1">
                   <input
-                    v-model="providerForm.api_key"
-                    :type="showApiKey ? 'text' : 'password'"
+                    :value="showApiKey ? providerForm.api_key : maskKey(providerForm.api_key)"
+                    @input="onApiKeyInput($event)"
+                    @focus="!showApiKey && (showApiKey = true)"
+                    type="text"
                     class="w-full h-9 pl-3 pr-9 rounded-lg text-sm outline-none transition-colors select-text"
                     style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
                   />
