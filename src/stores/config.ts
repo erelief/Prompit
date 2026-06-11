@@ -2,6 +2,7 @@ import { reactive, toRaw, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { BUILTIN_LANGUAGES, LANGUAGE_GROUPS } from "../constants/languages";
+import { Languages } from "@lucide/vue";
 import i18n from "../i18n";
 
 export interface ApiFormat {
@@ -48,10 +49,18 @@ export interface DictEntry {
   target: string;
 }
 
+export interface ModeDefinition {
+  id: string;
+  icon: any;
+  labelKey: string;
+  settingTabKey: string;
+}
+
 export interface AppConfig {
   providers: ProviderConfig[];
-  active_provider_index: number;
-  active_model_index: number;
+  active_mode: string;
+  translation_active_provider_index: number;
+  translation_active_model_index: number;
   target_lang: string;
   user_dict_enabled: boolean;
   custom_languages: string[];
@@ -65,8 +74,9 @@ export interface AppConfig {
 
 const defaultConfig: AppConfig = {
   providers: [],
-  active_provider_index: 0,
-  active_model_index: 0,
+  active_mode: "translate",
+  translation_active_provider_index: 0,
+  translation_active_model_index: 0,
   target_lang: "English",
   user_dict_enabled: false,
   custom_languages: [],
@@ -214,6 +224,19 @@ async function saveSecrets(): Promise<void> {
 export async function loadConfig(): Promise<void> {
   try {
     const loaded = await invoke<AppConfig>("read_config");
+
+    // Migration: old global indices → per-mode indices
+    const anyLoaded = loaded as any;
+    if (anyLoaded.active_provider_index !== undefined && anyLoaded.translation_active_provider_index === undefined) {
+      anyLoaded.translation_active_provider_index = anyLoaded.active_provider_index;
+      anyLoaded.translation_active_model_index = anyLoaded.active_model_index;
+      delete anyLoaded.active_provider_index;
+      delete anyLoaded.active_model_index;
+    }
+    if (!anyLoaded.active_mode) {
+      anyLoaded.active_mode = "translate";
+    }
+
     Object.assign(appConfig, loaded);
     if (appConfig.target_lang === "Chinese") {
       appConfig.target_lang = "Simplified Chinese";
@@ -289,8 +312,10 @@ export function getActiveModel(): {
   max_tokens: number | null;
   api_format?: ApiFormat;
 } | null {
-  const pi = appConfig.active_provider_index;
-  const mi = appConfig.active_model_index;
+  const mode = appConfig.active_mode || "translate";
+  const config = appConfig as any;
+  const pi = config[`${mode}_active_provider_index`] ?? 0;
+  const mi = config[`${mode}_active_model_index`] ?? 0;
 
   if (
     appConfig.providers.length === 0 ||
@@ -360,6 +385,21 @@ export async function clearAllDictionaries(): Promise<void> {
 
 export async function loadProviderPresets(): Promise<ProviderPreset[]> {
   return await invoke<ProviderPreset[]>("read_provider_presets");
+}
+
+// ── Mode registry ──
+
+export const MODES: ModeDefinition[] = [
+  {
+    id: "translate",
+    icon: Languages,
+    labelKey: "modes.translate",
+    settingTabKey: "translation",
+  },
+];
+
+export function getCurrentMode(): ModeDefinition {
+  return MODES.find(m => m.id === appConfig.active_mode) || MODES[0];
 }
 
 // ── History ──

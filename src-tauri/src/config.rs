@@ -80,9 +80,11 @@ pub struct ProviderConfig {
 pub struct AppConfig {
     pub providers: Vec<ProviderConfig>,
     #[serde(default)]
-    pub active_provider_index: usize,
+    pub active_mode: String,
     #[serde(default)]
-    pub active_model_index: usize,
+    pub translation_active_provider_index: usize,
+    #[serde(default)]
+    pub translation_active_model_index: usize,
     #[serde(default = "default_target_lang")]
     pub target_lang: String,
     #[serde(default)]
@@ -126,8 +128,9 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             providers: vec![],
-            active_provider_index: 0,
-            active_model_index: 0,
+            active_mode: "translate".to_string(),
+            translation_active_provider_index: 0,
+            translation_active_model_index: 0,
             target_lang: "English".to_string(),
             user_dict_enabled: false,
             custom_languages: vec![],
@@ -149,7 +152,7 @@ mod tests {
     fn test_config_default() {
         let config = AppConfig::default();
         assert_eq!(config.target_lang, "English");
-        assert_eq!(config.active_provider_index, 0);
+        assert_eq!(config.active_mode, "translate");
         assert!(config.providers.is_empty());
     }
 
@@ -166,8 +169,9 @@ mod tests {
                 preset: Some("OpenAI".to_string()),
                 api_format: None,
             }],
-            active_provider_index: 0,
-            active_model_index: 0,
+            active_mode: "translate".to_string(),
+            translation_active_provider_index: 0,
+            translation_active_model_index: 0,
             target_lang: "Japanese".to_string(),
             user_dict_enabled: false,
             custom_languages: vec!["Klingon".to_string()],
@@ -192,8 +196,9 @@ mod tests {
     fn test_config_deserialize_missing_optional_fields() {
         let json = r#"{
             "providers": [],
-            "active_provider_index": 0,
-            "active_model_index": 0,
+            "active_mode": "translate",
+            "translation_active_provider_index": 0,
+            "translation_active_model_index": 0,
             "target_lang": "English",
             "personas": []
         }"#;
@@ -207,8 +212,9 @@ mod tests {
     fn test_config_defaults_for_custom_languages() {
         let json = r#"{
             "providers": [],
-            "active_provider_index": 0,
-            "active_model_index": 0,
+            "active_mode": "translate",
+            "translation_active_provider_index": 0,
+            "translation_active_model_index": 0,
             "target_lang": "English"
         }"#;
         let config: AppConfig = serde_json::from_str(json).unwrap();
@@ -223,7 +229,7 @@ mod tests {
     fn test_config_theme_values() {
         for theme in &["light", "dark", "system"] {
             let json = format!(
-                r#"{{"providers":[],"active_provider_index":0,"active_model_index":0,"target_lang":"English","theme":"{}"}}"#,
+                r#"{{"providers":[],"active_mode":"translate","translation_active_provider_index":0,"translation_active_model_index":0,"target_lang":"English","theme":"{}"}}"#,
                 theme
             );
             let config: AppConfig = serde_json::from_str(&json).unwrap();
