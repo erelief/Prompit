@@ -21,3 +21,9 @@ export function burstParticles(el: HTMLElement) {
     p.addEventListener('animationend', () => p.remove());
   }
 }
+
+export function popElement(el: HTMLElement) {
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = 'toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1)';
+}

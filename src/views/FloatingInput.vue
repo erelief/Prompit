@@ -3,7 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
-import { burstParticles } from "../utils/burstParticles";
+import { burstParticles, popElement } from "../utils/burstParticles";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { loadConfig, saveConfig, getActiveModel, appConfig, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode } from "../stores/config";
@@ -149,7 +149,10 @@ function toggleModeDropdown() {
 function selectMode(modeId: string) {
   appConfig.active_mode = modeId;
   showModeDropdown.value = false;
-  if (modeBtnRef.value) burstParticles(modeBtnRef.value);
+  if (modeBtnRef.value) {
+    burstParticles(modeBtnRef.value);
+    popElement(modeBtnRef.value);
+  }
 }
 
 function onDocumentClick(e: MouseEvent) {
