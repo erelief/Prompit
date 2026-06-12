@@ -324,9 +324,10 @@ mod tests {
         let mut wtr = csv::WriterBuilder::new()
             .has_headers(false)
             .from_writer(vec![]);
-        wtr.write_record(["source", "target", "persona"]).unwrap();
+        wtr.write_record(["lang", "source", "target", "persona"]).unwrap();
         for entry in &entries {
             wtr.serialize((
+                "English",
                 entry.source.as_str(),
                 entry.target.as_str(),
                 entry.persona.as_deref().unwrap_or(""),
@@ -335,9 +336,9 @@ mod tests {
         }
         wtr.flush().unwrap();
         let output = String::from_utf8(wtr.into_inner().unwrap()).unwrap();
-        assert!(output.contains("source,target,persona"));
-        assert!(output.contains("hello,你好,Formal"));
-        assert!(output.contains("world,世界,"));
+        assert!(output.contains("lang,source,target,persona"));
+        assert!(output.contains("English,hello,你好,Formal"));
+        assert!(output.contains("English,world,世界,"));
     }
 
     #[test]
