@@ -60,7 +60,12 @@ export async function translate(text: string): Promise<string> {
 
   if (appConfig.user_dict_enabled) {
     const allEntries = await loadDictionary(appConfig.target_lang);
-    const matched = allEntries.filter((e) => text.includes(e.source));
+    const activePersona = personaStore.personas.find((p) => p.enabled)?.name || null;
+    const matched = allEntries.filter((e) => {
+      if (!text.includes(e.source)) return false;
+      if (!e.persona) return true;
+      return e.persona === activePersona;
+    });
     if (matched.length > 0) {
       const dictLines = matched
         .map((e) => `- "${e.source}" → "${e.target}"`)
