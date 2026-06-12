@@ -60,6 +60,7 @@ import {
   Monitor,
   History,
   Sparkles,
+  Cloudy,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -702,7 +703,7 @@ onUnmounted(() => {
         <EditableCardList
           :items="appConfig.providers"
           :title="t('settings.providers')"
-          :icon="Settings2"
+          :icon="Cloudy"
           :empty-message="t('settings.noProvidersYet')"
           :empty-sub-message="t('settings.addOneToGetStarted')"
           :empty-icon="CircleDot"
