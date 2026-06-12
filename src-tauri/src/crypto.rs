@@ -64,6 +64,9 @@ pub fn decrypt(scope: &str, payload: &EncryptedPayload) -> Result<Vec<u8>, Strin
     let nonce_bytes = BASE64
         .decode(&payload.nonce)
         .map_err(|e| format!("decode nonce: {e}"))?;
+    if nonce_bytes.len() != 12 {
+        return Err("invalid nonce length".into());
+    }
     let nonce = Nonce::from_slice(&nonce_bytes);
     let ciphertext = BASE64
         .decode(&payload.ciphertext)
@@ -79,6 +82,9 @@ pub fn decrypt_legacy(payload: &EncryptedPayload) -> Result<Vec<u8>, String> {
     let nonce_bytes = BASE64
         .decode(&payload.nonce)
         .map_err(|e| format!("decode nonce: {e}"))?;
+    if nonce_bytes.len() != 12 {
+        return Err("invalid nonce length".into());
+    }
     let nonce = Nonce::from_slice(&nonce_bytes);
     let ciphertext = BASE64
         .decode(&payload.ciphertext)
