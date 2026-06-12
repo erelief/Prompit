@@ -408,6 +408,7 @@ export interface HistoryEntry {
   output: string;
   timestamp: number;
   model?: string;
+  mode?: string;
 }
 
 export const historyStore = reactive<{ entries: HistoryEntry[] }>({
@@ -431,6 +432,7 @@ export async function saveHistoryEntry(input: string, output: string): Promise<v
     output,
     timestamp: Date.now(),
     model: active?.model || undefined,
+    mode: appConfig.active_mode || "translate",
   };
   historyStore.entries.unshift(entry);
   const limit = appConfig.history_limit || 50;

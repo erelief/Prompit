@@ -5,7 +5,7 @@ import { useRouter } from "vue-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
-import { appConfig, historyStore, loadHistory, clearAllHistory, saveHistory } from "../stores/config";
+import { appConfig, historyStore, loadHistory, saveHistory } from "../stores/config";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 
@@ -51,19 +51,30 @@ function shortModel(model: string): string {
   return s.length > 14 ? s.slice(0, 12) + "…" : s;
 }
 
+// Filter history by current mode (legacy entries without mode treated as "translate")
+const currentModeId = computed(() => appConfig.active_mode || "translate");
+const modeEntries = computed(() =>
+  historyStore.entries.filter(e => (e.mode || "translate") === currentModeId.value)
+);
+
 async function handleClear() {
-  await clearAllHistory();
+  // Only clear entries for current mode
+  historyStore.entries = historyStore.entries.filter(
+    e => (e.mode || "translate") !== currentModeId.value
+  );
+  await saveHistory();
   showClearConfirm.value = false;
 }
 
-function requestRemove(index: number) {
-  pendingRemove.value = index;
+function requestRemove(ts: number) {
+  pendingRemove.value = ts;
 }
 function cancelRemove() {
   pendingRemove.value = null;
 }
-async function confirmRemove(index: number) {
-  historyStore.entries.splice(index, 1);
+async function confirmRemove(ts: number) {
+  const idx = historyStore.entries.findIndex(e => e.timestamp === ts);
+  if (idx >= 0) historyStore.entries.splice(idx, 1);
   pendingRemove.value = null;
   await saveHistory();
 }
@@ -91,7 +102,7 @@ onMounted(async () => {
       </h1>
       <div class="header-actions">
         <button
-          v-if="!showClearConfirm && historyStore.entries.length > 0"
+          v-if="!showClearConfirm && modeEntries.length > 0"
           class="reset-btn"
           @click.stop="showClearConfirm = true"
           :title="t('history.clearAll')"
@@ -111,21 +122,21 @@ onMounted(async () => {
 
     <!-- List -->
     <main class="history-body">
-      <div v-if="historyStore.entries.length === 0" class="empty-state">
+      <div v-if="modeEntries.length === 0" class="empty-state">
         <History :size="28" :stroke-width="1" class="empty-icon" />
         <span class="empty-text">{{ t('history.empty') }}<br><small>{{ t('history.emptySub') }}</small></span>
       </div>
       <div v-else class="history-list">
         <div
-          v-for="(entry, idx) in historyStore.entries"
+          v-for="entry in modeEntries"
           :key="entry.timestamp"
           class="history-item"
-          :class="{ 'remove-pending': pendingRemove === idx }"
+          :class="{ 'remove-pending': pendingRemove === entry.timestamp }"
         >
-          <template v-if="pendingRemove === idx">
+          <template v-if="pendingRemove === entry.timestamp">
             <span class="remove-warning-text">{{ t('common.cannotBeUndone') }}</span>
             <div class="remove-actions">
-              <button class="mini-btn danger-active" :title="t('common.confirm')" @click.stop="confirmRemove(idx)">
+              <button class="mini-btn danger-active" :title="t('common.confirm')" @click.stop="confirmRemove(entry.timestamp)">
                 <Check :size="11" :stroke-width="2.5" />
               </button>
               <button class="mini-btn" :title="t('common.cancel')" @click.stop="cancelRemove">
@@ -146,14 +157,14 @@ onMounted(async () => {
               </div>
             </button>
             <div class="history-item-actions" @click.stop>
-              <button class="mini-btn warn" :title="t('common.remove')" @click="requestRemove(idx)">
+              <button class="mini-btn warn" :title="t('common.remove')" @click="requestRemove(entry.timestamp)">
                 <Trash2 :size="11" :stroke-width="1.9" />
               </button>
             </div>
           </template>
         </div>
         <div class="history-footer">
-          {{ t('history.entryCount', { current: historyStore.entries.length, limit: appConfig.history_limit || 50 }) }}
+          {{ t('history.entryCount', { current: modeEntries.length, limit: appConfig.history_limit || 50 }) }}
         </div>
       </div>
     </main>
