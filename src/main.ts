@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import App from "./App.vue";
 import router from "./router";
 import i18n from "./i18n";
-import { loadConfig, appConfig } from "./stores/config";
+import { loadConfig, loadSparkles, appConfig } from "./stores/config";
 import { initTheme } from "./composables/useTheme";
 import "./style.css";
 
@@ -28,6 +28,7 @@ router.isReady().then(async () => {
   // Load config first so theme is known before first paint
   await loadConfig();
   initTheme();
+  await loadSparkles();
 
   // Mark onboarding complete for returning users
   // (OnboardingState defaults to false on each launch; only set to true
