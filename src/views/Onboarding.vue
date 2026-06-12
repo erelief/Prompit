@@ -219,8 +219,8 @@ function deselectAll() {
 async function finishOnboarding() {
   providerForm.value.models = [...selectedModels.value].map((id) => ({ id }));
   appConfig.providers.push({ ...providerForm.value });
-  appConfig.active_provider_index = 0;
-  appConfig.active_model_index = 0;
+  appConfig.translation_active_provider_index = 0;
+  appConfig.translation_active_model_index = 0;
 
   await persistConfig();
   await invoke("set_onboarding_complete");

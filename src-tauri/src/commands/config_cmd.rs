@@ -65,8 +65,9 @@ mod tests {
                 preset: None,
                 api_format: None,
             }],
-            active_provider_index: 0,
-            active_model_index: 0,
+            active_mode: "translate".to_string(),
+            translation_active_provider_index: 0,
+            translation_active_model_index: 0,
             target_lang: "Japanese".to_string(),
             user_dict_enabled: false,
             custom_languages: vec![],
@@ -97,7 +98,7 @@ mod tests {
 
     #[test]
     fn test_empty_config_returns_default() {
-        let json = r#"{"providers":[],"active_provider_index":0,"active_model_index":0,"target_lang":"English"}"#;
+        let json = r#"{"providers":[],"active_mode":"translate","translation_active_provider_index":0,"translation_active_model_index":0,"target_lang":"English"}"#;
         let config: AppConfig = serde_json::from_str(json).unwrap();
         assert!(config.providers.is_empty());
         assert_eq!(config.target_lang, "English");

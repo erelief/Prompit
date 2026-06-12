@@ -15,7 +15,9 @@ import {
   dictStore,
   refreshDictStatus,
   clearAllHistory,
+  MODES,
 } from "../stores/config";
+import { burstParticles } from "../utils/burstParticles";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
@@ -62,7 +64,7 @@ const appVersion = __APP_VERSION__;
 
 const { t } = useI18n();
 
-type TabKey = "general" | "translation";
+type TabKey = "general" | string;
 
 const router = useRouter();
 const route = useRoute();
@@ -143,30 +145,6 @@ const contentLength = ref(0);
 const updateError = ref("");
 const autoUpdate = ref(localStorage.getItem("app-auto-update") !== "false");
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-
-function burstParticles(el: HTMLElement) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const rect = el.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  const count = 7;
-  for (let i = 0; i < count; i++) {
-    const p = document.createElement('span');
-    p.className = 'toggle-burst-particle';
-    const angle = (Math.PI * 2 / count) * i + (Math.random() - 0.5) * 0.8;
-    const dist = 12 + Math.random() * 14;
-    const size = 2.5 + Math.random() * 2;
-    p.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
-    p.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
-    p.style.width = `${size}px`;
-    p.style.height = `${size}px`;
-    p.style.left = `${cx}px`;
-    p.style.top = `${cy}px`;
-    p.style.animationDelay = `${Math.random() * 40}ms`;
-    document.body.appendChild(p);
-    p.addEventListener('animationend', () => p.remove());
-  }
-}
 
 function toggleAutoUpdate(e: MouseEvent) {
   const turning = !autoUpdate.value;
@@ -381,7 +359,7 @@ function onLangDragEnd() {
 }
 
 function onProviderDragEnd({ indexMap }: { indexMap: Map<number, number> }) {
-  appConfig.active_provider_index = indexMap.get(appConfig.active_provider_index) ?? 0;
+  appConfig.translation_active_provider_index = indexMap.get(appConfig.translation_active_provider_index) ?? 0;
 
   const re = new Map<number, ProviderEditState>();
   for (const [k, v] of editStates.value) {
@@ -476,11 +454,11 @@ function onProviderRemove({ index, indexMap }: { index: number; indexMap: Map<nu
     if (m !== undefined) re.set(m, v);
   }
   editStates.value = re;
-  if (appConfig.active_provider_index >= appConfig.providers.length)
-    appConfig.active_provider_index = Math.max(0, appConfig.providers.length - 1);
-  const ap = appConfig.providers[appConfig.active_provider_index];
-  if (ap && appConfig.active_model_index >= ap.models.length)
-    appConfig.active_model_index = Math.max(0, ap.models.length - 1);
+  if (appConfig.translation_active_provider_index >= appConfig.providers.length)
+    appConfig.translation_active_provider_index = Math.max(0, appConfig.providers.length - 1);
+  const ap = appConfig.providers[appConfig.translation_active_provider_index];
+  if (ap && appConfig.translation_active_model_index >= ap.models.length)
+    appConfig.translation_active_model_index = Math.max(0, ap.models.length - 1);
 }
 
 function removeModel(item: ProviderConfig, mIndex: number) {
@@ -544,7 +522,11 @@ const allFlat = computed<FlatEntry[]>(() => {
 });
 
 const activeLabel = computed(() => {
-  const { active_provider_index: pi, active_model_index: mi, providers } = appConfig;
+  const mode = appConfig.active_mode || "translate";
+  const config = appConfig as any;
+  const pi = config[`${mode}_active_provider_index`] ?? 0;
+  const mi = config[`${mode}_active_model_index`] ?? 0;
+  const { providers } = appConfig;
   if (pi >= providers.length) return "None";
   const p = providers[pi];
   if (!p || mi >= p.models.length) return "None";
@@ -552,9 +534,14 @@ const activeLabel = computed(() => {
 });
 
 function pickModel(e: FlatEntry) {
-  appConfig.active_provider_index = e.pIndex;
-  appConfig.active_model_index = e.mIndex;
+  const mode = appConfig.active_mode || "translate";
+  (appConfig as any)[`${mode}_active_provider_index`] = e.pIndex;
+  (appConfig as any)[`${mode}_active_model_index`] = e.mIndex;
   showModelSelector.value = false;
+}
+
+function isTranslationModelActive(pIndex: number, mIndex: number): boolean {
+  return pIndex === appConfig.translation_active_provider_index && mIndex === appConfig.translation_active_model_index;
 }
 
 // ── Click outside panels ──
@@ -627,14 +614,22 @@ onUnmounted(() => {
     <!-- ═══ Tabs ═══ -->
     <nav class="tabs">
       <button
-        v-for="tab in [{ key: 'general' as TabKey, label: t('settings.general'), icon: Settings2 }, { key: 'translation' as TabKey, label: t('settings.translation'), icon: Languages }]"
-        :key="tab.key"
         class="tab"
-        :class="{ on: activeTab === tab.key }"
-        @click="activeTab = tab.key"
+        :class="{ on: activeTab === 'general' }"
+        @click="activeTab = 'general'"
       >
-        <component :is="tab.icon" :size="13" :stroke-width="1.7" />
-        {{ tab.label }}
+        <Settings2 :size="13" :stroke-width="1.7" />
+        {{ t('settings.general') }}
+      </button>
+      <button
+        v-for="mode in MODES"
+        :key="mode.id"
+        class="tab"
+        :class="{ on: activeTab === mode.settingTabKey }"
+        @click="activeTab = mode.settingTabKey"
+      >
+        <component :is="mode.icon" :size="13" :stroke-width="1.7" />
+        {{ t(mode.labelKey) }}
       </button>
     </nav>
 
@@ -1042,7 +1037,7 @@ onUnmounted(() => {
                   <button
                     v-for="e in allFlat" :key="e.pIndex + '-' + e.mIndex"
                     class="sel-opt"
-                    :class="{ hit: e.pIndex === appConfig.active_provider_index && e.mIndex === appConfig.active_model_index }"
+                    :class="{ hit: isTranslationModelActive(e.pIndex, e.mIndex) }"
                     @click="pickModel(e)"
                   >
                     <div class="opt-info">
@@ -1050,7 +1045,7 @@ onUnmounted(() => {
                       <span class="opt-src">{{ e.providerName }}</span>
                     </div>
                     <Check
-                      v-if="e.pIndex === appConfig.active_provider_index && e.mIndex === appConfig.active_model_index"
+                      v-if="isTranslationModelActive(e.pIndex, e.mIndex)"
                       :size="13" :stroke-width="2.5"
                     />
                   </button>
