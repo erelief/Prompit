@@ -124,6 +124,8 @@ pub fn run() {
             commands::dictionary::clear_all_dictionaries,
             commands::persona::read_personas,
             commands::persona::save_personas,
+            commands::sparkle::read_sparkles,
+            commands::sparkle::save_sparkles,
             commands::history::read_history,
             commands::history::save_history,
             commands::history::clear_history,
