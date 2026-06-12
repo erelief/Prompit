@@ -51,17 +51,12 @@ function shortModel(model: string): string {
   return s.length > 14 ? s.slice(0, 12) + "…" : s;
 }
 
-// Filter history by current mode (legacy entries without mode treated as "translate")
-const currentModeId = computed(() => appConfig.active_mode || "translate");
-const modeEntries = computed(() =>
-  historyStore.entries.filter(e => (e.mode || "translate") === currentModeId.value)
-);
+// All modes share one unified history list
+const modeEntries = computed(() => historyStore.entries);
 
 async function handleClear() {
-  // Only clear entries for current mode
-  historyStore.entries = historyStore.entries.filter(
-    e => (e.mode || "translate") !== currentModeId.value
-  );
+  // Clear all history (shared across modes)
+  historyStore.entries = [];
   await saveHistory();
   showClearConfirm.value = false;
 }

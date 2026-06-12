@@ -153,9 +153,6 @@ function selectMode(modeId: string) {
     burstParticles(modeBtnRef.value);
     popElement(modeBtnRef.value);
   }
-  // Reset history index so ↑↓ doesn't cross mode boundary
-  historyIndex.value = null;
-  draftSnapshot = null;
 }
 
 function onDocumentClick(e: MouseEvent) {
@@ -219,8 +216,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 function navigateHistory(direction: -1 | 1) {
   // direction: -1 = toward newer (index--), +1 = toward older (index++)
-  const currentMode = appConfig.active_mode || "translate";
-  const entries = historyStore.entries.filter(e => (e.mode || "translate") === currentMode);
+  const entries = historyStore.entries;
   if (entries.length === 0) return;
 
   let next: number;
