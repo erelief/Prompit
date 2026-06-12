@@ -1,4 +1,4 @@
-import { getActiveModel, appConfig, personaStore, loadDictionary } from "../stores/config";
+import { getActiveModel, appConfig, personaStore, sparkleStore, loadDictionary } from "../stores/config";
 import type { ApiFormat, ProviderConfig } from "../stores/config";
 
 interface ChatMessage {
@@ -52,13 +52,16 @@ export async function translate(text: string): Promise<string> {
   const fmt = resolveFormat(model.api_format);
   const skipFields: string[] = fmt.request._skip_fields ?? [];
 
-  const systemPrompt = buildSystemPrompt();
+  const mode = appConfig.active_mode || "translate";
+  const systemPrompt = mode === "sparkle"
+    ? buildSparkleSystemPrompt()
+    : buildSystemPrompt();
 
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
   ];
 
-  if (appConfig.user_dict_enabled) {
+  if (mode === "translate" && appConfig.user_dict_enabled) {
     const allEntries = await loadDictionary(appConfig.target_lang);
     const activePersona = personaStore.personas.find((p) => p.enabled)?.name || null;
     const matched = allEntries.filter((e) => {
@@ -138,7 +141,7 @@ export async function translate(text: string): Promise<string> {
   return String(content).trim();
 }
 
-export async function optimizePrompt(rawPrompt: string): Promise<string> {
+export async function optimizePrompt(rawPrompt: string, mode: "translate" | "sparkle" = "translate"): Promise<string> {
   const model = getActiveModel();
   if (!model) {
     throw new Error("No model configured. Please add a model in Settings.");
@@ -150,14 +153,15 @@ export async function optimizePrompt(rawPrompt: string): Promise<string> {
   const messages: ChatMessage[] = [
     {
       role: "system",
-      content:
-        "You optimize persona prompts for a translation tool. The user writes a vague style description in any language; you convert it into a concise instruction that assigns the LLM a professional role.\n" +
-        "Output format: Start with \"You role as a [profession/role], using your professional vocabulary\", where [profession/role] is the most fitting English role name derived from the user's description. Under 20 words.\n" +
-        'Examples:\n' +
-        '- "像个影视专业人员" → "You role as a film and television professional, using your professional vocabulary."\n' +
-        '- "正式一点" → "You role as a formal academic scholar, using your professional vocabulary."\n' +
-        '- "口语化" → "You role as a casual native speaker, using your professional vocabulary."\n' +
-        "- Output ONLY the optimized prompt, nothing else.",
+      content: mode === "sparkle"
+        ? "You organize and structure user-written prompts. Reorganize the prompt to be clear, well-structured, and unambiguous. Do not change the original intent or add new instructions. Output ONLY the reorganized prompt, nothing else."
+        : "You optimize persona prompts for a translation tool. The user writes a vague style description in any language; you convert it into a concise instruction that assigns the LLM a professional role.\n" +
+          "Output format: Start with \"You role as a [profession/role], using your professional vocabulary\", where [profession/role] is the most fitting English role name derived from the user's description. Under 20 words.\n" +
+          'Examples:\n' +
+          '- "像个影视专业人员" → "You role as a film and television professional, using your professional vocabulary."\n' +
+          '- "正式一点" → "You role as a formal academic scholar, using your professional vocabulary."\n' +
+          '- "口语化" → "You role as a casual native speaker, using your professional vocabulary."\n' +
+          "- Output ONLY the optimized prompt, nothing else.",
     },
     { role: "user", content: rawPrompt },
   ];
@@ -232,6 +236,17 @@ function buildSystemPrompt(): string {
   rules += "\n- If the input is already in the target language, output it as-is.";
 
   return `You are a translation engine. Translate the user's input text to the target language.\nRules:${rules}\nTarget language: ${appConfig.target_lang}.`;
+}
+
+function buildSparkleSystemPrompt(): string {
+  const enabled = sparkleStore.sparkles.find((s) => s.enabled);
+  if (!enabled) {
+    return "You are a helpful assistant. Output ONLY the result, nothing else.";
+  }
+  return (
+    enabled.prompt +
+    "\n\nIMPORTANT: Output ONLY the transformed result. Do not include any explanations, notes, meta-commentary, or original text. Output just the result."
+  );
 }
 
 export async function testProviderConnection(
