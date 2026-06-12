@@ -17,7 +17,7 @@ import {
   getOrderedLanguages,
 } from "../stores/config";
 import type { DictEntry } from "../stores/config";
-import { ArrowLeft, Download, Upload, Trash2, Plus, Save, ChevronDown, Check, X } from "@lucide/vue";
+import { ArrowLeft, Download, Upload, Trash2, Plus, Save, ChevronDown, ChevronUp, Check, X } from "@lucide/vue";
 
 const { t } = useI18n();
 const entries = ref<DictEntry[]>([]);
@@ -67,6 +67,36 @@ function closePersonaDropdown(e: MouseEvent) {
   const t = e.target as HTMLElement;
   if (!t.closest(".persona-dropdown") && !t.closest(".persona-btn")) {
     openPersonaRow.value = null;
+  }
+}
+
+/* ── Sorting ── */
+const sortCol = ref<'source' | 'target' | 'persona'>('source');
+const sortAsc = ref(true);
+
+const sortedEntries = computed(() => {
+  const arr = entries.value.map((e, i) => ({ entry: e, origIdx: i }));
+  arr.sort((a, b) => {
+    let cmp = 0;
+    const col = sortCol.value;
+    if (col === 'persona') {
+      const pa = a.entry.persona ?? '';
+      const pb = b.entry.persona ?? '';
+      cmp = pa.localeCompare(pb);
+    } else {
+      cmp = (a.entry[col] ?? '').localeCompare(b.entry[col] ?? '');
+    }
+    return sortAsc.value ? cmp : -cmp;
+  });
+  return arr;
+});
+
+function toggleSort(col: 'source' | 'target' | 'persona') {
+  if (sortCol.value === col) {
+    sortAsc.value = !sortAsc.value;
+  } else {
+    sortCol.value = col;
+    sortAsc.value = true;
   }
 }
 
@@ -356,14 +386,26 @@ onUnmounted(() => {
       <div class="dict-table settings-scrollbar">
         <!-- Sticky header row -->
         <div class="dict-row dict-header-row">
-          <div class="dict-col col-source">{{ t('dictionary.source') }}</div>
-          <div class="dict-col col-trans">{{ t('dictionary.translation') }}</div>
-          <div class="dict-col col-persona">{{ t('dictionary.persona') }}</div>
+          <div class="dict-col col-source sortable" @click="toggleSort('source')">
+            {{ t('dictionary.source') }}
+            <ChevronUp v-if="sortCol === 'source' && sortAsc" :size="10" class="sort-arrow" />
+            <ChevronDown v-if="sortCol === 'source' && !sortAsc" :size="10" class="sort-arrow" />
+          </div>
+          <div class="dict-col col-trans sortable" @click="toggleSort('target')">
+            {{ t('dictionary.translation') }}
+            <ChevronUp v-if="sortCol === 'target' && sortAsc" :size="10" class="sort-arrow" />
+            <ChevronDown v-if="sortCol === 'target' && !sortAsc" :size="10" class="sort-arrow" />
+          </div>
+          <div class="dict-col col-persona sortable" @click="toggleSort('persona')">
+            {{ t('dictionary.persona') }}
+            <ChevronUp v-if="sortCol === 'persona' && sortAsc" :size="10" class="sort-arrow" />
+            <ChevronDown v-if="sortCol === 'persona' && !sortAsc" :size="10" class="sort-arrow" />
+          </div>
           <div class="dict-col col-action"></div>
         </div>
 
         <!-- Data rows -->
-        <div v-for="(entry, i) in entries" :key="i" class="dict-row" :class="{ 'persona-invalid': entry.persona && !isPersonaValid(entry.persona) }">
+        <div v-for="{ entry, origIdx } in sortedEntries" :key="origIdx" class="dict-row" :class="{ 'persona-invalid': entry.persona && !isPersonaValid(entry.persona) }">
           <div class="dict-col col-source">
             <input
               class="dict-input"
@@ -385,16 +427,16 @@ onUnmounted(() => {
               class="persona-btn"
               :class="{ 'persona-missing': entry.persona && !isPersonaValid(entry.persona) }"
               :title="entry.persona && !isPersonaValid(entry.persona) ? t('dictionary.personaNotFound') : ''"
-              @click="togglePersonaDropdown(i, $event)"
+              @click="togglePersonaDropdown(origIdx, $event)"
             >
               <span class="persona-label">{{ personaLabel(entry.persona) }}</span>
-              <ChevronDown :size="10" :stroke-width="2" class="sel-arrow" :class="{ rot: openPersonaRow === i }" />
+              <ChevronDown :size="10" :stroke-width="2" class="sel-arrow" :class="{ rot: openPersonaRow === origIdx }" />
             </button>
           </div>
           <div class="dict-col col-action">
             <button
               class="mini-btn warn"
-              @click="removeEntry(i)"
+              @click="removeEntry(origIdx)"
             >
               <Trash2 :size="13" />
             </button>
@@ -1094,5 +1136,19 @@ onUnmounted(() => {
 }
 .persona-invalid .dict-input {
   opacity: 0.6;
+}
+
+/* ── Sorting ── */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  gap: 4px;
+}
+.sortable:hover {
+  color: var(--color-text-secondary);
+}
+.sort-arrow {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 </style>
