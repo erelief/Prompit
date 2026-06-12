@@ -8,6 +8,7 @@ import { getLangName } from "../constants/languages";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
   appConfig,
+  personaStore,
   loadDictionary,
   saveDictionary,
   importDictionaryCsv,
@@ -25,6 +26,49 @@ const router = useRouter();
 const { growAbove } = useSettingsWindow();
 const saveError = ref("");
 const dirty = ref(false);
+
+/* ── Persona helpers ── */
+const personaNames = computed(() => personaStore.personas.map(p => p.name));
+const personaOptions = computed(() => [null, ...personaNames.value]);
+function personaLabel(p: string | undefined): string {
+  return p ?? t('dictionary.personaAll');
+}
+function isPersonaValid(p: string | undefined): boolean {
+  if (!p) return true;
+  return personaNames.value.includes(p);
+}
+
+/* ── Persona dropdown per row ── */
+const openPersonaRow = ref<number | null>(null);
+const personaDropdownPos = ref({ top: 0, left: 0 });
+
+function togglePersonaDropdown(rowIdx: number, event: MouseEvent) {
+  if (openPersonaRow.value === rowIdx) {
+    openPersonaRow.value = null;
+    return;
+  }
+  const btn = event.currentTarget as HTMLElement;
+  const rect = btn.getBoundingClientRect();
+  personaDropdownPos.value = { top: rect.bottom + 4, left: rect.left };
+  openPersonaRow.value = rowIdx;
+}
+
+function selectPersona(rowIdx: number, persona: string | null) {
+  if (persona === null) {
+    delete entries.value[rowIdx].persona;
+  } else {
+    entries.value[rowIdx].persona = persona;
+  }
+  openPersonaRow.value = null;
+  dirty.value = true;
+}
+
+function closePersonaDropdown(e: MouseEvent) {
+  const t = e.target as HTMLElement;
+  if (!t.closest(".persona-dropdown") && !t.closest(".persona-btn")) {
+    openPersonaRow.value = null;
+  }
+}
 
 /* ── View-local target language ── */
 const viewLang = ref(appConfig.target_lang);
@@ -99,7 +143,11 @@ async function handleSave() {
   }
   const valid = entries.value
     .filter((e) => e.source.trim() !== "" && e.target.trim() !== "")
-    .map((e) => ({ source: e.source.trim(), target: e.target.trim() }));
+    .map((e) => {
+      const entry: DictEntry = { source: e.source.trim(), target: e.target.trim() };
+      if (e.persona) entry.persona = e.persona;
+      return entry;
+    });
   try {
     await saveDictionary(viewLang.value, valid);
     dirty.value = false;
@@ -265,9 +313,11 @@ onMounted(async () => {
   }
   loading.value = false;
   document.addEventListener("click", closeLangMenu);
+  document.addEventListener("click", closePersonaDropdown);
 });
 onUnmounted(() => {
   document.removeEventListener("click", closeLangMenu);
+  document.removeEventListener("click", closePersonaDropdown);
 });
 </script>
 
@@ -308,11 +358,12 @@ onUnmounted(() => {
         <div class="dict-row dict-header-row">
           <div class="dict-col col-source">{{ t('dictionary.source') }}</div>
           <div class="dict-col col-trans">{{ t('dictionary.translation') }}</div>
+          <div class="dict-col col-persona">{{ t('dictionary.persona') }}</div>
           <div class="dict-col col-action"></div>
         </div>
 
         <!-- Data rows -->
-        <div v-for="(entry, i) in entries" :key="i" class="dict-row">
+        <div v-for="(entry, i) in entries" :key="i" class="dict-row" :class="{ 'persona-invalid': entry.persona && !isPersonaValid(entry.persona) }">
           <div class="dict-col col-source">
             <input
               class="dict-input"
@@ -328,6 +379,17 @@ onUnmounted(() => {
               placeholder="..."
               @input="dirty = true"
             />
+          </div>
+          <div class="dict-col col-persona">
+            <button
+              class="persona-btn"
+              :class="{ 'persona-missing': entry.persona && !isPersonaValid(entry.persona) }"
+              :title="entry.persona && !isPersonaValid(entry.persona) ? t('dictionary.personaNotFound') : ''"
+              @click="togglePersonaDropdown(i, $event)"
+            >
+              <span class="persona-label">{{ personaLabel(entry.persona) }}</span>
+              <ChevronDown :size="10" :stroke-width="2" class="sel-arrow" :class="{ rot: openPersonaRow === i }" />
+            </button>
           </div>
           <div class="dict-col col-action">
             <button
@@ -354,6 +416,33 @@ onUnmounted(() => {
             >
               <span class="opt-label">{{ getLangName(item.name) }}</span>
               <Check v-if="item.name === viewLang" :size="13" :stroke-width="2.5" class="lang-item-check" />
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Persona dropdown per row -->
+    <Teleport to="body">
+      <Transition name="drop">
+        <div
+          v-if="openPersonaRow !== null"
+          class="sel-menu persona-dropdown"
+          :style="{ top: personaDropdownPos.top + 'px', left: personaDropdownPos.left + 'px' }"
+        >
+          <div class="sel-clip settings-scrollbar">
+            <div
+              v-for="opt in personaOptions"
+              :key="opt ?? '__all__'"
+              class="sel-opt"
+              :class="{ hit: (openPersonaRow !== null && entries[openPersonaRow]?.persona === opt) || (opt === null && openPersonaRow !== null && !entries[openPersonaRow]?.persona) }"
+              @click="selectPersona(openPersonaRow!, opt)"
+            >
+              <span class="opt-label">{{ personaLabel(opt) }}</span>
+              <Check
+                v-if="openPersonaRow !== null && ((opt === null && !entries[openPersonaRow]?.persona) || entries[openPersonaRow]?.persona === opt)"
+                :size="13" :stroke-width="2.5" class="lang-item-check"
+              />
             </div>
           </div>
         </div>
@@ -965,5 +1054,45 @@ onUnmounted(() => {
 }
 .drop-leave-to {
   opacity: 0;
+}
+
+/* ── Persona column ── */
+.col-persona {
+  flex: 0 0 110px;
+  border-right: 1px solid var(--color-border-hover);
+  border-left: 1px solid var(--color-border-hover);
+}
+.persona-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  width: 100%;
+}
+.persona-btn:hover {
+  border-color: var(--color-border-hover);
+  background: var(--color-surface-hover);
+}
+.persona-label {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.persona-missing .persona-label {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+.persona-invalid .dict-input {
+  opacity: 0.6;
 }
 </style>
