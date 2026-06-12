@@ -15,7 +15,8 @@
     "disabled": "未启用"
   },
   "modes": {
-    "translate": "翻译"
+    "translate": "翻译",
+    "sparkle": "灵感"
   },
   "settings": {
     "general": "通用",
@@ -65,6 +66,13 @@
     "addTranslationPersona": "添加翻译角色",
     "personaName": "角色名称…",
     "optimizePrompt": "AI 优化提示词",
+    "sparkleTitle": "灵感",
+    "noSparklesYet": "暂无灵感。",
+    "addOneToSparkle": "添加一个开始使用。",
+    "addSparkles": "添加灵感",
+    "sparklePrompt": "系统提示词",
+    "organizePrompt": "AI 条理化",
+    "sparkleModel": "灵感模型",
     "close": "关闭",
     "about": "关于",
     "userData": "用户数据",
@@ -100,6 +108,7 @@
     "emptyDictTitle": "用户词典为空",
     "emptyDictBody": "在设置中添加词条以获得更准确的翻译。",
     "goToSettings": "前往设置",
+    "selectSparkle": "选择灵感",
     "history": "历史记录"
   },
   "history": {
