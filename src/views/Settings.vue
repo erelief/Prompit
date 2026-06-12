@@ -295,6 +295,7 @@ function validateSparkle(s: { name: string; prompt: string }): string | null {
 
 function toggleSparkle(index: number, e: MouseEvent) {
   const wasOn = sparkleStore.sparkles[index].enabled;
+  if (wasOn && sparkleStore.sparkles.length <= 1) return;
   for (const s of sparkleStore.sparkles) s.enabled = false;
   if (!wasOn) {
     sparkleStore.sparkles[index].enabled = true;
