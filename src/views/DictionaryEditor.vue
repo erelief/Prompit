@@ -200,7 +200,7 @@ function closeLangMenu(e: MouseEvent) {
 /* ── Window drag ── */
 async function handleDrag(e: MouseEvent) {
   const t = e.target as HTMLElement;
-  if (t.closest("textarea, button, input, select, a, .sel-menu")) return;
+  if (t.closest("textarea, button, input, select, a, .sel-menu, .sortable")) return;
   showLangMenu.value = false;
   await getCurrentWindow().startDragging();
 }
@@ -1206,7 +1206,6 @@ onUnmounted(() => {
 /* ── Persona column ── */
 .col-persona {
   flex: 0 0 110px;
-  border-right: 1px solid var(--color-border-hover);
   border-left: 1px solid var(--color-border-hover);
 }
 .persona-btn {
@@ -1262,7 +1261,6 @@ onUnmounted(() => {
   width: 32px;
   justify-content: center;
   flex-shrink: 0;
-  border-right: 1px solid var(--color-border-hover);
 }
 .dict-checkbox {
   width: 14px;
