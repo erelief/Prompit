@@ -483,7 +483,7 @@ useShortcutTriggered(() => {
             <button
               ref="modeBtnRef"
               @click="toggleModeDropdown"
-              class="icon-btn"
+              class="mode-btn"
               :class="{ active: showModeDropdown }"
               :title="t(currentMode.labelKey)"
             >
@@ -583,7 +583,7 @@ useShortcutTriggered(() => {
             <button
               ref="modeBtnRef"
               @click="toggleModeDropdown"
-              class="icon-btn"
+              class="mode-btn"
               :class="{ active: showModeDropdown }"
               :title="t(currentMode.labelKey)"
             >
@@ -923,6 +923,30 @@ useShortcutTriggered(() => {
 .icon-btn:hover {
   color: var(--color-text);
   background: var(--color-surface);
+}
+
+/* Mode switch button — accent-colored to stand out */
+.mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.mode-btn:hover {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+.mode-btn.active {
+  background: color-mix(in srgb, var(--color-accent) 25%, var(--color-surface));
+  border-color: var(--color-accent-border);
 }
 
 /* Result block */
