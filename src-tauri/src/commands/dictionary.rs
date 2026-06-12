@@ -9,6 +9,8 @@ use tauri::AppHandle;
 pub struct DictEntry {
     pub source: String,
     pub target: String,
+    #[serde(default)]
+    pub persona: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -150,7 +152,7 @@ pub fn import_dictionary_csv(
         if lang.is_empty() || source.is_empty() || target.is_empty() {
             continue;
         }
-        parsed.push((lang, DictEntry { source, target }));
+        parsed.push((lang, DictEntry { source, target, persona: None }));
     }
 
     let mut store = load_dict_store(&app)?;
@@ -233,10 +235,21 @@ mod tests {
         let entry = DictEntry {
             source: "hello".into(),
             target: "你好".into(),
+            persona: Some("Formal".into()),
         };
         let json = serde_json::to_string(&entry).unwrap();
         let back: DictEntry = serde_json::from_str(&json).unwrap();
         assert_eq!(entry, back);
+        assert_eq!(back.persona, Some("Formal".into()));
+    }
+
+    #[test]
+    fn test_dict_entry_backward_compat() {
+        let json = r#"{"source":"hello","target":"你好"}"#;
+        let entry: DictEntry = serde_json::from_str(json).unwrap();
+        assert_eq!(entry.source, "hello");
+        assert_eq!(entry.target, "你好");
+        assert_eq!(entry.persona, None);
     }
 
     #[test]
@@ -251,6 +264,7 @@ mod tests {
             entries.push(DictEntry {
                 source: record[0].to_string(),
                 target: record[1].to_string(),
+                persona: None,
             });
         }
         assert_eq!(entries.len(), 2);
@@ -275,6 +289,7 @@ mod tests {
             entries.push(DictEntry {
                 source: record[0].to_string(),
                 target: record[1].to_string(),
+                persona: None,
             });
         }
         assert_eq!(entries.len(), 1);
@@ -287,10 +302,12 @@ mod tests {
             DictEntry {
                 source: "hello".into(),
                 target: "你好".into(),
+                persona: None,
             },
             DictEntry {
                 source: "world".into(),
                 target: "世界".into(),
+                persona: None,
             },
         ];
         let mut wtr = csv::WriterBuilder::new()
