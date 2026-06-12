@@ -218,14 +218,19 @@ pub fn export_dictionary_csv(app: AppHandle, file_path: String) -> Result<(), St
         .has_headers(false)
         .from_path(&file_path)
         .map_err(|e| format!("create csv: {e}"))?;
-    wtr.write_record(["lang", "source", "target"])
+    wtr.write_record(["lang", "source", "target", "persona"])
         .map_err(|e| format!("write header: {e}"))?;
     let mut langs: Vec<&String> = store.keys().collect();
     langs.sort();
     for lang in langs {
         for entry in &store[lang] {
-            wtr.serialize((lang.as_str(), entry.source.as_str(), entry.target.as_str()))
-                .map_err(|e| format!("write csv: {e}"))?;
+            wtr.serialize((
+                lang.as_str(),
+                entry.source.as_str(),
+                entry.target.as_str(),
+                entry.persona.as_deref().unwrap_or(""),
+            ))
+            .map_err(|e| format!("write csv: {e}"))?;
         }
     }
     wtr.flush().map_err(|e| format!("flush csv: {e}"))?;
@@ -308,7 +313,7 @@ mod tests {
             DictEntry {
                 source: "hello".into(),
                 target: "你好".into(),
-                persona: None,
+                persona: Some("Formal".into()),
             },
             DictEntry {
                 source: "world".into(),
@@ -319,16 +324,20 @@ mod tests {
         let mut wtr = csv::WriterBuilder::new()
             .has_headers(false)
             .from_writer(vec![]);
-        wtr.write_record(["source", "target"]).unwrap();
+        wtr.write_record(["source", "target", "persona"]).unwrap();
         for entry in &entries {
-            wtr.serialize((entry.source.as_str(), entry.target.as_str()))
-                .unwrap();
+            wtr.serialize((
+                entry.source.as_str(),
+                entry.target.as_str(),
+                entry.persona.as_deref().unwrap_or(""),
+            ))
+            .unwrap();
         }
         wtr.flush().unwrap();
         let output = String::from_utf8(wtr.into_inner().unwrap()).unwrap();
-        assert!(output.contains("source,target"));
-        assert!(output.contains("hello,你好"));
-        assert!(output.contains("world,世界"));
+        assert!(output.contains("source,target,persona"));
+        assert!(output.contains("hello,你好,Formal"));
+        assert!(output.contains("world,世界,"));
     }
 
     #[test]
