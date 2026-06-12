@@ -47,6 +47,7 @@ export interface PersonaConfig {
 export interface DictEntry {
   source: string;
   target: string;
+  persona?: string;  // undefined = All (no persona constraint)
 }
 
 export interface ModeDefinition {

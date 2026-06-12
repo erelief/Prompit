@@ -135,7 +135,12 @@
     "clearCurrentConfirm": "Clear all entries for {lang}?",
     "clearAllConfirm": "Clear all entries for all languages?",
     "imported": "Imported {n} entries across {langs} languages.",
-    "noEntriesToExport": "No entries to export."
+    "noEntriesToExport": "No entries to export.",
+    "persona": "Persona",
+    "personaAll": "All",
+    "personaNotFound": "Persona does not exist",
+    "batchDelete": "Delete selected",
+    "batchPersona": "Change persona"
   },
   "about": {
     "title": "About",

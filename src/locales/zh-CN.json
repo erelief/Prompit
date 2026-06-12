@@ -135,7 +135,12 @@
     "clearCurrentConfirm": "清空 {lang} 的所有词条？",
     "clearAllConfirm": "清空所有语言的所有词条？",
     "imported": "已导入 {n} 条，涉及 {langs} 种语言。",
-    "noEntriesToExport": "没有可导出的词条。"
+    "noEntriesToExport": "没有可导出的词条。",
+    "persona": "角色",
+    "personaAll": "全部",
+    "personaNotFound": "该角色不存在",
+    "batchDelete": "删除选中",
+    "batchPersona": "更改角色"
   },
   "about": {
     "title": "关于",
