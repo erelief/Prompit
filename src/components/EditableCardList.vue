@@ -19,8 +19,11 @@ const props = withDefaults(defineProps<{
   validate?: (item: any) => string | null;
   /** Whether to show the remove button. Default true. */
   allowRemove?: boolean;
+  /** Max number of items visible when collapsed (controls max-height). Default 3. */
+  maxCollapsed?: number;
 }>(), {
   allowRemove: true,
+  maxCollapsed: 3,
 });
 
 const emit = defineEmits<{
@@ -214,7 +217,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
     </button>
   </div>
 
-  <div ref="rootEl" class="ecl-stack" :class="{ compact: !adding && !isEditingAny }">
+  <div ref="rootEl" class="ecl-stack" :class="{ compact: !adding && !isEditingAny }" :style="(!adding && !isEditingAny) ? { maxHeight: (props.maxCollapsed * 56 + 4) + 'px' } : undefined">
     <!-- Empty state -->
     <div v-if="items.length === 0 && !adding" class="empty-card">
       <component :is="emptyIcon || icon" :size="22" :stroke-width="1" />
@@ -325,7 +328,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 /* ── Stack container ── */
 .ecl-stack { display:flex; flex-direction:column; gap:7px; }
 .ecl-stack.compact {
-  max-height: 168px; overflow-y: auto; padding-right: 2px;
+  overflow-y: auto; padding-right: 2px;
 }
 .ecl-stack.compact :deep(.ecl-card) { flex-shrink: 0; }
 .ecl-stack.compact::-webkit-scrollbar { width: 3px; }

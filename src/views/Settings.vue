@@ -7,9 +7,11 @@ import { useRouter, useRoute } from "vue-router";
 import {
   appConfig,
   personaStore,
+  sparkleStore,
   loadConfig,
   saveConfig as persistConfig,
   savePersonas as persistPersonas,
+  saveSparkles as persistSparkles,
   getOrderedLanguages,
   loadProviderPresets,
   dictStore,
@@ -57,6 +59,7 @@ import {
   Database,
   Monitor,
   History,
+  Sparkles,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -283,6 +286,37 @@ function handleTextareaKeydown(e: KeyboardEvent, item: { prompt: string }, index
   }
 }
 
+function validateSparkle(s: { name: string; prompt: string }): string | null {
+  const missing: string[] = [];
+  if (!s.name.trim()) missing.push("Name");
+  if (!s.prompt.trim()) missing.push("Prompt");
+  return missing.length ? `Required: ${missing.join(", ")}` : null;
+}
+
+function toggleSparkle(index: number, e: MouseEvent) {
+  const wasOn = sparkleStore.sparkles[index].enabled;
+  for (const s of sparkleStore.sparkles) s.enabled = false;
+  if (!wasOn) {
+    sparkleStore.sparkles[index].enabled = true;
+    burstParticles(e.currentTarget as HTMLElement);
+  }
+  persistSparkles();
+}
+
+async function handleOrganizePrompt(item: { prompt: string }, index: number) {
+  if (!item.prompt.trim() || optimizingIndex.value !== null) return;
+  promptUndoStack.set(index, item.prompt);
+  optimizingIndex.value = index;
+  try {
+    item.prompt = await optimizePrompt(item.prompt, "sparkle");
+  } catch (err) {
+    console.error("Organize failed:", err);
+    promptUndoStack.delete(index);
+  } finally {
+    optimizingIndex.value = null;
+  }
+}
+
 function toggleSelMenu() {
   if (allFlat.value.length === 0) return;
   showLangSelector.value = false;
@@ -420,6 +454,11 @@ watch(
   () => { persistPersonas(); },
 );
 
+watch(
+  () => JSON.stringify(sparkleStore.sparkles),
+  () => { persistSparkles(); },
+);
+
 function onProviderAdd(draft: ProviderConfig) {
   Object.assign(draft, {
     name: "",
@@ -542,6 +581,26 @@ function pickModel(e: FlatEntry) {
 
 function isTranslationModelActive(pIndex: number, mIndex: number): boolean {
   return pIndex === appConfig.translation_active_provider_index && mIndex === appConfig.translation_active_model_index;
+}
+
+function isSparkleModelActive(pIndex: number, mIndex: number): boolean {
+  return pIndex === appConfig.sparkle_active_provider_index && mIndex === appConfig.sparkle_active_model_index;
+}
+
+const sparkleActiveLabel = computed(() => {
+  const { providers } = appConfig;
+  const pi = appConfig.sparkle_active_provider_index;
+  const mi = appConfig.sparkle_active_model_index;
+  if (pi >= providers.length) return "None";
+  const p = providers[pi];
+  if (!p || mi >= p.models.length) return "None";
+  return p.models[mi].id;
+});
+
+function pickSparkleModel(e: FlatEntry) {
+  appConfig.sparkle_active_provider_index = e.pIndex;
+  appConfig.sparkle_active_model_index = e.mIndex;
+  showModelSelector.value = false;
 }
 
 // ── Click outside panels ──
@@ -1209,6 +1268,107 @@ onUnmounted(() => {
                 :class="{ active: optimizingIndex === index }"
                 :title="t('settings.optimizePrompt')"
                 @click.stop="handleOptimizePrompt(item, index)"
+              >
+                <Loader2
+                  v-if="optimizingIndex === index"
+                  :size="12"
+                  :stroke-width="1.9"
+                  class="spin"
+                />
+                <Wand2 v-else :size="13" :stroke-width="1.6" />
+              </button>
+            </div>
+          </template>
+        </EditableCardList>
+      </template>
+
+      <!-- ─── Sparkle tab ─── -->
+      <template v-if="activeTab === 'sparkle'">
+        <!-- Model selector -->
+        <div class="section-head">
+          <span class="section-title"><Cpu :size="13" />{{ t('settings.sparkleModel') }}</span>
+        </div>
+        <div class="sel-wrap">
+          <button
+            ref="selBtnRef"
+            class="sel-btn"
+            :class="{ dead: allFlat.length === 0 }"
+            @click="toggleSelMenu()"
+          >
+            <span class="sel-text">{{ allFlat.length === 0 ? t('settings.noModelsAvailable') : sparkleActiveLabel }}</span>
+            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showModelSelector }" />
+          </button>
+
+          <Teleport to="body">
+            <Transition name="drop">
+              <div v-if="showModelSelector && allFlat.length > 0" class="sel-menu" :style="{ top: selMenuPos.top + 'px', left: selMenuPos.left + 'px' }">
+                <div class="sel-clip settings-scrollbar">
+                <div class="sel-menu-inner">
+                  <button
+                    v-for="e in allFlat" :key="e.pIndex + '-' + e.mIndex"
+                    class="sel-opt"
+                    :class="{ hit: isSparkleModelActive(e.pIndex, e.mIndex) }"
+                    @click="pickSparkleModel(e)"
+                  >
+                    <div class="opt-info">
+                      <span class="opt-id">{{ e.id }}</span>
+                      <span class="opt-src">{{ e.providerName }}</span>
+                    </div>
+                    <Check
+                      v-if="isSparkleModelActive(e.pIndex, e.mIndex)"
+                      :size="13" :stroke-width="2.5"
+                    />
+                  </button>
+                </div>
+                </div>
+              </div>
+            </Transition>
+          </Teleport>
+        </div>
+
+        <!-- Sparkle card list -->
+        <EditableCardList
+          class="mt"
+          :items="sparkleStore.sparkles"
+          :title="t('settings.sparkleTitle')"
+          :icon="Sparkles"
+          :empty-message="t('settings.noSparklesYet')"
+          :empty-sub-message="t('settings.addOneToSparkle')"
+          :validate="validateSparkle"
+          :allow-remove="sparkleStore.sparkles.length > 1"
+          :max-collapsed="5"
+          @add="Object.assign($event, { name: '', prompt: '', enabled: false })"
+          @confirm="() => persistSparkles()"
+          @remove="() => persistSparkles()"
+        >
+          <template #collapsed="{ item, index }">
+            <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="toggleSparkle(index, $event)">
+              <ToggleRight v-if="item.enabled" :size="15" :stroke-width="1.7" />
+              <ToggleLeft v-else :size="15" :stroke-width="1.7" />
+            </button>
+            <span class="persona-name">{{ item.name }}</span>
+          </template>
+
+          <template #name-input="{ item }">
+            <input v-model="item.name" :placeholder="t('settings.personaName')" class="fi name-fi" @click.stop />
+          </template>
+
+          <template #content="{ item, index }">
+            <div class="persona-textarea-wrap">
+              <textarea
+                v-model="item.prompt"
+                :placeholder="t('settings.sparklePrompt')"
+                class="persona-textarea"
+                rows="5"
+                @click.stop
+                @keydown="handleTextareaKeydown($event, item, index)"
+              />
+              <button
+                v-if="item.prompt.trim()"
+                class="persona-wand-btn"
+                :class="{ active: optimizingIndex === index }"
+                :title="t('settings.organizePrompt')"
+                @click.stop="handleOrganizePrompt(item, index)"
               >
                 <Loader2
                   v-if="optimizingIndex === index"
