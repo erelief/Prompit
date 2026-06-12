@@ -2,7 +2,7 @@ import { reactive, toRaw, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { BUILTIN_LANGUAGES, LANGUAGE_GROUPS } from "../constants/languages";
-import { Languages } from "@lucide/vue";
+import { Languages, Sparkles } from "@lucide/vue";
 import i18n from "../i18n";
 
 export interface ApiFormat {
@@ -44,6 +44,12 @@ export interface PersonaConfig {
   enabled: boolean;
 }
 
+export interface SparkleEntry {
+  name: string;
+  prompt: string;
+  enabled: boolean;
+}
+
 export interface DictEntry {
   source: string;
   target: string;
@@ -71,6 +77,8 @@ export interface AppConfig {
   floating_opacity: number;
   show_startup_reminder: boolean;
   history_limit: number;
+  sparkle_active_provider_index: number;
+  sparkle_active_model_index: number;
 }
 
 const defaultConfig: AppConfig = {
@@ -87,6 +95,8 @@ const defaultConfig: AppConfig = {
   floating_opacity: 90,
   show_startup_reminder: true,
   history_limit: 50,
+  sparkle_active_provider_index: 0,
+  sparkle_active_model_index: 0,
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
@@ -182,6 +192,10 @@ export function rebuildLanguageOrder(appLang: string): void {
 
 export const personaStore = reactive<{ personas: PersonaConfig[] }>({
   personas: [],
+});
+
+export const sparkleStore = reactive<{ sparkles: SparkleEntry[] }>({
+  sparkles: [],
 });
 
 function secretKeyId(providerIndex: number): string {
@@ -388,6 +402,38 @@ export async function loadProviderPresets(): Promise<ProviderPreset[]> {
   return await invoke<ProviderPreset[]>("read_provider_presets");
 }
 
+// ── Sparkle store ──
+
+const DEFAULT_POLISH_SPARKLE: SparkleEntry = {
+  name: "润色 (Polish)",
+  prompt:
+    "Detect the language of the user's input. Adopt the role of a native speaker of that language. Rewrite the user's input as a more idiomatic, accurate, and natural expression in the same language, preserving the original meaning and intent.",
+  enabled: true,
+};
+
+export async function loadSparkles(): Promise<void> {
+  try {
+    const entries = await invoke<SparkleEntry[]>("read_sparkles");
+    if (entries.length === 0) {
+      sparkleStore.sparkles = [DEFAULT_POLISH_SPARKLE];
+      await saveSparkles();
+    } else {
+      sparkleStore.sparkles = entries;
+    }
+  } catch (err) {
+    console.error("Failed to load sparkles:", err);
+    sparkleStore.sparkles = [DEFAULT_POLISH_SPARKLE];
+  }
+}
+
+export async function saveSparkles(): Promise<void> {
+  try {
+    await invoke("save_sparkles", { sparkles: sparkleStore.sparkles });
+  } catch (err) {
+    console.error("Failed to save sparkles:", err);
+  }
+}
+
 // ── Mode registry ──
 
 export const MODES: ModeDefinition[] = [
@@ -396,6 +442,12 @@ export const MODES: ModeDefinition[] = [
     icon: Languages,
     labelKey: "modes.translate",
     settingTabKey: "translation",
+  },
+  {
+    id: "sparkle",
+    icon: Sparkles,
+    labelKey: "modes.sparkle",
+    settingTabKey: "sparkle",
   },
 ];
 

@@ -15,7 +15,8 @@
     "disabled": "Not enabled"
   },
   "modes": {
-    "translate": "Translate"
+    "translate": "Translate",
+    "sparkle": "Sparkle"
   },
   "settings": {
     "general": "General",
@@ -65,6 +66,13 @@
     "addTranslationPersona": "Add Translation Persona",
     "personaName": "Persona name…",
     "optimizePrompt": "AI Optimize prompt",
+    "sparkleTitle": "Sparkle",
+    "noSparklesYet": "No sparkles yet.",
+    "addOneToSparkle": "Add one to get started.",
+    "addSparkles": "Add Sparkle",
+    "sparklePrompt": "System Prompt",
+    "organizePrompt": "AI Organize prompt",
+    "sparkleModel": "Sparkle Model",
     "close": "Close",
     "about": "About",
     "userData": "User Data",
@@ -100,6 +108,7 @@
     "emptyDictTitle": "User dictionary is empty",
     "emptyDictBody": "Add terms in Settings for more accurate translations.",
     "goToSettings": "Go to Settings",
+    "selectSparkle": "Select Sparkle",
     "history": "History"
   },
   "history": {

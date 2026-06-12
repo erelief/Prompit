@@ -6,7 +6,9 @@ import { burstParticles } from "../utils/burstParticles";
 import {
   appConfig,
   personaStore,
+  sparkleStore,
   savePersonas,
+  saveSparkles,
   getOrderedLanguages,
   dictStore,
   refreshDictStatus,
@@ -17,6 +19,7 @@ import {
   ChevronDown,
   UserCircle,
   BookText,
+  Sparkles,
 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
@@ -49,6 +52,49 @@ const personaDropdownRef = ref<HTMLDivElement | null>(null);
 const personaBtnRef = ref<HTMLButtonElement | null>(null);
 const personaMenuRef = ref<HTMLDivElement | null>(null);
 const personaDropdownPos = ref({ top: 0, left: 0 });
+
+// ── Sparkle selector (sparkle mode) ──
+const activeSparkleName = computed(() => {
+  const s = sparkleStore.sparkles.find((s) => s.enabled);
+  return s?.name || null;
+});
+
+const showSparkleDropdown = ref(false);
+const sparkleDropdownRef = ref<HTMLDivElement | null>(null);
+const sparkleBtnRef = ref<HTMLButtonElement | null>(null);
+const sparkleMenuRef = ref<HTMLDivElement | null>(null);
+const sparkleDropdownPos = ref({ top: 0, left: 0 });
+
+function toggleSparkleDropdown() {
+  if (!showSparkleDropdown.value && sparkleBtnRef.value) {
+    const rect = sparkleBtnRef.value.getBoundingClientRect();
+    const wrapLeft = sparkleDropdownRef.value?.getBoundingClientRect().left ?? rect.left;
+    sparkleDropdownPos.value = { top: rect.bottom + 4, left: wrapLeft };
+    showSparkleDropdown.value = true;
+    nextTick(() => {
+      if (sparkleMenuRef.value) {
+        const menuH = sparkleMenuRef.value.offsetHeight;
+        const spaceBelow = window.innerHeight - rect.bottom - 4;
+        const spaceAbove = rect.top - 4;
+        if (menuH > spaceBelow && menuH <= spaceAbove) {
+          sparkleDropdownPos.value = { top: rect.top - menuH - 4, left: wrapLeft };
+        }
+      }
+    });
+  } else {
+    showSparkleDropdown.value = false;
+  }
+}
+
+function selectSparkle(index: number) {
+  for (const s of sparkleStore.sparkles) s.enabled = false;
+  sparkleStore.sparkles[index].enabled = true;
+  showSparkleDropdown.value = false;
+  saveSparkles();
+  emit("result-stale");
+}
+
+const sparkleDropdownStyle = computed(() => capHeight(sparkleStore.sparkles.length));
 
 // ── Empty-state hint modal ──
 const emptyHintTarget = ref<'persona' | 'dict' | null>(null);
@@ -152,6 +198,7 @@ const langDropdownStyle = computed(() => capHeight(targetLanguages.value.length)
 function closeAllDropdowns() {
   showPersonaDropdown.value = false;
   showLangDropdown.value = false;
+  showSparkleDropdown.value = false;
 }
 
 function onDocumentClick(e: MouseEvent) {
@@ -171,6 +218,14 @@ function onDocumentClick(e: MouseEvent) {
     return;
   }
   showLangDropdown.value = false;
+
+  if (
+    sparkleDropdownRef.value?.contains(target) ||
+    sparkleMenuRef.value?.contains(target)
+  ) {
+    return;
+  }
+  showSparkleDropdown.value = false;
 }
 
 const chevronTransform = (open: boolean) =>
@@ -200,6 +255,48 @@ defineExpose({ closeAllDropdowns });
 </script>
 
 <template>
+  <!-- Sparkle mode: only sparkle selector -->
+  <template v-if="appConfig.active_mode === 'sparkle'">
+    <div class="sparkle-wrap" ref="sparkleDropdownRef">
+      <button
+        ref="sparkleBtnRef"
+        @click="toggleSparkleDropdown"
+        class="sparkle-btn"
+        :class="{ active: showSparkleDropdown }"
+        :title="t('floating.selectSparkle')"
+      >
+        <Sparkles :size="11" :stroke-width="1.8" />
+        <span class="truncate max-w-[5em] min-w-0">{{ activeSparkleName }}</span>
+        <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
+          :style="{ transform: chevronTransform(showSparkleDropdown) }" />
+      </button>
+
+      <Teleport to="body">
+        <Transition name="dropdown">
+          <div
+            v-if="showSparkleDropdown"
+            ref="sparkleMenuRef"
+            class="model-dropdown sparkle-dropdown"
+            :style="{ top: sparkleDropdownPos.top + 'px', left: sparkleDropdownPos.left + 'px', ...sparkleDropdownStyle }"
+          >
+            <button
+              v-for="(sparkle, si) in sparkleStore.sparkles"
+              :key="si"
+              @click="selectSparkle(si)"
+              class="model-option"
+              :class="{ selected: sparkle.enabled }"
+            >
+              <span class="truncate">{{ sparkle.name }}</span>
+              <span v-if="sparkle.enabled" class="check-mark">&#10003;</span>
+            </button>
+          </div>
+        </Transition>
+      </Teleport>
+    </div>
+  </template>
+
+  <!-- Translate mode: language + persona + dict -->
+  <template v-else>
   <!-- Language selector -->
   <div class="lang-wrap" ref="langDropdownRef">
     <button
@@ -315,6 +412,7 @@ defineExpose({ closeAllDropdowns });
   >
     <BookText :size="11" :stroke-width="1.8" />
   </button>
+  </template>
 
   <!-- Empty-state hint overlay -->
   <Teleport to="body">
@@ -516,6 +614,29 @@ defineExpose({ closeAllDropdowns });
   border-color: var(--color-text-muted);
   color: var(--color-text-secondary);
   background: var(--color-surface);
+}
+
+/* Sparkle selector */
+.sparkle-wrap { display: inline-flex; flex-shrink: 0; }
+.sparkle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px 0 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 550;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface);
+  transition: all 0.15s ease;
+}
+.sparkle-btn:hover,
+.sparkle-btn.active {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+  border-color: var(--color-accent-border);
 }
 
 /* Model dropdown (shared base for lang/persona dropdowns) */
