@@ -17,7 +17,7 @@ import {
   getOrderedLanguages,
 } from "../stores/config";
 import type { DictEntry } from "../stores/config";
-import { ArrowLeft, Download, Upload, Trash2, Plus, Save, ChevronDown, ChevronUp, Check, X } from "@lucide/vue";
+import { ArrowLeft, Download, Upload, Trash2, Plus, Save, ChevronDown, ChevronUp, Check, X, UserCircle } from "@lucide/vue";
 
 const { t } = useI18n();
 const entries = ref<DictEntry[]>([]);
@@ -97,6 +97,66 @@ function toggleSort(col: 'source' | 'target' | 'persona') {
   } else {
     sortCol.value = col;
     sortAsc.value = true;
+  }
+}
+
+/* ── Multi-select ── */
+const selectedSet = ref<Set<number>>(new Set());
+const hasSelection = computed(() => selectedSet.value.size > 0);
+const allSelected = computed(() =>
+  entries.value.length > 0 && selectedSet.value.size === sortedEntries.value.length
+);
+
+function toggleSelect(origIdx: number) {
+  if (selectedSet.value.has(origIdx)) {
+    selectedSet.value.delete(origIdx);
+  } else {
+    selectedSet.value.add(origIdx);
+  }
+}
+
+function toggleSelectAll() {
+  if (allSelected.value) {
+    selectedSet.value.clear();
+  } else {
+    selectedSet.value = new Set(sortedEntries.value.map(s => s.origIdx));
+  }
+}
+
+function deleteSelected() {
+  entries.value = entries.value.filter((_, i) => !selectedSet.value.has(i));
+  selectedSet.value.clear();
+  dirty.value = true;
+  saveError.value = "";
+}
+
+/* ── Batch persona change ── */
+const showBatchPersona = ref(false);
+const batchPersonaPos = ref({ top: 0, left: 0 });
+
+function openBatchPersona(e: MouseEvent) {
+  const btn = e.currentTarget as HTMLElement;
+  const rect = btn.getBoundingClientRect();
+  batchPersonaPos.value = { top: rect.bottom + 4, left: rect.left };
+  showBatchPersona.value = true;
+}
+
+function applyBatchPersona(persona: string | null) {
+  for (const idx of selectedSet.value) {
+    if (persona === null) {
+      delete entries.value[idx].persona;
+    } else {
+      entries.value[idx].persona = persona;
+    }
+  }
+  showBatchPersona.value = false;
+  dirty.value = true;
+}
+
+function closeBatchDropdown(e: MouseEvent) {
+  const t = e.target as HTMLElement;
+  if (!t.closest(".batch-persona-dropdown") && !t.closest(".batch-persona-btn")) {
+    showBatchPersona.value = false;
   }
 }
 
@@ -344,10 +404,12 @@ onMounted(async () => {
   loading.value = false;
   document.addEventListener("click", closeLangMenu);
   document.addEventListener("click", closePersonaDropdown);
+  document.addEventListener("click", closeBatchDropdown);
 });
 onUnmounted(() => {
   document.removeEventListener("click", closeLangMenu);
   document.removeEventListener("click", closePersonaDropdown);
+  document.removeEventListener("click", closeBatchDropdown);
 });
 </script>
 
@@ -375,7 +437,22 @@ onUnmounted(() => {
         <span class="sel-text">{{ getLangName(viewLang) }}</span>
         <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showLangMenu }" />
       </button>
-      <button class="pill-btn add-pill" style="margin-left: auto" @click="addEntry">
+
+      <!-- Batch actions (when selection active) -->
+      <template v-if="hasSelection">
+        <span class="batch-count">{{ selectedSet.size }}</span>
+        <button class="pill-btn micro batch-persona-btn" @click="openBatchPersona">
+          <UserCircle :size="12" />
+          <span>{{ t('dictionary.batchPersona') }}</span>
+        </button>
+        <button class="pill-btn micro" @click="deleteSelected" style="color: var(--color-danger)">
+          <Trash2 :size="12" />
+          <span>{{ t('dictionary.batchDelete') }}</span>
+        </button>
+      </template>
+
+      <!-- Add Entry (when no selection) -->
+      <button v-else class="pill-btn add-pill" style="margin-left: auto" @click="addEntry">
         <Plus :size="12" :stroke-width="2" />
         <span>{{ t('dictionary.addEntry') }}</span>
       </button>
@@ -386,6 +463,9 @@ onUnmounted(() => {
       <div class="dict-table settings-scrollbar">
         <!-- Sticky header row -->
         <div class="dict-row dict-header-row">
+          <div class="dict-col col-check">
+            <input type="checkbox" class="dict-checkbox" :checked="allSelected" @change="toggleSelectAll" />
+          </div>
           <div class="dict-col col-source sortable" @click="toggleSort('source')">
             {{ t('dictionary.source') }}
             <ChevronUp v-if="sortCol === 'source' && sortAsc" :size="10" class="sort-arrow" />
@@ -406,6 +486,9 @@ onUnmounted(() => {
 
         <!-- Data rows -->
         <div v-for="{ entry, origIdx } in sortedEntries" :key="origIdx" class="dict-row" :class="{ 'persona-invalid': entry.persona && !isPersonaValid(entry.persona) }">
+          <div class="dict-col col-check">
+            <input type="checkbox" class="dict-checkbox" :checked="selectedSet.has(origIdx)" @change="toggleSelect(origIdx)" />
+          </div>
           <div class="dict-col col-source">
             <input
               class="dict-input"
@@ -485,6 +568,28 @@ onUnmounted(() => {
                 v-if="openPersonaRow !== null && ((opt === null && !entries[openPersonaRow]?.persona) || entries[openPersonaRow]?.persona === opt)"
                 :size="13" :stroke-width="2.5" class="lang-item-check"
               />
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Batch persona dropdown -->
+    <Teleport to="body">
+      <Transition name="drop">
+        <div
+          v-if="showBatchPersona"
+          class="sel-menu batch-persona-dropdown"
+          :style="{ top: batchPersonaPos.top + 'px', left: batchPersonaPos.left + 'px' }"
+        >
+          <div class="sel-clip settings-scrollbar">
+            <div
+              v-for="opt in personaOptions"
+              :key="opt ?? '__all__'"
+              class="sel-opt"
+              @click="applyBatchPersona(opt)"
+            >
+              <span class="opt-label">{{ personaLabel(opt) }}</span>
             </div>
           </div>
         </div>
@@ -1150,5 +1255,34 @@ onUnmounted(() => {
 .sort-arrow {
   color: var(--color-text-muted);
   flex-shrink: 0;
+}
+
+/* ── Checkbox column ── */
+.col-check {
+  width: 32px;
+  justify-content: center;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border-hover);
+}
+.dict-checkbox {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--color-accent);
+}
+
+/* ── Batch actions ── */
+.batch-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+  padding: 2px 8px;
+  border-radius: 9px;
+  margin-left: auto;
+}
+.batch-persona-btn:hover {
+  color: var(--color-accent-text);
+  background: var(--color-accent-bg);
 }
 </style>
