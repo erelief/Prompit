@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
+import { burstParticles } from "../utils/burstParticles";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { loadConfig, saveConfig, getActiveModel, appConfig, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode } from "../stores/config";
@@ -148,6 +149,7 @@ function toggleModeDropdown() {
 function selectMode(modeId: string) {
   appConfig.active_mode = modeId;
   showModeDropdown.value = false;
+  if (modeBtnRef.value) burstParticles(modeBtnRef.value);
 }
 
 function onDocumentClick(e: MouseEvent) {
@@ -940,7 +942,7 @@ useShortcutTriggered(() => {
   flex-shrink: 0;
 }
 .mode-btn:hover {
-  color: var(--color-text);
+  color: color-mix(in srgb, white 30%, var(--color-accent));
   background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface));
   border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
