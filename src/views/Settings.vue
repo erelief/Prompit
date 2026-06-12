@@ -1158,10 +1158,11 @@ onUnmounted(() => {
           <div class="card-row">
             <span class="card-label">{{ t('settings.userDictionary') }}</span>
             <button
-              class="pill-btn micro"
+              class="mini-btn"
+              :title="t('common.edit')"
               @click="router.push('/settings/dictionary?tab=translation')"
             >
-              <Pencil :size="10" :stroke-width="2" />{{ t('common.edit') }}
+              <Pencil :size="11" :stroke-width="1.9" />
             </button>
           </div>
         </div>

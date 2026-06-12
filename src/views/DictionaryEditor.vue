@@ -40,7 +40,7 @@ function isPersonaValid(p: string | undefined): boolean {
 
 /* ── Persona dropdown per row ── */
 const openPersonaRow = ref<number | null>(null);
-const personaDropdownPos = ref({ top: 0, left: 0 });
+const personaDropdownPos = ref({ top: 0, right: 0 });
 
 function togglePersonaDropdown(rowIdx: number, event: MouseEvent) {
   if (openPersonaRow.value === rowIdx) {
@@ -49,7 +49,7 @@ function togglePersonaDropdown(rowIdx: number, event: MouseEvent) {
   }
   const btn = event.currentTarget as HTMLElement;
   const rect = btn.getBoundingClientRect();
-  personaDropdownPos.value = { top: rect.bottom + 4, left: rect.left };
+  personaDropdownPos.value = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
   openPersonaRow.value = rowIdx;
 }
 
@@ -553,7 +553,7 @@ onUnmounted(() => {
         <div
           v-if="openPersonaRow !== null"
           class="sel-menu persona-dropdown"
-          :style="{ top: personaDropdownPos.top + 'px', left: personaDropdownPos.left + 'px' }"
+          :style="{ top: personaDropdownPos.top + 'px', right: personaDropdownPos.right + 'px' }"
         >
           <div class="sel-clip settings-scrollbar">
             <div
