@@ -152,7 +152,13 @@ pub fn import_dictionary_csv(
         if lang.is_empty() || source.is_empty() || target.is_empty() {
             continue;
         }
-        parsed.push((lang, DictEntry { source, target, persona: None }));
+        let persona = if record.len() >= 4 {
+            let val = record[3].trim().to_string();
+            if val.is_empty() { None } else { Some(val) }
+        } else {
+            None
+        };
+        parsed.push((lang, DictEntry { source, target, persona }));
     }
 
     let mut store = load_dict_store(&app)?;
@@ -178,7 +184,7 @@ pub fn import_dictionary_csv(
             let existing = store.entry(lang.clone()).or_default();
             let exists = existing
                 .iter()
-                .any(|e| e.source == entry.source && e.target == entry.target);
+                .any(|e| e.source == entry.source && e.target == entry.target && e.persona == entry.persona);
             if !exists {
                 existing.push(entry);
                 imported += 1;
@@ -323,5 +329,54 @@ mod tests {
         assert!(output.contains("source,target"));
         assert!(output.contains("hello,你好"));
         assert!(output.contains("world,世界"));
+    }
+
+    #[test]
+    fn test_csv_import_with_persona() {
+        let data = "lang,source,target,persona\nEnglish,hello,你好,Formal\nEnglish,world,世界,\n";
+        let mut rdr = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .from_reader(data.as_bytes());
+        let mut entries = Vec::new();
+        for result in rdr.records() {
+            let record = result.unwrap();
+            if record.len() < 3 { continue; }
+            let lang = record[0].trim().to_string();
+            let source = record[1].trim().to_string();
+            let target = record[2].trim().to_string();
+            if lang.is_empty() || source.is_empty() || target.is_empty() { continue; }
+            let persona = if record.len() >= 4 {
+                let val = record[3].trim().to_string();
+                if val.is_empty() { None } else { Some(val) }
+            } else { None };
+            entries.push(DictEntry { source, target, persona });
+        }
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].persona, Some("Formal".into()));
+        assert_eq!(entries[1].persona, None);
+    }
+
+    #[test]
+    fn test_csv_import_legacy_3col() {
+        let data = "lang,source,target\nEnglish,hello,你好\n";
+        let mut rdr = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .from_reader(data.as_bytes());
+        let mut entries = Vec::new();
+        for result in rdr.records() {
+            let record = result.unwrap();
+            if record.len() < 3 { continue; }
+            let lang = record[0].trim().to_string();
+            let source = record[1].trim().to_string();
+            let target = record[2].trim().to_string();
+            if lang.is_empty() || source.is_empty() || target.is_empty() { continue; }
+            let persona = if record.len() >= 4 {
+                let val = record[3].trim().to_string();
+                if val.is_empty() { None } else { Some(val) }
+            } else { None };
+            entries.push(DictEntry { source, target, persona });
+        }
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].persona, None);
     }
 }
