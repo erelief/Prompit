@@ -793,7 +793,7 @@ useShortcutTriggered(() => {
   height: 24px;
   border-radius: 6px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 85%, white) 0%, var(--color-accent) 100%);
-  color: #1a1a1a;
+  color: var(--color-bg);
   transition: all 0.15s ease;
   flex-shrink: 0;
   z-index: 3;

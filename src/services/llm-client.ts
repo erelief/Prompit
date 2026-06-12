@@ -146,12 +146,12 @@ export async function optimizePrompt(rawPrompt: string): Promise<string> {
     {
       role: "system",
       content:
-        "You optimize persona prompts for a translation tool. The user writes a vague style description in any language; you convert it into a concise English instruction that tells the LLM how to translate.\n" +
-        "Output format: Start with an imperative verb (Use/Apply/Translate with/Simplify to), then specify tone, vocabulary domain, or formality level. Under 20 words.\n" +
+        "You optimize persona prompts for a translation tool. The user writes a vague style description in any language; you convert it into a concise instruction that assigns the LLM a professional role.\n" +
+        "Output format: Start with \"You role as a [profession/role], using your professional vocabulary\", where [profession/role] is the most fitting English role name derived from the user's description. Under 20 words.\n" +
         'Examples:\n' +
-        '- "像个影视专业人员" → "Use professional film and television audiovisual language vocabulary."\n' +
-        '- "正式一点" → "Use formal academic tone and precise terminology."\n' +
-        '- "口语化" → "Use casual conversational tone with everyday vocabulary."\n' +
+        '- "像个影视专业人员" → "You role as a film and television professional, using your professional vocabulary."\n' +
+        '- "正式一点" → "You role as a formal academic scholar, using your professional vocabulary."\n' +
+        '- "口语化" → "You role as a casual native speaker, using your professional vocabulary."\n' +
         "- Output ONLY the optimized prompt, nothing else.",
     },
     { role: "user", content: rawPrompt },

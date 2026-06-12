@@ -8,7 +8,7 @@ import {
 
 const { t } = useI18n();
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   items: any[];
   title: string;
   icon: Component;
@@ -19,7 +19,9 @@ const props = defineProps<{
   validate?: (item: any) => string | null;
   /** Whether to show the remove button. Default true. */
   allowRemove?: boolean;
-}>();
+}>(), {
+  allowRemove: true,
+});
 
 const emit = defineEmits<{
   add: [draft: any];

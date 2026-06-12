@@ -1178,6 +1178,7 @@ onUnmounted(() => {
           :validate="validatePersona"
           @add="Object.assign($event, { name: '', prompt: '', enabled: false })"
           @confirm="() => persistPersonas()"
+          @remove="() => persistPersonas()"
         >
           <template #collapsed="{ item, index }">
             <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="togglePersona(index, $event)">
