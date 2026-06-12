@@ -50,23 +50,22 @@ pub fn read_secret(app: AppHandle, key_id: String) -> Result<String, String> {
         }
     }
 
-    let store = load_store(&app)?;
+    let mut store = load_store(&app)?;
     let entry = match store.get(&key_id) {
         Some(e) => e,
         None => return Ok(String::new()),
     };
 
-    let bytes = crypto::decrypt("secrets", entry)
-        .or_else(|_| {
-            // Legacy migration: try old key (no scope)
+    let bytes = match crypto::decrypt("secrets", entry) {
+        Ok(b) => b,
+        Err(_) => {
             let plaintext = crypto::decrypt_legacy(entry)?;
-            // Re-encrypt with scoped key
             let new_payload = crypto::encrypt("secrets", &plaintext)?;
-            let mut store = load_store(&app)?;
             store.insert(key_id, new_payload);
             save_store(&app, &store)?;
-            Ok::<Vec<u8>, String>(plaintext)
-        })?;
+            plaintext
+        }
+    };
 
     String::from_utf8(bytes).map_err(|e| format!("utf8: {e}"))
 }
