@@ -6,6 +6,7 @@ import { useRouter } from "vue-router";
 import { burstParticles, popElement } from "../utils/burstParticles";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
+import { MAIN_WIDTH } from "../composables/useSettingsWindow";
 import { loadConfig, saveConfig, getActiveModel, appConfig, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets } from "../stores/config";
 import type { ProviderPreset } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
@@ -398,7 +399,7 @@ onUnmounted(() => {
 watch(bodyHeight, (h) => {
   if (h !== lastSentHeight) {
     lastSentHeight = h;
-    invoke("resize_and_reposition", { height: h });
+    invoke("resize_and_reposition", { height: h, width: MAIN_WIDTH });
   }
 });
 

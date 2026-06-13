@@ -51,7 +51,7 @@ pub fn resize_and_reposition(app: AppHandle, height: f64, width: Option<f64>) ->
         .unwrap_or(1.0);
 
     let physical_h = (height * scale) as u32;
-    let physical_w = ((width.unwrap_or(480.0)) * scale) as u32;
+    let physical_w = ((width.unwrap_or(500.0)) * scale) as u32;
 
     let grow_above = app.state::<WindowConfig>().get_grow_above();
 

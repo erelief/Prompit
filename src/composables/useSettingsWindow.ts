@@ -2,6 +2,9 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
+/** Width of the main (FloatingInput-rooted) panel; shared by all main-tier views. */
+export const MAIN_WIDTH = 500;
+
 /**
  * Shared setup for Settings-like sub-pages.
  * Handles window sizing, growAbove state, and window-config listener.
@@ -12,7 +15,7 @@ import { listen } from "@tauri-apps/api/event";
  * the class `grow-above` is added, which reverses the visual order so
  * the header/tabs anchor to the bottom and content grows upward.
  */
-export function useSettingsWindow(height = 580, width = 480) {
+export function useSettingsWindow(height = 580, width = MAIN_WIDTH) {
   const growAbove = ref(false);
   let unlistenConfig: (() => void) | null = null;
 
