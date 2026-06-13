@@ -9,6 +9,7 @@ import {
   saveConfig as persistConfig,
 } from "../stores/config";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
+import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import {
   testProviderConnection,
   fetchProviderModels,
@@ -388,6 +389,7 @@ onMounted(async () => {
                         :class="{ hit: selectedPreset === p.name }"
                         @click="applyPreset(p.name)"
                       >
+                        <ProviderIcon :icon="p.icon" :size="14" />
                         <div class="opt-info">
                           <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
                           <span v-if="p.base_url" class="opt-src">{{ p.base_url }}</span>
