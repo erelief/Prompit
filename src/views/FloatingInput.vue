@@ -91,10 +91,7 @@ function selectModel(pIndex: number, mIndex: number) {
   (appConfig as any)[`${mode}_active_provider_index`] = pIndex;
   (appConfig as any)[`${mode}_active_model_index`] = mIndex;
   showModelDropdown.value = false;
-  if (hasResult.value) {
-    hasResult.value = false;
-    translatedText.value = "";
-  }
+  handleResultStale();
 }
 
 // Flatten all provider models for dropdown: [{pIndex, mIndex, id}]
@@ -157,6 +154,7 @@ function toggleModeDropdown() {
 function selectMode(modeId: string) {
   appConfig.active_mode = modeId;
   showModeDropdown.value = false;
+  handleResultStale();
   if (modeBtnRef.value) {
     burstParticles(modeBtnRef.value);
     popElement(modeBtnRef.value);
