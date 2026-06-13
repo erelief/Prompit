@@ -389,11 +389,11 @@ onMounted(async () => {
                         :class="{ hit: selectedPreset === p.name }"
                         @click="applyPreset(p.name)"
                       >
-                        <ProviderIcon :icon="p.icon" :size="14" />
+                        <div class="opt-left"><ProviderIcon :icon="p.icon" :size="14" />
                         <div class="opt-info">
                           <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
                           <span v-if="p.base_url" class="opt-src">{{ p.base_url }}</span>
-                        </div>
+                        </div></div>
                         <Check v-if="selectedPreset === p.name" :size="13" :stroke-width="2.5" />
                       </button>
                     </div>
@@ -733,6 +733,7 @@ div::-webkit-scrollbar-thumb {
 .sel-opt.hit{
   background: var(--color-accent-bg); color: var(--color-accent);
 }
+.opt-left{ display:flex; align-items:center; gap:8px; min-width:0; flex:1; }
 .opt-info{ display:flex; flex-direction:column; gap:1px; min-width:0; }
 .opt-id{
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;

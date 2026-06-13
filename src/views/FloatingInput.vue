@@ -559,8 +559,8 @@ useShortcutTriggered(() => {
                     class="model-option"
                     :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
                   >
-                    <ProviderIcon :icon="entry.icon" :size="14" />
-                    <span class="truncate">{{ entry.id }}</span>
+                    <div class="opt-left"><ProviderIcon :icon="entry.icon" :size="14" />
+                    <span class="truncate">{{ entry.id }}</span></div>
                     <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
                   </button>
                 </div>
@@ -660,8 +660,8 @@ useShortcutTriggered(() => {
                     class="model-option"
                     :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
                   >
-                    <ProviderIcon :icon="entry.icon" :size="14" />
-                    <span class="truncate">{{ entry.id }}</span>
+                    <div class="opt-left"><ProviderIcon :icon="entry.icon" :size="14" />
+                    <span class="truncate">{{ entry.id }}</span></div>
                     <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
                   </button>
                 </div>
@@ -886,7 +886,7 @@ useShortcutTriggered(() => {
 .model-option {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   width: 100%;
   padding: 6px 10px;
@@ -906,9 +906,11 @@ useShortcutTriggered(() => {
   color: var(--color-accent);
 }
 
+.opt-left { display:flex; align-items:center; gap:6px; min-width:0; flex:1; }
 .check-mark {
   font-size: 10px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* Dropdown transition */

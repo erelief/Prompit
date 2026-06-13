@@ -754,11 +754,11 @@ onUnmounted(() => {
                       :class="{ hit: item.preset === p.name || (!item.preset && p.name === 'Custom') }"
                       @click="applyPreset(item, p)"
                     >
-                      <ProviderIcon :icon="p.icon" :size="14" />
+                      <div class="opt-left"><ProviderIcon :icon="p.icon" :size="14" />
                       <div class="opt-info">
                         <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
                         <span v-if="p.base_url" class="opt-src">{{ p.base_url }}</span>
-                      </div>
+                      </div></div>
                       <Check
                         v-if="item.preset === p.name || (!item.preset && p.name === 'Custom')"
                         :size="13" :stroke-width="2.5"
@@ -1106,11 +1106,11 @@ onUnmounted(() => {
                     :class="{ hit: isTranslationModelActive(e.pIndex, e.mIndex) }"
                     @click="pickModel(e)"
                   >
-                    <ProviderIcon :icon="e.icon" :size="14" />
+                    <div class="opt-left"><ProviderIcon :icon="e.icon" :size="14" />
                     <div class="opt-info">
                       <span class="opt-id">{{ e.id }}</span>
                       <span class="opt-src">{{ e.providerName }}</span>
-                    </div>
+                    </div></div>
                     <Check
                       v-if="isTranslationModelActive(e.pIndex, e.mIndex)"
                       :size="13" :stroke-width="2.5"
@@ -1318,11 +1318,11 @@ onUnmounted(() => {
                     :class="{ hit: isSparkleModelActive(e.pIndex, e.mIndex) }"
                     @click="pickSparkleModel(e)"
                   >
-                    <ProviderIcon :icon="e.icon" :size="14" />
+                    <div class="opt-left"><ProviderIcon :icon="e.icon" :size="14" />
                     <div class="opt-info">
                       <span class="opt-id">{{ e.id }}</span>
                       <span class="opt-src">{{ e.providerName }}</span>
-                    </div>
+                    </div></div>
                     <Check
                       v-if="isSparkleModelActive(e.pIndex, e.mIndex)"
                       :size="13" :stroke-width="2.5"
@@ -1707,6 +1707,7 @@ label {
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;
   font-size:11.5px;
 }
+.opt-left{ display:flex; align-items:center; gap:8px; min-width:0; flex:1; }
 .opt-info{ display:flex; flex-direction:column; gap:1px; min-width:0; }
 .opt-id{
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
