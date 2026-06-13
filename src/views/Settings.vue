@@ -558,7 +558,7 @@ const allFlat = computed<FlatEntry[]>(() => {
   const out: FlatEntry[] = [];
   appConfig.providers.forEach((prov, pi) =>
     prov.models.forEach((m, mi) =>
-      out.push({ pIndex: pi, mIndex: mi, id: m.id, providerName: prov.name || `Provider ${pi + 1}`, icon: getProviderIcon(prov, providerPresets) })
+      out.push({ pIndex: pi, mIndex: mi, id: m.id, providerName: prov.name || `Provider ${pi + 1}`, icon: getProviderIcon(prov, providerPresets.value) })
     )
   );
   return out;
