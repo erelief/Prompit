@@ -30,7 +30,7 @@ const dirty = ref(false);
 /* ── Persona helpers ── */
 const personaNames = computed(() => personaStore.personas.map(p => p.name));
 const personaOptions = computed(() => [null, ...personaNames.value]);
-function personaLabel(p: string | undefined): string {
+function personaLabel(p: string | null | undefined): string {
   return p ?? t('dictionary.personaAll');
 }
 function isPersonaValid(p: string | undefined): boolean {
