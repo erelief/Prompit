@@ -33,6 +33,7 @@ export interface ProviderConfig {
 export interface ProviderPreset {
   name: string;
   provider_name: string;
+  icon: string;
   base_url: string;
   api_url: string;
   api_format: ApiFormat;
@@ -400,6 +401,11 @@ export async function clearAllDictionaries(): Promise<void> {
 
 export async function loadProviderPresets(): Promise<ProviderPreset[]> {
   return await invoke<ProviderPreset[]>("read_provider_presets");
+}
+
+export function getProviderIcon(provider: ProviderConfig, presets: ProviderPreset[]): string {
+  if (!provider.preset) return ''
+  return presets.find(p => p.name === provider.preset)?.icon ?? ''
 }
 
 // ── Sparkle store ──
