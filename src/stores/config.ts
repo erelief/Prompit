@@ -468,6 +468,8 @@ export interface HistoryEntry {
   timestamp: number;
   model?: string;
   mode?: string;
+  persona?: string;   // active persona name (translate mode) — display only
+  sparkle?: string;   // active sparkle name (sparkle mode) — display only
 }
 
 export const historyStore = reactive<{ entries: HistoryEntry[] }>({
@@ -486,12 +488,19 @@ export async function loadHistory(): Promise<void> {
 
 export async function saveHistoryEntry(input: string, output: string): Promise<void> {
   const active = getActiveModel();
+  const mode = appConfig.active_mode || "translate";
   const entry: HistoryEntry = {
     input,
     output,
     timestamp: Date.now(),
     model: active?.model || undefined,
-    mode: appConfig.active_mode || "translate",
+    mode,
+    persona: mode === "translate"
+      ? (personaStore.personas.find(p => p.enabled)?.name || undefined)
+      : undefined,
+    sparkle: mode === "sparkle"
+      ? (sparkleStore.sparkles.find(s => s.enabled)?.name || undefined)
+      : undefined,
   };
   historyStore.entries.unshift(entry);
   const limit = appConfig.history_limit || 50;

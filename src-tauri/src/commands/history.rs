@@ -15,6 +15,10 @@ pub struct HistoryEntry {
     pub model: Option<String>,
     #[serde(default)]
     pub mode: Option<String>,
+    #[serde(default)]
+    pub persona: Option<String>,
+    #[serde(default)]
+    pub sparkle: Option<String>,
 }
 
 fn history_path(app: &AppHandle) -> Result<PathBuf, String> {

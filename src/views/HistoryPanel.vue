@@ -5,7 +5,7 @@ import { useRouter } from "vue-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
-import { appConfig, historyStore, loadHistory, saveHistory } from "../stores/config";
+import { appConfig, historyStore, loadHistory, saveHistory, MODES, type HistoryEntry } from "../stores/config";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 
@@ -49,6 +49,17 @@ function shortModel(model: string): string {
   // strip common provider prefixes
   s = s.replace(/^(openai|anthropic|google|deepseek|zhipu|minimax)-/i, "");
   return s.length > 14 ? s.slice(0, 12) + "…" : s;
+}
+
+// Mode → icon component for the left indicator (display only)
+function modeIcon(mode?: string) {
+  return MODES.find(m => m.id === mode)?.icon ?? MODES[0].icon;
+}
+// Persona (translate) / Sparkle (sparkle) name to show as a tag — display only
+function presetTag(entry: HistoryEntry): string | null {
+  if (entry.mode === "translate") return entry.persona || null;
+  if (entry.mode === "sparkle") return entry.sparkle || null;
+  return null;
 }
 
 // All modes share one unified history list
@@ -141,14 +152,20 @@ onMounted(async () => {
           </template>
           <template v-else>
             <button class="history-item-main" @click="selectEntry(entry)">
-              <div class="history-item-input">
-                <Send :size="9" :stroke-width="2" class="input-icon" />
-                <span>{{ entry.input }}</span>
+              <div class="mode-indicator">
+                <component :is="modeIcon(entry.mode)" :size="12" :stroke-width="1.8" />
               </div>
-              <div class="history-item-output">
-                <MessageSquare :size="9" :stroke-width="2" class="output-icon" />
-                <span>{{ entry.output }}</span>
-                <span v-if="entry.model" class="model-badge">{{ shortModel(entry.model) }}</span>
+              <div class="history-item-text">
+                <div class="history-item-input">
+                  <Send :size="9" :stroke-width="2" class="input-icon" />
+                  <span>{{ entry.input }}</span>
+                </div>
+                <div class="history-item-output">
+                  <MessageSquare :size="9" :stroke-width="2" class="output-icon" />
+                  <span>{{ entry.output }}</span>
+                  <span v-if="entry.model" class="model-badge">{{ shortModel(entry.model) }}</span>
+                  <span v-if="presetTag(entry)" class="preset-badge">{{ presetTag(entry) }}</span>
+                </div>
               </div>
             </button>
             <div class="history-item-actions" @click.stop>
@@ -310,8 +327,9 @@ onMounted(async () => {
 }
 .history-item-main {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -319,6 +337,22 @@ onMounted(async () => {
   border: none;
   padding: 0;
   min-width: 0;
+}
+.history-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.mode-indicator {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--color-text-secondary);
 }
 .history-item-input {
   display: flex;
@@ -365,6 +399,21 @@ onMounted(async () => {
   border-radius: 4px;
   line-height: 16px;
   white-space: nowrap;
+}
+.preset-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-tertiary, var(--color-text-muted));
+  background: var(--color-surface-hover);
+  padding: 0 5px;
+  border-radius: 4px;
+  line-height: 16px;
+  max-width: 96px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .history-item-output .output-icon {
   flex-shrink: 0;
