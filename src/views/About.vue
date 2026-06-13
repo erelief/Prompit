@@ -19,6 +19,7 @@ const deps = [
   { name: "Vue I18n", version: "11.4.4", url: "https://vue-i18n.intlify.dev" },
   { name: "VueUse", version: "14.3.0", url: "https://vueuse.org" },
   { name: "Lucide", version: "1.17.0", url: "https://lucide.dev" },
+  { name: "Lobe Icons", version: "1.91.0", url: "https://www.npmjs.com/package/@lobehub/icons" },
   { name: "Tailwind CSS", version: "4.3.0", url: "https://tailwindcss.com" },
   { name: "VueDraggable", version: "4.1.0", url: "https://sortablejs.github.io/vue.draggable.next/" },
 ];
