@@ -21,6 +21,8 @@ import {
 } from "../stores/config";
 import { burstParticles } from "../utils/burstParticles";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
+import { getProviderIcon } from "../stores/config";
+import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import { getTheme, setTheme } from "../composables/useTheme";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { testProviderConnection, fetchProviderModels, optimizePrompt } from "../services/llm-client";
@@ -550,13 +552,13 @@ function getFetchedModels(pi: number): string[] {
 
 // ── Translation model selector ──
 
-interface FlatEntry { pIndex: number; mIndex: number; id: string; providerName: string; }
+interface FlatEntry { pIndex: number; mIndex: number; id: string; providerName: string; icon: string; }
 
 const allFlat = computed<FlatEntry[]>(() => {
   const out: FlatEntry[] = [];
   appConfig.providers.forEach((prov, pi) =>
     prov.models.forEach((m, mi) =>
-      out.push({ pIndex: pi, mIndex: mi, id: m.id, providerName: prov.name || `Provider ${pi + 1}` })
+      out.push({ pIndex: pi, mIndex: mi, id: m.id, providerName: prov.name || `Provider ${pi + 1}`, icon: getProviderIcon(prov, providerPresets) })
     )
   );
   return out;
@@ -717,6 +719,7 @@ onUnmounted(() => {
         >
           <template #collapsed="{ item }">
             <div class="prov-lhs">
+              <ProviderIcon :icon="getProviderIcon(item, providerPresets)" :size="16" />
               <div class="prov-accent" />
               <div class="prov-meta">
                 <span class="prov-name" :class="{ dim: !item.name }">{{ item.name || t('settings.untitledProvider') }}</span>
@@ -727,6 +730,7 @@ onUnmounted(() => {
 
           <template #name-input="{ item, index }">
             <div class="name-row-wrap">
+              <ProviderIcon :icon="getProviderIcon(item, providerPresets)" :size="16" />
               <input v-model="item.name" :placeholder="t('settings.providerName')" class="fi name-fi" @click.stop />
               <button
                 class="preset-mini-btn"
@@ -750,6 +754,7 @@ onUnmounted(() => {
                       :class="{ hit: item.preset === p.name || (!item.preset && p.name === 'Custom') }"
                       @click="applyPreset(item, p)"
                     >
+                      <ProviderIcon :icon="p.icon" :size="14" />
                       <div class="opt-info">
                         <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
                         <span v-if="p.base_url" class="opt-src">{{ p.base_url }}</span>
@@ -1101,6 +1106,7 @@ onUnmounted(() => {
                     :class="{ hit: isTranslationModelActive(e.pIndex, e.mIndex) }"
                     @click="pickModel(e)"
                   >
+                    <ProviderIcon :icon="e.icon" :size="14" />
                     <div class="opt-info">
                       <span class="opt-id">{{ e.id }}</span>
                       <span class="opt-src">{{ e.providerName }}</span>
@@ -1312,6 +1318,7 @@ onUnmounted(() => {
                     :class="{ hit: isSparkleModelActive(e.pIndex, e.mIndex) }"
                     @click="pickSparkleModel(e)"
                   >
+                    <ProviderIcon :icon="e.icon" :size="14" />
                     <div class="opt-info">
                       <span class="opt-id">{{ e.id }}</span>
                       <span class="opt-src">{{ e.providerName }}</span>
