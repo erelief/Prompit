@@ -6,7 +6,9 @@ import { useRouter } from "vue-router";
 import { burstParticles, popElement } from "../utils/burstParticles";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
-import { loadConfig, saveConfig, getActiveModel, appConfig, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode } from "../stores/config";
+import { loadConfig, saveConfig, getActiveModel, appConfig, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets } from "../stores/config";
+import type { ProviderPreset } from "../stores/config";
+import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import { translate } from "../services/llm-client";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
@@ -57,6 +59,7 @@ const glassBg = computed(() => {
 const floatingAlpha = computed(() => (appConfig.floating_opacity ?? 90) / 100);
 
 const showModelDropdown = ref(false);
+const floatingPresets = ref<ProviderPreset[]>([]);
 const modelDropdownRef = ref<HTMLDivElement | null>(null);
 const modelBtnRef = ref<HTMLButtonElement | null>(null);
 const modelMenuRef = ref<HTMLDivElement | null>(null);
@@ -96,10 +99,15 @@ function selectModel(pIndex: number, mIndex: number) {
 
 // Flatten all provider models for dropdown: [{pIndex, mIndex, id}]
 const allModels = computed(() => {
-  const result: Array<{ pIndex: number; mIndex: number; id: string }> = [];
+  const result: Array<{ pIndex: number; mIndex: number; id: string; icon: string }> = [];
   appConfig.providers.forEach((prov, pi) => {
     prov.models.forEach((m, mi) => {
-      result.push({ pIndex: pi, mIndex: mi, id: m.id });
+      result.push({
+        pIndex: pi,
+        mIndex: mi,
+        id: m.id,
+        icon: prov.preset ? (floatingPresets.value.find(p => p.name === prov.preset)?.icon ?? '') : '',
+      });
     });
   });
   return result;
@@ -335,6 +343,7 @@ onMounted(async () => {
   await loadConfig();
   refreshDictStatus();
   await loadHistory();
+  loadProviderPresets().then(p => { floatingPresets.value = p; }).catch(console.error);
 
   // Restore from history panel if applicable
   const restore = sessionStorage.getItem("history-restore");
@@ -550,6 +559,7 @@ useShortcutTriggered(() => {
                     class="model-option"
                     :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
                   >
+                    <ProviderIcon :icon="entry.icon" :size="14" />
                     <span class="truncate">{{ entry.id }}</span>
                     <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
                   </button>
@@ -650,6 +660,7 @@ useShortcutTriggered(() => {
                     class="model-option"
                     :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
                   >
+                    <ProviderIcon :icon="entry.icon" :size="14" />
                     <span class="truncate">{{ entry.id }}</span>
                     <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
                   </button>
