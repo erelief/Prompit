@@ -167,6 +167,28 @@ Same style as Settings preset dropdown:
 
 All three locations use CSS `color` from parent for theme adaptation.
 
+## 8. Existing Data Updates
+
+All current entries in `provider-presets.json` must be updated with the `icon` field:
+
+| name | icon |
+|------|------|
+| Custom | `""` (Cloud fallback) |
+| OpenAI | `"openai"` |
+| DeepSeek | `"deepseek"` |
+| Kimi | `"kimi"` |
+| Zhipu (BigModel) | `"zhipu"` |
+| MINIMAX (CN) | `"minimax"` |
+| Ollama (local) | `"ollama"` |
+
+## 9. About Page — Acknowledgments
+
+Add `@lobehub/icons` to the `deps` array in `src/views/About.vue`:
+
+```ts
+{ name: "Lobe Icons", version: "1.x", url: "https://www.npmjs.com/package/@lobehub/icons" },
+```
+
 ## 7. Developer README
 
 Located at `src/components/icons/providers/README.md`. Contains:
