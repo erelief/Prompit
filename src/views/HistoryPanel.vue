@@ -45,10 +45,7 @@ function selectEntry(entry: { input: string; output: string }) {
 
 function shortModel(model: string): string {
   // strip date suffix like "-2024-07-18"
-  let s = model.replace(/-\d{4}-\d{2}-\d{2}$/, "");
-  // strip common provider prefixes
-  s = s.replace(/^(openai|anthropic|google|deepseek|zhipu|minimax)-/i, "");
-  return s.length > 14 ? s.slice(0, 12) + "…" : s;
+  return model.replace(/-\d{4}-\d{2}-\d{2}$/, "");
 }
 
 // Mode → icon component for the left indicator (display only)
@@ -398,6 +395,7 @@ onMounted(async () => {
   padding: 0 5px;
   border-radius: 4px;
   line-height: 16px;
+  max-width: 112px;
   white-space: nowrap;
 }
 .preset-badge {
