@@ -1,1 +1,105 @@
-{"presets": [{"name": "Custom", "provider_name": "", "icon": "", "base_url": "", "api_url": "", "api_format": {}}, {"name": "OpenAI", "provider_name": "OpenAI", "icon": "openai", "base_url": "https://api.openai.com/v1", "api_url": "https://platform.openai.com/apikeys", "api_format": {"auth_header": "Authorization", "auth_prefix": "Bearer ", "chat_endpoint": "/chat/completions", "models_endpoint": "/models"}}, {"name": "DeepSeek", "provider_name": "DeepSeek", "icon": "deepseek", "base_url": "https://api.deepseek.com", "api_url": "https://platform.deepseek.com/apikeys", "api_format": {"auth_header": "Authorization", "auth_prefix": "Bearer ", "chat_endpoint": "/chat/completions", "models_endpoint": "/models"}}, {"name": "Kimi", "provider_name": "Kimi", "icon": "kimi", "base_url": "https://api.moonshot.cn/v1", "api_url": "https://platform.moonshot.cn/console/api-keys", "api_format": {"auth_header": "Authorization", "auth_prefix": "Bearer ", "chat_endpoint": "/chat/completions", "models_endpoint": "/models"}}, {"name": "Zhipu (BigModel)", "provider_name": "Zhipu (BigModel)", "icon": "zhipu", "base_url": "https://open.bigmodel.cn/api/paas/v4", "api_url": "https://bigmodel.cn/apikey/platform", "api_format": {"auth_header": "Authorization", "auth_prefix": "Bearer ", "chat_endpoint": "/chat/completions", "models_endpoint": "/models"}}, {"name": "MINIMAX (CN)", "provider_name": "MINIMAX (CN)", "icon": "minimax", "base_url": "https://api.minimaxi.com/v1", "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key", "api_format": {"auth_header": "Authorization", "auth_prefix": "Bearer ", "chat_endpoint": "/chat/completions", "models_endpoint": "/models"}}, {"name": "Ollama (local)", "provider_name": "Ollama", "icon": "ollama", "base_url": "http://localhost:11434/v1", "api_url": "https://ollama.com", "api_format": {"auth_header": "", "auth_prefix": "", "chat_endpoint": "/chat/completions", "models_endpoint": "/tags", "request": {"max_tokens": "num_predict"}, "response": {"models_list": "models.*.name"}}}]}
+{
+  "presets": [
+    {
+      "name": "Custom",
+      "provider_name": "",
+      "icon": "",
+      "base_url": "",
+      "api_url": "",
+      "api_format": {}
+    },
+    {
+      "name": "OpenAI",
+      "provider_name": "OpenAI",
+      "icon": "openai",
+      "base_url": "https://api.openai.com/v1",
+      "api_url": "https://platform.openai.com/apikeys",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "DeepSeek",
+      "provider_name": "DeepSeek",
+      "icon": "deepseek",
+      "base_url": "https://api.deepseek.com",
+      "api_url": "https://platform.deepseek.com/apikeys",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "Kimi",
+      "provider_name": "Kimi",
+      "icon": "kimi",
+      "base_url": "https://api.moonshot.cn/v1",
+      "api_url": "https://platform.moonshot.cn/console/api-keys",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "Zhipu (BigModel)",
+      "provider_name": "Zhipu (BigModel)",
+      "icon": "zhipu",
+      "base_url": "https://open.bigmodel.cn/api/paas/v4",
+      "api_url": "https://bigmodel.cn/apikey/platform",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "Zhipu Coding Plan (BigModel)",
+      "provider_name": "Zhipu Coding Plan (BigModel)",
+      "icon": "zhipu",
+      "base_url": "https://open.bigmodel.cn/api/coding/paas/v4",
+      "api_url": "https://bigmodel.cn/coding-plan/personal/overview",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "MINIMAX (CN)",
+      "provider_name": "MINIMAX (CN)",
+      "icon": "minimax",
+      "base_url": "https://api.minimaxi.com/v1",
+      "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "Ollama (local)",
+      "provider_name": "Ollama",
+      "icon": "ollama",
+      "base_url": "http://localhost:11434/v1",
+      "api_url": "https://ollama.com",
+      "api_format": {
+        "auth_header": "",
+        "auth_prefix": "",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/tags",
+        "request": { "max_tokens": "num_predict" },
+        "response": { "models_list": "models.*.name" }
+      }
+    }
+  ]
+}
