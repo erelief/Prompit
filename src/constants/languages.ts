@@ -7,8 +7,8 @@ export const BUILTIN_LANGUAGES: string[] = [
 
 export const LANG_CODE_MAP: Record<string, string> = {
   "English": "EN",
-  "Simplified Chinese": "简中",
-  "Traditional Chinese": "繁中",
+  "Simplified Chinese": "SC",
+  "Traditional Chinese": "TC",
   "Japanese": "JA",
   "Korean": "KO",
   "French": "FR",

@@ -182,8 +182,8 @@
     "German": { "name": "German", "code": "DE" },
     "Spanish": { "name": "Spanish", "code": "ES" },
     "Russian": { "name": "Russian", "code": "RU" },
-    "Simplified Chinese": { "name": "Simplified Chinese", "code": "简中" },
-    "Traditional Chinese": { "name": "Traditional Chinese", "code": "繁中" }
+    "Simplified Chinese": { "name": "Simplified Chinese", "code": "SC" },
+    "Traditional Chinese": { "name": "Traditional Chinese", "code": "TC" }
   },
   "onboarding": {
     "hello": "Hello",
