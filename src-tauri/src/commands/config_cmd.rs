@@ -42,8 +42,10 @@ pub fn get_config_dir(app: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn get_shortcut_label() -> String {
-    "Alt+Y".to_string()
+pub fn get_shortcut_label(app: AppHandle) -> String {
+    read_config(app)
+        .map(|c| c.shortcut)
+        .unwrap_or_else(|_| "Alt+Y".to_string())
 }
 
 #[cfg(test)]
@@ -77,6 +79,7 @@ mod tests {
             floating_opacity: 90,
             show_startup_reminder: true,
             history_limit: 50,
+            shortcut: "Alt+Y".to_string(),
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();

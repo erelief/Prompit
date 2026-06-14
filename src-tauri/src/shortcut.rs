@@ -66,8 +66,63 @@ fn compute_position(window: &tauri::WebviewWindow) -> Option<(tauri::Position, b
     Some((LogicalPosition::new(x, y).into(), grow_above))
 }
 
-pub fn register(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let shortcut = Shortcut::new(Some(Modifiers::ALT), Code::KeyY);
+/// Parse and validate a shortcut string like "Ctrl+Shift+P" or "Alt+Y".
+///
+/// Delegates the token→`Code`/`Modifiers` mapping to the plugin's own parser
+/// (accepts Alt/Option, Control/Ctrl, Command/Cmd/Super, Shift + keys like
+/// A–Z, 0–9, F1–F24, Space, Enter, …), then enforces that at least one
+/// modifier is present so a bare key can't become a global hotkey.
+pub fn parse_shortcut(s: &str) -> Result<Shortcut, String> {
+    use std::str::FromStr;
+    let shortcut = Shortcut::from_str(s).map_err(|e| format!("invalid shortcut \"{s}\": {e}"))?;
+    if shortcut.mods.is_empty() {
+        return Err(format!("shortcut must include at least one modifier (Alt/Ctrl/Shift/Cmd): \"{s}\""));
+    }
+    Ok(shortcut)
+}
+
+/// Re-register the global shortcut with a new binding at runtime.
+/// Persisted separately by the frontend (via `save_config`) after success.
+/// On any failure the previous binding is restored so the app never ends up
+/// with no shortcut registered.
+#[tauri::command]
+pub fn update_shortcut(app: AppHandle, shortcut: String) -> Result<(), String> {
+    parse_shortcut(&shortcut)?;
+    let previous = crate::commands::config_cmd::read_config(app.clone())
+        .map(|c| c.shortcut)
+        .unwrap_or_else(|_| "Alt+Y".to_string());
+    app.global_shortcut()
+        .unregister_all()
+        .map_err(|e| format!("unregister: {e}"))?;
+    if let Err(e) = register(&app, &shortcut) {
+        // Roll back to the previous binding instead of leaving nothing registered.
+        let _ = register(&app, &previous);
+        return Err(format!("register: {e}"));
+    }
+    Ok(())
+}
+
+/// Temporarily release the global hotkey so the webview can capture raw
+/// key presses during shortcut recording. Pairs with `finish_record_shortcut`.
+#[tauri::command]
+pub fn start_record_shortcut(app: AppHandle) -> Result<(), String> {
+    app.global_shortcut()
+        .unregister_all()
+        .map_err(|e| format!("unregister: {e}"))
+}
+
+/// Restore the previously stored shortcut after recording ends.
+/// Use when the user cancels without choosing a new binding.
+#[tauri::command]
+pub fn finish_record_shortcut(app: AppHandle) -> Result<(), String> {
+    let saved = crate::commands::config_cmd::read_config(app.clone())
+        .map(|c| c.shortcut)
+        .unwrap_or_else(|_| "Alt+Y".to_string());
+    register(&app, &saved).map_err(|e| format!("register: {e}"))
+}
+
+pub fn register(app: &AppHandle, shortcut_str: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let shortcut = parse_shortcut(shortcut_str).unwrap_or(Shortcut::new(Some(Modifiers::ALT), Code::KeyY));
 
     let app_handle = app.clone();
     app.global_shortcut().on_shortcut(

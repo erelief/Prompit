@@ -63,6 +63,7 @@ import {
   History,
   Sparkles,
   Cloudy,
+  Keyboard,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -163,6 +164,90 @@ function toggleShortcutHint(e: MouseEvent) {
   const turning = !appConfig.show_startup_reminder;
   appConfig.show_startup_reminder = turning;
   if (turning) burstParticles(e.currentTarget as HTMLElement);
+}
+
+// ── Shortcut recorder ──
+const shortcutRecording = ref(false);
+const shortcutError = ref("");
+const shortcutRecBtn = ref<HTMLButtonElement | null>(null);
+
+// Split the current shortcut string into display tokens, e.g. "Ctrl+Shift+P" → ["Ctrl","Shift","P"]
+const shortcutTokens = computed(() => appConfig.shortcut.split("+").map((s) => s.trim()).filter(Boolean));
+
+function startShortcutRecord() {
+  if (!isTauri) return;
+  shortcutError.value = "";
+  shortcutRecording.value = true;
+  // Release the OS-level hotkey so raw key presses reach the webview while recording.
+  invoke("start_record_shortcut").catch(() => { /* best-effort */ });
+  nextTick(() => shortcutRecBtn.value?.focus());
+}
+
+async function cancelShortcutRecord() {
+  if (!shortcutRecording.value) return;
+  shortcutRecording.value = false;
+  shortcutError.value = "";
+  // Restore the saved binding since the user did not pick a new one.
+  if (isTauri) await invoke("finish_record_shortcut").catch(() => {});
+}
+
+// Map a KeyboardEvent.code into the plugin's display token (e.g. KeyY → "Y", Digit1 → "1", F5 → "F5")
+function keyCodeToToken(code: string): string | null {
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3); // KeyA → A
+  if (/^Digit[0-9]$/.test(code)) return code.slice(5); // Digit1 → 1
+  if (/^F([1-9]|1[0-9]|2[0-4])$/.test(code)) return code; // F1–F24
+  const named: Record<string, string> = {
+    Space: "Space", Enter: "Enter", Tab: "Tab", Escape: "Escape", Backspace: "Backspace",
+    Insert: "Insert", Delete: "Delete", Home: "Home", End: "End",
+    PageUp: "PageUp", PageDown: "PageDown",
+    ArrowLeft: "Left", ArrowRight: "Right", ArrowUp: "Up", ArrowDown: "Down",
+  };
+  return named[code] ?? null;
+}
+
+async function onShortcutKeydown(e: KeyboardEvent) {
+  if (!shortcutRecording.value) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  // Escape cancels without change; Backspace restores default
+  if (e.code === "Escape") { await cancelShortcutRecord(); return; }
+  if (e.code === "Backspace") {
+    shortcutRecording.value = false;
+    await applyShortcut("Alt+Y");
+    return;
+  }
+
+  const token = keyCodeToToken(e.code);
+  if (!token) {
+    shortcutError.value = t("settings.shortcutInvalid");
+    return;
+  }
+  if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+    shortcutError.value = t("settings.shortcutInvalid");
+    return;
+  }
+
+  const mods: string[] = [];
+  if (e.ctrlKey) mods.push("Ctrl");
+  if (e.altKey) mods.push("Alt");
+  if (e.shiftKey) mods.push("Shift");
+  if (e.metaKey) mods.push("Cmd");
+  shortcutRecording.value = false;
+  await applyShortcut([...mods, token].join("+"));
+}
+
+async function applyShortcut(shortcut: string) {
+  shortcutError.value = "";
+  if (!isTauri) return;
+  try {
+    await invoke("update_shortcut", { shortcut });
+    appConfig.shortcut = shortcut; // existing watcher persists config.json
+    if (shortcutRecBtn.value) burstParticles(shortcutRecBtn.value);
+  } catch {
+    shortcutError.value = t("settings.shortcutConflict");
+    // update_shortcut already rolled back to the previous binding; nothing to restore.
+  }
 }
 
 function toggleDict(e: MouseEvent) {
@@ -921,6 +1006,31 @@ onUnmounted(() => {
             <button class="about-auto-btn" :class="{ 'toggle-on': appConfig.show_startup_reminder }" @click="toggleShortcutHint($event)">
               <ToggleRight v-if="appConfig.show_startup_reminder" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
+            </button>
+          </div>
+          <!-- Shortcut (record a new global hotkey) -->
+          <div class="card-row shortcut-row">
+            <span class="card-label">{{ t('settings.shortcut') }}</span>
+            <button
+              ref="shortcutRecBtn"
+              class="shortcut-btn"
+              :class="{ recording: shortcutRecording, 'has-error': !!shortcutError }"
+              :title="t('settings.shortcutHint')"
+              tabindex="0"
+              @click="shortcutRecording ? cancelShortcutRecord() : startShortcutRecord()"
+              @keydown="onShortcutKeydown"
+              @blur="cancelShortcutRecord"
+            >
+              <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
+              <template v-if="shortcutRecording">
+                <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
+              </template>
+              <template v-else-if="shortcutError">
+                <span class="shortcut-err-text">{{ shortcutError }}</span>
+              </template>
+              <template v-else>
+                <kbd v-for="(tok, i) in shortcutTokens" :key="i" class="kbd-badge">{{ tok }}</kbd>
+              </template>
             </button>
           </div>
           <!-- Language -->
@@ -2280,5 +2390,60 @@ label {
 }
 @media (prefers-reduced-motion: reduce) {
   .about-auto-btn.toggle-on { animation: none; }
+}
+
+/* ── Shortcut recorder ── */
+.shortcut-row .shortcut-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 0 7px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  transition: 0.15s;
+  outline: none;
+}
+.shortcut-btn:hover {
+  border-color: var(--color-border-hover);
+  background: var(--color-surface-hover);
+}
+.shortcut-btn:focus-visible,
+.shortcut-btn.recording {
+  border-color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+.shortcut-btn-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.shortcut-rec-text {
+  color: var(--color-accent-text);
+  font-weight: 500;
+}
+.shortcut-err-text {
+  color: var(--color-danger);
+  font-weight: 500;
+}
+.kbd-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--color-overlay);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  font-family: inherit;
 }
 </style>

@@ -115,6 +115,9 @@ pub fn run() {
             commands::config_cmd::get_config_dir,
             commands::config_cmd::set_onboarding_complete,
             commands::config_cmd::get_shortcut_label,
+            shortcut::update_shortcut,
+            shortcut::start_record_shortcut,
+            shortcut::finish_record_shortcut,
             commands::secrets::save_secret,
             commands::secrets::read_secret,
             commands::secrets::delete_secret,
@@ -152,7 +155,10 @@ pub fn run() {
             }
 
             let handle = app.handle().clone();
-            shortcut::register(&handle)?;
+            let saved_shortcut = commands::config_cmd::read_config(app.handle().clone())
+                .map(|c| c.shortcut)
+                .unwrap_or_else(|_| "Alt+Y".to_string());
+            shortcut::register(&handle, &saved_shortcut)?;
 
             // System tray
             use tauri::menu::{MenuBuilder, MenuItemBuilder};

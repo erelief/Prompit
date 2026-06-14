@@ -78,6 +78,7 @@ export interface AppConfig {
   floating_opacity: number;
   show_startup_reminder: boolean;
   history_limit: number;
+  shortcut: string;
   sparkle_active_provider_index: number;
   sparkle_active_model_index: number;
 }
@@ -96,6 +97,7 @@ const defaultConfig: AppConfig = {
   floating_opacity: 90,
   show_startup_reminder: true,
   history_limit: 50,
+  shortcut: "Alt+Y",
   sparkle_active_provider_index: 0,
   sparkle_active_model_index: 0,
 };
