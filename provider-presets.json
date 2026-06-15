@@ -9,16 +9,24 @@
       "api_format": {}
     },
     {
-      "name": "OpenAI",
-      "provider_name": "OpenAI",
-      "icon": "openai",
-      "base_url": "https://api.openai.com/v1",
-      "api_url": "https://platform.openai.com/apikeys",
+      "name": "Anthropic",
+      "provider_name": "Anthropic",
+      "icon": "anthropic",
+      "base_url": "https://api.anthropic.com/v1",
+      "api_url": "https://console.anthropic.com/settings/keys",
       "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
+        "auth_header": "x-api-key",
+        "auth_prefix": "",
+        "extra_headers": {
+          "anthropic-version": "2023-06-01"
+        },
+        "chat_endpoint": "/messages",
+        "models_endpoint": "/models",
+        "response": {
+          "content": "content.0.text"
+        },
+        "system_key": "system",
+        "force_fields": ["max_tokens"]
       }
     },
     {
@@ -35,11 +43,76 @@
       }
     },
     {
+      "name": "Google",
+      "provider_name": "Google",
+      "icon": "gemini",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "api_url": "https://aistudio.google.com/app/apikey",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "LM Studio (local)",
+      "provider_name": "LM Studio",
+      "icon": "lmstudio",
+      "base_url": "http://localhost:1234/v1",
+      "api_url": "https://lmstudio.ai",
+      "api_format": {
+        "auth_header": "",
+        "auth_prefix": "",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "MINIMAX (CN)",
+      "provider_name": "MINIMAX (CN)",
+      "icon": "minimax",
+      "base_url": "https://api.minimaxi.com/v1",
+      "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
       "name": "Moonshot AI",
       "provider_name": "Moonshot AI",
       "icon": "kimi",
       "base_url": "https://api.moonshot.cn/v1",
       "api_url": "https://platform.moonshot.cn/console/api-keys",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "OpenAI",
+      "provider_name": "OpenAI",
+      "icon": "openai",
+      "base_url": "https://api.openai.com/v1",
+      "api_url": "https://platform.openai.com/apikeys",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "xAI",
+      "provider_name": "xAI",
+      "icon": "grok",
+      "base_url": "https://api.x.ai/v1",
+      "api_url": "https://console.x.ai",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
@@ -66,81 +139,6 @@
       "icon": "zhipu",
       "base_url": "https://open.bigmodel.cn/api/coding/paas/v4",
       "api_url": "https://bigmodel.cn/coding-plan/personal/overview",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "MINIMAX (CN)",
-      "provider_name": "MINIMAX (CN)",
-      "icon": "minimax",
-      "base_url": "https://api.minimaxi.com/v1",
-      "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "Ollama (local)",
-      "provider_name": "Ollama",
-      "icon": "ollama",
-      "base_url": "http://localhost:11434/v1",
-      "api_url": "https://ollama.com",
-      "api_format": {
-        "auth_header": "",
-        "auth_prefix": "",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/tags",
-        "request": { "max_tokens": "num_predict" },
-        "response": { "models_list": "models.*.name" }
-      }
-    },
-    {
-      "name": "Anthropic",
-      "provider_name": "Anthropic",
-      "icon": "anthropic",
-      "base_url": "https://api.anthropic.com/v1",
-      "api_url": "https://console.anthropic.com/settings/keys",
-      "api_format": {
-        "auth_header": "x-api-key",
-        "auth_prefix": "",
-        "extra_headers": {
-          "anthropic-version": "2023-06-01"
-        },
-        "chat_endpoint": "/messages",
-        "models_endpoint": "/models",
-        "response": {
-          "content": "content.0.text"
-        },
-        "system_key": "system",
-        "force_fields": ["max_tokens"]
-      }
-    },
-    {
-      "name": "Google",
-      "provider_name": "Google",
-      "icon": "gemini",
-      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
-      "api_url": "https://aistudio.google.com/app/apikey",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "xAI",
-      "provider_name": "xAI",
-      "icon": "grok",
-      "base_url": "https://api.x.ai/v1",
-      "api_url": "https://console.x.ai",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",

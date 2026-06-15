@@ -4,7 +4,7 @@ import DeepSeek from './DeepSeek.vue'
 import Kimi from './Kimi.vue'
 import Zhipu from './Zhipu.vue'
 import Minimax from './Minimax.vue'
-import Ollama from './Ollama.vue'
+import LMStudio from './LMStudio.vue'
 import Anthropic from './Anthropic.vue'
 import Gemini from './Gemini.vue'
 import Grok from './Grok.vue'
@@ -15,7 +15,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   kimi: Kimi,
   zhipu: Zhipu,
   minimax: Minimax,
-  ollama: Ollama,
+  lmstudio: LMStudio,
   anthropic: Anthropic,
   gemini: Gemini,
   grok: Grok,

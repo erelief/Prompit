@@ -81,7 +81,10 @@ That's it. All display locations (Settings, Onboarding, FloatingInput) pick up t
 | kimi | Kimi.vue | Kimi (Moonshot AI) |
 | zhipu | Zhipu.vue | Zhipu (BigModel) |
 | minimax | Minimax.vue | MINIMAX (CN) |
-| ollama | Ollama.vue | Ollama (local) |
+| lmstudio | LMStudio.vue | LM Studio (local) |
+| anthropic | Anthropic.vue | Anthropic |
+| gemini | Gemini.vue | Google (Gemini) |
+| grok | Grok.vue | xAI (Grok) |
 
 ## Fallback
 
