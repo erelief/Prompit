@@ -10,6 +10,7 @@ import Gemini from './Gemini.vue'
 import Grok from './Grok.vue'
 import Qwen from './Qwen.vue'
 import Bailian from './Bailian.vue'
+import xAI from './xAI.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -23,4 +24,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   grok: Grok,
   qwen: Qwen,
   bailian: Bailian,
+  xai: xAI,
 }

@@ -142,7 +142,7 @@
     {
       "name": "xAI",
       "provider_name": "xAI",
-      "icon": "grok",
+      "icon": "xai",
       "model_series": "Grok",
       "base_url": "https://api.x.ai/v1",
       "api_url": "https://console.x.ai",
