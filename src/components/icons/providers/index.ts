@@ -7,6 +7,7 @@ import Minimax from './Minimax.vue'
 import Ollama from './Ollama.vue'
 import Anthropic from './Anthropic.vue'
 import Gemini from './Gemini.vue'
+import Grok from './Grok.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -17,4 +18,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   ollama: Ollama,
   anthropic: Anthropic,
   gemini: Gemini,
+  grok: Grok,
 }

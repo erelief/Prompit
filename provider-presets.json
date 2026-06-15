@@ -35,8 +35,8 @@
       }
     },
     {
-      "name": "Kimi",
-      "provider_name": "Kimi",
+      "name": "Moonshot AI",
+      "provider_name": "Moonshot AI",
       "icon": "kimi",
       "base_url": "https://api.moonshot.cn/v1",
       "api_url": "https://platform.moonshot.cn/console/api-keys",
@@ -128,6 +128,19 @@
       "icon": "gemini",
       "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
       "api_url": "https://aistudio.google.com/app/apikey",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "xAI",
+      "provider_name": "xAI",
+      "icon": "grok",
+      "base_url": "https://api.x.ai/v1",
+      "api_url": "https://console.x.ai",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
