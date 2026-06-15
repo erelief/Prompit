@@ -8,6 +8,7 @@ import LMStudio from './LMStudio.vue'
 import Anthropic from './Anthropic.vue'
 import Gemini from './Gemini.vue'
 import Grok from './Grok.vue'
+import Qwen from './Qwen.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -19,4 +20,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   anthropic: Anthropic,
   gemini: Gemini,
   grok: Grok,
+  qwen: Qwen,
 }
