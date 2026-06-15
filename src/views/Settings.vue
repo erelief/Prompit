@@ -883,7 +883,7 @@ onUnmounted(() => {
                   <input
                     v-model="item.api_key"
                     :type="editStates.get(index)?.keyVisible ? 'text' : 'password'"
-                    class="fi key-fi" placeholder="sk-…" @click.stop
+                    class="fi key-fi" @click.stop
                   />
                   <button class="icon-btn-sm" @click.stop="toggleKeyVisibility(index)" :title="editStates.get(index)?.keyVisible ? 'Hide' : 'Show'">
                     <EyeOff v-if="editStates.get(index)?.keyVisible" :size="12" :stroke-width="1.9" />
