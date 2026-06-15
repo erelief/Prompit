@@ -100,6 +100,27 @@
         "request": { "max_tokens": "num_predict" },
         "response": { "models_list": "models.*.name" }
       }
+    },
+    {
+      "name": "Anthropic",
+      "provider_name": "Anthropic",
+      "icon": "anthropic",
+      "base_url": "https://api.anthropic.com/v1",
+      "api_url": "https://console.anthropic.com/settings/keys",
+      "api_format": {
+        "auth_header": "x-api-key",
+        "auth_prefix": "",
+        "extra_headers": {
+          "anthropic-version": "2023-06-01"
+        },
+        "chat_endpoint": "/messages",
+        "models_endpoint": "/models",
+        "response": {
+          "content": "content.0.text"
+        },
+        "system_key": "system",
+        "force_fields": ["max_tokens"]
+      }
     }
   ]
 }

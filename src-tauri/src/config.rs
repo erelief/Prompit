@@ -17,6 +17,10 @@ pub struct ApiFormat {
     pub request: HashMap<String, serde_json::Value>,
     #[serde(default)]
     pub response: HashMap<String, String>,
+    #[serde(default)]
+    pub system_key: String,
+    #[serde(default)]
+    pub force_fields: Vec<String>,
 }
 
 fn default_auth_header() -> String {
@@ -39,6 +43,8 @@ impl ApiFormat {
             models_endpoint: "/models".to_string(),
             request: HashMap::new(),
             response: HashMap::new(),
+            system_key: String::new(),
+            force_fields: Vec::new(),
         }
     }
 }

@@ -5,6 +5,7 @@ import Kimi from './Kimi.vue'
 import Zhipu from './Zhipu.vue'
 import Minimax from './Minimax.vue'
 import Ollama from './Ollama.vue'
+import Anthropic from './Anthropic.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -13,4 +14,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   zhipu: Zhipu,
   minimax: Minimax,
   ollama: Ollama,
+  anthropic: Anthropic,
 }

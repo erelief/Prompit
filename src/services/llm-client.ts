@@ -14,6 +14,8 @@ const OPENAI_FORMAT: Required<ApiFormat> = {
   models_endpoint: "/models",
   request: {},
   response: {},
+  system_key: "",
+  force_fields: [],
 };
 
 export function resolveFormat(apiFormat?: ApiFormat): Required<ApiFormat> {
@@ -26,7 +28,72 @@ export function resolveFormat(apiFormat?: ApiFormat): Required<ApiFormat> {
     models_endpoint: apiFormat.models_endpoint ?? OPENAI_FORMAT.models_endpoint,
     request: apiFormat.request ?? {},
     response: apiFormat.response ?? {},
+    system_key: apiFormat.system_key ?? "",
+    force_fields: apiFormat.force_fields ?? [],
   };
+}
+
+/** Build request body with field mappings, system_key extraction, and force_fields support. */
+function buildRequestBody(
+  fmt: Required<ApiFormat>,
+  model: string,
+  messages: ChatMessage[],
+  temperature: number | null,
+  maxTokens: number | null,
+): Record<string, any> {
+  const skipFields: string[] = fmt.request._skip_fields ?? [];
+
+  // Extract system messages if system_key is configured
+  let systemContent: string | undefined;
+  let nonSystemMessages = messages;
+  if (fmt.system_key) {
+    const systemMsgs = messages.filter((m) => m.role === "system");
+    if (systemMsgs.length > 0) {
+      systemContent = systemMsgs.map((m) => m.content).join("\n\n");
+    }
+    nonSystemMessages = messages.filter((m) => m.role !== "system");
+  }
+
+  const body: Record<string, any> = {};
+  const fieldMap: Record<string, string> = {
+    model: "model",
+    messages: "messages",
+    temperature: "temperature",
+    max_tokens: "max_tokens",
+  };
+
+  const defaults: Record<string, any> = {
+    max_tokens: 4096,
+  };
+
+  const values: Record<string, any> = {
+    model,
+    messages: nonSystemMessages,
+    temperature,
+    max_tokens: maxTokens,
+  };
+
+  for (const [stdKey, defaultTarget] of Object.entries(fieldMap)) {
+    if (skipFields.includes(stdKey)) continue;
+    const val = values[stdKey];
+    const targetKey = fmt.request[stdKey] ?? defaultTarget;
+
+    // force_fields: include field even if value is null, using a default
+    if (val == null) {
+      if (fmt.force_fields.includes(stdKey)) {
+        body[targetKey] = defaults[stdKey] ?? 0;
+      }
+      continue;
+    }
+    body[targetKey] = val;
+  }
+
+  // Set system prompt as top-level field if system_key is configured
+  if (fmt.system_key && systemContent !== undefined) {
+    body[fmt.system_key] = systemContent;
+  }
+
+  return body;
 }
 
 /** Resolve a dot-path like "choices.0.message.content" against an object. */
@@ -50,7 +117,6 @@ export async function translate(text: string): Promise<string> {
   }
 
   const fmt = resolveFormat(model.api_format);
-  const skipFields: string[] = fmt.request._skip_fields ?? [];
 
   const mode = appConfig.active_mode || "translate";
   const systemPrompt = mode === "sparkle"
@@ -83,27 +149,13 @@ export async function translate(text: string): Promise<string> {
   messages.push({ role: "user", content: text });
 
   // Build request body using field mappings
-  const body: Record<string, any> = {};
-  const fieldMap: Record<string, string> = {
-    model: "model",
-    messages: "messages",
-    temperature: "temperature",
-    max_tokens: "max_tokens",
-  };
-
-  const values: Record<string, any> = {
-    model: model.model,
+  const body = buildRequestBody(
+    fmt,
+    model.model,
     messages,
-    temperature: model.temperature,
-    max_tokens: model.max_tokens,
-  };
-
-  for (const [stdKey, defaultTarget] of Object.entries(fieldMap)) {
-    if (skipFields.includes(stdKey)) continue;
-    if (values[stdKey] == null) continue;
-    const targetKey = fmt.request[stdKey] ?? defaultTarget;
-    body[targetKey] = values[stdKey];
-  }
+    model.temperature,
+    model.max_tokens,
+  );
 
   // Build headers
   const headers: Record<string, string> = {
@@ -148,7 +200,6 @@ export async function optimizePrompt(rawPrompt: string, mode: "translate" | "spa
   }
 
   const fmt = resolveFormat(model.api_format);
-  const skipFields: string[] = fmt.request._skip_fields ?? [];
 
   const messages: ChatMessage[] = [
     {
@@ -166,27 +217,13 @@ export async function optimizePrompt(rawPrompt: string, mode: "translate" | "spa
     { role: "user", content: rawPrompt },
   ];
 
-  const body: Record<string, any> = {};
-  const fieldMap: Record<string, string> = {
-    model: "model",
-    messages: "messages",
-    temperature: "temperature",
-    max_tokens: "max_tokens",
-  };
-
-  const values: Record<string, any> = {
-    model: model.model,
+  const body = buildRequestBody(
+    fmt,
+    model.model,
     messages,
-    temperature: model.temperature,
-    max_tokens: model.max_tokens,
-  };
-
-  for (const [stdKey, defaultTarget] of Object.entries(fieldMap)) {
-    if (skipFields.includes(stdKey)) continue;
-    if (values[stdKey] == null) continue;
-    const targetKey = fmt.request[stdKey] ?? defaultTarget;
-    body[targetKey] = values[stdKey];
-  }
+    model.temperature,
+    model.max_tokens,
+  );
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",

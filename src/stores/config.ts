@@ -13,6 +13,8 @@ export interface ApiFormat {
   models_endpoint?: string;
   request?: Record<string, any>;
   response?: Record<string, string>;
+  system_key?: string;
+  force_fields?: string[];
 }
 
 export interface ProviderModel {
