@@ -9,6 +9,7 @@ import Anthropic from './Anthropic.vue'
 import Gemini from './Gemini.vue'
 import Grok from './Grok.vue'
 import Qwen from './Qwen.vue'
+import Bailian from './Bailian.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -21,4 +22,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   gemini: Gemini,
   grok: Grok,
   qwen: Qwen,
+  bailian: Bailian,
 }

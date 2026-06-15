@@ -11,7 +11,7 @@
     {
       "name": "阿里云百炼",
       "provider_name": "阿里云百炼",
-      "icon": "qwen",
+      "icon": "bailian",
       "model_series": "Qwen",
       "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
       "api_url": "https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key",
@@ -25,7 +25,7 @@
     {
       "name": "阿里云百炼 Token Plan",
       "provider_name": "阿里云百炼 Token Plan",
-      "icon": "qwen",
+      "icon": "bailian",
       "model_series": "Qwen",
       "base_url": "https://token-plan.cn-beijing.maas.aliyuncs.com/v1",
       "api_url": "https://common-buy.aliyun.com/token-plan",
