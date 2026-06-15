@@ -391,8 +391,10 @@ onMounted(async () => {
                       >
                         <div class="opt-left"><ProviderIcon :icon="p.icon" :size="14" />
                         <div class="opt-info">
-                          <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
-                          <span v-if="p.base_url" class="opt-src">{{ p.base_url }}</span>
+                          <div class="opt-id-row">
+                            <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
+                            <span v-if="p.model_series" class="opt-series-tag">{{ p.model_series }}</span>
+                          </div>
                         </div></div>
                         <Check v-if="selectedPreset === p.name" :size="13" :stroke-width="2.5" />
                       </button>
@@ -735,9 +737,18 @@ div::-webkit-scrollbar-thumb {
 }
 .opt-left{ display:flex; align-items:center; gap:8px; min-width:0; flex:1; }
 .opt-info{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.opt-id-row{ display:flex; align-items:center; gap:5px; min-width:0; }
 .opt-id{
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.opt-series-tag{
+  flex-shrink:0;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  padding: 0 5px; border-radius: 4px; line-height: 16px;
+  white-space: nowrap;
 }
 .opt-src{ font-size: 9px; color: var(--color-text-muted); letter-spacing: .02em; }
 .drop-enter-active,.drop-leave-active{ transition:opacity .14s ease,transform .14s ease; }

@@ -55,6 +55,8 @@ pub struct ProviderPreset {
     pub provider_name: String,
     #[serde(default)]
     pub icon: String,
+    #[serde(default)]
+    pub model_series: String,
     pub base_url: String,
     #[serde(default)]
     pub api_url: String,

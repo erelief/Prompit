@@ -12,6 +12,7 @@
       "name": "Anthropic",
       "provider_name": "Anthropic",
       "icon": "anthropic",
+      "model_series": "Claude",
       "base_url": "https://api.anthropic.com/v1",
       "api_url": "https://console.anthropic.com/settings/keys",
       "api_format": {
@@ -46,6 +47,7 @@
       "name": "Google",
       "provider_name": "Google",
       "icon": "gemini",
+      "model_series": "Gemini",
       "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
       "api_url": "https://aistudio.google.com/app/apikey",
       "api_format": {
@@ -85,6 +87,7 @@
       "name": "Moonshot AI",
       "provider_name": "Moonshot AI",
       "icon": "kimi",
+      "model_series": "Kimi",
       "base_url": "https://api.moonshot.cn/v1",
       "api_url": "https://platform.moonshot.cn/console/api-keys",
       "api_format": {
@@ -98,6 +101,7 @@
       "name": "OpenAI",
       "provider_name": "OpenAI",
       "icon": "openai",
+      "model_series": "ChatGPT",
       "base_url": "https://api.openai.com/v1",
       "api_url": "https://platform.openai.com/apikeys",
       "api_format": {
@@ -111,6 +115,7 @@
       "name": "xAI",
       "provider_name": "xAI",
       "icon": "grok",
+      "model_series": "Grok",
       "base_url": "https://api.x.ai/v1",
       "api_url": "https://console.x.ai",
       "api_format": {
@@ -124,6 +129,7 @@
       "name": "Zhipu (BigModel)",
       "provider_name": "Zhipu (BigModel)",
       "icon": "zhipu",
+      "model_series": "GLM",
       "base_url": "https://open.bigmodel.cn/api/paas/v4",
       "api_url": "https://bigmodel.cn/apikey/platform",
       "api_format": {
@@ -137,6 +143,7 @@
       "name": "Zhipu Coding Plan (BigModel)",
       "provider_name": "Zhipu Coding Plan (BigModel)",
       "icon": "zhipu",
+      "model_series": "GLM",
       "base_url": "https://open.bigmodel.cn/api/coding/paas/v4",
       "api_url": "https://bigmodel.cn/coding-plan/personal/overview",
       "api_format": {

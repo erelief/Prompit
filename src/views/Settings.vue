@@ -21,7 +21,7 @@ import {
 } from "../stores/config";
 import { burstParticles } from "../utils/burstParticles";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
-import { getProviderIcon } from "../stores/config";
+import { getProviderIcon, getProviderSeries } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import { getTheme, setTheme } from "../composables/useTheme";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
@@ -442,7 +442,12 @@ function togglePresetMenu(e: MouseEvent, _item: ProviderConfig, index: number) {
   showPresetMenu.value = true;
   const btn = e.currentTarget as HTMLElement;
   const r = btn.getBoundingClientRect();
-  presetMenuPos.value = { top: r.bottom + 5, left: r.right - 220 };
+  const menuW = 220;
+  // Right-align the menu to the button's right edge, clamped to the viewport
+  let left = r.right - menuW;
+  if (left + menuW > window.innerWidth - 8) left = window.innerWidth - 8 - menuW;
+  if (left < 8) left = 8;
+  presetMenuPos.value = { top: r.bottom + 5, left };
 }
 
 function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
@@ -808,6 +813,7 @@ onUnmounted(() => {
               <div class="prov-accent" />
               <div class="prov-meta">
                 <span class="prov-name" :class="{ dim: !item.name }">{{ item.name || t('settings.untitledProvider') }}</span>
+                <span v-if="getProviderSeries(item, providerPresets)" class="prov-series-tag">{{ getProviderSeries(item, providerPresets) }}</span>
                 <span class="prov-badge">{{ item.models.length }} {{ t('settings.model') }}</span>
               </div>
             </div>
@@ -841,8 +847,10 @@ onUnmounted(() => {
                     >
                       <div class="opt-left"><ProviderIcon :icon="p.icon" :size="14" />
                       <div class="opt-info">
-                        <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
-                        <span v-if="p.base_url" class="opt-src">{{ p.base_url }}</span>
+                        <div class="opt-id-row">
+                          <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
+                          <span v-if="p.model_series" class="opt-series-tag">{{ p.model_series }}</span>
+                        </div>
                       </div></div>
                       <Check
                         v-if="item.preset === p.name || (!item.preset && p.name === 'Custom')"
@@ -1622,6 +1630,22 @@ onUnmounted(() => {
   font-size: 9.5px; font-weight: 550; color: var(--color-text-muted);
   background: var(--color-surface-hover); padding: 1px 7px; border-radius: 6px;
 }
+.prov-series-tag {
+  flex-shrink: 0;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  padding: 0 5px; border-radius: 4px; line-height: 16px;
+  white-space: nowrap;
+}
+.opt-series-tag {
+  flex-shrink: 0;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  padding: 0 5px; border-radius: 4px; line-height: 16px;
+  white-space: nowrap;
+}
 
 
 /* ── Expanded internals ── */
@@ -1819,6 +1843,7 @@ label {
 }
 .opt-left{ display:flex; align-items:center; gap:8px; min-width:0; flex:1; }
 .opt-info{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.opt-id-row{ display:flex; align-items:center; gap:5px; min-width:0; }
 .opt-id{
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
