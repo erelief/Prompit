@@ -121,6 +121,19 @@
         "system_key": "system",
         "force_fields": ["max_tokens"]
       }
+    },
+    {
+      "name": "Google",
+      "provider_name": "Google",
+      "icon": "gemini",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "api_url": "https://aistudio.google.com/app/apikey",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
     }
   ]
 }
