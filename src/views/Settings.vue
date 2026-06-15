@@ -837,7 +837,7 @@ onUnmounted(() => {
           <template #content="{ item, index }">
             <Teleport to="body">
               <Transition name="drop">
-                <div v-if="showPresetMenu && presetMenuIndex === index" class="sel-menu preset-menu" :style="{ top: presetMenuPos.top + 'px', left: presetMenuPos.left + 'px', minWidth: '220px' }">
+                <div v-if="showPresetMenu && presetMenuIndex === index" class="sel-menu preset-menu" :style="{ top: presetMenuPos.top + 'px', left: presetMenuPos.left + 'px', width: '220px' }">
                   <div class="sel-clip settings-scrollbar">
                     <button
                       v-for="p in providerPresets" :key="p.name"
