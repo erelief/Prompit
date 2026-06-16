@@ -1630,7 +1630,7 @@ onUnmounted(() => {
 .prov-drag-logo {
   display:inline-flex; align-items:center; justify-content:center;
   width: 18px; height: 26px; border-radius: 5px;
-  cursor: grab; color: var(--color-text-secondary);
+  cursor: grab; color: var(--color-text-muted);
   flex-shrink: 0;
 }
 .prov-drag-logo:active { cursor: grabbing; }
