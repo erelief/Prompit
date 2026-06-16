@@ -801,6 +801,7 @@ onUnmounted(() => {
           :empty-icon="CircleDot"
           :validate="validateProvider"
           :allow-remove="appConfig.providers.length > 1"
+          :builtin-drag-handle="false"
           @add="onProviderAdd"
           @confirm="onProviderConfirm"
           @cancel="onProviderCancel"
@@ -809,7 +810,9 @@ onUnmounted(() => {
         >
           <template #collapsed="{ item }">
             <div class="prov-lhs">
-              <ProviderIcon :icon="getProviderIcon(item, providerPresets)" :size="16" />
+              <span class="card-drag-handle prov-drag-logo" @click.stop>
+                <ProviderIcon :icon="getProviderIcon(item, providerPresets)" :size="16" />
+              </span>
               <div class="prov-accent" />
               <div class="prov-meta">
                 <span class="prov-name" :class="{ dim: !item.name }">{{ item.name || t('settings.untitledProvider') }}</span>
@@ -1362,11 +1365,15 @@ onUnmounted(() => {
           :empty-message="t('settings.noPersonasYet')"
           :empty-sub-message="t('settings.addOneToCustomize')"
           :validate="validatePersona"
+          :builtin-drag-handle="false"
           @add="Object.assign($event, { name: '', prompt: '', enabled: false })"
           @confirm="() => persistPersonas()"
           @remove="() => persistPersonas()"
         >
           <template #collapsed="{ item, index }">
+            <span class="card-drag-handle prov-drag-logo" @click.stop>
+              <GripVertical :size="13" :stroke-width="1.8" />
+            </span>
             <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="togglePersona(index, $event)">
               <ToggleRight v-if="item.enabled" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
@@ -1464,11 +1471,15 @@ onUnmounted(() => {
           :validate="validateSparkle"
           :allow-remove="sparkleStore.sparkles.length > 1"
           :max-collapsed="5"
+          :builtin-drag-handle="false"
           @add="Object.assign($event, { name: '', prompt: '', enabled: false })"
           @confirm="() => persistSparkles()"
           @remove="() => persistSparkles()"
         >
           <template #collapsed="{ item, index }">
+            <span class="card-drag-handle prov-drag-logo" @click.stop>
+              <GripVertical :size="13" :stroke-width="1.8" />
+            </span>
             <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="toggleSparkle(index, $event)">
               <ToggleRight v-if="item.enabled" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
@@ -1615,6 +1626,14 @@ onUnmounted(() => {
 
 /* ── Provider collapsed content ── */
 .prov-lhs { display:flex; align-items:center; gap:10px; }
+/* Provider brand logo doubles as the drag handle */
+.prov-drag-logo {
+  display:inline-flex; align-items:center; justify-content:center;
+  width: 18px; height: 26px; border-radius: 5px;
+  cursor: grab; color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+.prov-drag-logo:active { cursor: grabbing; }
 .prov-accent {
   width:3px; height:28px; border-radius: 2px;
   background: linear-gradient(180deg, var(--color-accent-border), rgba(212,160,72,.1));

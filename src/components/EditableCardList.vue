@@ -21,9 +21,12 @@ const props = withDefaults(defineProps<{
   allowRemove?: boolean;
   /** Max number of items visible when collapsed (controls max-height). Default 3. */
   maxCollapsed?: number;
+  /** Whether to render the built-in GripVertical drag handle. Set false when a slot-provided element (e.g. a provider logo) carries the `card-drag-handle` class and acts as the drag handle. Default true. */
+  builtinDragHandle?: boolean;
 }>(), {
   allowRemove: true,
   maxCollapsed: 3,
+  builtinDragHandle: true,
 });
 
 const emit = defineEmits<{
@@ -263,10 +266,10 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
         <div
           v-show="!adding && !isEditingAny || isEditing(oi)"
           class="ecl-card"
-          :class="{ open: isEditing(oi) }"
+          :class="{ open: isEditing(oi), 'no-builtin-handle': !builtinDragHandle }"
           :data-flip-id="oi"
         >
-          <span class="card-drag-handle" @click.stop>
+          <span v-if="builtinDragHandle" class="card-drag-handle" @click.stop>
             <GripVertical :size="13" :stroke-width="1.8" />
           </span>
 
@@ -348,6 +351,9 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 }
 .ecl-card:hover { border-color: var(--color-border-hover); }
 .ecl-card.open { padding: 15px 30px 14px 40px; }
+/* When a slot-provided element acts as the drag handle (e.g. provider logo), drop the left gutter reserved for the built-in grip */
+.ecl-card.no-builtin-handle .ecl-collapsed { padding-left: 14px; }
+.ecl-card.no-builtin-handle.open { padding: 15px 30px 14px 16px; }
 
 /* ── Collapsed ── */
 .ecl-collapsed {
@@ -375,7 +381,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 5px;
   cursor: grab; color: var(--color-text-muted);
-  z-index: 2; opacity: 0; transition: opacity 0.12s, color 0.12s;
+  z-index: 2; opacity: .55; transition: opacity 0.12s, color 0.12s;
   pointer-events: auto; user-select: none;
 }
 .ecl-card:hover > .card-drag-handle { opacity: 1; }
