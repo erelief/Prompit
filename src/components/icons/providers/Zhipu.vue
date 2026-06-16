@@ -2,7 +2,7 @@
   <svg
     :width="size"
     :height="size"
-    viewBox="5.2 6.59 19.6 16.82"
+    viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >

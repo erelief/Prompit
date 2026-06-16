@@ -15,6 +15,7 @@ import xAI from './xAI.vue'
 import Volcengine from './Volcengine.vue'
 import MIMO from './MIMO.vue'
 import Step from './Step.vue'
+import Agnes from './Agnes.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -33,4 +34,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   volcengine: Volcengine,
   mimo: MIMO,
   step: Step,
+  agnes: Agnes,
 }

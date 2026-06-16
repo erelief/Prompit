@@ -9,6 +9,19 @@
       "api_format": {}
     },
     {
+      "name": "Agnes",
+      "provider_name": "Agnes",
+      "icon": "agnes",
+      "base_url": "https://apihub.agnes-ai.com/v1",
+      "api_url": "https://platform.agnes-ai.com/settings/apiKeys",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
       "name": "阿里云百炼",
       "provider_name": "阿里云百炼",
       "icon": "bailian",
