@@ -154,6 +154,34 @@
       }
     },
     {
+      "name": "Xiaomi MIMO",
+      "provider_name": "Xiaomi MIMO",
+      "icon": "mimo",
+      "model_series": "MIMO",
+      "base_url": "https://api.xiaomimimo.com/v1",
+      "api_url": "https://platform.xiaomimimo.com/console/api-keys",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "Xiaomi MIMO Token Plan",
+      "provider_name": "Xiaomi MIMO Token Plan",
+      "icon": "mimo",
+      "model_series": "MIMO",
+      "base_url": "https://token-plan-cn.xiaomimimo.com/v1",
+      "api_url": "https://platform.xiaomimimo.com/console/plan-manage",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
       "name": "Zhipu (BigModel)",
       "provider_name": "Zhipu (BigModel)",
       "icon": "zhipu",

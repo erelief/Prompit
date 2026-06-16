@@ -310,11 +310,18 @@ export async function testProviderConnection(
     if (r.ok) {
       return { ok: true };
     } else {
-      await r.text();
-      return { ok: false, status: r.status, error: `Failed (${r.status})` };
+      const errorText = await r.text();
+      let detail = `Failed (${r.status})`;
+      try {
+        const parsed = JSON.parse(errorText);
+        if (parsed.error?.message) detail = `${r.status}: ${parsed.error.message}`;
+      } catch {
+        if (errorText) detail = `${r.status}: ${errorText.slice(0, 120)}`;
+      }
+      return { ok: false, status: r.status, error: detail };
     }
-  } catch {
-    return { ok: false, error: "Connection failed" };
+  } catch (err) {
+    return { ok: false, error: `Connection failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
