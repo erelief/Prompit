@@ -666,6 +666,17 @@ const activeLabel = computed(() => {
   return p.models[mi].id;
 });
 
+// Icon of the currently-selected model for the active mode (translate/inspiration)
+const activeIcon = computed(() => {
+  const mode = appConfig.active_mode || "translate";
+  const config = appConfig as any;
+  const pi = config[`${mode}_active_provider_index`] ?? 0;
+  const { providers } = appConfig;
+  if (pi >= providers.length) return "";
+  const p = providers[pi];
+  return p ? getProviderIcon(p, providerPresets.value) : "";
+});
+
 function pickModel(e: FlatEntry) {
   const mode = appConfig.active_mode || "translate";
   (appConfig as any)[`${mode}_active_provider_index`] = e.pIndex;
@@ -689,6 +700,15 @@ const sparkleActiveLabel = computed(() => {
   const p = providers[pi];
   if (!p || mi >= p.models.length) return "None";
   return p.models[mi].id;
+});
+
+// Icon of the currently-selected sparkle model
+const sparkleActiveIcon = computed(() => {
+  const { providers } = appConfig;
+  const pi = appConfig.sparkle_active_provider_index;
+  if (pi >= providers.length) return "";
+  const p = providers[pi];
+  return p ? getProviderIcon(p, providerPresets.value) : "";
 });
 
 function pickSparkleModel(e: FlatEntry) {
@@ -1212,6 +1232,7 @@ onUnmounted(() => {
             :class="{ dead: allFlat.length === 0 }"
             @click="toggleSelMenu()"
           >
+            <ProviderIcon v-if="allFlat.length > 0 && activeIcon" :icon="activeIcon" :size="14" class="sel-icon" />
             <span class="sel-text">{{ allFlat.length === 0 ? t('settings.noModelsAvailable') : activeLabel }}</span>
             <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showModelSelector }" />
           </button>
@@ -1428,6 +1449,7 @@ onUnmounted(() => {
             :class="{ dead: allFlat.length === 0 }"
             @click="toggleSelMenu()"
           >
+            <ProviderIcon v-if="allFlat.length > 0 && sparkleActiveIcon" :icon="sparkleActiveIcon" :size="14" class="sel-icon" />
             <span class="sel-text">{{ allFlat.length === 0 ? t('settings.noModelsAvailable') : sparkleActiveLabel }}</span>
             <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showModelSelector }" />
           </button>
@@ -1831,6 +1853,7 @@ label {
   flex:1; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+.sel-icon { display:inline-flex; align-items:center; flex-shrink:0; }
 .lang-btn .sel-text{ font-family: inherit; font-size:12px; }
 
 .sel-arrow { color: var(--color-text-muted); transition: transform .18s; flex-shrink:0; }
