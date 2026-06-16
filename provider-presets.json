@@ -89,7 +89,6 @@
       "name": "Kimi",
       "provider_name": "Kimi",
       "icon": "kimi",
-      "model_series": "Kimi",
       "base_url": "https://api.moonshot.cn/v1",
       "api_url": "https://platform.kimi.com/console/api-keys",
       "api_format": {
