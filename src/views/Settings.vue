@@ -50,7 +50,7 @@ import {
   BookText,
   GripVertical,
   RotateCcw,
-  Wand2,
+  CloudDownload,
   Sun,
   Moon,
   SunMoon,
@@ -829,7 +829,7 @@ onUnmounted(() => {
                 @click.stop="togglePresetMenu($event, item, index)"
                 :title="item.preset ? `${t('settings.preset')}: ${item.preset}` : t('settings.applyPreset')"
               >
-                <Wand2 :size="12" :stroke-width="1.8" />
+                <CloudDownload :size="12" :stroke-width="1.8" />
               </button>
             </div>
           </template>
