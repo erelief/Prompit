@@ -112,12 +112,12 @@
       }
     },
     {
-      "name": "Moonshot AI",
-      "provider_name": "Moonshot AI",
-      "icon": "moonshot",
+      "name": "Kimi",
+      "provider_name": "Kimi",
+      "icon": "kimi",
       "model_series": "Kimi",
       "base_url": "https://api.moonshot.cn/v1",
-      "api_url": "https://platform.moonshot.cn/console/api-keys",
+      "api_url": "https://platform.kimi.com/console/api-keys",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",

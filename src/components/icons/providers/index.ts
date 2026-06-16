@@ -2,6 +2,7 @@ import type { Component } from 'vue'
 import OpenAI from './OpenAI.vue'
 import DeepSeek from './DeepSeek.vue'
 import Moonshot from './Moonshot.vue'
+import Kimi from './Kimi.vue'
 import Zhipu from './Zhipu.vue'
 import Minimax from './Minimax.vue'
 import LMStudio from './LMStudio.vue'
@@ -19,6 +20,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
   deepseek: DeepSeek,
   moonshot: Moonshot,
+  kimi: Kimi,
   zhipu: Zhipu,
   minimax: Minimax,
   lmstudio: LMStudio,
