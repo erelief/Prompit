@@ -86,6 +86,20 @@
       }
     },
     {
+      "name": "Kimi",
+      "provider_name": "Kimi",
+      "icon": "kimi",
+      "model_series": "Kimi",
+      "base_url": "https://api.moonshot.cn/v1",
+      "api_url": "https://platform.kimi.com/console/api-keys",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
       "name": "LM Studio (local)",
       "provider_name": "LM Studio",
       "icon": "lmstudio",
@@ -104,20 +118,6 @@
       "icon": "minimax",
       "base_url": "https://api.minimaxi.com/v1",
       "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "Kimi",
-      "provider_name": "Kimi",
-      "icon": "kimi",
-      "model_series": "Kimi",
-      "base_url": "https://api.moonshot.cn/v1",
-      "api_url": "https://platform.kimi.com/console/api-keys",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
