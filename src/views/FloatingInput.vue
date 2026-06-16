@@ -53,43 +53,6 @@ const activeModelIcon = computed(() => {
   return prov ? getProviderIcon(prov, floatingPresets.value) : "";
 });
 
-/*
-  Two-stage name compaction for the trigger button:
-  stage 0 (fits):  "deepseek-v4-flash"
-  stage 1 (tight): "v4-flash"        -> drop the first dash segment (no leading dash)
-  stage 2 (tighter):"v4-fl…"          -> truncate the stage-1 string + ellipsis
-*/
-function stageName(name: string | null, stage: number): string {
-  if (!name) return "";
-  if (stage >= 1) {
-    const i = name.indexOf("-");
-    if (i >= 0) name = name.slice(i + 1);
-  }
-  if (stage >= 2 && name.length > 5) name = name.slice(0, 5) + "…";
-  return name;
-}
-
-const nameStage = ref(0);
-const probeRef = ref<HTMLElement | null>(null);
-
-// Fixed text quota inside the trigger button (px). Must match the span's
-// max-width in the template. Using a constant (instead of reading the live
-// span.clientWidth) avoids feedback loops and stale-layout reads after a
-// model switch that caused overflow / over-eager compaction.
-const MODEL_NAME_MAX = 102;
-
-// Measure each candidate stage's natural width via a hidden probe that shares
-// the button's text metrics; pick the first stage that fits (max stage = 2).
-function measureStage() {
-  const probe = probeRef.value;
-  if (!probe || !activeModelName.value) { nameStage.value = 0; return; }
-  for (let s = 0; s <= 2; s++) {
-    probe.textContent = stageName(activeModelName.value, s);
-    if (probe.offsetWidth <= MODEL_NAME_MAX) { nameStage.value = s; return; }
-  }
-  nameStage.value = 2;
-}
-
 const glassBg = computed(() => {
   const o = (appConfig.floating_opacity ?? 90) / 100;
   if (o >= 1) {
@@ -225,12 +188,6 @@ watch(inputText, () => {
     hasResult.value = false;
     translatedText.value = "";
   }
-});
-
-// Re-measure the model name compaction stage when the active model / icon
-// changes, or when the toolbar flips orientation (probe element swaps).
-watch([activeModelName, activeModelIcon, floatingPresets, growAbove], () => {
-  nextTick(measureStage);
 });
 
 function handleKeydown(e: KeyboardEvent) {
@@ -411,13 +368,7 @@ onMounted(async () => {
   document.addEventListener("mousedown", onDocumentClick);
   nextTick(() => {
     textareaRef.value?.focus();
-    measureStage();
   });
-  // Web fonts load async; re-measure once they're ready so the first paint
-  // (measured with the fallback font) doesn't over-compact the name.
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => nextTick(measureStage));
-  }
 
   // Listen for grow_above config from backend
   unlistenConfig = await listen<boolean>("window-config", (e) => {
@@ -588,8 +539,6 @@ useShortcutTriggered(() => {
 
           <!-- Model selector -->
           <div class="relative" ref="modelDropdownRef">
-            <!-- Hidden probe used to measure each compaction stage's natural width -->
-            <span ref="probeRef" class="name-probe" aria-hidden="true"></span>
             <button
               v-if="activeModelName"
               ref="modelBtnRef"
@@ -597,8 +546,8 @@ useShortcutTriggered(() => {
               class="model-btn"
               :class="{ active: showModelDropdown }"
             >
-              <ProviderIcon v-if="activeModelIcon" :icon="activeModelIcon" :size="14" />
-              <span class="truncate min-w-0" :style="{ maxWidth: MODEL_NAME_MAX + 'px' }">{{ stageName(activeModelName, nameStage) }}</span>
+              <span class="model-icon" v-if="activeModelIcon"><ProviderIcon :icon="activeModelIcon" :size="14" /></span>
+              <span class="truncate max-w-[120px] min-w-0">{{ activeModelName }}</span>
               <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
                 :style="{ transform: chevronTransform(showModelDropdown) }" />
             </button>
@@ -692,8 +641,6 @@ useShortcutTriggered(() => {
 
           <!-- Model selector -->
           <div class="relative" ref="modelDropdownRef">
-            <!-- Hidden probe used to measure each compaction stage's natural width -->
-            <span ref="probeRef" class="name-probe" aria-hidden="true"></span>
             <button
               v-if="activeModelName"
               ref="modelBtnRef"
@@ -701,8 +648,8 @@ useShortcutTriggered(() => {
               class="model-btn"
               :class="{ active: showModelDropdown }"
             >
-              <ProviderIcon v-if="activeModelIcon" :icon="activeModelIcon" :size="14" />
-              <span class="truncate min-w-0" :style="{ maxWidth: MODEL_NAME_MAX + 'px' }">{{ stageName(activeModelName, nameStage) }}</span>
+              <span class="model-icon" v-if="activeModelIcon"><ProviderIcon :icon="activeModelIcon" :size="14" /></span>
+              <span class="truncate max-w-[120px] min-w-0">{{ activeModelName }}</span>
               <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
                 :style="{ transform: chevronTransform(showModelDropdown) }" />
             </button>
@@ -920,17 +867,11 @@ useShortcutTriggered(() => {
   border-color: var(--color-border);
 }
 
-/* Hidden probe for measuring model-name compaction widths.
-   Matches .model-btn text metrics so measurements are accurate. */
-.name-probe {
-  position: absolute;
-  visibility: hidden;
-  white-space: nowrap;
-  font-size: 10px;
-  font-weight: 500;
-  pointer-events: none;
-  top: 0;
-  left: 0;
+/* Brand icon: keep it full-size and outside the truncated text area */
+.model-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 /* Model dropdown */

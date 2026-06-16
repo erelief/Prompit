@@ -114,7 +114,7 @@
     {
       "name": "Moonshot AI",
       "provider_name": "Moonshot AI",
-      "icon": "kimi",
+      "icon": "moonshot",
       "model_series": "Kimi",
       "base_url": "https://api.moonshot.cn/v1",
       "api_url": "https://platform.moonshot.cn/console/api-keys",
