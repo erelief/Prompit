@@ -13,6 +13,7 @@ import Bailian from './Bailian.vue'
 import xAI from './xAI.vue'
 import Volcengine from './Volcengine.vue'
 import MIMO from './MIMO.vue'
+import Step from './Step.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -29,4 +30,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   xai: xAI,
   volcengine: Volcengine,
   mimo: MIMO,
+  step: Step,
 }

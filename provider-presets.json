@@ -140,6 +140,34 @@
       }
     },
     {
+      "name": "StepFun",
+      "provider_name": "StepFun",
+      "icon": "step",
+      "model_series": "Step",
+      "base_url": "https://api.stepfun.com/v1",
+      "api_url": "https://platform.stepfun.com/interface-key",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "Step Plan",
+      "provider_name": "Step Plan",
+      "icon": "step",
+      "model_series": "Step",
+      "base_url": "https://api.stepfun.com/step_plan/v1",
+      "api_url": "https://platform.stepfun.com/step-plan",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
       "name": "xAI",
       "provider_name": "xAI",
       "icon": "xai",
