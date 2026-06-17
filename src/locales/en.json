@@ -70,6 +70,7 @@
     "addOneToCustomize": "Add one to customize translation style.",
     "addTranslationPersona": "Add Translation Persona",
     "personaName": "Persona name…",
+    "duplicateName": "A name with this already exists. Please use a different name.",
     "optimizePrompt": "AI Optimize prompt",
     "sparkleTitle": "Sparkle",
     "noSparklesYet": "No sparkles yet.",

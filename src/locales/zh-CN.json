@@ -70,6 +70,7 @@
     "addOneToCustomize": "添加一个以自定义翻译风格。",
     "addTranslationPersona": "添加翻译角色",
     "personaName": "角色名称…",
+    "duplicateName": "该名称已存在，请使用其他名称。",
     "optimizePrompt": "AI 优化提示词",
     "sparkleTitle": "灵感",
     "noSparklesYet": "暂无灵感。",

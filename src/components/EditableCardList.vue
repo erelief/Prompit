@@ -15,8 +15,9 @@ const props = withDefaults(defineProps<{
   emptyMessage?: string;
   emptySubMessage?: string;
   emptyIcon?: Component;
-  /** Return an error message if the item is invalid, or null to allow. */
-  validate?: (item: any) => string | null;
+  /** Return an error message if the item is invalid, or null to allow.
+   *  `index` is the position being edited, or -1 for a newly-added draft. */
+  validate?: (item: any, index: number) => string | null;
   /** Whether to show the remove button. Default true. */
   allowRemove?: boolean;
   /** Max number of items visible when collapsed (controls max-height). Default 3. */
@@ -71,7 +72,7 @@ function confirmEdit(index: number) {
   const draft = drafts.value.get(index);
   if (!draft) return;
   if (props.validate) {
-    const error = props.validate(draft);
+    const error = props.validate(draft, index);
     if (error) { validationError.value = error; return; }
   }
   validationError.value = null;
@@ -102,7 +103,7 @@ function handleAdd() {
 
 function handleConfirm() {
   if (props.validate) {
-    const error = props.validate(addDraft.value);
+    const error = props.validate(addDraft.value, -1);
     if (error) { validationError.value = error; return; }
   }
   validationError.value = null;
@@ -434,7 +435,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 }
 .validation-error {
   font-size: 10px; font-weight: 550; letter-spacing: .01em;
-  color: var(--color-accent); margin-top: 6px;
+  color: var(--color-danger); margin-top: 6px;
 }
 .mini-btn.ghost { color: var(--color-text-muted); }
 .mini-btn.ghost:hover { color: var(--color-text-secondary); background: var(--color-surface); }

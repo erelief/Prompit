@@ -335,11 +335,16 @@ function validateProvider(p: ProviderConfig): string | null {
   return missing.length ? `Required: ${missing.join(", ")}` : null;
 }
 
-function validatePersona(p: { name: string; prompt: string }): string | null {
+function validatePersona(p: { name: string; prompt: string }, index: number): string | null {
   const missing: string[] = [];
   if (!p.name.trim()) missing.push("Name");
   if (!p.prompt.trim()) missing.push("Prompt");
-  return missing.length ? `Required: ${missing.join(", ")}` : null;
+  if (missing.length) return `Required: ${missing.join(", ")}`;
+  const dup = personaStore.personas.findIndex(
+    (o, i) => i !== index && o.name.trim().toLowerCase() === p.name.trim().toLowerCase()
+  );
+  if (dup !== -1) return t("settings.duplicateName");
+  return null;
 }
 
 function togglePersona(index: number, e: MouseEvent) {
@@ -374,11 +379,16 @@ function handleTextareaKeydown(e: KeyboardEvent, item: { prompt: string }, index
   }
 }
 
-function validateSparkle(s: { name: string; prompt: string }): string | null {
+function validateSparkle(s: { name: string; prompt: string }, index: number): string | null {
   const missing: string[] = [];
   if (!s.name.trim()) missing.push("Name");
   if (!s.prompt.trim()) missing.push("Prompt");
-  return missing.length ? `Required: ${missing.join(", ")}` : null;
+  if (missing.length) return `Required: ${missing.join(", ")}`;
+  const dup = sparkleStore.sparkles.findIndex(
+    (o, i) => i !== index && o.name.trim().toLowerCase() === s.name.trim().toLowerCase()
+  );
+  if (dup !== -1) return t("settings.duplicateName");
+  return null;
 }
 
 function toggleSparkle(index: number, e: MouseEvent) {
