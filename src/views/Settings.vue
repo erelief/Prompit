@@ -617,11 +617,8 @@ function onProviderRemove({ index, indexMap }: { index: number; indexMap: Map<nu
     if (m !== undefined) re.set(m, v);
   }
   editStates.value = re;
-  if (appConfig.translate_active_provider_index >= appConfig.providers.length)
-    appConfig.translate_active_provider_index = Math.max(0, appConfig.providers.length - 1);
-  const ap = appConfig.providers[appConfig.translate_active_provider_index];
-  if (ap && appConfig.translate_active_model_index >= ap.models.length)
-    appConfig.translate_active_model_index = Math.max(0, ap.models.length - 1);
+  // Active provider/model indices are re-normalized centrally in
+  // stores/config.ts (watch on provider/model counts), so no clamp here.
 }
 
 function removeModel(item: ProviderConfig, mIndex: number) {
