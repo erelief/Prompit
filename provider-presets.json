@@ -115,6 +115,20 @@
       }
     },
     {
+      "name": "Kimi (Global)",
+      "provider_name": "Kimi",
+      "icon": "kimi",
+      "model_series": "Kimi",
+      "base_url": "https://api.moonshot.ai/v1",
+      "api_url": "https://platform.kimi.ai/console/api-keys",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
       "name": "LM Studio (local)",
       "provider_name": "LM Studio",
       "icon": "lmstudio",
@@ -128,12 +142,26 @@
       }
     },
     {
-      "name": "MINIMAX (CN)",
-      "provider_name": "MINIMAX (CN)",
+      "name": "MiniMax",
+      "provider_name": "MiniMax",
       "icon": "minimax",
-      "model_series": "Minimax",
+      "model_series": "MiniMax",
       "base_url": "https://api.minimaxi.com/v1",
       "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "MiniMax (Global)",
+      "provider_name": "MiniMax",
+      "icon": "minimax",
+      "model_series": "MiniMax",
+      "base_url": "https://api.minimax.io/v1",
+      "api_url": "https://platform.minimax.io/user-center/basic-information/interface-key",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
@@ -195,8 +223,8 @@
       }
     },
     {
-      "name": "StepFun",
-      "provider_name": "StepFun",
+      "name": "阶跃星辰",
+      "provider_name": "阶跃星辰",
       "icon": "step",
       "model_series": "Step",
       "base_url": "https://api.stepfun.com/v1",
@@ -209,12 +237,40 @@
       }
     },
     {
-      "name": "Step Plan",
-      "provider_name": "Step Plan",
+      "name": "阶跃星辰 Step Plan",
+      "provider_name": "阶跃星辰 Step Plan",
       "icon": "step",
       "model_series": "Step",
       "base_url": "https://api.stepfun.com/step_plan/v1",
       "api_url": "https://platform.stepfun.com/step-plan",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "StepFun",
+      "provider_name": "StepFun",
+      "icon": "step",
+      "model_series": "Step",
+      "base_url": "https://api.stepfun.ai/v1",
+      "api_url": "https://platform.stepfun.ai/interface-key",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "Step Plan",
+      "provider_name": "Step Plan",
+      "icon": "step",
+      "model_series": "Step",
+      "base_url": "https://api.stepfun.ai/step_plan/v1",
+      "api_url": "https://platform.stepfun.ai/step-plan",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
@@ -265,34 +321,6 @@
       }
     },
     {
-      "name": "Z.AI",
-      "provider_name": "Z.AI",
-      "icon": "zhipu",
-      "model_series": "GLM",
-      "base_url": "https://api.z.ai/api/paas/v4/",
-      "api_url": "https://z.ai/manage-apikey/apikey-list",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "GLM Coding Plan",
-      "provider_name": "GLM Coding Plan",
-      "icon": "zhipu",
-      "model_series": "GLM",
-      "base_url": "https://api.z.ai/api/coding/paas/v4",
-      "api_url": "https://z.ai/manage-apikey/apikey-list",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
       "name": "智谱|BigModel",
       "provider_name": "智谱|BigModel",
       "icon": "zhipu",
@@ -313,6 +341,34 @@
       "model_series": "GLM",
       "base_url": "https://open.bigmodel.cn/api/coding/paas/v4",
       "api_url": "https://bigmodel.cn/coding-plan/personal/overview",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "Z.AI",
+      "provider_name": "Z.AI",
+      "icon": "zhipu",
+      "model_series": "GLM",
+      "base_url": "https://api.z.ai/api/paas/v4/",
+      "api_url": "https://z.ai/manage-apikey/apikey-list",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "GLM Coding Plan",
+      "provider_name": "GLM Coding Plan",
+      "icon": "zhipu",
+      "model_series": "GLM",
+      "base_url": "https://api.z.ai/api/coding/paas/v4",
+      "api_url": "https://z.ai/manage-apikey/apikey-list",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
