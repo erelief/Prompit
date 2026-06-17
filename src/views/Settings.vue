@@ -510,6 +510,24 @@ function onProviderDragEnd({ indexMap }: { indexMap: Map<number, number> }) {
   if (addingModelProvider.value !== null) addingModelProvider.value = indexMap.get(addingModelProvider.value) ?? null;
 }
 
+function onModelDragEnd(providerIndex: number, evt: { oldIndex: number; newIndex: number }) {
+  const { oldIndex, newIndex } = evt;
+  if (oldIndex === newIndex) return;
+  // vuedraggable already mutated item.models; remap positional active-model indices so
+  // the currently selected model stays selected after the reorder.
+  const remap = (i: number): number => {
+    if (i === oldIndex) return newIndex;
+    if (oldIndex < newIndex) return (i > oldIndex && i <= newIndex) ? i - 1 : i;
+    return (i >= newIndex && i < oldIndex) ? i + 1 : i;
+  };
+  if (appConfig.translate_active_provider_index === providerIndex) {
+    appConfig.translate_active_model_index = remap(appConfig.translate_active_model_index);
+  }
+  if (appConfig.sparkle_active_provider_index === providerIndex) {
+    appConfig.sparkle_active_model_index = remap(appConfig.sparkle_active_model_index);
+  }
+}
+
 function deleteTranslationCustomLang(name: string) {
   appConfig.custom_languages = appConfig.custom_languages.filter(l => l !== name);
   appConfig.language_order = appConfig.language_order.filter(l => l !== name);
@@ -578,6 +596,10 @@ function onProviderConfirm({ index }: { index: number }) {
     editStates.value.set(index, draftState);
     editStates.value = new Map(editStates.value);
   }
+  // Exit the fetch-picker state: selections have been committed, so the
+  // pickable list should not linger when the card is reopened.
+  const s = editStates.value.get(index);
+  if (s) s.fetched = [];
   if (testingProvider.value === -1) testingProvider.value = index;
   flushConfigSave();
 }
@@ -961,15 +983,31 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- model tags -->
-            <div v-if="item.models.length > 0 && getFetchedModels(index).length === 0" class="tags">
-              <span v-for="(m, mi) in item.models" :key="mi" class="tag">
-                {{ m.id }}
-                <button class="tag-x" @click.stop="removeModel(item, +mi)">
-                  <Trash2 :size="9" :stroke-width="2" />
-                </button>
-              </span>
-            </div>
+            <!-- model tags (draggable) -->
+            <draggable
+              v-if="item.models.length > 0 && getFetchedModels(index).length === 0"
+              :list="item.models"
+              :item-key="(m: any) => m.id"
+              handle=".model-drag-handle"
+              :force-fallback="true"
+              fallback-class="hidden-drag-ghost"
+              ghost-class="model-ghost"
+              chosen-class="model-chosen"
+              class="tags"
+              @end="onModelDragEnd(index, $event)"
+            >
+              <template #item="{ element }">
+                <span class="tag">
+                  <span class="model-drag-handle" @click.stop>
+                    <GripVertical :size="9" :stroke-width="1.8" />
+                  </span>
+                  {{ element.id }}
+                  <button class="tag-x" @click.stop="removeModel(item, item.models.indexOf(element))">
+                    <Trash2 :size="9" :stroke-width="2" />
+                  </button>
+                </span>
+              </template>
+            </draggable>
             <div v-if="getFetchedModels(index).length > 0" class="tags pickable">
               <button
                 v-for="mid in getFetchedModels(index)" :key="mid"
@@ -1841,6 +1879,29 @@ label {
 .tags.pickable .tag.selected {
   background: var(--color-accent-bg);
   border-color: var(--color-accent-border);
+  color: var(--color-accent);
+}
+
+/* Model tag drag handle */
+.model-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--color-text-muted);
+  opacity: .55;
+  transition: color .12s, opacity .12s;
+}
+.model-drag-handle:hover { opacity: 1; color: var(--color-text-secondary); }
+.model-drag-handle:active { cursor: grabbing; }
+.tag:hover .model-drag-handle { opacity: .9; }
+
+/* Model tag drag states */
+.tag.model-chosen { opacity: .35; }
+.tag.model-ghost {
+  opacity: .4;
+  background: var(--color-accent-bg);
+  border: 1px dashed var(--color-accent-border);
   color: var(--color-accent);
 }
 
