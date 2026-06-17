@@ -105,15 +105,15 @@ function clearEditState(index: number) {
 
 const addingModelProvider = ref<number | null>(null);
 const showModelSelector = ref(false);
-const showLangSelector = ref(false);
+const translationShowLangSelector = ref(false);
 const showPresetMenu = ref(false);
 const presetMenuPos = ref({ top: 0, left: 0 });
 const presetMenuIndex = ref<number | null>(null);
 const providerPresets = ref<ProviderPreset[]>([]);
 const selMenuPos = ref({ top: 0, left: 0 });
-const langMenuPos = ref({ top: 0, left: 0 });
+const translationLangMenuPos = ref({ top: 0, left: 0 });
 const selBtnRef = ref<HTMLElement | null>(null);
-const langBtnRef = ref<HTMLElement | null>(null);
+const translationLangBtnRef = ref<HTMLElement | null>(null);
 
 // ── App language switcher ──
 const appLanguageOptions = [
@@ -250,7 +250,7 @@ async function applyShortcut(shortcut: string) {
   }
 }
 
-function toggleDict(e: MouseEvent) {
+function toggleTranslationDict(e: MouseEvent) {
   const turning = !appConfig.user_dict_enabled;
   appConfig.user_dict_enabled = turning;
   if (turning) burstParticles(e.currentTarget as HTMLElement);
@@ -335,7 +335,7 @@ function validateProvider(p: ProviderConfig): string | null {
   return missing.length ? `Required: ${missing.join(", ")}` : null;
 }
 
-function validatePersona(p: { name: string; prompt: string }, index: number): string | null {
+function validateTranslationPersona(p: { name: string; prompt: string }, index: number): string | null {
   const missing: string[] = [];
   if (!p.name.trim()) missing.push("Name");
   if (!p.prompt.trim()) missing.push("Prompt");
@@ -347,7 +347,7 @@ function validatePersona(p: { name: string; prompt: string }, index: number): st
   return null;
 }
 
-function togglePersona(index: number, e: MouseEvent) {
+function toggleTranslationPersona(index: number, e: MouseEvent) {
   const wasOn = personaStore.personas[index].enabled;
   for (const p of personaStore.personas) p.enabled = false;
   if (!wasOn) {
@@ -356,7 +356,7 @@ function togglePersona(index: number, e: MouseEvent) {
   }
 }
 
-async function handleOptimizePrompt(item: { prompt: string }, index: number) {
+async function handleTranslationOptimizePrompt(item: { prompt: string }, index: number) {
   if (!item.prompt.trim() || optimizingIndex.value !== null) return;
   promptUndoStack.set(index, item.prompt);
   optimizingIndex.value = index;
@@ -402,7 +402,7 @@ function toggleSparkle(index: number, e: MouseEvent) {
   persistSparkles();
 }
 
-async function handleOrganizePrompt(item: { prompt: string }, index: number) {
+async function handleSparkleOptimizePrompt(item: { prompt: string }, index: number) {
   if (!item.prompt.trim() || optimizingIndex.value !== null) return;
   promptUndoStack.set(index, item.prompt);
   optimizingIndex.value = index;
@@ -418,7 +418,7 @@ async function handleOrganizePrompt(item: { prompt: string }, index: number) {
 
 function toggleSelMenu() {
   if (allFlat.value.length === 0) return;
-  showLangSelector.value = false;
+  translationShowLangSelector.value = false;
   showModelSelector.value = !showModelSelector.value;
   if (showModelSelector.value && selBtnRef.value) {
     const r = selBtnRef.value.getBoundingClientRect();
@@ -426,23 +426,23 @@ function toggleSelMenu() {
   }
 }
 
-function toggleLangMenu() {
+function toggleTranslationLangMenu() {
   showModelSelector.value = false;
-  showLangSelector.value = !showLangSelector.value;
-  if (showLangSelector.value && langBtnRef.value) {
-    const r = langBtnRef.value.getBoundingClientRect();
-    langMenuPos.value = { top: r.bottom + 5, left: r.left };
+  translationShowLangSelector.value = !translationShowLangSelector.value;
+  if (translationShowLangSelector.value && translationLangBtnRef.value) {
+    const r = translationLangBtnRef.value.getBoundingClientRect();
+    translationLangMenuPos.value = { top: r.bottom + 5, left: r.left };
   }
 }
 
-function pickLang(lang: string) {
+function pickTranslationLang(lang: string) {
   appConfig.target_lang = lang;
-  showLangSelector.value = false;
+  translationShowLangSelector.value = false;
 }
 
 function togglePresetMenu(e: MouseEvent, _item: ProviderConfig, index: number) {
   showModelSelector.value = false;
-  showLangSelector.value = false;
+  translationShowLangSelector.value = false;
   if (showPresetMenu.value && presetMenuIndex.value === index) {
     showPresetMenu.value = false;
     presetMenuIndex.value = null;
@@ -470,21 +470,21 @@ function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
 }
 
 // ── Language management ──
-const newLangInput = ref("");
-const showAddLang = ref(false);
-const langAddInputRef = ref<HTMLInputElement | null>(null);
+const translationNewLangInput = ref("");
+const translationShowAddLang = ref(false);
+const translationLangAddInputRef = ref<HTMLInputElement | null>(null);
 
-watch(showAddLang, (val) => {
-  if (val) nextTick(() => langAddInputRef.value?.focus());
+watch(translationShowAddLang, (val) => {
+  if (val) nextTick(() => translationLangAddInputRef.value?.focus());
 });
 
-interface LangItem {
+interface TranslationLangItem {
   id: string;
   name: string;
   isCustom: boolean;
 }
 
-const langItems = computed<LangItem[]>(() => {
+const translationLangItems = computed<TranslationLangItem[]>(() => {
   return getOrderedLanguages().map(name => ({
     id: name,
     name,
@@ -492,8 +492,8 @@ const langItems = computed<LangItem[]>(() => {
   }));
 });
 
-function onLangDragEnd() {
-  appConfig.language_order = langItems.value.map(item => item.name);
+function onTranslationLangDragEnd() {
+  appConfig.language_order = translationLangItems.value.map(item => item.name);
 }
 
 function onProviderDragEnd({ indexMap }: { indexMap: Map<number, number> }) {
@@ -510,7 +510,7 @@ function onProviderDragEnd({ indexMap }: { indexMap: Map<number, number> }) {
   if (addingModelProvider.value !== null) addingModelProvider.value = indexMap.get(addingModelProvider.value) ?? null;
 }
 
-function deleteCustomLang(name: string) {
+function deleteTranslationCustomLang(name: string) {
   appConfig.custom_languages = appConfig.custom_languages.filter(l => l !== name);
   appConfig.language_order = appConfig.language_order.filter(l => l !== name);
   if (appConfig.target_lang === name) {
@@ -518,21 +518,21 @@ function deleteCustomLang(name: string) {
   }
 }
 
-function addCustomLang() {
-  const name = newLangInput.value.trim();
+function addTranslationCustomLang() {
+  const name = translationNewLangInput.value.trim();
   if (!name) return;
   const allNames = getOrderedLanguages();
   if (allNames.some(l => l.toLowerCase() === name.toLowerCase())) {
-    newLangInput.value = "";
+    translationNewLangInput.value = "";
     return;
   }
   appConfig.custom_languages.push(name);
   appConfig.language_order = [...getOrderedLanguages(), name];
-  newLangInput.value = "";
-  showAddLang.value = false;
+  translationNewLangInput.value = "";
+  translationShowAddLang.value = false;
 }
 
-function restoreDefaultOrder() {
+function restoreTranslationDefaultOrder() {
   appConfig.language_order = [];
 }
 
@@ -664,7 +664,7 @@ const allFlat = computed<FlatEntry[]>(() => {
   return out;
 });
 
-const activeLabel = computed(() => {
+const translationActiveLabel = computed(() => {
   const mode = appConfig.active_mode || "translate";
   const config = appConfig as any;
   const pi = config[`${mode}_active_provider_index`] ?? 0;
@@ -677,7 +677,7 @@ const activeLabel = computed(() => {
 });
 
 // Icon of the currently-selected model for the active mode (translate/inspiration)
-const activeIcon = computed(() => {
+const translationActiveIcon = computed(() => {
   const mode = appConfig.active_mode || "translate";
   const config = appConfig as any;
   const pi = config[`${mode}_active_provider_index`] ?? 0;
@@ -687,7 +687,7 @@ const activeIcon = computed(() => {
   return p ? getProviderIcon(p, providerPresets.value) : "";
 });
 
-function pickModel(e: FlatEntry) {
+function pickTranslationModel(e: FlatEntry) {
   const mode = appConfig.active_mode || "translate";
   (appConfig as any)[`${mode}_active_provider_index`] = e.pIndex;
   (appConfig as any)[`${mode}_active_model_index`] = e.mIndex;
@@ -736,7 +736,7 @@ function onDocClick(e: MouseEvent) {
   if (!t.closest(".sel-menu") && !t.closest(".sel-btn"))
     showAppLangMenu.value = false;
   if (!t.closest(".lang-menu") && !t.closest(".lang-btn"))
-    showLangSelector.value = false;
+    translationShowLangSelector.value = false;
   if (!t.closest(".preset-menu") && !t.closest(".preset-mini-btn")) {
     showPresetMenu.value = false;
     presetMenuIndex.value = null;
@@ -1242,8 +1242,8 @@ onUnmounted(() => {
             :class="{ dead: allFlat.length === 0 }"
             @click="toggleSelMenu()"
           >
-            <ProviderIcon v-if="allFlat.length > 0 && activeIcon" :icon="activeIcon" :size="14" class="sel-icon" />
-            <span class="sel-text">{{ allFlat.length === 0 ? t('settings.noModelsAvailable') : activeLabel }}</span>
+            <ProviderIcon v-if="allFlat.length > 0 && translationActiveIcon" :icon="translationActiveIcon" :size="14" class="sel-icon" />
+            <span class="sel-text">{{ allFlat.length === 0 ? t('settings.noModelsAvailable') : translationActiveLabel }}</span>
             <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showModelSelector }" />
           </button>
 
@@ -1256,7 +1256,7 @@ onUnmounted(() => {
                     v-for="e in allFlat" :key="e.pIndex + '-' + e.mIndex"
                     class="sel-opt"
                     :class="{ hit: isTranslationModelActive(e.pIndex, e.mIndex) }"
-                    @click="pickModel(e)"
+                    @click="pickTranslationModel(e)"
                   >
                     <div class="opt-left"><ProviderIcon :icon="e.icon" :size="14" />
                     <div class="opt-info">
@@ -1281,32 +1281,32 @@ onUnmounted(() => {
         </div>
         <div class="sel-wrap">
           <button
-            ref="langBtnRef"
+            ref="translationLangBtnRef"
             class="sel-btn lang-btn"
-            @click="toggleLangMenu()"
+            @click="toggleTranslationLangMenu()"
           >
             <span class="sel-text">{{ getLangName(appConfig.target_lang) }}</span>
-            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showLangSelector }" />
+            <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: translationShowLangSelector }" />
           </button>
 
           <Teleport to="body">
             <Transition name="drop">
-              <div v-if="showLangSelector" class="sel-menu lang-menu" :style="{ top: langMenuPos.top + 'px', left: langMenuPos.left + 'px' }">
+              <div v-if="translationShowLangSelector" class="sel-menu lang-menu" :style="{ top: translationLangMenuPos.top + 'px', left: translationLangMenuPos.left + 'px' }">
                 <div class="sel-clip settings-scrollbar">
                 <draggable
-                  :list="langItems"
+                  :list="translationLangItems"
                   item-key="id"
                   handle=".lang-drag-handle"
                   :force-fallback="true"
                   fallback-class="hidden-drag-ghost"
                   ghost-class="lang-ghost"
-                  @end="onLangDragEnd"
+                  @end="onTranslationLangDragEnd"
                 >
                   <template #item="{ element }">
                     <div
                       class="sel-opt lang-opt"
                       :class="{ hit: element.name === appConfig.target_lang }"
-                      @click="pickLang(element.name)"
+                      @click="pickTranslationLang(element.name)"
                     >
                       <span class="lang-drag-handle"><GripVertical :size="11" :stroke-width="1.8" /></span>
                       <span class="opt-label">{{ getLangName(element.name) }}</span>
@@ -1315,7 +1315,7 @@ onUnmounted(() => {
                         <button
                           v-if="element.isCustom"
                           class="lang-item-delete"
-                          @click.stop="deleteCustomLang(element.name)"
+                          @click.stop="deleteTranslationCustomLang(element.name)"
                           :title="t('settings.removeLanguage')"
                         >
                           <Trash2 :size="11" :stroke-width="1.8" />
@@ -1327,29 +1327,29 @@ onUnmounted(() => {
 
                 <!-- Add language -->
                 <div class="lang-sep"></div>
-                <div v-if="showAddLang" class="lang-add-row">
+                <div v-if="translationShowAddLang" class="lang-add-row">
                   <input
-                    v-model="newLangInput"
+                    v-model="translationNewLangInput"
                     class="lang-add-input"
                     :placeholder="t('settings.languageName')"
-                    @keydown.enter="addCustomLang"
+                    @keydown.enter="addTranslationCustomLang"
                     @click.stop
-                    ref="langAddInputRef"
+                    ref="translationLangAddInputRef"
                   />
-                  <button class="lang-add-confirm" @click="addCustomLang" :disabled="!newLangInput.trim()">
+                  <button class="lang-add-confirm" @click="addTranslationCustomLang" :disabled="!translationNewLangInput.trim()">
                     <Check :size="12" :stroke-width="2.5" />
                   </button>
-                  <button class="lang-add-cancel" @click="showAddLang = false; newLangInput = ''">
+                  <button class="lang-add-cancel" @click="translationShowAddLang = false; translationNewLangInput = ''">
                     <X :size="12" :stroke-width="2" />
                   </button>
                 </div>
-                <button v-else class="lang-add-btn" @click="showAddLang = true">
+                <button v-else class="lang-add-btn" @click="translationShowAddLang = true">
                   <Plus :size="11" :stroke-width="2" />{{ t('settings.addLanguage') }}
                 </button>
 
                 <!-- Restore default order -->
-                <button class="lang-restore-btn" @click="restoreDefaultOrder">
-                  <RotateCcw :size="10" :stroke-width="1.8" />{{ t('settings.restoreDefaultOrder') }}
+                <button class="lang-restore-btn" @click="restoreTranslationDefaultOrder">
+                  <RotateCcw :size="10" :stroke-width="1.8" />{{ t('settings.restoreTranslationDefaultOrder') }}
                 </button>
                 </div>
               </div>
@@ -1368,7 +1368,7 @@ onUnmounted(() => {
               class="about-auto-btn"
               :class="{ 'toggle-on': appConfig.user_dict_enabled }"
               :disabled="!dictStore.hasEntries"
-              @click="toggleDict($event)"
+              @click="toggleTranslationDict($event)"
             >
               <ToggleRight v-if="appConfig.user_dict_enabled" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
@@ -1395,7 +1395,7 @@ onUnmounted(() => {
           :icon="UserCircle"
           :empty-message="t('settings.noPersonasYet')"
           :empty-sub-message="t('settings.addOneToCustomize')"
-          :validate="validatePersona"
+          :validate="validateTranslationPersona"
           :builtin-drag-handle="false"
           @add="Object.assign($event, { name: '', prompt: '', enabled: false })"
           @confirm="() => persistPersonas()"
@@ -1405,7 +1405,7 @@ onUnmounted(() => {
             <span class="card-drag-handle prov-drag-logo" @click.stop>
               <GripVertical :size="13" :stroke-width="1.8" />
             </span>
-            <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="togglePersona(index, $event)">
+            <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="toggleTranslationPersona(index, $event)">
               <ToggleRight v-if="item.enabled" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
             </button>
@@ -1431,7 +1431,7 @@ onUnmounted(() => {
                 class="persona-wand-btn"
                 :class="{ active: optimizingIndex === index }"
                 :title="t('settings.optimizePrompt')"
-                @click.stop="handleOptimizePrompt(item, index)"
+                @click.stop="handleTranslationOptimizePrompt(item, index)"
               >
                 <Loader2
                   v-if="optimizingIndex === index"
@@ -1538,7 +1538,7 @@ onUnmounted(() => {
                 class="persona-wand-btn"
                 :class="{ active: optimizingIndex === index }"
                 :title="t('settings.organizePrompt')"
-                @click.stop="handleOrganizePrompt(item, index)"
+                @click.stop="handleSparkleOptimizePrompt(item, index)"
               >
                 <Loader2
                   v-if="optimizingIndex === index"
