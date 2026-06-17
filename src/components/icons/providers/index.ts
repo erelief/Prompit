@@ -1,5 +1,6 @@
 import type { Component } from 'vue'
 import OpenAI from './OpenAI.vue'
+import OpenCode from './OpenCode.vue'
 import DeepSeek from './DeepSeek.vue'
 import Moonshot from './Moonshot.vue'
 import Kimi from './Kimi.vue'
@@ -20,6 +21,7 @@ import OpenRouter from './OpenRouter.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
+  opencode: OpenCode,
   deepseek: DeepSeek,
   moonshot: Moonshot,
   kimi: Kimi,

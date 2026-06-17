@@ -156,6 +156,32 @@
       }
     },
     {
+      "name": "OpenCode Zen",
+      "provider_name": "OpenCode Zen",
+      "icon": "opencode",
+      "base_url": "https://opencode.ai/zen/v1",
+      "api_url": "https://opencode.ai/auth",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "OpenCode Go",
+      "provider_name": "OpenCode Go",
+      "icon": "opencode",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "api_url": "https://opencode.ai/auth",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
       "name": "OpenRouter",
       "provider_name": "OpenRouter",
       "icon": "openrouter",
