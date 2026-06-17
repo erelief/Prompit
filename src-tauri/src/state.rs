@@ -15,12 +15,14 @@ impl Drop for DataDir {
 
 pub struct WindowConfig {
     pub grow_above: AtomicBool,
+    pub pinned: AtomicBool,
 }
 
 impl Default for WindowConfig {
     fn default() -> Self {
         Self {
             grow_above: AtomicBool::new(false),
+            pinned: AtomicBool::new(false),
         }
     }
 }
@@ -32,6 +34,14 @@ impl WindowConfig {
 
     pub fn get_grow_above(&self) -> bool {
         self.grow_above.load(Ordering::Relaxed)
+    }
+
+    pub fn set_pinned(&self, value: bool) {
+        self.pinned.store(value, Ordering::Relaxed);
+    }
+
+    pub fn is_pinned(&self) -> bool {
+        self.pinned.load(Ordering::Relaxed)
     }
 }
 

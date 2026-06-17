@@ -108,6 +108,7 @@ pub fn run() {
             commands::window::show_onboarding_window,
             commands::window::show_startup_reminder_window,
             commands::window::get_grow_above,
+            commands::window::set_main_pinned,
             commands::window::reset_app_data,
             commands::clipboard::simulate_paste,
             commands::config_cmd::read_config,

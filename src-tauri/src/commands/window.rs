@@ -164,3 +164,8 @@ pub fn reset_app_data(app: AppHandle) -> Result<(), String> {
 pub fn get_grow_above(app: AppHandle) -> bool {
     app.state::<WindowConfig>().get_grow_above()
 }
+
+#[tauri::command]
+pub fn set_main_pinned(app: AppHandle, pinned: bool) {
+    app.state::<WindowConfig>().set_pinned(pinned);
+}

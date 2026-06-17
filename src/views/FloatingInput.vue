@@ -11,7 +11,7 @@ import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyS
 import type { ProviderPreset } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import { translate } from "../services/llm-client";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, Pin, PinOff } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquare } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
@@ -30,6 +30,7 @@ const growAbove = ref(false);
 const pinned = ref(false);
 function togglePin() {
   pinned.value = !pinned.value;
+  invoke("set_main_pinned", { pinned: pinned.value });
 }
 const chevronTransform = (open: boolean) =>
   `rotate(${open === growAbove.value ? 0 : 180}deg)`;
@@ -594,8 +595,8 @@ useShortcutTriggered(() => {
               :class="{ 'pin-active': pinned }"
               :title="pinned ? t('common.keepOpenAfterSend') : t('common.closeAfterSend')"
             >
-              <Pin v-if="pinned" :size="14" :stroke-width="1.8" />
-              <PinOff v-else :size="14" :stroke-width="1.8" />
+              <MessageSquareLock v-if="pinned" :size="14" :stroke-width="1.8" />
+              <MessageSquare v-else :size="14" :stroke-width="1.8" />
             </button>
 
             <button
@@ -708,8 +709,8 @@ useShortcutTriggered(() => {
               :class="{ 'pin-active': pinned }"
               :title="pinned ? t('common.keepOpenAfterSend') : t('common.closeAfterSend')"
             >
-              <Pin v-if="pinned" :size="14" :stroke-width="1.8" />
-              <PinOff v-else :size="14" :stroke-width="1.8" />
+              <MessageSquareLock v-if="pinned" :size="14" :stroke-width="1.8" />
+              <MessageSquare v-else :size="14" :stroke-width="1.8" />
             </button>
 
             <button

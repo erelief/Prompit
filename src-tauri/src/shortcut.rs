@@ -150,7 +150,18 @@ pub fn register(app: &AppHandle, shortcut_str: &str) -> Result<(), Box<dyn std::
                     if is_startup_reminder {
                         let _ = main_window.eval("window.location.hash = '/'");
                     } else {
-                        let _ = main_window.hide();
+                        // Pinned: keep window open and re-capture input state instead of hiding.
+                        let pinned = app_handle
+                            .try_state::<crate::state::WindowConfig>()
+                            .map(|c| c.is_pinned())
+                            .unwrap_or(false);
+                        if pinned {
+                            let _ = main_window.eval("window.location.hash = '/'");
+                            let _ = main_window.set_focus();
+                            let _ = main_window.emit("shortcut-triggered", ());
+                        } else {
+                            let _ = main_window.hide();
+                        }
                     }
                 } else {
                     let grow_above = match compute_position(&main_window) {
