@@ -70,8 +70,8 @@ export interface ModeDefinition {
 export interface AppConfig {
   providers: ProviderConfig[];
   active_mode: string;
-  translation_active_provider_index: number;
-  translation_active_model_index: number;
+  translate_active_provider_index: number;
+  translate_active_model_index: number;
   target_lang: string;
   user_dict_enabled: boolean;
   custom_languages: string[];
@@ -89,8 +89,8 @@ export interface AppConfig {
 const defaultConfig: AppConfig = {
   providers: [],
   active_mode: "translate",
-  translation_active_provider_index: 0,
-  translation_active_model_index: 0,
+  translate_active_provider_index: 0,
+  translate_active_model_index: 0,
   target_lang: "English",
   user_dict_enabled: false,
   custom_languages: [],
@@ -106,6 +106,45 @@ const defaultConfig: AppConfig = {
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
+
+// ── Centralized auto-save ──
+// appConfig is a single reactive instance shared across all views, so config
+// only needs to be loaded once (at startup in main.ts) and saved from one
+// place. Changes are debounced (150ms) to coalesce rapid mutations (drag
+// reorders, opacity slider, typing), but critical ops flush immediately.
+let _saveEnabled = false;
+let _saveTimer: ReturnType<typeof setTimeout> | null = null;
+const SAVE_DEBOUNCE_MS = 150;
+
+/** Schedules a debounced save. Safe to call repeatedly; collapses bursts. */
+function scheduleSave(): void {
+  if (!_saveEnabled) return;
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    _saveTimer = null;
+    saveConfig();
+  }, SAVE_DEBOUNCE_MS);
+}
+
+/** Cancels any pending debounced save and writes to disk immediately. */
+export async function flushConfigSave(): Promise<void> {
+  if (!_saveEnabled) return;
+  if (_saveTimer) {
+    clearTimeout(_saveTimer);
+    _saveTimer = null;
+  }
+  await saveConfig();
+}
+
+/** Enables debounced auto-save. Called once after initial load completes. */
+export function enableConfigAutosave(): void {
+  if (_saveEnabled) return;
+  _saveEnabled = true;
+  watch(
+    () => JSON.stringify(appConfig),
+    () => { scheduleSave(); },
+  );
+}
 
 export const dictStore = reactive({
   hasEntries: false,
@@ -253,6 +292,14 @@ export async function loadConfig(): Promise<void> {
       anyLoaded.translation_active_model_index = anyLoaded.active_model_index;
       delete anyLoaded.active_provider_index;
       delete anyLoaded.active_model_index;
+    }
+    // Migration: old field name `translation_active_*` → `translate_active_*`
+    // (to match the `active_mode` id "translate" used for dynamic field access).
+    if (anyLoaded.translation_active_provider_index !== undefined && anyLoaded.translate_active_provider_index === undefined) {
+      anyLoaded.translate_active_provider_index = anyLoaded.translation_active_provider_index;
+      anyLoaded.translate_active_model_index = anyLoaded.translation_active_model_index;
+      delete anyLoaded.translation_active_provider_index;
+      delete anyLoaded.translation_active_model_index;
     }
     if (!anyLoaded.active_mode) {
       anyLoaded.active_mode = "translate";

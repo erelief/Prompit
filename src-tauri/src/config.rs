@@ -91,10 +91,14 @@ pub struct AppConfig {
     pub providers: Vec<ProviderConfig>,
     #[serde(default)]
     pub active_mode: String,
+    #[serde(default, alias = "translation_active_provider_index")]
+    pub translate_active_provider_index: usize,
+    #[serde(default, alias = "translation_active_model_index")]
+    pub translate_active_model_index: usize,
     #[serde(default)]
-    pub translation_active_provider_index: usize,
+    pub sparkle_active_provider_index: usize,
     #[serde(default)]
-    pub translation_active_model_index: usize,
+    pub sparkle_active_model_index: usize,
     #[serde(default = "default_target_lang")]
     pub target_lang: String,
     #[serde(default)]
@@ -144,8 +148,10 @@ impl Default for AppConfig {
         Self {
             providers: vec![],
             active_mode: "translate".to_string(),
-            translation_active_provider_index: 0,
-            translation_active_model_index: 0,
+            translate_active_provider_index: 0,
+            translate_active_model_index: 0,
+            sparkle_active_provider_index: 0,
+            sparkle_active_model_index: 0,
             target_lang: "English".to_string(),
             user_dict_enabled: false,
             custom_languages: vec![],
@@ -186,8 +192,10 @@ mod tests {
                 api_format: None,
             }],
             active_mode: "translate".to_string(),
-            translation_active_provider_index: 0,
-            translation_active_model_index: 0,
+            translate_active_provider_index: 0,
+            translate_active_model_index: 0,
+            sparkle_active_provider_index: 0,
+            sparkle_active_model_index: 0,
             target_lang: "Japanese".to_string(),
             user_dict_enabled: false,
             custom_languages: vec!["Klingon".to_string()],
@@ -252,5 +260,54 @@ mod tests {
             let config: AppConfig = serde_json::from_str(&json).unwrap();
             assert_eq!(config.theme, *theme);
         }
+    }
+
+    #[test]
+    fn test_per_mode_active_indices_survive_roundtrip() {
+        // Both translate_active_* and sparkle_active_* must persist through a
+        // save_config → read_config cycle. Field names must match the
+        // `active_mode` ids ("translate"/"sparkle") used for dynamic access.
+        let json = r#"{
+            "providers": [],
+            "active_mode": "sparkle",
+            "translate_active_provider_index": 3,
+            "translate_active_model_index": 1,
+            "sparkle_active_provider_index": 2,
+            "sparkle_active_model_index": 4,
+            "target_lang": "English"
+        }"#;
+        let config: AppConfig = serde_json::from_str(json).unwrap();
+        let written = serde_json::to_string_pretty(&config).unwrap();
+        let reloaded: AppConfig = serde_json::from_str(&written).unwrap();
+
+        assert_eq!(reloaded.translate_active_provider_index, 3);
+        assert_eq!(reloaded.translate_active_model_index, 1);
+        assert_eq!(reloaded.sparkle_active_provider_index, 2);
+        assert_eq!(reloaded.sparkle_active_model_index, 4);
+        // Written JSON must use the new names.
+        assert!(written.contains("translate_active_provider_index"));
+        assert!(written.contains("translate_active_model_index"));
+        assert!(written.contains("sparkle_active_provider_index"));
+        assert!(written.contains("sparkle_active_model_index"));
+    }
+
+    #[test]
+    fn test_legacy_translation_active_alias_migrates() {
+        // Old config files used `translation_active_*` (note: "translation").
+        // The new field is `translate_active_*`; serde alias keeps reads working.
+        let json = r#"{
+            "providers": [],
+            "active_mode": "translate",
+            "translation_active_provider_index": 3,
+            "translation_active_model_index": 2,
+            "target_lang": "English"
+        }"#;
+        let config: AppConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(config.translate_active_provider_index, 3);
+        assert_eq!(config.translate_active_model_index, 2);
+        // Once re-serialized, the new name is written (migration is one-way).
+        let written = serde_json::to_string(&config).unwrap();
+        assert!(written.contains("translate_active_provider_index"));
+        assert!(!written.contains("translation_active_"));
     }
 }

@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import App from "./App.vue";
 import router from "./router";
 import i18n from "./i18n";
-import { loadConfig, loadSparkles, appConfig } from "./stores/config";
+import { loadConfig, loadSparkles, appConfig, enableConfigAutosave } from "./stores/config";
 import { initTheme } from "./composables/useTheme";
 import "./style.css";
 
@@ -27,6 +27,9 @@ router.afterEach((to) => {
 router.isReady().then(async () => {
   // Load config first so theme is known before first paint
   await loadConfig();
+  // Enable debounced auto-save after initial load so the initial values
+  // don't trigger an immediate write-back, and all views share one save path.
+  enableConfigAutosave();
   initTheme();
   await loadSparkles();
 

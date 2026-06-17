@@ -7,7 +7,7 @@ import { burstParticles, popElement } from "../utils/burstParticles";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
-import { loadConfig, saveConfig, getActiveModel, appConfig, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon } from "../stores/config";
+import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon } from "../stores/config";
 import type { ProviderPreset } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import { translate } from "../services/llm-client";
@@ -101,6 +101,7 @@ function selectModel(pIndex: number, mIndex: number) {
   (appConfig as any)[`${mode}_active_model_index`] = mIndex;
   showModelDropdown.value = false;
   handleResultStale();
+  flushConfigSave();
 }
 
 // Flatten all provider models for dropdown: [{pIndex, mIndex, id}]
@@ -347,7 +348,9 @@ function clearAll() {
 onMounted(async () => {
   lastSentHeight = 0;
 
-  await loadConfig();
+  // Config is loaded once at startup (main.ts) and shared as a single reactive
+  // instance across all views — do not reload here, or disk (possibly stale)
+  // would overwrite in-memory edits made in other views.
   refreshDictStatus();
   await loadHistory();
   loadProviderPresets().then(p => { floatingPresets.value = p; }).catch(console.error);
@@ -390,12 +393,7 @@ onMounted(async () => {
   }
 });
 
-// Auto-save config changes to disk
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
-watch(() => JSON.stringify(appConfig), () => {
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => { saveConfig(); }, 800);
-});
+// Config auto-save is centralized in stores/config.ts (enabled at startup).
 
 onUnmounted(() => {
   document.removeEventListener("mousedown", onDocumentClick);

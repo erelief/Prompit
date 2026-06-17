@@ -8,8 +8,7 @@ import {
   appConfig,
   personaStore,
   sparkleStore,
-  loadConfig,
-  saveConfig as persistConfig,
+  flushConfigSave,
   savePersonas as persistPersonas,
   saveSparkles as persistSparkles,
   getOrderedLanguages,
@@ -41,6 +40,7 @@ import {
   EyeOff,
   Link2,
   Loader2,
+  Wand2,
   RefreshCw,
   ChevronDown,
   Pencil,
@@ -497,7 +497,7 @@ function onTranslationLangDragEnd() {
 }
 
 function onProviderDragEnd({ indexMap }: { indexMap: Map<number, number> }) {
-  appConfig.translation_active_provider_index = indexMap.get(appConfig.translation_active_provider_index) ?? 0;
+  appConfig.translate_active_provider_index = indexMap.get(appConfig.translate_active_provider_index) ?? 0;
 
   const re = new Map<number, ProviderEditState>();
   for (const [k, v] of editStates.value) {
@@ -542,17 +542,15 @@ function toggleKeyVisibility(index: number) {
 }
 
 async function load() {
-  try { await loadConfig(); }
-  catch (err) { console.error("Failed to load config:", err); }
+  // Config is loaded once at startup (main.ts) and shared as a single reactive
+  // instance across all views — do not reload here, or disk (possibly stale)
+  // would overwrite in-memory edits made in other views.
   refreshDictStatus();
 }
 
 // ── Auto-save (instant) ──
-watch(
-  () => JSON.stringify(appConfig),
-  () => { persistConfig(); },
-);
-
+// Config auto-save is centralized in stores/config.ts (enabled at startup).
+// Personas/sparkles still auto-persist here.
 watch(
   () => JSON.stringify(personaStore.personas),
   () => { persistPersonas(); },
@@ -581,7 +579,7 @@ function onProviderConfirm({ index }: { index: number }) {
     editStates.value = new Map(editStates.value);
   }
   if (testingProvider.value === -1) testingProvider.value = index;
-  persistConfig();
+  flushConfigSave();
 }
 
 function onProviderCancel() {
@@ -597,11 +595,11 @@ function onProviderRemove({ index, indexMap }: { index: number; indexMap: Map<nu
     if (m !== undefined) re.set(m, v);
   }
   editStates.value = re;
-  if (appConfig.translation_active_provider_index >= appConfig.providers.length)
-    appConfig.translation_active_provider_index = Math.max(0, appConfig.providers.length - 1);
-  const ap = appConfig.providers[appConfig.translation_active_provider_index];
-  if (ap && appConfig.translation_active_model_index >= ap.models.length)
-    appConfig.translation_active_model_index = Math.max(0, ap.models.length - 1);
+  if (appConfig.translate_active_provider_index >= appConfig.providers.length)
+    appConfig.translate_active_provider_index = Math.max(0, appConfig.providers.length - 1);
+  const ap = appConfig.providers[appConfig.translate_active_provider_index];
+  if (ap && appConfig.translate_active_model_index >= ap.models.length)
+    appConfig.translate_active_model_index = Math.max(0, ap.models.length - 1);
 }
 
 function removeModel(item: ProviderConfig, mIndex: number) {
@@ -665,37 +663,33 @@ const allFlat = computed<FlatEntry[]>(() => {
 });
 
 const translationActiveLabel = computed(() => {
-  const mode = appConfig.active_mode || "translate";
-  const config = appConfig as any;
-  const pi = config[`${mode}_active_provider_index`] ?? 0;
-  const mi = config[`${mode}_active_model_index`] ?? 0;
   const { providers } = appConfig;
+  const pi = appConfig.translate_active_provider_index;
+  const mi = appConfig.translate_active_model_index;
   if (pi >= providers.length) return "None";
   const p = providers[pi];
   if (!p || mi >= p.models.length) return "None";
   return p.models[mi].id;
 });
 
-// Icon of the currently-selected model for the active mode (translate/inspiration)
+// Icon of the currently-selected translation model
 const translationActiveIcon = computed(() => {
-  const mode = appConfig.active_mode || "translate";
-  const config = appConfig as any;
-  const pi = config[`${mode}_active_provider_index`] ?? 0;
   const { providers } = appConfig;
+  const pi = appConfig.translate_active_provider_index;
   if (pi >= providers.length) return "";
   const p = providers[pi];
   return p ? getProviderIcon(p, providerPresets.value) : "";
 });
 
 function pickTranslationModel(e: FlatEntry) {
-  const mode = appConfig.active_mode || "translate";
-  (appConfig as any)[`${mode}_active_provider_index`] = e.pIndex;
-  (appConfig as any)[`${mode}_active_model_index`] = e.mIndex;
+  appConfig.translate_active_provider_index = e.pIndex;
+  appConfig.translate_active_model_index = e.mIndex;
   showModelSelector.value = false;
+  flushConfigSave();
 }
 
 function isTranslationModelActive(pIndex: number, mIndex: number): boolean {
-  return pIndex === appConfig.translation_active_provider_index && mIndex === appConfig.translation_active_model_index;
+  return pIndex === appConfig.translate_active_provider_index && mIndex === appConfig.translate_active_model_index;
 }
 
 function isSparkleModelActive(pIndex: number, mIndex: number): boolean {
@@ -725,6 +719,7 @@ function pickSparkleModel(e: FlatEntry) {
   appConfig.sparkle_active_provider_index = e.pIndex;
   appConfig.sparkle_active_model_index = e.mIndex;
   showModelSelector.value = false;
+  flushConfigSave();
 }
 
 // ── Click outside panels ──
