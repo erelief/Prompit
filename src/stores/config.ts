@@ -309,6 +309,7 @@ export async function loadConfig(): Promise<void> {
     if (appConfig.target_lang === "Chinese") {
       appConfig.target_lang = "Simplified Chinese";
     }
+    normalizeActiveModelIndices();
     i18n.global.locale.value = appConfig.app_lang as any;
     await loadSecrets();
     await loadPersonas();
@@ -517,6 +518,45 @@ export const MODES: ModeDefinition[] = [
 export function getCurrentMode(): ModeDefinition {
   return MODES.find(m => m.id === appConfig.active_mode) || MODES[0];
 }
+
+/**
+ * Ensures each mode's stored active provider/model indices still point at a
+ * real model. When they don't (e.g. the selected model or its provider was
+ * deleted), falls back to the first available model across all providers —
+ * matching the order of the flattened "model list" shown in the UI — instead
+ * of leaving the mode pointing at nothing ("None" / a vanished button).
+ * No-op when there are no providers or no models at all anywhere.
+ */
+export function normalizeActiveModelIndices(): void {
+  const providers = appConfig.providers;
+  if (providers.length === 0) return;
+  // First provider (in flattened order) that exposes at least one model.
+  const fallbackPi = providers.findIndex(p => p.models.length > 0);
+  if (fallbackPi < 0) return;
+
+  const config = appConfig as any;
+  for (const mode of MODES) {
+    const piKey = `${mode.id}_active_provider_index`;
+    const miKey = `${mode.id}_active_model_index`;
+    const pi = config[piKey] ?? 0;
+    const mi = config[miKey] ?? 0;
+    const prov = providers[pi];
+    const valid = prov && prov.models.length > 0 && mi < prov.models.length;
+    if (!valid) {
+      config[piKey] = fallbackPi;
+      config[miKey] = 0;
+    }
+  }
+}
+
+// Re-normalize indices when the provider/model structure shrinks at runtime
+// (e.g. user deletes the active model in Settings) so no mode is left pointing
+// at a non-existent model. Depends only on per-provider model counts + provider
+// count, so reorders/renames (same counts) don't trigger it.
+watch(
+  () => appConfig.providers.length + ":" + appConfig.providers.map(p => p.models.length).join(","),
+  () => { normalizeActiveModelIndices(); },
+);
 
 // ── History ──
 export interface HistoryEntry {
