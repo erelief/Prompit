@@ -941,7 +941,7 @@ onUnmounted(() => {
 
               <div class="field">
                 <label>{{ t('settings.baseUrl') }}</label>
-                <input v-model="item.base_url" class="fi" placeholder="https://api.openai.com/v1" @click.stop />
+                <input v-model="item.base_url" class="fi" placeholder="https://api.example.com/v1" @click.stop />
               </div>
             </div>
 

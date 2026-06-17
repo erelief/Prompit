@@ -435,6 +435,7 @@ onMounted(async () => {
                 type="text"
                 class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
                 style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
+                placeholder="https://api.example.com/v1"
               />
             </div>
 
