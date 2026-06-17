@@ -11,7 +11,7 @@ import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyS
 import type { ProviderPreset } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import { translate } from "../services/llm-client";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquare } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
@@ -315,11 +315,16 @@ async function handlePasteResult() {
   const text = translatedText.value;
   if (!text) return;
 
-  if (!pinned.value) {
+  if (pinned.value) {
+    // Pinned: single atomic command hides → pastes → restores the window, so
+    // there's only one IPC round-trip and the hidden window period is minimized.
+    await invoke("paste_pinned", { text });
+    clearAll();
+  } else {
     await invoke("hide_main_window");
+    await invoke("simulate_paste", { text });
+    clearAll();
   }
-  await invoke("simulate_paste", { text });
-  clearAll();
 }
 
 async function handleHide() {
@@ -596,7 +601,7 @@ useShortcutTriggered(() => {
               :title="pinned ? t('common.keepOpenAfterSend') : t('common.closeAfterSend')"
             >
               <MessageSquareLock v-if="pinned" :size="14" :stroke-width="1.8" />
-              <MessageSquare v-else :size="14" :stroke-width="1.8" />
+              <MessageSquareShare v-else :size="14" :stroke-width="1.8" />
             </button>
 
             <button
@@ -710,7 +715,7 @@ useShortcutTriggered(() => {
               :title="pinned ? t('common.keepOpenAfterSend') : t('common.closeAfterSend')"
             >
               <MessageSquareLock v-if="pinned" :size="14" :stroke-width="1.8" />
-              <MessageSquare v-else :size="14" :stroke-width="1.8" />
+              <MessageSquareShare v-else :size="14" :stroke-width="1.8" />
             </button>
 
             <button

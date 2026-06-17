@@ -111,6 +111,7 @@ pub fn run() {
             commands::window::set_main_pinned,
             commands::window::reset_app_data,
             commands::clipboard::simulate_paste,
+            commands::clipboard::paste_pinned,
             commands::config_cmd::read_config,
             commands::config_cmd::save_config,
             commands::config_cmd::get_config_dir,
