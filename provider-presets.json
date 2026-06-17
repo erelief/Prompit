@@ -12,6 +12,7 @@
       "name": "Agnes",
       "provider_name": "Agnes",
       "icon": "agnes",
+      "model_series": "Agnes",
       "base_url": "https://apihub.agnes-ai.com/v1",
       "api_url": "https://platform.agnes-ai.com/settings/apiKeys",
       "api_format": {
@@ -75,6 +76,7 @@
       "name": "DeepSeek",
       "provider_name": "DeepSeek",
       "icon": "deepseek",
+      "model_series": "Deepseek",
       "base_url": "https://api.deepseek.com",
       "api_url": "https://platform.deepseek.com/apikeys",
       "api_format": {
@@ -102,6 +104,7 @@
       "name": "Kimi",
       "provider_name": "Kimi",
       "icon": "kimi",
+      "model_series": "Kimi",
       "base_url": "https://api.moonshot.cn/v1",
       "api_url": "https://platform.kimi.com/console/api-keys",
       "api_format": {
@@ -128,6 +131,7 @@
       "name": "MINIMAX (CN)",
       "provider_name": "MINIMAX (CN)",
       "icon": "minimax",
+      "model_series": "Minimax",
       "base_url": "https://api.minimaxi.com/v1",
       "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key",
       "api_format": {
@@ -144,6 +148,19 @@
       "model_series": "ChatGPT",
       "base_url": "https://api.openai.com/v1",
       "api_url": "https://platform.openai.com/apikeys",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "OpenRouter",
+      "provider_name": "OpenRouter",
+      "icon": "openrouter",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_url": "https://openrouter.ai/settings/keys",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
@@ -194,10 +211,10 @@
       }
     },
     {
-      "name": "Xiaomi MIMO",
-      "provider_name": "Xiaomi MIMO",
+      "name": "Xiaomi MiMo",
+      "provider_name": "Xiaomi MiMo",
       "icon": "mimo",
-      "model_series": "MIMO",
+      "model_series": "MiMo",
       "base_url": "https://api.xiaomimimo.com/v1",
       "api_url": "https://platform.xiaomimimo.com/console/api-keys",
       "api_format": {
@@ -208,10 +225,10 @@
       }
     },
     {
-      "name": "Xiaomi MIMO Token Plan",
-      "provider_name": "Xiaomi MIMO Token Plan",
+      "name": "Xiaomi MiMo Token Plan",
+      "provider_name": "Xiaomi MiMo Token Plan",
       "icon": "mimo",
-      "model_series": "MIMO",
+      "model_series": "MiMo",
       "base_url": "https://token-plan-cn.xiaomimimo.com/v1",
       "api_url": "https://platform.xiaomimimo.com/console/plan-manage",
       "api_format": {
@@ -222,8 +239,36 @@
       }
     },
     {
-      "name": "Zhipu (BigModel)",
-      "provider_name": "Zhipu (BigModel)",
+      "name": "Z.AI",
+      "provider_name": "Z.AI",
+      "icon": "zhipu",
+      "model_series": "GLM",
+      "base_url": "https://api.z.ai/api/paas/v4/",
+      "api_url": "https://z.ai/manage-apikey/apikey-list",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "GLM Coding Plan",
+      "provider_name": "GLM Coding Plan",
+      "icon": "zhipu",
+      "model_series": "GLM",
+      "base_url": "https://api.z.ai/api/coding/paas/v4",
+      "api_url": "https://z.ai/manage-apikey/apikey-list",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "智谱|BigModel",
+      "provider_name": "智谱|BigModel",
       "icon": "zhipu",
       "model_series": "GLM",
       "base_url": "https://open.bigmodel.cn/api/paas/v4",
@@ -236,8 +281,8 @@
       }
     },
     {
-      "name": "Zhipu Coding Plan (BigModel)",
-      "provider_name": "Zhipu Coding Plan (BigModel)",
+      "name": "智谱|BigModel Coding Plan",
+      "provider_name": "智谱|BigModel Coding Plan",
       "icon": "zhipu",
       "model_series": "GLM",
       "base_url": "https://open.bigmodel.cn/api/coding/paas/v4",

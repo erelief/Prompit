@@ -13,9 +13,10 @@ import Qwen from './Qwen.vue'
 import Bailian from './Bailian.vue'
 import xAI from './xAI.vue'
 import Volcengine from './Volcengine.vue'
-import MIMO from './MIMO.vue'
+import MiMo from './MiMo.vue'
 import Step from './Step.vue'
 import Agnes from './Agnes.vue'
+import OpenRouter from './OpenRouter.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -32,7 +33,8 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   bailian: Bailian,
   xai: xAI,
   volcengine: Volcengine,
-  mimo: MIMO,
+  mimo: MiMo,
   step: Step,
   agnes: Agnes,
+  openrouter: OpenRouter,
 }
