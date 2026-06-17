@@ -189,6 +189,7 @@
   "onboarding": {
     "hello": "Hello",
     "selectLanguage": "Select your language",
+    "selectTheme": "Select theme",
     "welcomeTitle": "Welcome to Prompit",
     "infoTitle": "One more step",
     "infoBody": "Prompit uses AI models to power its features. You need to connect at least one model provider before you can start. Let's set one up now.",

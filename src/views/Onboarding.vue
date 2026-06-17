@@ -8,6 +8,7 @@ import {
   loadProviderPresets,
   saveConfig as persistConfig,
 } from "../stores/config";
+import { getTheme, setTheme } from "../composables/useTheme";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import {
@@ -26,6 +27,9 @@ import {
   PartyPopper,
   Link2,
   X,
+  Sun,
+  Moon,
+  SunMoon,
 } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -50,6 +54,12 @@ function selectAppLang(lang: string) {
 const currentAppLangLabel = computed(() => {
   return appLanguageOptions.find(o => o.value === appConfig.app_lang)?.label || "English";
 });
+
+const themeOptions = computed(() => [
+  { value: "light" as const, icon: Sun, label: t("settings.light") },
+  { value: "dark" as const, icon: Moon, label: t("settings.dark") },
+  { value: "system" as const, icon: SunMoon, label: t("settings.system") },
+]);
 
 const currentPresetLabel = computed(() => {
   if (!selectedPreset.value || selectedPreset.value === "Custom") return t('onboarding.custom');
@@ -349,6 +359,25 @@ onMounted(async () => {
                 </Transition>
               </div>
             </div>
+
+            <!-- Theme selector -->
+            <div class="w-full max-w-xs mt-6">
+              <label class="block text-xs font-medium mb-2 tracking-wide uppercase" style="color: var(--color-text-muted)">
+                {{ t('onboarding.selectTheme') }}
+              </label>
+              <div class="theme-toggle compact">
+                <button
+                  v-for="opt in themeOptions"
+                  :key="opt.value"
+                  class="theme-btn"
+                  :class="{ on: getTheme() === opt.value }"
+                  @click="setTheme(opt.value)"
+                >
+                  <component :is="opt.icon" :size="13" :stroke-width="1.8" />
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Step 1: Info -->
@@ -377,7 +406,10 @@ onMounted(async () => {
               </label>
               <div class="sel-wrap" style="position: relative">
                 <button class="sel-btn w-full" @click="showPresetMenu = !showPresetMenu">
-                  <span class="sel-text" :style="{ opacity: selectedPreset ? 1 : 0.5 }">{{ currentPresetLabel }}</span>
+                  <span class="flex items-center gap-2 min-w-0 flex-1">
+                    <ProviderIcon v-if="currentPresetObj?.icon" :icon="currentPresetObj.icon" :size="14" />
+                    <span class="sel-text" :style="{ opacity: selectedPreset ? 1 : 0.5 }">{{ currentPresetLabel }}</span>
+                  </span>
                   <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showPresetMenu }" />
                 </button>
                 <Transition name="drop">
@@ -754,4 +786,41 @@ div::-webkit-scrollbar-thumb {
 .opt-src{ font-size: 9px; color: var(--color-text-muted); letter-spacing: .02em; }
 .drop-enter-active,.drop-leave-active{ transition:opacity .14s ease,transform .14s ease; }
 .drop-enter-from,.drop-leave-to{ opacity:0; transform: translateY(-5px) scale(.967); }
+
+/* ── Theme toggle (mirrors Settings.vue) ── */
+.theme-toggle {
+  display: flex;
+  gap: 1px;
+  background: var(--color-border);
+  border-radius: 9px;
+  padding: 1px;
+}
+.theme-toggle.compact {
+  flex: 0 1 auto;
+  margin-bottom: 0;
+}
+.theme-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.theme-btn:hover {
+  color: var(--color-text-secondary);
+}
+.theme-btn.on {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
 </style>
