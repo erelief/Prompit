@@ -140,7 +140,7 @@
         "chat_endpoint": "/chat/completions",
         "models_endpoint": "/models"
       }
-    },
+    },z
     {
       "name": "MiniMax",
       "provider_name": "MiniMax",

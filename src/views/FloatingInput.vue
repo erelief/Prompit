@@ -11,7 +11,7 @@ import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyS
 import type { ProviderPreset } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import { translate } from "../services/llm-client";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, Pin, PinOff } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
@@ -27,6 +27,10 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const hasResult = ref(false);
 const isRestoringHistory = ref(false);
 const growAbove = ref(false);
+const pinned = ref(false);
+function togglePin() {
+  pinned.value = !pinned.value;
+}
 const chevronTransform = (open: boolean) =>
   `rotate(${open === growAbove.value ? 0 : 180}deg)`;
 const contentWrapRef = ref<HTMLDivElement | null>(null);
@@ -310,7 +314,9 @@ async function handlePasteResult() {
   const text = translatedText.value;
   if (!text) return;
 
-  await invoke("hide_main_window");
+  if (!pinned.value) {
+    await invoke("hide_main_window");
+  }
   await invoke("simulate_paste", { text });
   clearAll();
 }
@@ -581,17 +587,29 @@ useShortcutTriggered(() => {
 
           <div class="flex-1"></div>
 
-          <button
-            @click="handleOpenSettings"
-            class="icon-btn"
-            :title="t('common.settings')"
-          >
-            <Settings :size="14" :stroke-width="1.8" />
-          </button>
+          <div class="flex items-center gap-1">
+            <button
+              @click="togglePin"
+              class="icon-btn"
+              :class="{ 'pin-active': pinned }"
+              :title="pinned ? t('common.keepOpenAfterSend') : t('common.closeAfterSend')"
+            >
+              <Pin v-if="pinned" :size="14" :stroke-width="1.8" />
+              <PinOff v-else :size="14" :stroke-width="1.8" />
+            </button>
 
-          <button @click="handleHide" class="icon-btn" :title="t('common.hide')">
-            <X :size="14" :stroke-width="1.8" />
-          </button>
+            <button
+              @click="handleOpenSettings"
+              class="icon-btn"
+              :title="t('common.settings')"
+            >
+              <Settings :size="14" :stroke-width="1.8" />
+            </button>
+
+            <button @click="handleHide" class="icon-btn" :title="t('common.hide')">
+              <X :size="14" :stroke-width="1.8" />
+            </button>
+          </div>
         </div>
       </template>
 
@@ -683,17 +701,29 @@ useShortcutTriggered(() => {
 
           <div class="flex-1"></div>
 
-          <button
-            @click="handleOpenSettings"
-            class="icon-btn"
-            :title="t('common.settings')"
-          >
-            <Settings :size="14" :stroke-width="1.8" />
-          </button>
+          <div class="flex items-center gap-1">
+            <button
+              @click="togglePin"
+              class="icon-btn"
+              :class="{ 'pin-active': pinned }"
+              :title="pinned ? t('common.keepOpenAfterSend') : t('common.closeAfterSend')"
+            >
+              <Pin v-if="pinned" :size="14" :stroke-width="1.8" />
+              <PinOff v-else :size="14" :stroke-width="1.8" />
+            </button>
 
-          <button @click="handleHide" class="icon-btn" :title="t('common.hide')">
-            <X :size="14" :stroke-width="1.8" />
-          </button>
+            <button
+              @click="handleOpenSettings"
+              class="icon-btn"
+              :title="t('common.settings')"
+            >
+              <Settings :size="14" :stroke-width="1.8" />
+            </button>
+
+            <button @click="handleHide" class="icon-btn" :title="t('common.hide')">
+              <X :size="14" :stroke-width="1.8" />
+            </button>
+          </div>
         </div>
 
         <!-- Input area + inline send -->
@@ -955,6 +985,12 @@ useShortcutTriggered(() => {
 .icon-btn:hover {
   color: var(--color-text);
   background: var(--color-surface);
+}
+
+/* Pin button — accent-colored when pinned, to signal the window stays open */
+.icon-btn.pin-active {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
 }
 
 /* Mode switch button — accent-colored to stand out */
