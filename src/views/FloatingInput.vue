@@ -433,7 +433,7 @@ useShortcutTriggered(() => {
 <template>
   <div
     @mousedown="handleDrag"
-    class="w-full h-full flex justify-center overflow-hidden"
+    class="w-full h-[100dvh] flex justify-center overflow-hidden"
     :class="growAbove ? 'items-end' : 'items-start'"
     :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)' }"
   >
