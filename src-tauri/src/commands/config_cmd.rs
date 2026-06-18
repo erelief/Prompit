@@ -101,6 +101,7 @@ mod tests {
             show_startup_reminder: true,
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
+            launch_on_startup: false,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();

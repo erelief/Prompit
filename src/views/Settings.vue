@@ -64,6 +64,7 @@ import {
   Sparkles,
   Cloudy,
   Keyboard,
+  SlidersHorizontal,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -164,6 +165,26 @@ function toggleShortcutHint(e: MouseEvent) {
   const turning = !appConfig.show_startup_reminder;
   appConfig.show_startup_reminder = turning;
   if (turning) burstParticles(e.currentTarget as HTMLElement);
+}
+
+// ── Launch on startup (OS autostart registration) ──
+async function toggleLaunchOnStartup(e: MouseEvent) {
+  if (!isTauri) return;
+  const turning = !appConfig.launch_on_startup;
+  // Optimistically flip; revert on failure so the toggle reflects truth.
+  appConfig.launch_on_startup = turning;
+  try {
+    const { enable, disable } = await import("@tauri-apps/plugin-autostart");
+    if (turning) {
+      await enable();
+      burstParticles(e.currentTarget as HTMLElement);
+    } else {
+      await disable();
+    }
+  } catch (err) {
+    console.error("Toggle launch-on-startup failed:", err);
+    appConfig.launch_on_startup = !turning;
+  }
 }
 
 // ── Shortcut recorder ──
@@ -788,6 +809,14 @@ onMounted(async () => {
   load();
   loadProviderPresets().then(p => { providerPresets.value = p; }).catch(console.error);
   if (autoUpdate.value) checkForUpdate(true);
+  // Reconcile the launch-on-startup toggle with the actual OS entry, since the
+  // user may have disabled it outside the app (e.g. Task Manager → Startup).
+  if (isTauri) {
+    import("@tauri-apps/plugin-autostart")
+      .then(({ isEnabled }) => isEnabled())
+      .then((enabled) => { appConfig.launch_on_startup = enabled; })
+      .catch(() => { /* best-effort */ });
+  }
 });
 
 onUnmounted(() => {
@@ -1071,6 +1100,52 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
+          <!-- Language -->
+          <div class="card-row">
+            <span class="card-label">{{ t('settings.language') }}</span>
+            <div class="sel-wrap compact">
+              <button ref="appLangBtnRef" class="sel-btn" @click="toggleAppLangMenu()">
+                <Languages :size="13" class="sel-btn-icon" />
+                <span class="sel-text">{{ currentAppLangLabel }}</span>
+                <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showAppLangMenu }" />
+              </button>
+
+              <Teleport to="body">
+                <Transition name="drop">
+                  <div v-if="showAppLangMenu" class="sel-menu" :style="{ top: appLangMenuPos.top + 'px', left: appLangMenuPos.left + 'px', width: appLangMenuPos.width + 'px' }">
+                    <div class="sel-clip settings-scrollbar">
+                      <button
+                        v-for="opt in appLanguageOptions" :key="opt.value"
+                        class="sel-opt"
+                        :class="{ hit: appConfig.app_lang === opt.value }"
+                        @click="selectAppLang(opt.value)"
+                      >
+                        <div class="opt-info">
+                          <span class="opt-id">{{ opt.label }}</span>
+                        </div>
+                        <Check v-if="appConfig.app_lang === opt.value" :size="13" :stroke-width="2.5" />
+                      </button>
+                    </div>
+                  </div>
+                </Transition>
+              </Teleport>
+            </div>
+          </div>
+        </div>
+
+        <!-- System -->
+        <div class="section-head mt">
+          <span class="section-title"><SlidersHorizontal :size="13" />{{ t('settings.systemSettings') }}</span>
+        </div>
+        <div class="card-section">
+          <!-- Launch on Startup -->
+          <div v-if="isTauri" class="card-row">
+            <span class="card-label">{{ t('settings.launchOnStartup') }}</span>
+            <button class="about-auto-btn" :class="{ 'toggle-on': appConfig.launch_on_startup }" @click="toggleLaunchOnStartup($event)">
+              <ToggleRight v-if="appConfig.launch_on_startup" :size="15" :stroke-width="1.7" />
+              <ToggleLeft v-else :size="15" :stroke-width="1.7" />
+            </button>
+          </div>
           <!-- Show Shortcut Hint on Launch -->
           <div class="card-row">
             <span class="card-label">{{ t('settings.showShortcutHintLabel') }}</span>
@@ -1103,37 +1178,6 @@ onUnmounted(() => {
                 <kbd v-for="(tok, i) in shortcutTokens" :key="i" class="kbd-badge">{{ tok }}</kbd>
               </template>
             </button>
-          </div>
-          <!-- Language -->
-          <div class="card-row">
-            <span class="card-label">{{ t('settings.language') }}</span>
-            <div class="sel-wrap compact">
-              <button ref="appLangBtnRef" class="sel-btn" @click="toggleAppLangMenu()">
-                <Languages :size="13" class="sel-btn-icon" />
-                <span class="sel-text">{{ currentAppLangLabel }}</span>
-                <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showAppLangMenu }" />
-              </button>
-
-              <Teleport to="body">
-                <Transition name="drop">
-                  <div v-if="showAppLangMenu" class="sel-menu" :style="{ top: appLangMenuPos.top + 'px', left: appLangMenuPos.left + 'px', width: appLangMenuPos.width + 'px' }">
-                    <div class="sel-clip settings-scrollbar">
-                      <button
-                        v-for="opt in appLanguageOptions" :key="opt.value"
-                        class="sel-opt"
-                        :class="{ hit: appConfig.app_lang === opt.value }"
-                        @click="selectAppLang(opt.value)"
-                      >
-                        <div class="opt-info">
-                          <span class="opt-id">{{ opt.label }}</span>
-                        </div>
-                        <Check v-if="appConfig.app_lang === opt.value" :size="13" :stroke-width="2.5" />
-                      </button>
-                    </div>
-                  </div>
-                </Transition>
-              </Teleport>
-            </div>
           </div>
         </div>
 

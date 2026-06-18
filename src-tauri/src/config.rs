@@ -119,6 +119,8 @@ pub struct AppConfig {
     pub history_limit: u32,
     #[serde(default = "default_shortcut")]
     pub shortcut: String,
+    #[serde(default)]
+    pub launch_on_startup: bool,
 }
 
 fn default_target_lang() -> String {
@@ -162,6 +164,7 @@ impl Default for AppConfig {
             show_startup_reminder: true,
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
+            launch_on_startup: false,
         }
     }
 }
@@ -206,6 +209,7 @@ mod tests {
             show_startup_reminder: true,
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
+            launch_on_startup: false,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();

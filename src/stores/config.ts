@@ -82,6 +82,7 @@ export interface AppConfig {
   show_startup_reminder: boolean;
   history_limit: number;
   shortcut: string;
+  launch_on_startup: boolean;
   sparkle_active_provider_index: number;
   sparkle_active_model_index: number;
 }
@@ -101,6 +102,7 @@ const defaultConfig: AppConfig = {
   show_startup_reminder: true,
   history_limit: 50,
   shortcut: "Alt+Y",
+  launch_on_startup: false,
   sparkle_active_provider_index: 0,
   sparkle_active_model_index: 0,
 };
