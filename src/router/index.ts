@@ -1,5 +1,5 @@
 import { createRouter, createWebHashHistory } from "vue-router";
-import { appConfig } from "../stores/config";
+import { appConfig, isConfigLoaded } from "../stores/config";
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -48,6 +48,11 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
+  // During the very first navigation config isn't loaded yet, so
+  // appConfig.providers is the empty default — bail out and let main.ts's
+  // explicit router.replace (run after loadConfig) pick the real route.
+  // Without this, every reload would be force-routed to /onboarding.
+  if (!isConfigLoaded()) return;
   if (appConfig.providers.length === 0 && to.name !== "onboarding") {
     return { name: "onboarding" };
   }

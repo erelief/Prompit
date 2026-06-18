@@ -118,6 +118,17 @@ let _saveEnabled = false;
 let _saveTimer: ReturnType<typeof setTimeout> | null = null;
 const SAVE_DEBOUNCE_MS = 150;
 
+// Flipped to true once loadConfig() has populated appConfig. The router guard
+// uses this to avoid acting on the default (empty providers) state during the
+// very first navigation, which resolves before loadConfig() runs — otherwise
+// the guard would force-route every reload to /onboarding because providers
+// briefly looks empty.
+let _configLoaded = false;
+
+export function isConfigLoaded(): boolean {
+  return _configLoaded;
+}
+
 /** Schedules a debounced save. Safe to call repeatedly; collapses bursts. */
 function scheduleSave(): void {
   if (!_saveEnabled) return;
@@ -318,6 +329,7 @@ export async function loadConfig(): Promise<void> {
   } catch {
     Object.assign(appConfig, { ...defaultConfig });
   }
+  _configLoaded = true;
 }
 
 watch(
