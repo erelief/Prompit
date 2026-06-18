@@ -35,6 +35,25 @@ pub fn set_onboarding_complete(app: AppHandle) {
     }
 }
 
+/// Whether the startup reminder has already been shown in this process session.
+/// Frontend checks this before deciding to route to /startup-reminder, so a
+/// wake-triggered reload (which re-runs main.ts) doesn't re-show the reminder.
+#[tauri::command]
+pub fn has_shown_startup_reminder(app: AppHandle) -> bool {
+    app.try_state::<crate::state::StartupReminderState>()
+        .map(|s| s.has_shown())
+        .unwrap_or(false)
+}
+
+/// Marks the startup reminder as shown for this process session. Called by the
+/// frontend after navigating to /startup-reminder.
+#[tauri::command]
+pub fn mark_startup_reminder_shown(app: AppHandle) {
+    if let Some(state) = app.try_state::<crate::state::StartupReminderState>() {
+        state.mark_shown();
+    }
+}
+
 #[tauri::command]
 pub fn get_config_dir(app: AppHandle) -> Result<String, String> {
     let dir = crate::get_data_dir(&app)?;

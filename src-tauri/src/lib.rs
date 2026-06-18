@@ -99,6 +99,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(state::WindowConfig::default())
         .manage(state::OnboardingState::default())
+        .manage(state::StartupReminderState::default())
         .invoke_handler(tauri::generate_handler![
             commands::window::hide_main_window,
             commands::window::show_main_window,
@@ -116,6 +117,8 @@ pub fn run() {
             commands::config_cmd::save_config,
             commands::config_cmd::get_config_dir,
             commands::config_cmd::set_onboarding_complete,
+            commands::config_cmd::has_shown_startup_reminder,
+            commands::config_cmd::mark_startup_reminder_shown,
             commands::config_cmd::get_shortcut_label,
             shortcut::update_shortcut,
             shortcut::start_record_shortcut,

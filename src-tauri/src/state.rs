@@ -66,3 +66,31 @@ impl OnboardingState {
         self.complete.load(Ordering::Relaxed)
     }
 }
+
+/// Process-level flag for whether the startup reminder has already been shown
+/// in this process session. Unlike `show_startup_reminder` (a persisted user
+/// preference), this lives only in memory, so it survives WebView reloads
+/// triggered by sleep/wake (lid close/open) — which would otherwise re-run the
+/// frontend's startup routing and re-show the reminder. Resets naturally when
+/// the process exits.
+pub struct StartupReminderState {
+    pub shown: AtomicBool,
+}
+
+impl Default for StartupReminderState {
+    fn default() -> Self {
+        Self {
+            shown: AtomicBool::new(false),
+        }
+    }
+}
+
+impl StartupReminderState {
+    pub fn mark_shown(&self) {
+        self.shown.store(true, Ordering::Relaxed);
+    }
+
+    pub fn has_shown(&self) -> bool {
+        self.shown.load(Ordering::Relaxed)
+    }
+}

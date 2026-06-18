@@ -40,13 +40,23 @@ router.isReady().then(async () => {
     invoke("set_onboarding_complete");
   }
 
-  // Decide initial route based on state
+  // Decide initial route based on state.
+  // The startup reminder is gated on BOTH the persisted user preference
+  // (show_startup_reminder) AND a process-level flag from the backend
+  // (has_shown_startup_reminder). The latter resets only when the process
+  // exits, so a wake-triggered WebView reload (lid close/open on a laptop)
+  // — which re-runs this whole startup sequence — won't re-show the reminder,
+  // even though the frontend state is freshly initialized.
   if (appConfig.providers.length === 0) {
     // First-run: show onboarding
     router.replace("/onboarding");
-  } else if (appConfig.show_startup_reminder) {
-    // Non-first-run with reminder enabled
+  } else if (
+    appConfig.show_startup_reminder &&
+    !(await invoke<boolean>("has_shown_startup_reminder"))
+  ) {
+    // Non-first-run with reminder enabled and not yet shown this session
     router.replace("/startup-reminder");
+    invoke("mark_startup_reminder_shown");
   }
   // else: stays on "/" (floating-input, window hidden)
 
