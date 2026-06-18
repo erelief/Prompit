@@ -1042,6 +1042,7 @@ useShortcutTriggered(() => {
   white-space: pre-wrap;
   word-break: break-word;
   overflow-y: auto;
+  max-height: 200px;
 }
 
 /* Transitions */
