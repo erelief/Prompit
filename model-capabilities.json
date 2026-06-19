@@ -13,6 +13,9 @@
     { "id": "*llava*",            "input_capabilities": { "image": true } },
     { "id": "glm-4v*",            "input_capabilities": { "image": true } },
     { "id": "deepseek-chat",      "input_capabilities": { "image": false } },
-    { "id": "deepseek-reasoner",  "input_capabilities": { "image": false } }
+    { "id": "deepseek-reasoner",  "input_capabilities": { "image": false } },
+    { "id": "kimi-k2.5*",         "input_capabilities": { "image": true } },
+    { "id": "kimi-k2.6*",         "input_capabilities": { "image": true } },
+    { "id": "mimo-v2.5*",         "input_capabilities": { "image": true } }
   ]
 }
