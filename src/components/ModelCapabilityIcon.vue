@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ImageUp, FileSignal, FilePlay } from "@lucide/vue";
+import { ImageUp } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { appConfig } from "../stores/config";
 import type { ModelInputCapabilities } from "../stores/config";
+import AudioUp from "./icons/AudioUp.vue";
+import VideoUp from "./icons/VideoUp.vue";
 
 const props = withDefaults(
   defineProps<{ capabilities?: ModelInputCapabilities; size?: number }>(),
@@ -20,14 +22,14 @@ const { t } = useI18n();
       :title="t('common.supportsImageInput')"
       style="color: var(--color-text-muted); flex-shrink: 0"
     />
-    <FileSignal
+    <AudioUp
       v-if="props.capabilities?.audio"
       :size="props.size"
       :stroke-width="1.8"
       :title="t('common.supportsAudioInput')"
       style="color: var(--color-text-muted); flex-shrink: 0"
     />
-    <FilePlay
+    <VideoUp
       v-if="props.capabilities?.video"
       :size="props.size"
       :stroke-width="1.8"
