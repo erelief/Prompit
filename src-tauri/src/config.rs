@@ -67,6 +67,18 @@ pub struct ProviderPreset {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderModel {
     pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_capabilities: Option<ModelInputCapabilities>,
+}
+
+/// Multimodal INPUT capabilities of a model. Parent dimension for all input
+/// modalities. Adding a new modality = one field here + one detection case on
+/// the front-end. Today only `image` is implemented; `audio`/`video` are
+/// reserved for future additions as peer `Option<bool>` fields.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ModelInputCapabilities {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -188,7 +200,7 @@ mod tests {
                 name: "OpenAI".to_string(),
                 api_key: "".to_string(),
                 base_url: "https://api.openai.com/v1".to_string(),
-                models: vec![ProviderModel { id: "gpt-4o-mini".to_string() }],
+                models: vec![ProviderModel { id: "gpt-4o-mini".to_string(), input_capabilities: None }],
                 temperature: Some(0.3),
                 max_tokens: Some(1024),
                 preset: Some("OpenAI".to_string()),
@@ -235,6 +247,34 @@ mod tests {
         assert_eq!(config.target_lang, "English");
         assert_eq!(config.theme, "system");
         assert_eq!(config.app_lang, "en");
+    }
+
+    #[test]
+    fn test_provider_model_input_capabilities_roundtrip() {
+        let json = r#"{"id":"gpt-4o","input_capabilities":{"image":true}}"#;
+        let m: ProviderModel = serde_json::from_str(json).unwrap();
+        assert_eq!(m.id, "gpt-4o");
+        assert_eq!(m.input_capabilities.as_ref().unwrap().image, Some(true));
+    }
+
+    #[test]
+    fn test_provider_model_without_capabilities_loads() {
+        // Old config.json files have no input_capabilities field — must load fine.
+        let json = r#"{"id":"deepseek-chat"}"#;
+        let m: ProviderModel = serde_json::from_str(json).unwrap();
+        assert_eq!(m.id, "deepseek-chat");
+        assert!(m.input_capabilities.is_none());
+    }
+
+    #[test]
+    fn test_provider_model_skips_empty_capabilities_on_serialize() {
+        // Unknown-capability models must not pollute config.json with empty {}.
+        let m = ProviderModel {
+            id: "x".to_string(),
+            input_capabilities: None,
+        };
+        let json = serde_json::to_string(&m).unwrap();
+        assert!(!json.contains("input_capabilities"));
     }
 
     #[test]

@@ -80,7 +80,7 @@ mod tests {
                 name: "OpenAI".to_string(),
                 api_key: "".to_string(),
                 base_url: "https://api.openai.com/v1".to_string(),
-                models: vec![ProviderModel { id: "gpt-4o-mini".to_string() }],
+                models: vec![ProviderModel { id: "gpt-4o-mini".to_string(), input_capabilities: None }],
                 temperature: Some(0.3),
                 max_tokens: Some(1024),
                 preset: None,
