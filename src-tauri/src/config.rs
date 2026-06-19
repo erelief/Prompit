@@ -137,7 +137,7 @@ pub struct AppConfig {
     pub shortcut: String,
     #[serde(default)]
     pub launch_on_startup: bool,
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
     pub show_capability_icons: bool,
 }
 
@@ -361,5 +361,18 @@ mod tests {
         let written = serde_json::to_string(&config).unwrap();
         assert!(written.contains("translate_active_provider_index"));
         assert!(!written.contains("translation_active_"));
+    }
+
+    #[test]
+    fn test_show_capability_icons_not_persisted() {
+        // show_capability_icons is a build-time switch; it must NOT appear in
+        // the serialized JSON so that changing the code default always wins.
+        let config = AppConfig::default();
+        let json = serde_json::to_string(&config).unwrap();
+        assert!(!json.contains("show_capability_icons"));
+        // But deserializing a config that happens to contain it should still work.
+        let json_with = r#"{"providers":[],"active_mode":"translate","target_lang":"English","show_capability_icons":true}"#;
+        let c2: AppConfig = serde_json::from_str(json_with).unwrap();
+        assert!(c2.show_capability_icons);
     }
 }
