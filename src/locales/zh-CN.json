@@ -15,7 +15,9 @@
     "keepOpenAfterSend": "发送后不关闭",
     "enabled": "已启用",
     "disabled": "未启用",
-    "supportsImageInput": "支持图片输入"
+    "supportsImageInput": "支持图片输入",
+    "supportsAudioInput": "支持音频输入",
+    "supportsVideoInput": "支持视频输入"
   },
   "modes": {
     "translate": "翻译",

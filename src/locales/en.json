@@ -15,7 +15,9 @@
     "keepOpenAfterSend": "Keep open after send",
     "enabled": "Enabled",
     "disabled": "Not enabled",
-    "supportsImageInput": "Supports image input"
+    "supportsImageInput": "Supports image input",
+    "supportsAudioInput": "Supports audio input",
+    "supportsVideoInput": "Supports video input"
   },
   "modes": {
     "translate": "Translate",

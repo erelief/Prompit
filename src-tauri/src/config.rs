@@ -79,6 +79,10 @@ pub struct ProviderModel {
 pub struct ModelInputCapabilities {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub image: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub video: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,6 +137,8 @@ pub struct AppConfig {
     pub shortcut: String,
     #[serde(default)]
     pub launch_on_startup: bool,
+    #[serde(default = "default_true")]
+    pub show_capability_icons: bool,
 }
 
 fn default_target_lang() -> String {
@@ -177,6 +183,7 @@ impl Default for AppConfig {
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
             launch_on_startup: false,
+            show_capability_icons: true,
         }
     }
 }
@@ -222,6 +229,7 @@ mod tests {
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
             launch_on_startup: false,
+            show_capability_icons: true,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();

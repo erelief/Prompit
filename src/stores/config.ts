@@ -23,7 +23,8 @@ export interface ApiFormat {
  *  `audio`/`video` are reserved as future peer optional fields. */
 export interface ModelInputCapabilities {
   image?: boolean;
-  // reserved: audio?: boolean; video?: boolean;
+  audio?: boolean;
+  video?: boolean;
 }
 
 export interface ProviderModel {
@@ -93,6 +94,7 @@ export interface AppConfig {
   history_limit: number;
   shortcut: string;
   launch_on_startup: boolean;
+  show_capability_icons: boolean;
   sparkle_active_provider_index: number;
   sparkle_active_model_index: number;
 }
@@ -113,6 +115,7 @@ const defaultConfig: AppConfig = {
   history_limit: 50,
   shortcut: "Alt+Y",
   launch_on_startup: false,
+  show_capability_icons: true,
   sparkle_active_provider_index: 0,
   sparkle_active_model_index: 0,
 };

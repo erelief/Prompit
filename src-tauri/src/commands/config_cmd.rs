@@ -102,6 +102,7 @@ mod tests {
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
             launch_on_startup: false,
+            show_capability_icons: true,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
