@@ -125,7 +125,8 @@
     "emptyDictBody": "Add terms in Settings for more accurate translations.",
     "goToSettings": "Go to Settings",
     "selectSparkle": "Select Sparkle",
-    "history": "History"
+    "history": "History",
+    "aiDisclaimer": "AI-generated, for reference only"
   },
   "history": {
     "title": "History",

@@ -469,6 +469,13 @@ useShortcutTriggered(() => {
           </div>
         </Transition>
 
+        <!-- AI disclaimer (appears only when a result is present) -->
+        <Transition name="fade">
+          <div v-show="translatedText" class="ai-disclaimer">
+            {{ t('floating.aiDisclaimer') }}
+          </div>
+        </Transition>
+
         <!-- Loading state -->
         <Transition name="fade">
           <div
@@ -820,6 +827,13 @@ useShortcutTriggered(() => {
             <div class="result-text">{{ translatedText }}</div>
           </div>
         </Transition>
+
+        <!-- AI disclaimer (appears only when a result is present) -->
+        <Transition name="fade">
+          <div v-show="translatedText" class="ai-disclaimer">
+            {{ t('floating.aiDisclaimer') }}
+          </div>
+        </Transition>
       </template>
     </div>
   </div>
@@ -1067,6 +1081,19 @@ useShortcutTriggered(() => {
   word-break: break-word;
   overflow-y: auto;
   max-height: 200px;
+}
+
+/* AI disclaimer shown below the result */
+.ai-disclaimer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  opacity: 0.7;
+  flex-shrink: 0;
 }
 
 /* Transitions */
