@@ -14,7 +14,8 @@
     "closeAfterSend": "Close after send",
     "keepOpenAfterSend": "Keep open after send",
     "enabled": "Enabled",
-    "disabled": "Not enabled"
+    "disabled": "Not enabled",
+    "supportsImageInput": "Supports image input"
   },
   "modes": {
     "translate": "Translate",
