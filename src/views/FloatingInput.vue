@@ -8,8 +8,9 @@ import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
 import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon } from "../stores/config";
-import type { ProviderPreset } from "../stores/config";
+import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
+import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import { translate } from "../services/llm-client";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
@@ -56,6 +57,14 @@ const activeModelIcon = computed(() => {
   const pi = (appConfig as any)[`${mode}_active_provider_index`] ?? 0;
   const prov = appConfig.providers[pi];
   return prov ? getProviderIcon(prov, floatingPresets.value) : "";
+});
+
+const activeModelCapabilities = computed<ModelInputCapabilities | undefined>(() => {
+  const mode = appConfig.active_mode || "translate";
+  const pi = (appConfig as any)[`${mode}_active_provider_index`] ?? 0;
+  const mi = (appConfig as any)[`${mode}_active_model_index`] ?? 0;
+  const prov = appConfig.providers[pi];
+  return prov?.models?.[mi]?.input_capabilities;
 });
 
 const glassBg = computed(() => {
@@ -109,9 +118,9 @@ function selectModel(pIndex: number, mIndex: number) {
   flushConfigSave();
 }
 
-// Flatten all provider models for dropdown: [{pIndex, mIndex, id}]
+// Flatten all provider models for dropdown: [{pIndex, mIndex, id, icon, input_capabilities}]
 const allModels = computed(() => {
-  const result: Array<{ pIndex: number; mIndex: number; id: string; icon: string }> = [];
+  const result: Array<{ pIndex: number; mIndex: number; id: string; icon: string; input_capabilities?: ModelInputCapabilities }> = [];
   appConfig.providers.forEach((prov, pi) => {
     prov.models.forEach((m, mi) => {
       result.push({
@@ -119,6 +128,7 @@ const allModels = computed(() => {
         mIndex: mi,
         id: m.id,
         icon: prov.preset ? (floatingPresets.value.find(p => p.name === prov.preset)?.icon ?? '') : '',
+        input_capabilities: m.input_capabilities,
       });
     });
   });
@@ -558,6 +568,7 @@ useShortcutTriggered(() => {
             >
               <span class="model-icon" v-if="activeModelIcon"><ProviderIcon :icon="activeModelIcon" :size="14" /></span>
               <span class="truncate max-w-[120px] min-w-0">{{ activeModelName }}</span>
+              <ModelCapabilityIcon :capabilities="activeModelCapabilities" :size="10" />
               <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
                 :style="{ transform: chevronTransform(showModelDropdown) }" />
             </button>
@@ -578,7 +589,8 @@ useShortcutTriggered(() => {
                     :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
                   >
                     <div class="opt-left"><ProviderIcon :icon="entry.icon" :size="14" />
-                    <span class="truncate">{{ entry.id }}</span></div>
+                    <span class="truncate">{{ entry.id }}</span>
+                    <ModelCapabilityIcon :capabilities="entry.input_capabilities" :size="11" /></div>
                     <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
                   </button>
                 </div>
@@ -672,6 +684,7 @@ useShortcutTriggered(() => {
             >
               <span class="model-icon" v-if="activeModelIcon"><ProviderIcon :icon="activeModelIcon" :size="14" /></span>
               <span class="truncate max-w-[120px] min-w-0">{{ activeModelName }}</span>
+              <ModelCapabilityIcon :capabilities="activeModelCapabilities" :size="10" />
               <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
                 :style="{ transform: chevronTransform(showModelDropdown) }" />
             </button>
@@ -692,7 +705,8 @@ useShortcutTriggered(() => {
                     :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
                   >
                     <div class="opt-left"><ProviderIcon :icon="entry.icon" :size="14" />
-                    <span class="truncate">{{ entry.id }}</span></div>
+                    <span class="truncate">{{ entry.id }}</span>
+                    <ModelCapabilityIcon :capabilities="entry.input_capabilities" :size="11" /></div>
                     <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
                   </button>
                 </div>
