@@ -11,10 +11,13 @@ import {
 import { getTheme, setTheme } from "../composables/useTheme";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
+import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
+import type { ModelInputCapabilities } from "../stores/config";
 import {
   testProviderConnection,
   fetchProviderModels,
 } from "../services/llm-client";
+import type { FetchModelEntry } from "../services/llm-client";
 import {
   ChevronRight,
   ChevronLeft,
@@ -103,8 +106,8 @@ const testKeyError = ref("");
 const showCloseConfirm = ref(false);
 
 // ── Step 3: Models ──
-const availableModels = ref<string[]>([]);
-const selectedModels = ref(new Set<string>());
+const availableModels = ref<FetchModelEntry[]>([]);
+const selectedModels = ref(new Map<string, ModelInputCapabilities>());
 const fetchError = ref("");
 const isConnecting = ref(false);
 const isFetching = ref(false);
@@ -213,22 +216,27 @@ async function retryFetchModels() {
 }
 
 // ── Step 4 logic ──
-function toggleModel(id: string) {
-  const s = new Set(selectedModels.value);
-  s.has(id) ? s.delete(id) : s.add(id);
-  selectedModels.value = s;
+function toggleModel(entry: FetchModelEntry) {
+  const m = new Map(selectedModels.value);
+  m.has(entry.id) ? m.delete(entry.id) : m.set(entry.id, entry.input_capabilities);
+  selectedModels.value = m;
 }
 
 function selectAll() {
-  selectedModels.value = new Set(availableModels.value);
+  const m = new Map<string, ModelInputCapabilities>();
+  for (const e of availableModels.value) m.set(e.id, e.input_capabilities);
+  selectedModels.value = m;
 }
 
 function deselectAll() {
-  selectedModels.value = new Set();
+  selectedModels.value = new Map();
 }
 
 async function finishOnboarding() {
-  providerForm.value.models = [...selectedModels.value].map((id) => ({ id }));
+  providerForm.value.models = [...selectedModels.value].map(([id, caps]) => ({
+    id,
+    input_capabilities: Object.keys(caps).length > 0 ? caps : undefined,
+  }));
   appConfig.providers.push({ ...providerForm.value });
   appConfig.translate_active_provider_index = 0;
   appConfig.translate_active_model_index = 0;
@@ -551,25 +559,26 @@ onMounted(async () => {
             <!-- Model list -->
             <div class="flex flex-col gap-1 max-h-56 overflow-y-auto pr-1">
               <label
-                v-for="model in availableModels"
-                :key="model"
-                @click="toggleModel(model)"
+                v-for="entry in availableModels"
+                :key="entry.id"
+                @click="toggleModel(entry)"
                 class="flex items-center gap-3 h-9 px-3 rounded-lg cursor-pointer transition-colors text-sm"
                 :style="{
-                  background: selectedModels.has(model) ? 'var(--color-accent-bg)' : 'transparent',
+                  background: selectedModels.has(entry.id) ? 'var(--color-accent-bg)' : 'transparent',
                   color: 'var(--color-text)',
                 }"
               >
                 <span
                   class="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all"
                   :style="{
-                    border: selectedModels.has(model) ? '1.5px solid var(--color-accent)' : '1.5px solid var(--color-border)',
-                    background: selectedModels.has(model) ? 'var(--color-accent)' : 'transparent',
+                    border: selectedModels.has(entry.id) ? '1.5px solid var(--color-accent)' : '1.5px solid var(--color-border)',
+                    background: selectedModels.has(entry.id) ? 'var(--color-accent)' : 'transparent',
                   }"
                 >
-                  <Check v-if="selectedModels.has(model)" :size="10" :stroke-width="3" style="color: white" />
+                  <Check v-if="selectedModels.has(entry.id)" :size="10" :stroke-width="3" style="color: white" />
                 </span>
-                <span class="truncate">{{ model }}</span>
+                <span class="truncate flex-1 min-w-0">{{ entry.id }}</span>
+                <ModelCapabilityIcon :capabilities="entry.input_capabilities" />
               </label>
             </div>
 
