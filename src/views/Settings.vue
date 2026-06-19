@@ -22,9 +22,12 @@ import { burstParticles } from "../utils/burstParticles";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import { getProviderIcon, getProviderSeries } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
+import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import { getTheme, setTheme } from "../composables/useTheme";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { testProviderConnection, fetchProviderModels, optimizePrompt } from "../services/llm-client";
+import type { FetchModelEntry } from "../services/llm-client";
+import type { ModelInputCapabilities } from "../stores/config";
 import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
 import EditableCardList from "../components/EditableCardList.vue";
@@ -85,7 +88,7 @@ const promptUndoStack = new Map<number, string>();
 interface ProviderEditState {
   keyVisible: boolean;
   fetching: boolean;
-  fetched: string[];
+  fetched: FetchModelEntry[];
   status: string;
 }
 const editStates = ref<Map<number, ProviderEditState>>(new Map());
@@ -675,28 +678,48 @@ async function fetchModels(provider: ProviderConfig, index: number) {
   s.fetching = false;
 }
 
-function toggleModel(item: ProviderConfig, mid: string) {
-  const idx = item.models.findIndex((m) => m.id === mid);
+function toggleModel(item: ProviderConfig, entry: FetchModelEntry) {
+  const idx = item.models.findIndex((m) => m.id === entry.id);
   if (idx >= 0) {
     item.models.splice(idx, 1);
   } else {
-    item.models.push({ id: mid });
+    item.models.push({
+      id: entry.id,
+      input_capabilities:
+        Object.keys(entry.input_capabilities).length > 0
+          ? entry.input_capabilities
+          : undefined,
+    });
   }
 }
 
-function getFetchedModels(pi: number): string[] {
+function getFetchedModels(pi: number): FetchModelEntry[] {
   return editStates.value.get(pi)?.fetched || [];
 }
 
 // ── Translation model selector ──
 
-interface FlatEntry { pIndex: number; mIndex: number; id: string; providerName: string; icon: string; }
+interface FlatEntry {
+  pIndex: number;
+  mIndex: number;
+  id: string;
+  providerName: string;
+  icon: string;
+  input_capabilities?: ModelInputCapabilities;
+}
 
 const allFlat = computed<FlatEntry[]>(() => {
   const out: FlatEntry[] = [];
   appConfig.providers.forEach((prov, pi) =>
     prov.models.forEach((m, mi) =>
-      out.push({ pIndex: pi, mIndex: mi, id: m.id, providerName: prov.name || `Provider ${pi + 1}`, icon: getProviderIcon(prov, providerPresets.value) })
+      out.push({
+        pIndex: pi,
+        mIndex: mi,
+        id: m.id,
+        providerName: prov.name || `Provider ${pi + 1}`,
+        icon: getProviderIcon(prov, providerPresets.value),
+        input_capabilities: m.input_capabilities,
+      })
     )
   );
   return out;
@@ -1028,6 +1051,7 @@ onUnmounted(() => {
                     <GripVertical :size="9" :stroke-width="1.8" />
                   </span>
                   {{ element.id }}
+                  <ModelCapabilityIcon :capabilities="element.input_capabilities" :size="10" />
                   <button class="tag-x" @click.stop="removeModel(item, item.models.indexOf(element))">
                     <Trash2 :size="9" :stroke-width="2" />
                   </button>
@@ -1036,13 +1060,14 @@ onUnmounted(() => {
             </draggable>
             <div v-if="getFetchedModels(index).length > 0" class="tags pickable">
               <button
-                v-for="mid in getFetchedModels(index)" :key="mid"
+                v-for="entry in getFetchedModels(index)" :key="entry.id"
                 class="tag"
-                :class="{ selected: item.models.some((m: any) => m.id === mid) }"
-                @click.stop="toggleModel(item, mid)"
+                :class="{ selected: item.models.some((m: any) => m.id === entry.id) }"
+                @click.stop="toggleModel(item, entry)"
               >
-                <Check v-if="item.models.some((m: any) => m.id === mid)" :size="10" :stroke-width="2.5" />
-                {{ mid }}
+                <Check v-if="item.models.some((m: any) => m.id === entry.id)" :size="10" :stroke-width="2.5" />
+                {{ entry.id }}
+                <ModelCapabilityIcon :capabilities="entry.input_capabilities" :size="10" />
               </button>
             </div>
           </template>
@@ -1334,7 +1359,10 @@ onUnmounted(() => {
                   >
                     <div class="opt-left"><ProviderIcon :icon="e.icon" :size="14" />
                     <div class="opt-info">
-                      <span class="opt-id">{{ e.id }}</span>
+                      <span class="opt-id-row">
+                        <span class="opt-id">{{ e.id }}</span>
+                        <ModelCapabilityIcon :capabilities="e.input_capabilities" />
+                      </span>
                       <span class="opt-src">{{ e.providerName }}</span>
                     </div></div>
                     <Check
@@ -1551,7 +1579,10 @@ onUnmounted(() => {
                   >
                     <div class="opt-left"><ProviderIcon :icon="e.icon" :size="14" />
                     <div class="opt-info">
-                      <span class="opt-id">{{ e.id }}</span>
+                      <span class="opt-id-row">
+                        <span class="opt-id">{{ e.id }}</span>
+                        <ModelCapabilityIcon :capabilities="e.input_capabilities" />
+                      </span>
                       <span class="opt-src">{{ e.providerName }}</span>
                     </div></div>
                     <Check
