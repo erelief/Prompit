@@ -137,7 +137,7 @@ pub struct AppConfig {
     pub shortcut: String,
     #[serde(default)]
     pub launch_on_startup: bool,
-    #[serde(default = "default_true")]
+    #[serde(default)]
     pub show_capability_icons: bool,
 }
 
@@ -183,7 +183,7 @@ impl Default for AppConfig {
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
             launch_on_startup: false,
-            show_capability_icons: true,
+            show_capability_icons: false,
         }
     }
 }
@@ -229,7 +229,7 @@ mod tests {
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
             launch_on_startup: false,
-            show_capability_icons: true,
+            show_capability_icons: false,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();

@@ -115,7 +115,7 @@ const defaultConfig: AppConfig = {
   history_limit: 50,
   shortcut: "Alt+Y",
   launch_on_startup: false,
-  show_capability_icons: true,
+  show_capability_icons: false,
   sparkle_active_provider_index: 0,
   sparkle_active_model_index: 0,
 };
