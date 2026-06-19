@@ -17,8 +17,18 @@ export interface ApiFormat {
   force_fields?: string[];
 }
 
+/** Multimodal INPUT capabilities of a model. Parent dimension for all input
+ *  modalities. Adding a new modality = one field here + one detection case in
+ *  src/services/model-capabilities.ts. Today only `image` is implemented;
+ *  `audio`/`video` are reserved as future peer optional fields. */
+export interface ModelInputCapabilities {
+  image?: boolean;
+  // reserved: audio?: boolean; video?: boolean;
+}
+
 export interface ProviderModel {
   id: string;
+  input_capabilities?: ModelInputCapabilities;
 }
 
 export interface ProviderConfig {
@@ -468,6 +478,15 @@ export async function clearAllDictionaries(): Promise<void> {
 
 export async function loadProviderPresets(): Promise<ProviderPreset[]> {
   return await invoke<ProviderPreset[]>("read_provider_presets");
+}
+
+export interface ModelCapabilityItem {
+  id: string;
+  input_capabilities: ModelInputCapabilities;
+}
+
+export async function loadModelCapabilities(): Promise<ModelCapabilityItem[]> {
+  return await invoke<ModelCapabilityItem[]>("read_model_capabilities");
 }
 
 export function getProviderIcon(provider: ProviderConfig, presets: ProviderPreset[]): string {
