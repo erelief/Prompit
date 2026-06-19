@@ -25,11 +25,13 @@ export function resetCapabilityCache(): void {
 
 // ── Layer ①: API capability field ──
 // Parse provider-authoritative capability info from the raw /models object.
-// Only returns true when a field explicitly lists "image". Never returns false
-// from absence (so lower layers can still rule).
+// Only returns true when a field explicitly lists "image" on the INPUT side.
+// Never returns false from absence (so lower layers can still rule).
 function detectFromApiField(raw: RawModel): boolean | undefined {
   if (raw == null || typeof raw !== "object") return undefined;
-  // OpenRouter: architecture.input_modalities: ["text", "image", ...]
+
+  // Structured array form (e.g. OpenAI newer responses):
+  //   architecture.input_modalities: ["text", "image", ...]
   const modalities =
     raw?.architecture?.input_modalities ??
     raw?.input_modalities ??
@@ -40,6 +42,19 @@ function detectFromApiField(raw: RawModel): boolean | undefined {
     );
     return has ? true : undefined;
   }
+
+  // String form (OpenRouter's primary field):
+  //   architecture.modality: "text+image->text"  (inputs -> outputs)
+  // Only the LEFT side of "->" describes INPUT capability, so a text-to-image
+  // model like "text->image" is correctly treated as NOT supporting image input.
+  const modalityStr = raw?.architecture?.modality ?? raw?.modality;
+  if (typeof modalityStr === "string" && modalityStr.length > 0) {
+    const inputPart = modalityStr.includes("->")
+      ? modalityStr.split("->")[0]
+      : modalityStr;
+    return inputPart.toLowerCase().includes("image") ? true : undefined;
+  }
+
   return undefined;
 }
 
