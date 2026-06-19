@@ -62,6 +62,7 @@ export interface PersonaConfig {
 export interface SparkleEntry {
   name: string;
   prompt: string;
+  description: string;
   enabled: boolean;
 }
 
@@ -505,9 +506,10 @@ export function getProviderSeries(provider: ProviderConfig, presets: ProviderPre
 // ── Sparkle store ──
 
 const DEFAULT_POLISH_SPARKLE: SparkleEntry = {
-  name: "润色 (Polish)",
+  name: "Polish（润色）",
   prompt:
     "Detect the language of the user's input. Adopt the role of a native speaker of that language. Rewrite the user's input as a more idiomatic, accurate, and natural expression in the same language, preserving the original meaning and intent.",
+  description: "Polish the input like a native speaker of its language.",
   enabled: true,
 };
 
@@ -518,7 +520,12 @@ export async function loadSparkles(): Promise<void> {
       sparkleStore.sparkles = [DEFAULT_POLISH_SPARKLE];
       await saveSparkles();
     } else {
-      sparkleStore.sparkles = entries;
+      // Belt-and-suspenders with the Rust #[serde(default)]: guarantee
+      // `description` is always a string even for data persisted before the field existed.
+      sparkleStore.sparkles = entries.map((e) => ({
+        ...e,
+        description: typeof e.description === "string" ? e.description : "",
+      }));
     }
   } catch (err) {
     console.error("Failed to load sparkles:", err);

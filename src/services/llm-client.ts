@@ -199,7 +199,7 @@ export async function translate(text: string): Promise<string> {
   return String(content).trim();
 }
 
-export async function optimizePrompt(rawPrompt: string, mode: "translate" | "sparkle" = "translate"): Promise<string> {
+export async function optimizePrompt(rawPrompt: string, mode: "translate" | "sparkle" | "summarize" = "translate"): Promise<string> {
   const model = getActiveModel();
   if (!model) {
     throw new Error("No model configured. Please add a model in Settings.");
@@ -212,6 +212,8 @@ export async function optimizePrompt(rawPrompt: string, mode: "translate" | "spa
       role: "system",
       content: mode === "sparkle"
         ? "You organize and structure user-written prompts. Reorganize the prompt to be clear, well-structured, and unambiguous. Do not change the original intent or add new instructions. Output ONLY the reorganized prompt, nothing else."
+        : mode === "summarize"
+        ? "Detect the language of the following prompt and reply in THAT same language. Be extremely concise: under 20 characters for Chinese (under 12 words for English). Start directly with the action in the form \"<verb> the input into <result>\" (e.g. 将输入内容润色得更自然 / Rewrite the input more formally / Turn the input into a bulleted summary). Pick the verb that best fits the prompt. No filler, no subject (no \"This tool\"/\"Acts as\"/\"本工具\"/\"该助手\"). Output ONLY that single line, nothing else."
         : "You optimize persona prompts for a translation tool. The user writes a vague style description in any language; you convert it into a concise instruction that assigns the LLM a professional role.\n" +
           "Output format: Start with \"You role as a [profession/role], using your professional vocabulary\", where [profession/role] is the most fitting English role name derived from the user's description. Under 20 words.\n" +
           'Examples:\n' +

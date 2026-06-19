@@ -11,6 +11,8 @@ pub struct SparkleEntry {
     pub name: String,
     pub prompt: String,
     #[serde(default)]
+    pub description: String,
+    #[serde(default)]
     pub enabled: bool,
 }
 
@@ -71,6 +73,7 @@ mod tests {
             SparkleEntry {
                 name: "Formal".to_string(),
                 prompt: "Translate formally".to_string(),
+                description: "Rewrite input formally".to_string(),
                 enabled: true,
             },
         ];
@@ -78,6 +81,18 @@ mod tests {
         let deserialized: Vec<SparkleEntry> = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.len(), 1);
         assert_eq!(deserialized[0].name, "Formal");
+        assert_eq!(deserialized[0].description, "Rewrite input formally");
+        assert!(deserialized[0].enabled);
+    }
+
+    #[test]
+    fn test_legacy_sparkle_without_description_defaults_empty() {
+        // Older files persisted before the `description` field existed.
+        let json = r#"[{"name":"Polish","prompt":"Rewrite nicely","enabled":true}]"#;
+        let deserialized: Vec<SparkleEntry> = serde_json::from_str(json).unwrap();
+        assert_eq!(deserialized.len(), 1);
+        assert_eq!(deserialized[0].name, "Polish");
+        assert_eq!(deserialized[0].description, "");
         assert!(deserialized[0].enabled);
     }
 }

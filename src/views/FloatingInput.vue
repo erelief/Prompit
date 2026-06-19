@@ -7,7 +7,7 @@ import { burstParticles, popElement } from "../utils/burstParticles";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
-import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon } from "../stores/config";
+import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, sparkleStore } from "../stores/config";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
@@ -80,6 +80,16 @@ const glassBg = computed(() => {
 });
 
 const floatingAlpha = computed(() => (appConfig.floating_opacity ?? 90) / 100);
+
+// When a sparkle with a description is active, surface it as the input placeholder.
+const inputPlaceholder = computed(() => {
+  if (appConfig.active_mode === "sparkle") {
+    const s = sparkleStore.sparkles.find((sp) => sp.enabled);
+    const desc = s?.description?.trim();
+    if (desc) return desc;
+  }
+  return hasResult.value ? t("floating.pressEnterToPaste") : t("floating.typeToSend");
+});
 
 const showModelDropdown = ref(false);
 const floatingPresets = ref<ProviderPreset[]>([]);
@@ -488,7 +498,7 @@ useShortcutTriggered(() => {
               ref="textareaRef"
               v-model="inputText"
               @keydown="handleKeydown"
-              :placeholder="hasResult ? t('floating.pressEnterToPaste') : t('floating.typeToSend')"
+              :placeholder="inputPlaceholder"
               rows="1"
               class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
             ></textarea>
@@ -753,7 +763,7 @@ useShortcutTriggered(() => {
               ref="textareaRef"
               v-model="inputText"
               @keydown="handleKeydown"
-              :placeholder="hasResult ? t('floating.pressEnterToPaste') : t('floating.typeToSend')"
+              :placeholder="inputPlaceholder"
               rows="1"
               class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
             ></textarea>

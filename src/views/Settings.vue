@@ -84,6 +84,8 @@ const activeTab = ref<TabKey>("general");
 const testingProvider = ref<number | null>(null);
 const optimizingIndex = ref<number | null>(null);
 const promptUndoStack = new Map<number, string>();
+const summarizingIndex = ref<number | null>(null);
+const descUndoStack = new Map<number, string>();
 
 interface ProviderEditState {
   keyVisible: boolean;
@@ -437,6 +439,29 @@ async function handleSparkleOptimizePrompt(item: { prompt: string }, index: numb
     promptUndoStack.delete(index);
   } finally {
     optimizingIndex.value = null;
+  }
+}
+
+function handleDescKeydown(e: KeyboardEvent, item: { description: string }, index: number) {
+  const isMod = e.ctrlKey || e.metaKey;
+  if (isMod && e.key === "z" && !e.shiftKey && descUndoStack.has(index)) {
+    e.preventDefault();
+    item.description = descUndoStack.get(index)!;
+    descUndoStack.delete(index);
+  }
+}
+
+async function handleSparkleSummarize(item: { prompt: string; description: string }, index: number) {
+  if (!item.prompt.trim() || summarizingIndex.value !== null) return;
+  descUndoStack.set(index, item.description);
+  summarizingIndex.value = index;
+  try {
+    item.description = await optimizePrompt(item.prompt, "summarize");
+  } catch (err) {
+    console.error("Summarize failed:", err);
+    descUndoStack.delete(index);
+  } finally {
+    summarizingIndex.value = null;
   }
 }
 
@@ -1609,7 +1634,7 @@ onUnmounted(() => {
           :allow-remove="sparkleStore.sparkles.length > 1"
           :max-collapsed="5"
           :builtin-drag-handle="false"
-          @add="Object.assign($event, { name: '', prompt: '', enabled: false })"
+          @add="Object.assign($event, { name: '', prompt: '', description: '', enabled: false })"
           @confirm="() => persistSparkles()"
           @remove="() => persistSparkles()"
         >
@@ -1621,14 +1646,41 @@ onUnmounted(() => {
               <ToggleRight v-if="item.enabled" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
             </button>
-            <span class="persona-name">{{ item.name }}</span>
+            <span class="sparkle-title-block">
+              <span class="persona-name">{{ item.name }}</span>
+              <span v-if="item.description?.trim()" class="sparkle-desc">{{ item.description }}</span>
+            </span>
           </template>
 
           <template #name-input="{ item }">
-            <input v-model="item.name" :placeholder="t('settings.personaName')" class="fi name-fi" @click.stop />
+            <input v-model="item.name" :placeholder="t('settings.sparkleName')" class="fi name-fi" @click.stop />
           </template>
 
           <template #content="{ item, index }">
+            <div class="persona-textarea-wrap sparkle-desc-wrap">
+              <input
+                v-model="item.description"
+                :placeholder="t('settings.sparkleDescription')"
+                class="fi sparkle-desc-fi"
+                @click.stop
+                @keydown="handleDescKeydown($event, item, index)"
+              />
+              <button
+                v-if="item.prompt.trim()"
+                class="persona-wand-btn"
+                :class="{ active: summarizingIndex === index }"
+                :title="t('settings.summarizePrompt')"
+                @click.stop="handleSparkleSummarize(item, index)"
+              >
+                <Loader2
+                  v-if="summarizingIndex === index"
+                  :size="12"
+                  :stroke-width="1.9"
+                  class="spin"
+                />
+                <Wand2 v-else :size="13" :stroke-width="1.6" />
+              </button>
+            </div>
             <div class="persona-textarea-wrap">
               <textarea
                 v-model="item.prompt"
@@ -2042,6 +2094,20 @@ label {
 .persona-name {
   font-size: 12.5px; font-weight: 650; letter-spacing: -.01em;
   color: var(--color-text);
+}
+
+/* ── Sparkle title + description (collapsed two-line hierarchy) ── */
+.sparkle-title-block {
+  display: flex; flex-direction: column; gap: 1px;
+  min-width: 0; flex: 1;
+}
+.sparkle-desc {
+  font-size: 11px; font-weight: 450; letter-spacing: 0;
+  color: var(--color-text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sparkle-desc-fi {
+  margin-bottom: 10px;
 }
 
 /* ── Persona textarea ── */
