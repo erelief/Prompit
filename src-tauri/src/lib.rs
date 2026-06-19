@@ -143,6 +143,7 @@ pub fn run() {
             commands::history::save_history,
             commands::history::clear_history,
             commands::presets::read_provider_presets,
+            commands::presets::read_model_capabilities,
             get_proxy_url,
             is_sandbox,
         ])

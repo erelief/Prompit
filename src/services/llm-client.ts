@@ -1,9 +1,15 @@
 import { getActiveModel, appConfig, personaStore, sparkleStore, loadDictionary } from "../stores/config";
-import type { ApiFormat, ProviderConfig } from "../stores/config";
+import type { ApiFormat, ProviderConfig, ModelInputCapabilities } from "../stores/config";
+import { detectInputCapabilitiesAsync } from "./model-capabilities";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
+}
+
+export interface FetchModelEntry {
+  id: string;
+  input_capabilities: ModelInputCapabilities; // {} when nothing detected
 }
 
 const OPENAI_FORMAT: Required<ApiFormat> = {
@@ -327,7 +333,7 @@ export async function testProviderConnection(
 
 export async function fetchProviderModels(
   provider: Pick<ProviderConfig, "api_key" | "base_url" | "api_format">
-): Promise<{ ok: boolean; models?: string[]; error?: string }> {
+): Promise<{ ok: boolean; models?: FetchModelEntry[]; error?: string }> {
   if (!provider.api_key || !provider.base_url) {
     return { ok: false, error: "Missing API key or base URL" };
   }
@@ -349,15 +355,37 @@ export async function fetchProviderModels(
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
 
+    // Extract raw {id, raw} pairs so layer ① can inspect the full object.
     const modelsListPath = fmt.response["models_list"];
-    let modelIds: string[];
+    let pairs: Array<{ id: string; raw: any }>;
     if (modelsListPath) {
       const raw = resolvePath(data, modelsListPath.replace(/\.\*$/, ""));
-      modelIds = Array.isArray(raw) ? raw.filter((m: any) => typeof m === "string").sort() : [];
+      if (!Array.isArray(raw)) {
+        pairs = [];
+      } else if (raw.length > 0 && typeof raw[0] === "string") {
+        pairs = raw.map((m: any) => ({ id: String(m), raw: m }));
+      } else {
+        // Array of objects — extract id via the configured path or "id".
+        pairs = raw
+          .map((m: any) => ({ id: String(m?.id ?? ""), raw: m }))
+          .filter((p: any) => p.id);
+      }
     } else {
-      modelIds = data.data?.map((m: any) => m.id).sort() || [];
+      const arr = Array.isArray(data?.data) ? data.data : [];
+      pairs = arr
+        .map((m: any) => ({ id: String(m?.id ?? ""), raw: m }))
+        .filter((p: { id: string }) => p.id);
     }
-    return { ok: true, models: modelIds };
+
+    // Detect capabilities per model (maintained list loaded lazily + cached).
+    const entries = await Promise.all(
+      pairs.map(async (p) => ({
+        id: p.id,
+        input_capabilities: await detectInputCapabilitiesAsync(p.raw, p.id),
+      })),
+    );
+    entries.sort((a, b) => a.id.localeCompare(b.id));
+    return { ok: true, models: entries };
   } catch (err) {
     return {
       ok: false,

@@ -1,0 +1,21 @@
+{
+  "models": [
+    { "id": "gpt-4o*",            "input_capabilities": { "image": true } },
+    { "id": "gpt-4-turbo*",       "input_capabilities": { "image": true } },
+    { "id": "claude-3*",          "input_capabilities": { "image": true } },
+    { "id": "gemini-1.5*",        "input_capabilities": { "image": true } },
+    { "id": "gemini-2*",          "input_capabilities": { "image": true } },
+    { "id": "qwen*-vl*",          "input_capabilities": { "image": true } },
+    { "id": "qwen2-vl*",          "input_capabilities": { "image": true } },
+    { "id": "*vl-*",              "input_capabilities": { "image": true } },
+    { "id": "*-vl",               "input_capabilities": { "image": true } },
+    { "id": "*vision*",           "input_capabilities": { "image": true } },
+    { "id": "*llava*",            "input_capabilities": { "image": true } },
+    { "id": "glm-4v*",            "input_capabilities": { "image": true } },
+    { "id": "deepseek-chat",      "input_capabilities": { "image": false } },
+    { "id": "deepseek-reasoner",  "input_capabilities": { "image": false } },
+    { "id": "kimi-k2.5*",         "input_capabilities": { "image": true, "audio": true } },
+    { "id": "kimi-k2.6*",         "input_capabilities": { "image": true, "audio": true } },
+    { "id": "mimo-v2.5*",         "input_capabilities": { "image": true } }
+  ]
+}

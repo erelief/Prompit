@@ -17,8 +17,19 @@ export interface ApiFormat {
   force_fields?: string[];
 }
 
+/** Multimodal INPUT capabilities of a model. Parent dimension for all input
+ *  modalities. Adding a new modality = one field here + one detection case in
+ *  src/services/model-capabilities.ts. Today only `image` is implemented;
+ *  `audio`/`video` are reserved as future peer optional fields. */
+export interface ModelInputCapabilities {
+  image?: boolean;
+  audio?: boolean;
+  video?: boolean;
+}
+
 export interface ProviderModel {
   id: string;
+  input_capabilities?: ModelInputCapabilities;
 }
 
 export interface ProviderConfig {
@@ -83,6 +94,7 @@ export interface AppConfig {
   history_limit: number;
   shortcut: string;
   launch_on_startup: boolean;
+  show_capability_icons: boolean;
   sparkle_active_provider_index: number;
   sparkle_active_model_index: number;
 }
@@ -103,6 +115,7 @@ const defaultConfig: AppConfig = {
   history_limit: 50,
   shortcut: "Alt+Y",
   launch_on_startup: false,
+  show_capability_icons: true,
   sparkle_active_provider_index: 0,
   sparkle_active_model_index: 0,
 };
@@ -468,6 +481,15 @@ export async function clearAllDictionaries(): Promise<void> {
 
 export async function loadProviderPresets(): Promise<ProviderPreset[]> {
   return await invoke<ProviderPreset[]>("read_provider_presets");
+}
+
+export interface ModelCapabilityItem {
+  id: string;
+  input_capabilities: ModelInputCapabilities;
+}
+
+export async function loadModelCapabilities(): Promise<ModelCapabilityItem[]> {
+  return await invoke<ModelCapabilityItem[]>("read_model_capabilities");
 }
 
 export function getProviderIcon(provider: ProviderConfig, presets: ProviderPreset[]): string {
