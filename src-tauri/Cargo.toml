@@ -40,4 +40,15 @@ tauri-plugin-autostart = "2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
+# Win32 SetWindowPos for atomic resize+reposition (single call sets pos+size,
+# avoiding the one-frame gap between Tauri's separate set_position/set_size).
+windows-sys = { version = "0.59", features = [
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Foundation",
+] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# NSWindow setFrame:display: sets origin+size atomically in one message.
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSView", "NSGraphics"] }
 
