@@ -28,6 +28,7 @@ import {
   EyeOff,
   Zap,
   PartyPopper,
+  PiggyBank,
   Link2,
   X,
   Sun,
@@ -124,14 +125,16 @@ const canProceed = computed(() => {
         providerForm.value.base_url.trim() !== ""
       );
     case 3:
-      return selectedModels.value.size > 0;
+      return true;
     case 4:
+      return selectedModels.value.size > 0;
+    case 5:
       return true;
     default: return false;
   }
 });
 
-const isLastStep = computed(() => currentStep.value === 4);
+const isLastStep = computed(() => currentStep.value === 5);
 
 const shortcutKey = ref("...");
 
@@ -142,7 +145,7 @@ function goNext() {
     confirmProviderAndAdvance();
     return;
   }
-  if (currentStep.value === 4) {
+  if (currentStep.value === 5) {
     finishOnboarding();
     return;
   }
@@ -261,7 +264,7 @@ function onRootClick(e: MouseEvent) {
 
 // ── Close button ──
 function handleClose() {
-  if (currentStep.value === 4) {
+  if (currentStep.value === 5) {
     finishOnboarding();
   } else {
     showCloseConfirm.value = true;
@@ -529,8 +532,24 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Step 3: Select Models -->
-          <div v-else-if="currentStep === 3" key="step3" class="flex flex-col py-6">
+          <!-- Step 3: Lightweight model suggestion -->
+          <div v-else-if="currentStep === 3" key="step3" class="flex flex-col items-center justify-center h-full py-10">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
+              <PiggyBank :size="22" style="color: var(--color-accent)" />
+            </div>
+            <h2 class="text-xl font-medium mb-3" style="color: var(--color-text)">
+              {{ t('onboarding.lightweightTitle') }}
+            </h2>
+            <p class="text-sm leading-relaxed text-center max-w-sm mb-4" style="color: var(--color-text-secondary)">
+              {{ t('onboarding.lightweightBody') }}
+            </p>
+            <p class="text-xs text-center max-w-xs" style="color: var(--color-text-muted); line-height: 1.6">
+              {{ t('onboarding.lightweightHint') }}
+            </p>
+          </div>
+
+          <!-- Step 4: Select Models -->
+          <div v-else-if="currentStep === 4" key="step4" class="flex flex-col py-6">
             <h2 class="text-lg font-medium mb-1" style="color: var(--color-text)">
               {{ t('onboarding.selectModelsTitle') }}
             </h2>
@@ -598,8 +617,8 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Step 4: Done -->
-          <div v-else-if="currentStep === 4" key="step4" class="flex flex-col items-center justify-center h-full py-10">
+          <!-- Step 5: Done -->
+          <div v-else-if="currentStep === 5" key="step5" class="flex flex-col items-center justify-center h-full py-10">
             <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
               <PartyPopper :size="22" style="color: var(--color-accent)" />
             </div>
@@ -634,7 +653,7 @@ onMounted(async () => {
         <!-- Step dots -->
         <div class="flex items-center gap-2">
           <span
-            v-for="i in 5"
+            v-for="i in 6"
             :key="i"
             class="w-1.5 h-1.5 rounded-full transition-all duration-300"
             :style="{
