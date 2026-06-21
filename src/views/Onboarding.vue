@@ -34,6 +34,7 @@ import {
   Sun,
   Moon,
   SunMoon,
+  Plus,
 } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -233,6 +234,22 @@ function selectAll() {
 
 function deselectAll() {
   selectedModels.value = new Map();
+}
+
+// ── Step 4: manual model entry ──
+const manualModelInput = ref("");
+
+function addManualModel() {
+  const id = manualModelInput.value.trim();
+  if (!id) return;
+  // Surface a fake entry in the list so it's visible & selectable like fetched ones.
+  if (!availableModels.value.some((e) => e.id === id)) {
+    availableModels.value = [...availableModels.value, { id, input_capabilities: {} }];
+  }
+  const m = new Map(selectedModels.value);
+  m.set(id, {});
+  selectedModels.value = m;
+  manualModelInput.value = "";
 }
 
 async function finishOnboarding() {
@@ -558,7 +575,7 @@ onMounted(async () => {
             </p>
 
             <!-- Bulk actions -->
-            <div class="flex gap-3 mb-4">
+            <div class="flex gap-3 mb-4 items-center">
               <button
                 @click="selectAll"
                 class="text-xs font-medium px-3 py-1 rounded-md transition-colors"
@@ -599,6 +616,28 @@ onMounted(async () => {
                 <span class="truncate flex-1 min-w-0">{{ entry.id }}</span>
                 <ModelCapabilityIcon :capabilities="entry.input_capabilities" />
               </label>
+
+              <!-- Manual model input row (appended to list) -->
+              <div class="manual-model-row">
+                <span class="manual-model-check">
+                  <Plus :size="12" :stroke-width="2.2" style="color: var(--color-accent)" />
+                </span>
+                <input
+                  v-model="manualModelInput"
+                  type="text"
+                  class="manual-model-input"
+                  :placeholder="t('onboarding.manualModelPlaceholder')"
+                  @keydown.enter="addManualModel"
+                />
+                <button
+                  @click="addManualModel"
+                  :disabled="!manualModelInput.trim()"
+                  class="manual-model-add"
+                  :title="t('common.add')"
+                >
+                  <Plus :size="13" :stroke-width="2.2" />
+                </button>
+              </div>
             </div>
 
             <!-- Error + Retry -->
@@ -748,6 +787,32 @@ input {
 input:focus {
   border-color: var(--color-accent) !important;
 }
+
+/* ── Manual model entry ── */
+.manual-model-row {
+  display: flex; align-items: center; gap: 12px;
+  height: 36px; padding: 0 12px; border-radius: 10px;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+}
+.manual-model-check {
+  width: 16px; height: 16px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.manual-model-input {
+  flex: 1; min-width: 0; height: 28px; padding: 0 4px;
+  background: transparent; color: var(--color-text);
+  border: none; outline: none; font-size: 13px;
+}
+.manual-model-input::placeholder { color: var(--color-text-muted); }
+.manual-model-add {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+  color: var(--color-accent); background: var(--color-accent-bg);
+  border: none; cursor: pointer; transition: .12s;
+}
+.manual-model-add:hover:not(:disabled) { background: var(--color-accent-border); }
+.manual-model-add:disabled { opacity: 0.4; cursor: default; }
 
 /* Custom scrollbar for model list */
 div::-webkit-scrollbar {

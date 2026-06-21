@@ -222,6 +222,7 @@
     "selectModelsBody": "至少选择一个模型。",
     "selectAll": "全选",
     "deselectAll": "取消全选",
+    "manualModelPlaceholder": "…或手动输入模型编号",
     "noModelsFound": "未找到模型。",
     "retryFetch": "重试",
     "fetchFailed": "获取模型失败",

@@ -92,13 +92,14 @@ interface ProviderEditState {
   fetching: boolean;
   fetched: FetchModelEntry[];
   status: string;
+  manualInput: string;
 }
 const editStates = ref<Map<number, ProviderEditState>>(new Map());
 
 function getEditState(index: number): ProviderEditState {
   let s = editStates.value.get(index);
   if (!s) {
-    s = reactive({ keyVisible: false, fetching: false, fetched: [], status: "" });
+    s = reactive({ keyVisible: false, fetching: false, fetched: [], status: "", manualInput: "" });
     editStates.value.set(index, s);
     editStates.value = new Map(editStates.value);
   }
@@ -695,7 +696,18 @@ async function fetchModels(provider: ProviderConfig, index: number) {
   s.fetching = true;
   const result = await fetchProviderModels(provider);
   if (result.ok && result.models) {
-    s.fetched = result.models;
+    // De-dup: drop any fetched entry that collides with a committed model id,
+    // so no id appears twice in the merged pickable list.
+    const committedIds = new Set(provider.models.map((m) => m.id));
+    const fetchedUnique = result.models.filter((e) => !committedIds.has(e.id));
+    // Merge: committed models (stays selected) + freshly fetched ones (selectable).
+    s.fetched = [
+      ...provider.models.map((m) => ({
+        id: m.id,
+        input_capabilities: m.input_capabilities || {},
+      })),
+      ...fetchedUnique,
+    ];
   } else {
     s.status = result.error || "Fetch failed";
     setTimeout(() => { s.status = ""; }, 5000);
@@ -716,6 +728,23 @@ function toggleModel(item: ProviderConfig, entry: FetchModelEntry) {
           : undefined,
     });
   }
+}
+
+function addManualModel(item: ProviderConfig, index: number) {
+  const s = getEditState(index);
+  const id = s.manualInput.trim();
+  if (!id) return;
+  const existsInFetch = s.fetched.some((e) => e.id === id);
+  const existsInCommitted = item.models.some((m) => m.id === id);
+  // Only surface in the open fetch list if it's brand new (otherwise it's already shown there).
+  if (!existsInFetch && !existsInCommitted && s.fetched.length > 0) {
+    s.fetched = [...s.fetched, { id, input_capabilities: {} }];
+  }
+  // If the id already exists anywhere, just ensure it's selected (no-op if already selected).
+  if (!existsInCommitted) {
+    item.models.push({ id });
+  }
+  s.manualInput = "";
 }
 
 function getFetchedModels(pi: number): FetchModelEntry[] {
@@ -1094,6 +1123,24 @@ onUnmounted(() => {
                 {{ entry.id }}
                 <ModelCapabilityIcon :capabilities="entry.input_capabilities" :size="10" />
               </button>
+              <!-- Manual model input (appended to fetched list) -->
+              <div class="manual-model-tag" @click.stop>
+                <input
+                  :value="editStates.get(index)?.manualInput"
+                  @input="getEditState(index).manualInput = ($event.target as HTMLInputElement).value"
+                  @keydown.enter="addManualModel(item, index)"
+                  class="manual-model-input"
+                  :placeholder="t('onboarding.manualModelPlaceholder')"
+                />
+                <button
+                  class="manual-model-add"
+                  @click.stop="addManualModel(item, index)"
+                  :disabled="!(editStates.get(index)?.manualInput || '').trim()"
+                  :title="t('common.add')"
+                >
+                  <Plus :size="11" :stroke-width="2.2" />
+                </button>
+              </div>
             </div>
           </template>
         </EditableCardList>
@@ -1948,6 +1995,29 @@ label {
   letter-spacing: .055em; color: var(--color-text-muted);
 }
 .pool-actions { display:flex; align-items:center; gap:5px; }
+
+/* ── Manual model entry ── */
+.manual-model-tag {
+  display:flex; align-items:center; gap:4px;
+  padding: 2px 6px 2px 10px;
+  border-radius: 999px; flex-shrink:0;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+}
+.manual-model-input {
+  width: 150px; padding: 2px 0; font-size: 10.5px; border-radius: 999px;
+  background: transparent; color: var(--color-text);
+  border: none; outline: none;
+}
+.manual-model-input::placeholder { color: var(--color-text-muted); }
+.manual-model-add {
+  display:flex; align-items:center; justify-content:center;
+  width:20px; height:20px; border-radius:50%; flex-shrink:0;
+  color: var(--color-accent); background: var(--color-accent-bg);
+  border:none; cursor:pointer; transition:.12s;
+}
+.manual-model-add:hover:not(:disabled){ background: var(--color-accent-border); }
+.manual-model-add:disabled{ opacity:.4; cursor:default; }
 
 /* Picker (fetched models) */
 .picker {

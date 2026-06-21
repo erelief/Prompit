@@ -222,6 +222,7 @@
     "selectModelsBody": "Choose at least one model to use.",
     "selectAll": "Select all",
     "deselectAll": "Deselect all",
+    "manualModelPlaceholder": "… Or input model ID manually",
     "noModelsFound": "No models found.",
     "retryFetch": "Retry",
     "fetchFailed": "Failed to fetch models",
