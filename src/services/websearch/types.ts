@@ -1,0 +1,33 @@
+// Shared types for the web-search service. Each preset module exports a
+// SearchFn matching the contract here; the registry routes by preset id.
+
+export interface SearchHit {
+  title: string;
+  url: string;
+  snippet: string;
+  content?: string;
+}
+
+export interface SearchOptions {
+  apiKey?: string;
+  signal?: AbortSignal;
+}
+
+/** Every preset module exports a function matching this signature. */
+export type SearchFn = (query: string, opts: SearchOptions) => Promise<SearchHit[]>;
+
+/** Result of classifying a search error for user display. */
+export interface ClassifiedSearchError {
+  code: string; // HTTP status as string, or "NETWORK" / "UNKNOWN"
+  messageKey: string; // i18n key for the human message
+}
+
+/** Thrown by preset modules; carries the HTTP status for classification. */
+export class SearchHttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "SearchHttpError";
+    this.status = status;
+  }
+}
