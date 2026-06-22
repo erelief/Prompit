@@ -1455,21 +1455,26 @@ onUnmounted(() => {
               >
                 <component :is="item.enabled ? ToggleRight : ToggleLeft" :size="16" :stroke-width="1.8" />
               </button>
-              <span class="we-name">{{ presetMeta(item.preset).label }}</span>
+              <span class="we-name" :class="{ dim: !item.custom_name }">{{ item.custom_name || presetMeta(item.preset).label }}</span>
             </div>
           </template>
 
           <template #name-input="{ item, index }">
             <div class="name-row-wrap">
+              <component :is="presetMeta(item.preset).icon" :size="16" :stroke-width="1.8" class="we-name-logo" />
+              <input
+                v-model="item.custom_name"
+                :placeholder="presetMeta(item.preset).label"
+                class="fi name-fi" @click.stop
+              />
               <button
-                class="web-select-btn"
+                class="preset-mini-btn web-preset-btn"
                 :class="{ active: item.preset }"
                 @click.stop="toggleWebPresetMenu($event, index)"
                 :title="t('settings.selectSearchService')"
               >
-                <component :is="presetMeta(item.preset).icon" :size="14" :stroke-width="1.8" class="web-select-icon" />
-                <span class="web-select-label">{{ presetMeta(item.preset).label }}</span>
-                <ChevronDown :size="13" :stroke-width="2" class="web-select-chevron" />
+                <component :is="presetMeta(item.preset).icon" :size="12" :stroke-width="1.8" />
+                <ChevronDown :size="11" :stroke-width="2" class="web-preset-chevron" />
               </button>
             </div>
           </template>
@@ -3269,21 +3274,21 @@ label {
 .we-toggle.on { color: var(--color-accent); }
 .we-toggle:disabled { opacity:.32; cursor:not-allowed; }
 .we-name { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.we-name.dim { color: var(--color-text-muted); }
 
-/* Search-service selector — looks like a dropdown menu trigger:
-   brand icon + label on the left, chevron on the right. */
-.web-select-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 10px; border-radius: 7px;
-  border: 1px solid var(--color-border); background: var(--color-surface);
-  color: var(--color-text); cursor: pointer; transition: .12s;
-  font-size: 13px; font-weight: 700; flex-shrink: 0;
+/* Brand logo in the name row (edit/add) — mirrors the provider name-row logo. */
+.we-name-logo { color: var(--color-text-muted); flex-shrink:0; }
+/* Preset picker button in the name row — square icon button holding the
+   brand mark + a chevron (no cloud-download). Overrides the base 27px
+   preset-mini-btn width to fit two icons. */
+.preset-mini-btn.web-preset-btn {
+  width: auto;
+  gap: 3px;
+  color: var(--color-text-muted);
 }
-.web-select-btn:hover { border-color: var(--color-border-hover); background: var(--color-surface-hover); }
-.web-select-btn.active { color: var(--color-text); border-color: var(--color-border); }
-.web-select-icon { color: var(--color-text); flex-shrink: 0; }
-.web-select-label { line-height: 1; white-space: nowrap; }
-.web-select-chevron { color: var(--color-text-muted); flex-shrink: 0; }
+.preset-mini-btn.web-preset-btn:hover { color: var(--color-accent); }
+.preset-mini-btn.web-preset-btn.active { color: var(--color-accent); }
+.web-preset-chevron { flex-shrink: 0; }
 
 .we-hint {
   font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
