@@ -39,6 +39,15 @@
     "connected": "Connected",
     "failedToConnect": "Failed to connect",
     "testConnection": "Test connection",
+    "testConnectionSuccess": "Connected",
+    "testConnectionFailed": "Failed to connect",
+    "webSearch": "Web Search",
+    "addSearchEngine": "Add search engine",
+    "customName": "Custom name (optional)",
+    "apiKeyRequired": "API Key (required)",
+    "apiKeyOptional": "API Key (optional)",
+    "webSearchKeyHint": "AnySearch supports anonymous access, but anonymous search is already the built-in fallback. Adding this instance means using your own API Key for higher quota — please enter a Key.",
+    "webSearchEmpty": "No search engine configured.",
     "preset": "Preset",
     "applyPreset": "Apply preset",
     "openaiCompatHint": "Requires an OpenAI-compatible API.",
@@ -127,6 +136,8 @@
     "emptyDictBody": "Add terms in Settings for more accurate translations.",
     "goToSettings": "Go to Settings",
     "selectSparkle": "Select Sparkle",
+    "enableWebSearch": "Toggle web search",
+    "searching": "Searching…",
     "history": "History",
     "aiDisclaimer": "AI-generated, for reference only"
   },
@@ -241,5 +252,16 @@
   },
   "startupReminder": {
     "hint": "Press {shortcut} to open the input"
+  },
+  "search": {
+    "failed": "Search failed: [{code}] {message}.",
+    "retryOrDisable": "Please retry or turn off search.",
+    "err401": "API Key invalid or expired, check Settings",
+    "err403": "API Key invalid or expired, check Settings",
+    "err429": "Rate limited; anonymous tier throttled, add your own Key in Settings",
+    "errNetwork": "Network connection failed",
+    "errUnknown": "Unknown error",
+    "sourceSearched": "Web search (results used)",
+    "sourceNotSearched": "Not searched"
   }
 }
