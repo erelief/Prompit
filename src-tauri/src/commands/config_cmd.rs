@@ -101,6 +101,7 @@ mod tests {
             show_startup_reminder: true,
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
+            mode_shortcut: "Alt+M".to_string(),
             launch_on_startup: false,
             show_capability_icons: true,
         };

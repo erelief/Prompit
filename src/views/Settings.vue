@@ -19,6 +19,7 @@ import {
   MODES,
 } from "../stores/config";
 import { burstParticles } from "../utils/burstParticles";
+import { keyCodeToToken, shortcutsEqual } from "../utils/shortcut";
 import type { ProviderConfig, ProviderPreset } from "../stores/config";
 import { getProviderIcon, getProviderSeries } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
@@ -197,13 +198,37 @@ async function toggleLaunchOnStartup(e: MouseEvent) {
 const shortcutRecording = ref(false);
 const shortcutError = ref("");
 const shortcutRecBtn = ref<HTMLButtonElement | null>(null);
+// Auto-dismiss timer for the validation error so it fades after ~1.8s without
+// requiring the user to click anything.
+let shortcutErrorTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Show a validation error that auto-clears itself after ~1.8s. Exits the
+ *  recording state so the error text is actually rendered (the template's
+ *  `v-if="recording"` branch would otherwise keep the button stuck on the
+ *  "Press a shortcut…" label and hide the message). */
+function showShortcutError(msg: string) {
+  shortcutRecording.value = false;
+  if (isTauri) invoke("finish_record_shortcut").catch(() => { /* best-effort */ });
+  if (shortcutErrorTimer) clearTimeout(shortcutErrorTimer);
+  shortcutError.value = msg;
+  shortcutErrorTimer = setTimeout(() => {
+    shortcutError.value = "";
+    shortcutErrorTimer = null;
+  }, 1800);
+}
+
+/** Immediately clear the validation error and its auto-hide timer. */
+function clearShortcutError() {
+  if (shortcutErrorTimer) { clearTimeout(shortcutErrorTimer); shortcutErrorTimer = null; }
+  shortcutError.value = "";
+}
 
 // Split the current shortcut string into display tokens, e.g. "Ctrl+Shift+P" → ["Ctrl","Shift","P"]
 const shortcutTokens = computed(() => appConfig.shortcut.split("+").map((s) => s.trim()).filter(Boolean));
 
 function startShortcutRecord() {
   if (!isTauri) return;
-  shortcutError.value = "";
+  clearShortcutError();
   shortcutRecording.value = true;
   // Release the OS-level hotkey so raw key presses reach the webview while recording.
   invoke("start_record_shortcut").catch(() => { /* best-effort */ });
@@ -213,23 +238,9 @@ function startShortcutRecord() {
 async function cancelShortcutRecord() {
   if (!shortcutRecording.value) return;
   shortcutRecording.value = false;
-  shortcutError.value = "";
+  clearShortcutError();
   // Restore the saved binding since the user did not pick a new one.
   if (isTauri) await invoke("finish_record_shortcut").catch(() => {});
-}
-
-// Map a KeyboardEvent.code into the plugin's display token (e.g. KeyY → "Y", Digit1 → "1", F5 → "F5")
-function keyCodeToToken(code: string): string | null {
-  if (/^Key[A-Z]$/.test(code)) return code.slice(3); // KeyA → A
-  if (/^Digit[0-9]$/.test(code)) return code.slice(5); // Digit1 → 1
-  if (/^F([1-9]|1[0-9]|2[0-4])$/.test(code)) return code; // F1–F24
-  const named: Record<string, string> = {
-    Space: "Space", Enter: "Enter", Tab: "Tab", Escape: "Escape", Backspace: "Backspace",
-    Insert: "Insert", Delete: "Delete", Home: "Home", End: "End",
-    PageUp: "PageUp", PageDown: "PageDown",
-    ArrowLeft: "Left", ArrowRight: "Right", ArrowUp: "Up", ArrowDown: "Down",
-  };
-  return named[code] ?? null;
 }
 
 async function onShortcutKeydown(e: KeyboardEvent) {
@@ -246,12 +257,13 @@ async function onShortcutKeydown(e: KeyboardEvent) {
   }
 
   const token = keyCodeToToken(e.code);
-  if (!token) {
-    shortcutError.value = t("settings.shortcutInvalid");
-    return;
-  }
+  // Modifier-only presses (Alt/Ctrl/Shift/Cmd alone) carry no main key token:
+  // stay quiet and wait for the actual key instead of flashing an error.
+  if (!token) return;
+  // A real key was pressed but no modifier is held → invalid. Auto-clears so
+  // the user can immediately retry without dismissing anything by hand.
   if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-    shortcutError.value = t("settings.shortcutInvalid");
+    showShortcutError(t("settings.shortcutInvalid"));
     return;
   }
 
@@ -260,21 +272,135 @@ async function onShortcutKeydown(e: KeyboardEvent) {
   if (e.altKey) mods.push("Alt");
   if (e.shiftKey) mods.push("Shift");
   if (e.metaKey) mods.push("Cmd");
+  const candidate = [...mods, token].join("+");
+  // Reject if it collides with the mode-switch shortcut (the two must stay
+  // distinct so neither binding silently shadows the other).
+  if (shortcutsEqual(candidate, appConfig.mode_shortcut)) {
+    showShortcutError(t("settings.shortcutConflict"));
+    return;
+  }
   shortcutRecording.value = false;
-  await applyShortcut([...mods, token].join("+"));
+  await applyShortcut(candidate);
 }
 
 async function applyShortcut(shortcut: string) {
-  shortcutError.value = "";
+  clearShortcutError();
   if (!isTauri) return;
   try {
     await invoke("update_shortcut", { shortcut });
     appConfig.shortcut = shortcut; // existing watcher persists config.json
     if (shortcutRecBtn.value) burstParticles(shortcutRecBtn.value);
   } catch {
-    shortcutError.value = t("settings.shortcutConflict");
+    showShortcutError(t("settings.shortcutConflict"));
     // update_shortcut already rolled back to the previous binding; nothing to restore.
   }
+}
+
+// Restore the wake-up shortcut to its factory default (Alt+Y). Same conflict
+// guard as manual recording: refuses if the mode-switch shortcut currently
+// holds that binding.
+async function resetShortcut() {
+  const def = "Alt+Y";
+  if (shortcutsEqual(def, appConfig.shortcut)) return;
+  if (shortcutsEqual(def, appConfig.mode_shortcut)) {
+    showShortcutError(t("settings.shortcutConflict"));
+    return;
+  }
+  shortcutRecording.value = false;
+  await applyShortcut(def);
+}
+
+// ── Mode-switch shortcut recorder ──
+// Unlike the wake shortcut, this is a webview-scoped binding (not an OS global
+// hotkey), so there is no Rust re-registration: we just persist the token
+// string and the FloatingInput listener reads it at keydown time.
+const modeShortcutRecording = ref(false);
+const modeShortcutError = ref("");
+const modeShortcutRecBtn = ref<HTMLButtonElement | null>(null);
+let modeShortcutErrorTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showModeShortcutError(msg: string) {
+  modeShortcutRecording.value = false;
+  if (modeShortcutErrorTimer) clearTimeout(modeShortcutErrorTimer);
+  modeShortcutError.value = msg;
+  modeShortcutErrorTimer = setTimeout(() => {
+    modeShortcutError.value = "";
+    modeShortcutErrorTimer = null;
+  }, 1800);
+}
+
+function clearModeShortcutError() {
+  if (modeShortcutErrorTimer) { clearTimeout(modeShortcutErrorTimer); modeShortcutErrorTimer = null; }
+  modeShortcutError.value = "";
+}
+
+const modeShortcutTokens = computed(() =>
+  appConfig.mode_shortcut.split("+").map((s) => s.trim()).filter(Boolean)
+);
+
+function startModeShortcutRecord() {
+  clearModeShortcutError();
+  modeShortcutRecording.value = true;
+  nextTick(() => modeShortcutRecBtn.value?.focus());
+}
+
+function cancelModeShortcutRecord() {
+  modeShortcutRecording.value = false;
+  clearModeShortcutError();
+}
+
+async function onModeShortcutKeydown(e: KeyboardEvent) {
+  if (!modeShortcutRecording.value) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  if (e.code === "Escape") { cancelModeShortcutRecord(); return; }
+  if (e.code === "Backspace") {
+    modeShortcutRecording.value = false;
+    appConfig.mode_shortcut = "Alt+M";
+    return;
+  }
+
+  const token = keyCodeToToken(e.code);
+  // Modifier-only presses (Alt/Ctrl/Shift/Cmd alone) carry no main key token:
+  // stay quiet and wait for the actual key instead of flashing an error.
+  if (!token) return;
+  // A real key was pressed but no modifier is held → invalid. Auto-clears so
+  // the user can immediately retry without dismissing anything by hand.
+  if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+    showModeShortcutError(t("settings.shortcutInvalid"));
+    return;
+  }
+  const mods: string[] = [];
+  if (e.ctrlKey) mods.push("Ctrl");
+  if (e.altKey) mods.push("Alt");
+  if (e.shiftKey) mods.push("Shift");
+  if (e.metaKey) mods.push("Cmd");
+  const candidate = [...mods, token].join("+");
+  // Reject if it collides with the wake-up shortcut.
+  if (shortcutsEqual(candidate, appConfig.shortcut)) {
+    showModeShortcutError(t("settings.shortcutConflict"));
+    return;
+  }
+  modeShortcutRecording.value = false;
+  clearModeShortcutError();
+  appConfig.mode_shortcut = candidate;
+  if (modeShortcutRecBtn.value) burstParticles(modeShortcutRecBtn.value);
+}
+
+// Restore the mode-switch shortcut to its factory default (Alt+M). Refuses if
+// the wake-up shortcut currently holds that binding.
+function resetModeShortcut() {
+  const def = "Alt+M";
+  if (shortcutsEqual(def, appConfig.mode_shortcut)) return;
+  if (shortcutsEqual(def, appConfig.shortcut)) {
+    showModeShortcutError(t("settings.shortcutConflict"));
+    return;
+  }
+  modeShortcutRecording.value = false;
+  clearModeShortcutError();
+  appConfig.mode_shortcut = def;
+  if (modeShortcutRecBtn.value) burstParticles(modeShortcutRecBtn.value);
 }
 
 function toggleTranslationDict(e: MouseEvent) {
@@ -1254,27 +1380,74 @@ onUnmounted(() => {
           <!-- Shortcut (record a new global hotkey) -->
           <div class="card-row shortcut-row">
             <span class="card-label">{{ t('settings.shortcut') }}</span>
-            <button
-              ref="shortcutRecBtn"
-              class="shortcut-btn"
-              :class="{ recording: shortcutRecording, 'has-error': !!shortcutError }"
-              :title="t('settings.shortcutHint')"
-              tabindex="0"
-              @click="shortcutRecording ? cancelShortcutRecord() : startShortcutRecord()"
-              @keydown="onShortcutKeydown"
-              @blur="cancelShortcutRecord"
-            >
-              <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
-              <template v-if="shortcutRecording">
-                <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
-              </template>
-              <template v-else-if="shortcutError">
-                <span class="shortcut-err-text">{{ shortcutError }}</span>
-              </template>
-              <template v-else>
-                <kbd v-for="(tok, i) in shortcutTokens" :key="i" class="kbd-badge">{{ tok }}</kbd>
-              </template>
-            </button>
+            <div class="shortcut-controls">
+              <button
+                ref="shortcutRecBtn"
+                class="shortcut-btn"
+                :class="{ recording: shortcutRecording, 'has-error': !!shortcutError }"
+                :title="t('settings.shortcutHint')"
+                tabindex="0"
+                @click="shortcutRecording ? cancelShortcutRecord() : startShortcutRecord()"
+                @keydown="onShortcutKeydown"
+                @blur="cancelShortcutRecord"
+              >
+                <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
+                <template v-if="shortcutRecording">
+                  <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
+                </template>
+                <template v-else-if="shortcutError">
+                  <span class="shortcut-err-text">{{ shortcutError }}</span>
+                </template>
+                <template v-else>
+                  <kbd v-for="(tok, i) in shortcutTokens" :key="i" class="kbd-badge">{{ tok }}</kbd>
+                </template>
+              </button>
+              <button
+                class="shortcut-reset"
+                :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+Y', appConfig.shortcut) }"
+                :disabled="shortcutsEqual('Alt+Y', appConfig.shortcut)"
+                @click="resetShortcut"
+                :title="t('settings.resetToDefault')"
+              >
+                <RotateCcw :size="11" :stroke-width="2" />
+              </button>
+            </div>
+          </div>
+          <!-- Mode-switch shortcut (webview-scoped, active only in FloatingInput) -->
+          <div class="card-row shortcut-row">
+            <span class="card-label">{{ t('settings.modeShortcut') }}</span>
+            <div class="shortcut-controls">
+              <button
+                ref="modeShortcutRecBtn"
+                class="shortcut-btn"
+                :class="{ recording: modeShortcutRecording, 'has-error': !!modeShortcutError }"
+                :title="t('settings.modeShortcutHint')"
+                tabindex="0"
+                @click="modeShortcutRecording ? cancelModeShortcutRecord() : startModeShortcutRecord()"
+                @keydown="onModeShortcutKeydown"
+                @blur="cancelModeShortcutRecord"
+              >
+                <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
+                <template v-if="modeShortcutRecording">
+                  <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
+                </template>
+                <template v-else-if="modeShortcutError">
+                  <span class="shortcut-err-text">{{ modeShortcutError }}</span>
+                </template>
+                <template v-else>
+                  <kbd v-for="(tok, i) in modeShortcutTokens" :key="i" class="kbd-badge">{{ tok }}</kbd>
+                </template>
+              </button>
+              <button
+                class="shortcut-reset"
+                :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+M', appConfig.mode_shortcut) }"
+                :disabled="shortcutsEqual('Alt+M', appConfig.mode_shortcut)"
+                @click="resetModeShortcut"
+                :title="t('settings.resetToDefault')"
+              >
+                <RotateCcw :size="11" :stroke-width="2" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2734,6 +2907,32 @@ label {
 }
 
 /* ── Shortcut recorder ── */
+.shortcut-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.shortcut-reset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: 0.15s;
+}
+.shortcut-reset:not(:disabled):hover {
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+}
+.shortcut-reset-off {
+  opacity: 0.25;
+  cursor: default;
+}
 .shortcut-row .shortcut-btn {
   display: flex;
   align-items: center;

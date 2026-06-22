@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter } from "vue-router";
 import { burstParticles, popElement } from "../utils/burstParticles";
+import { eventMatchesShortcut } from "../utils/shortcut";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
@@ -193,6 +194,24 @@ function selectMode(modeId: string) {
   if (modeBtnRef.value) {
     burstParticles(modeBtnRef.value);
     popElement(modeBtnRef.value);
+  }
+}
+
+// Cycle to the next mode (translate → sparkle → … → back to first).
+// Reuses selectMode so the same burst/pop animation plays as a click.
+function cycleMode() {
+  if (MODES.length < 2) return;
+  const idx = MODES.findIndex((m) => m.id === appConfig.active_mode);
+  const next = MODES[(idx + 1) % MODES.length];
+  selectMode(next.id);
+}
+
+// Webview-scoped keydown listener: fires the mode-cycle shortcut only while
+// FloatingInput is mounted (other views are unmounted, so the listener is gone).
+function onModeShortcutKeydown(e: KeyboardEvent) {
+  if (eventMatchesShortcut(e, appConfig.mode_shortcut)) {
+    e.preventDefault();
+    cycleMode();
   }
 }
 
@@ -401,6 +420,7 @@ onMounted(async () => {
     } catch { /* ignore */ }
   }
   document.addEventListener("mousedown", onDocumentClick);
+  window.addEventListener("keydown", onModeShortcutKeydown);
   nextTick(() => {
     textareaRef.value?.focus();
   });
@@ -429,6 +449,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener("mousedown", onDocumentClick);
+  window.removeEventListener("keydown", onModeShortcutKeydown);
   unlistenConfig?.();
   resizeObserver?.disconnect();
 });

@@ -135,6 +135,8 @@ pub struct AppConfig {
     pub history_limit: u32,
     #[serde(default = "default_shortcut")]
     pub shortcut: String,
+    #[serde(default = "default_mode_shortcut")]
+    pub mode_shortcut: String,
     #[serde(default)]
     pub launch_on_startup: bool,
     #[serde(default, skip_serializing)]
@@ -162,6 +164,9 @@ fn default_history_limit() -> u32 {
 fn default_shortcut() -> String {
     "Alt+Y".to_string()
 }
+fn default_mode_shortcut() -> String {
+    "Alt+M".to_string()
+}
 
 impl Default for AppConfig {
     fn default() -> Self {
@@ -182,6 +187,7 @@ impl Default for AppConfig {
             show_startup_reminder: true,
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
+            mode_shortcut: "Alt+M".to_string(),
             launch_on_startup: false,
             show_capability_icons: false,
         }
@@ -228,6 +234,7 @@ mod tests {
             show_startup_reminder: true,
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
+            mode_shortcut: "Alt+M".to_string(),
             launch_on_startup: false,
             show_capability_icons: false,
         };
