@@ -20,6 +20,7 @@ import {
   UserCircle,
   BookText,
   Sparkles,
+  Globe,
 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
@@ -118,6 +119,13 @@ function togglePersona(e: MouseEvent) {
 function toggleDict(e: MouseEvent) {
   const turning = !appConfig.user_dict_enabled;
   appConfig.user_dict_enabled = turning;
+  if (turning) burstParticles(e.currentTarget as HTMLElement);
+  emit("result-stale");
+}
+
+function toggleWebSearch(e: MouseEvent) {
+  const turning = !appConfig.web_search_enabled_in_sparkle;
+  appConfig.web_search_enabled_in_sparkle = turning;
   if (turning) burstParticles(e.currentTarget as HTMLElement);
   emit("result-stale");
 }
@@ -293,6 +301,17 @@ defineExpose({ closeAllDropdowns });
         </Transition>
       </Teleport>
     </div>
+
+    <!-- Web search toggle (sparkle mode only) -->
+    <button
+      @click="toggleWebSearch($event)"
+      class="search-toggle"
+      :class="{ on: appConfig.web_search_enabled_in_sparkle }"
+      :title="t('floating.enableWebSearch')"
+    >
+      <Globe :size="11" :stroke-width="1.8" />
+      <span v-if="appConfig.web_search_enabled_in_sparkle" class="search-dot" />
+    </button>
   </template>
 
   <!-- Translate mode: language + persona + dict -->
@@ -775,6 +794,47 @@ defineExpose({ closeAllDropdowns });
 
 @media (prefers-reduced-motion: reduce) {
   .persona-wrap.on,
-  .dict-toggle.on { animation: none; }
+  .dict-toggle.on,
+  .search-toggle.on { animation: none; }
+}
+
+/* ── Web search toggle (mirrors .dict-toggle) ── */
+.search-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-surface);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-size: 11px;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.search-toggle:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-border);
+}
+.search-toggle.on {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+  border-color: var(--color-accent-border);
+  animation: toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.search-toggle.on:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+.search-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 5px var(--color-accent-border);
+  flex-shrink: 0;
 }
 </style>
