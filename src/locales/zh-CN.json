@@ -42,6 +42,7 @@
     "testConnectionSuccess": "连接成功",
     "testConnectionFailed": "连接失败",
     "webSearch": "网页搜索",
+    "selectSearchService": "选择搜索服务",
     "addSearchEngine": "添加搜索引擎",
     "customName": "自定义名称（可选）",
     "apiKeyRequired": "API Key（必填）",

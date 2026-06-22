@@ -42,6 +42,7 @@
     "testConnectionSuccess": "Connected",
     "testConnectionFailed": "Failed to connect",
     "webSearch": "Web Search",
+    "selectSearchService": "Select search service",
     "addSearchEngine": "Add search engine",
     "customName": "Custom name (optional)",
     "apiKeyRequired": "API Key (required)",

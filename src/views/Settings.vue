@@ -1455,13 +1455,13 @@ onUnmounted(() => {
             <div class="name-row-wrap">
               <component :is="presetMeta(item.preset).icon" :size="16" :stroke-width="1.8" class="we-preset-icon" />
               <button
-                class="preset-mini-btn web-preset-btn"
+                class="web-select-btn"
                 :class="{ active: item.preset }"
                 @click.stop="toggleWebPresetMenu($event, index)"
-                :title="t('settings.preset')"
+                :title="t('settings.selectSearchService')"
               >
-                <span class="web-preset-label">{{ presetMeta(item.preset).label }}</span>
-                <CloudDownload :size="12" :stroke-width="1.8" />
+                <span class="web-select-label">{{ presetMeta(item.preset).label }}</span>
+                <ChevronDown :size="13" :stroke-width="2" class="web-select-chevron" />
               </button>
             </div>
           </template>
@@ -3243,18 +3243,19 @@ label {
 .we-name { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 .we-preset-icon { color: var(--color-text-muted); flex-shrink:0; }
-/* Preset selector button in the name row — mirrors .preset-mini-btn but
-   shows the preset label inline (web search has no separate name field).
-   Overrides the base 27px square sizing since this button carries text. */
-.preset-mini-btn.web-preset-btn {
-  width: auto;
-  padding: 0 8px;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text);
+/* Search-service selector — looks like a dropdown menu trigger:
+   label on the left, chevron on the right. */
+.web-select-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 7px;
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text); cursor: pointer; transition: .12s;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
 }
-.web-preset-label { line-height: 1; white-space: nowrap; }
+.web-select-btn:hover { border-color: var(--color-border-hover); background: var(--color-surface-hover); }
+.web-select-btn.active { color: var(--color-accent); border-color: var(--color-accent-border); }
+.web-select-label { line-height: 1; white-space: nowrap; }
+.web-select-chevron { color: var(--color-text-muted); flex-shrink: 0; }
 
 .we-hint {
   font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
