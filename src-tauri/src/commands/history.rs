@@ -19,6 +19,8 @@ pub struct HistoryEntry {
     pub persona: Option<String>,
     #[serde(default)]
     pub sparkle: Option<String>,
+    #[serde(default)]
+    pub searched: bool,
 }
 
 fn history_path(app: &AppHandle) -> Result<PathBuf, String> {

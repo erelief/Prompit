@@ -103,6 +103,17 @@ pub struct ProviderConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebEngineConfig {
+    pub preset: String,
+    #[serde(default)]
+    pub api_key: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub providers: Vec<ProviderConfig>,
     #[serde(default)]
@@ -141,6 +152,12 @@ pub struct AppConfig {
     pub launch_on_startup: bool,
     #[serde(default, skip_serializing)]
     pub show_capability_icons: bool,
+    #[serde(default)]
+    pub web_engines: Vec<WebEngineConfig>,
+    #[serde(default = "default_web_search_active_index")]
+    pub web_search_active_index: i64,
+    #[serde(default)]
+    pub web_search_enabled_in_sparkle: bool,
 }
 
 fn default_target_lang() -> String {
@@ -167,6 +184,9 @@ fn default_shortcut() -> String {
 fn default_mode_shortcut() -> String {
     "Alt+M".to_string()
 }
+fn default_web_search_active_index() -> i64 {
+    -1
+}
 
 impl Default for AppConfig {
     fn default() -> Self {
@@ -190,6 +210,9 @@ impl Default for AppConfig {
             mode_shortcut: "Alt+M".to_string(),
             launch_on_startup: false,
             show_capability_icons: false,
+            web_engines: vec![],
+            web_search_active_index: -1,
+            web_search_enabled_in_sparkle: false,
         }
     }
 }
@@ -237,6 +260,9 @@ mod tests {
             mode_shortcut: "Alt+M".to_string(),
             launch_on_startup: false,
             show_capability_icons: false,
+            web_engines: vec![],
+            web_search_active_index: -1,
+            web_search_enabled_in_sparkle: false,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();
