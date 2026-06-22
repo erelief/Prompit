@@ -3244,14 +3244,17 @@ label {
 
 .we-preset-icon { color: var(--color-text-muted); flex-shrink:0; }
 /* Preset selector button in the name row — mirrors .preset-mini-btn but
-   shows the preset label inline (web search has no separate name field). */
+   shows the preset label inline (web search has no separate name field).
+   Overrides the base 27px square sizing since this button carries text. */
 .preset-mini-btn.web-preset-btn {
+  width: auto;
+  padding: 0 8px;
   gap: 6px;
   font-size: 13px;
   font-weight: 700;
   color: var(--color-text);
 }
-.web-preset-label { line-height: 1; }
+.web-preset-label { line-height: 1; white-space: nowrap; }
 
 .we-hint {
   font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
