@@ -672,6 +672,34 @@ async function testWebEngineConnection(eng: WebEngineConfig, index: number) {
   }
 }
 
+// ── Web search preset selector (mirrors the provider preset-mini-btn + sel-menu pattern) ──
+const showWebPresetMenu = ref(false);
+const webPresetMenuIndex = ref<number | null>(null);
+const webPresetMenuPos = ref({ top: 0, left: 0 });
+
+function toggleWebPresetMenu(e: MouseEvent, index: number) {
+  if (showWebPresetMenu.value && webPresetMenuIndex.value === index) {
+    showWebPresetMenu.value = false;
+    webPresetMenuIndex.value = null;
+    return;
+  }
+  webPresetMenuIndex.value = index;
+  showWebPresetMenu.value = true;
+  const btn = e.currentTarget as HTMLElement;
+  const r = btn.getBoundingClientRect();
+  const menuW = 220;
+  let left = r.right - menuW;
+  if (left + menuW > window.innerWidth - 8) left = window.innerWidth - 8 - menuW;
+  if (left < 8) left = 8;
+  webPresetMenuPos.value = { top: r.bottom + 5, left };
+}
+
+function applyWebPreset(item: WebEngineConfig, presetId: string) {
+  item.preset = presetId;
+  showWebPresetMenu.value = false;
+  webPresetMenuIndex.value = null;
+}
+
 async function handleSparkleOptimizePrompt(item: { prompt: string }, index: number) {
   if (!item.prompt.trim() || optimizingIndex.value !== null) return;
   promptUndoStack.set(index, item.prompt);
@@ -1096,6 +1124,10 @@ function onDocClick(e: MouseEvent) {
     showPresetMenu.value = false;
     presetMenuIndex.value = null;
   }
+  if (!t.closest(".web-preset-menu") && !t.closest(".web-preset-btn")) {
+    showWebPresetMenu.value = false;
+    webPresetMenuIndex.value = null;
+  }
   if (!t.closest(".pickable"))
     addingModelProvider.value = null;
 }
@@ -1418,22 +1450,44 @@ onUnmounted(() => {
             </div>
           </template>
 
-          <template #name-input="{ item }">
-            <div class="we-name-row">
-              <component :is="presetMeta(item.preset).icon" :size="15" :stroke-width="1.8" />
-              <select v-model="item.preset" class="we-preset-select" @click.stop>
-                <option v-for="p in SEARCH_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
-              </select>
-              <input
-                v-model="item.custom_name"
-                :placeholder="presetMeta(item.preset).label"
-                class="we-custom-name"
-                @click.stop
-              />
+          <template #name-input="{ item, index }">
+            <div class="name-row-wrap">
+              <component :is="presetMeta(item.preset).icon" :size="16" :stroke-width="1.8" class="we-preset-icon" />
+              <button
+                class="preset-mini-btn web-preset-btn"
+                :class="{ active: item.preset }"
+                @click.stop="toggleWebPresetMenu($event, index)"
+                :title="t('settings.preset')"
+              >
+                <span class="web-preset-label">{{ presetMeta(item.preset).label }}</span>
+                <CloudDownload :size="12" :stroke-width="1.8" />
+              </button>
             </div>
           </template>
 
           <template #content="{ item, index }">
+            <Teleport to="body">
+              <Transition name="drop">
+                <div v-if="showWebPresetMenu && webPresetMenuIndex === index" class="sel-menu web-preset-menu" :style="{ top: webPresetMenuPos.top + 'px', left: webPresetMenuPos.left + 'px', width: '220px' }">
+                  <div class="sel-clip settings-scrollbar">
+                    <button
+                      v-for="p in SEARCH_PRESETS" :key="p.id"
+                      class="sel-opt"
+                      :class="{ hit: item.preset === p.id }"
+                      @click="applyWebPreset(item, p.id)"
+                    >
+                      <div class="opt-left"><component :is="p.icon" :size="14" :stroke-width="1.8" />
+                      <div class="opt-info">
+                        <div class="opt-id-row">
+                          <span class="opt-id">{{ p.label }}</span>
+                        </div>
+                      </div></div>
+                      <Check v-if="item.preset === p.id" :size="13" :stroke-width="2.5" />
+                    </button>
+                  </div>
+                </div>
+              </Transition>
+            </Teleport>
             <p class="we-hint">{{ t(presetMeta(item.preset).keyHelpKey) }}</p>
             <div class="we-key-row">
               <input
@@ -3187,19 +3241,16 @@ label {
 .we-toggle:disabled { opacity:.32; cursor:not-allowed; }
 .we-name { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-.we-name-row { display:flex; align-items:center; gap:7px; color: var(--color-text-muted); }
-.we-preset-select {
-  background:none; border:1px solid var(--color-border); border-radius:6px;
-  color: var(--color-text); font-size:13px; font-weight:700; padding:4px 6px;
-  outline:none; cursor:pointer;
+.we-preset-icon { color: var(--color-text-muted); flex-shrink:0; }
+/* Preset selector button in the name row — mirrors .preset-mini-btn but
+   shows the preset label inline (web search has no separate name field). */
+.preset-mini-btn.web-preset-btn {
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
 }
-.we-custom-name {
-  flex:1; background:none; border:none;
-  font-size:13px; font-weight:600; color: var(--color-text); outline:none;
-  padding:3px 5px; border-radius:5px;
-}
-.we-custom-name::placeholder { color: var(--color-text-muted); }
-.we-custom-name:focus { background: var(--color-surface); }
+.web-preset-label { line-height: 1; }
 
 .we-hint {
   font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
