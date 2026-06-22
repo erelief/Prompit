@@ -28,6 +28,8 @@ import { getTheme, setTheme } from "../composables/useTheme";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { testProviderConnection, fetchProviderModels, optimizePrompt } from "../services/llm-client";
 import type { FetchModelEntry } from "../services/llm-client";
+import { SEARCH_PRESETS, presetMeta, testWebEngine } from "../services/websearch";
+import type { WebEngineConfig } from "../stores/config";
 import type { ModelInputCapabilities } from "../stores/config";
 import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
@@ -69,6 +71,7 @@ import {
   Cloudy,
   Keyboard,
   SlidersHorizontal,
+  Globe,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -553,6 +556,120 @@ function toggleSparkle(index: number, e: MouseEvent) {
     burstParticles(e.currentTarget as HTMLElement);
   }
   persistSparkles();
+}
+
+// ── Web search engine management ──
+interface WebEngineEditState {
+  testing: boolean;
+  status: string; // "" | "Connected" | error text
+}
+const webEngineEditStates = ref<Map<number, WebEngineEditState>>(new Map());
+const webEngineShowKey = ref<Set<number>>(new Set());
+
+function getWebEngineEditState(index: number): WebEngineEditState {
+  let s = webEngineEditStates.value.get(index);
+  if (!s) {
+    s = { testing: false, status: "" };
+    webEngineEditStates.value.set(index, s);
+    webEngineEditStates.value = new Map(webEngineEditStates.value);
+  }
+  return s;
+}
+
+function onWebEngineAdd(draft: WebEngineConfig) {
+  Object.assign(draft, {
+    preset: SEARCH_PRESETS[0].id,
+    api_key: "",
+    enabled: false,
+    custom_name: undefined,
+  });
+}
+
+function onWebEngineConfirm({ index }: { index: number }) {
+  // Draft → real index migration (mirrors provider confirm handling)
+  const draftState = webEngineEditStates.value.get(-1);
+  if (draftState) {
+    webEngineEditStates.value.delete(-1);
+    webEngineEditStates.value.set(index, draftState);
+    webEngineEditStates.value = new Map(webEngineEditStates.value);
+  }
+  // Default the active index to the first confirmed engine so it can be used
+  // once the user toggles it on. Stays -1 (anonymous fallback) until enabled.
+  if (appConfig.web_search_active_index < 0) {
+    appConfig.web_search_active_index = 0;
+  }
+  flushConfigSave();
+}
+
+function onWebEngineCancel() {
+  webEngineEditStates.value.delete(-1);
+  webEngineEditStates.value = new Map(webEngineEditStates.value);
+}
+
+function onWebEngineRemove({ index, indexMap }: { index: number; indexMap: Map<number, number> }) {
+  webEngineEditStates.value.delete(index);
+  const re = new Map<number, WebEngineEditState>();
+  for (const [k, v] of webEngineEditStates.value) {
+    const m = indexMap.get(k);
+    if (m !== undefined) re.set(m, v);
+  }
+  webEngineEditStates.value = re;
+  // Re-point active index; clamp to range, fall back to anonymous if none enabled
+  const anyEnabled = appConfig.web_engines.some((e) => e.enabled);
+  if (!anyEnabled) {
+    appConfig.web_search_active_index = -1;
+  } else if (appConfig.web_search_active_index >= appConfig.web_engines.length) {
+    appConfig.web_search_active_index = appConfig.web_engines.findIndex((e) => e.enabled);
+  }
+  flushConfigSave();
+}
+
+function validateWebEngine(eng: WebEngineConfig): string | null {
+  const meta = presetMeta(eng.preset);
+  if (meta.keyRequired && !eng.api_key.trim()) {
+    return t("settings.apiKeyRequired");
+  }
+  return null;
+}
+
+/** Exclusive toggle: only one engine may be enabled at a time. Mirrors
+ *  toggleTranslationPersona. Key-empty engines can't be enabled (validated). */
+function toggleWebEngineExclusive(index: number, e: MouseEvent) {
+  const eng = appConfig.web_engines[index];
+  if (!eng.api_key) return; // safety: validation should have blocked this
+  const wasOn = eng.enabled;
+  for (const w of appConfig.web_engines) w.enabled = false;
+  if (!wasOn) {
+    eng.enabled = true;
+    appConfig.web_search_active_index = index;
+    burstParticles(e.currentTarget as HTMLElement);
+  } else {
+    appConfig.web_search_active_index = -1; // anonymous fallback
+  }
+  flushConfigSave();
+}
+
+function toggleWebEngineKeyVisible(index: number) {
+  const s = new Set(webEngineShowKey.value);
+  if (s.has(index)) s.delete(index);
+  else s.add(index);
+  webEngineShowKey.value = s;
+}
+
+async function testWebEngineConnection(eng: WebEngineConfig, index: number) {
+  if (!eng.api_key.trim()) return;
+  const s = getWebEngineEditState(index);
+  s.testing = true;
+  s.status = "";
+  const r = await testWebEngine(eng.preset, eng.api_key);
+  s.testing = false;
+  if (r.ok) {
+    s.status = t("settings.testConnectionSuccess");
+    setTimeout(() => { s.status = ""; }, 3000);
+  } else {
+    s.status = r.error || t("settings.testConnectionFailed");
+    setTimeout(() => { s.status = ""; }, 4000);
+  }
 }
 
 async function handleSparkleOptimizePrompt(item: { prompt: string }, index: number) {
@@ -1268,6 +1385,77 @@ onUnmounted(() => {
                 </button>
               </div>
             </div>
+          </template>
+        </EditableCardList>
+
+        <!-- Web Search -->
+        <EditableCardList
+          :items="appConfig.web_engines"
+          :title="t('settings.webSearch')"
+          :icon="Globe"
+          :empty-message="t('settings.webSearchEmpty')"
+          :empty-sub-message="t('settings.addOneToGetStarted')"
+          :empty-icon="Globe"
+          :validate="validateWebEngine"
+          @add="onWebEngineAdd"
+          @confirm="onWebEngineConfirm"
+          @cancel="onWebEngineCancel"
+          @remove="onWebEngineRemove"
+        >
+          <template #collapsed="{ item, index }">
+            <div class="we-lhs">
+              <component :is="presetMeta(item.preset).icon" :size="15" :stroke-width="1.8" class="we-icon" />
+              <button
+                class="we-toggle"
+                :class="{ on: item.enabled }"
+                :disabled="!item.api_key"
+                :title="item.enabled ? t('common.enabled') : t('common.disabled')"
+                @click.stop="toggleWebEngineExclusive(index, $event)"
+              >
+                <component :is="item.enabled ? ToggleRight : ToggleLeft" :size="16" :stroke-width="1.8" />
+              </button>
+              <span class="we-name">{{ item.custom_name || presetMeta(item.preset).label }}</span>
+            </div>
+          </template>
+
+          <template #name-input="{ item }">
+            <div class="we-name-row">
+              <component :is="presetMeta(item.preset).icon" :size="15" :stroke-width="1.8" />
+              <select v-model="item.preset" class="we-preset-select" @click.stop>
+                <option v-for="p in SEARCH_PRESETS" :key="p.id" :value="p.id">{{ p.label }}</option>
+              </select>
+              <input
+                v-model="item.custom_name"
+                :placeholder="presetMeta(item.preset).label"
+                class="we-custom-name"
+                @click.stop
+              />
+            </div>
+          </template>
+
+          <template #content="{ item, index }">
+            <p class="we-hint">{{ t(presetMeta(item.preset).keyHelpKey) }}</p>
+            <div class="we-key-row">
+              <input
+                :type="webEngineShowKey.has(index) ? 'text' : 'password'"
+                v-model="item.api_key"
+                :placeholder="presetMeta(item.preset).keyRequired ? t('settings.apiKeyRequired') : t('settings.apiKeyOptional')"
+                class="we-key-input"
+                @click.stop
+              />
+              <button class="mini-btn ghost" :title="t('settings.apiKey')" @click.stop="toggleWebEngineKeyVisible(index)">
+                <component :is="webEngineShowKey.has(index) ? EyeOff : Eye" :size="12" :stroke-width="1.8" />
+              </button>
+              <button
+                class="mini-btn gold-micro-text"
+                :disabled="!item.api_key.trim() || getWebEngineEditState(index).testing"
+                @click.stop="testWebEngineConnection(item, index)"
+              >
+                <RefreshCw v-if="getWebEngineEditState(index).testing" :size="11" :stroke-width="1.8" class="spin" />
+                <template v-else>{{ t('settings.testConnection') }}</template>
+              </button>
+            </div>
+            <div v-if="getWebEngineEditState(index).status" class="we-status">{{ getWebEngineEditState(index).status }}</div>
           </template>
         </EditableCardList>
 
@@ -2985,5 +3173,55 @@ label {
   font-weight: 600;
   line-height: 1;
   font-family: inherit;
+}
+
+/* ── Web search engine cards ── */
+.we-lhs { display:flex; align-items:center; gap:9px; min-width:0; flex:1; }
+.we-icon { color: var(--color-text-muted); flex-shrink:0; }
+.we-toggle {
+  display:inline-flex; align-items:center; justify-content:center;
+  background:none; border:none; cursor:pointer; padding:0;
+  color: var(--color-text-muted); transition: color .12s;
+}
+.we-toggle.on { color: var(--color-accent); }
+.we-toggle:disabled { opacity:.32; cursor:not-allowed; }
+.we-name { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.we-name-row { display:flex; align-items:center; gap:7px; color: var(--color-text-muted); }
+.we-preset-select {
+  background:none; border:1px solid var(--color-border); border-radius:6px;
+  color: var(--color-text); font-size:13px; font-weight:700; padding:4px 6px;
+  outline:none; cursor:pointer;
+}
+.we-custom-name {
+  flex:1; background:none; border:none;
+  font-size:13px; font-weight:600; color: var(--color-text); outline:none;
+  padding:3px 5px; border-radius:5px;
+}
+.we-custom-name::placeholder { color: var(--color-text-muted); }
+.we-custom-name:focus { background: var(--color-surface); }
+
+.we-hint {
+  font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
+  margin:0 0 9px 0;
+}
+.we-key-row { display:flex; align-items:center; gap:6px; }
+.we-key-input {
+  flex:1; background:none; border:1px solid var(--color-border); border-radius:7px;
+  font-size:12px; color: var(--color-text); padding:6px 9px; outline:none;
+}
+.we-key-input::placeholder { color: var(--color-text-muted); }
+.we-key-input:focus { border-color: var(--color-accent-border); }
+
+/* Text-style mini button (gold accent) for the test-connection action */
+.mini-btn.gold-micro-text {
+  width:auto; padding:5px 10px; font-size:10.5px; font-weight:600;
+  color: var(--color-accent-text); gap:4px;
+}
+.mini-btn.gold-micro-text:hover:not(:disabled) { color: var(--color-accent); background: var(--color-accent-bg); }
+.mini-btn.gold-micro-text:disabled { opacity:.4; cursor:default; }
+
+.we-status {
+  font-size:10.5px; margin-top:7px; color: var(--color-text-muted);
 }
 </style>
