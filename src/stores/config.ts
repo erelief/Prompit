@@ -685,7 +685,7 @@ export async function loadHistory(): Promise<void> {
   }
 }
 
-export async function saveHistoryEntry(input: string, output: string): Promise<void> {
+export async function saveHistoryEntry(input: string, output: string, searched: boolean = false): Promise<void> {
   const active = getActiveModel();
   const mode = appConfig.active_mode || "translate";
   const entry: HistoryEntry = {
@@ -694,6 +694,7 @@ export async function saveHistoryEntry(input: string, output: string): Promise<v
     timestamp: Date.now(),
     model: active?.model || undefined,
     mode,
+    searched,
     persona: mode === "translate"
       ? (personaStore.personas.find(p => p.enabled)?.name || undefined)
       : undefined,

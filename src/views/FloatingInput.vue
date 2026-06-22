@@ -13,6 +13,9 @@ import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import { translate } from "../services/llm-client";
+import type { TranslateOutcome } from "../services/llm-client";
+import { SearchFailureError } from "../services/llm-client";
+import { classifySearchError } from "../services/websearch";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
@@ -25,6 +28,10 @@ const inputText = ref("");
 const translatedText = ref("");
 const isLoading = ref(false);
 const errorMessage = ref("");
+type WebSearchStatus = "idle" | "searching" | "error" | "done-searched" | "done-nosearch";
+const webSearchStatus = ref<WebSearchStatus>("idle");
+const webSearchErrorText = ref("");
+const lastResultSearched = ref(false);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const hasResult = ref(false);
 const isRestoringHistory = ref(false);
@@ -336,15 +343,37 @@ async function handleTranslate() {
 
   errorMessage.value = "";
   translatedText.value = "";
+  webSearchErrorText.value = "";
   isLoading.value = true;
+  // Reflect search intent up front so the toolbar dot can pulse
+  if (appConfig.active_mode === "sparkle" && appConfig.web_search_enabled_in_sparkle) {
+    webSearchStatus.value = "searching";
+  } else {
+    webSearchStatus.value = "idle";
+  }
 
   try {
-    const result = await translate(text);
-    translatedText.value = result;
-    hasResult.value = true;
-    await saveHistoryEntry(text, result);
+    const outcome: TranslateOutcome = await translate(text);
+    if (outcome.status === "ok") {
+      translatedText.value = outcome.content;
+      lastResultSearched.value = outcome.searched;
+      webSearchStatus.value = outcome.searched ? "done-searched" : "done-nosearch";
+      hasResult.value = true;
+      await saveHistoryEntry(text, outcome.content, outcome.searched);
+    }
+    // search-error is handled in catch below via SearchFailureError
   } catch (err) {
-    errorMessage.value = String(err);
+    if (err instanceof SearchFailureError) {
+      const classified = classifySearchError(err.cause);
+      webSearchStatus.value = "error";
+      webSearchErrorText.value =
+        t("search.failed", { code: classified.code, message: t(classified.messageKey) }) +
+        " " +
+        t("search.retryOrDisable");
+      // No LLM result; translatedText stays empty
+    } else {
+      errorMessage.value = String(err);
+    }
   } finally {
     isLoading.value = false;
   }
@@ -393,6 +422,8 @@ function clearAll() {
   inputText.value = "";
   translatedText.value = "";
   errorMessage.value = "";
+  webSearchErrorText.value = "";
+  webSearchStatus.value = "idle";
   hasResult.value = false;
 }
 
@@ -486,6 +517,10 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
+            <div v-if="webSearchStatus === 'done-searched' || webSearchStatus === 'done-nosearch'" class="result-provenance">
+              <span v-if="lastResultSearched">🌐 {{ t('search.sourceSearched') }}</span>
+              <span v-else class="muted">{{ t('search.sourceNotSearched') }}</span>
+            </div>
             <div class="result-text">{{ translatedText }}</div>
           </div>
         </Transition>
@@ -504,7 +539,17 @@ useShortcutTriggered(() => {
             class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            {{ t('floating.sending') }}
+            {{ webSearchStatus === 'searching' ? t('floating.searching') : t('floating.sending') }}
+          </div>
+        </Transition>
+
+        <!-- Web search error (blocking; one line, no buttons) -->
+        <Transition name="fade">
+          <div
+            v-show="webSearchStatus === 'error' && webSearchErrorText"
+            class="text-[11px] text-red-400/80"
+          >
+            {{ webSearchErrorText }}
           </div>
         </Transition>
 
@@ -827,7 +872,17 @@ useShortcutTriggered(() => {
             class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            {{ t('floating.sending') }}
+            {{ webSearchStatus === 'searching' ? t('floating.searching') : t('floating.sending') }}
+          </div>
+        </Transition>
+
+        <!-- Web search error (blocking; one line, no buttons) -->
+        <Transition name="fade">
+          <div
+            v-show="webSearchStatus === 'error' && webSearchErrorText"
+            class="text-[11px] text-red-400/80"
+          >
+            {{ webSearchErrorText }}
           </div>
         </Transition>
 
@@ -845,6 +900,10 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
+            <div v-if="webSearchStatus === 'done-searched' || webSearchStatus === 'done-nosearch'" class="result-provenance">
+              <span v-if="lastResultSearched">🌐 {{ t('search.sourceSearched') }}</span>
+              <span v-else class="muted">{{ t('search.sourceNotSearched') }}</span>
+            </div>
             <div class="result-text">{{ translatedText }}</div>
           </div>
         </Transition>
@@ -1197,6 +1256,15 @@ useShortcutTriggered(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .icon-btn.active { animation: none; }
+  .icon-btn.active { animation: none;
 }
+}
+
+/* ── Web search provenance badge ── */
+.result-provenance {
+  font-size: 10.5px;
+  color: var(--color-text-secondary);
+  padding: 0 0 5px 0;
+}
+.result-provenance .muted { opacity: 0.7; }
 </style>
