@@ -364,6 +364,13 @@ export async function saveConfig(): Promise<void> {
   await invoke("save_config", { config: raw });
 }
 
+const DEFAULT_CODING_PERSONA: PersonaConfig = {
+  name: "Coding（编程）",
+  prompt:
+    "You are a software developer with 10 years of professional experience in software engineering. You specialize in using precise, industry-standard professional software development terminology for technical communication, and your audience is cross-functional engineering teams, product managers, and technical stakeholders.",
+  enabled: false,
+};
+
 export async function loadPersonas(): Promise<void> {
   try {
     const loaded = await invoke<PersonaConfig[]>("read_personas");
@@ -382,10 +389,15 @@ export async function loadPersonas(): Promise<void> {
         // Strip personas from config.json by re-saving without them
         const sanitized = structuredClone(toRaw(appConfig));
         await invoke("save_config", { config: sanitized });
+        return;
       }
     } catch {
       // No old config or no personas to migrate
     }
+    // Nothing stored yet (fresh install): seed a reference preset the user
+    // can edit or delete. Mirrors the sparkle default-seeding behavior.
+    personaStore.personas = [DEFAULT_CODING_PERSONA];
+    await savePersonas();
   } catch (err) {
     console.error("Failed to load personas:", err);
   }
