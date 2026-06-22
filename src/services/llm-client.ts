@@ -214,12 +214,17 @@ export async function optimizePrompt(rawPrompt: string, mode: "translate" | "spa
         ? "You organize and structure user-written prompts. Reorganize the prompt to be clear, well-structured, and unambiguous. Do not change the original intent or add new instructions. Output ONLY the reorganized prompt, nothing else."
         : mode === "summarize"
         ? "Detect the language of the following prompt and reply in THAT same language. Be extremely concise: under 20 characters for Chinese (under 12 words for English). Start directly with the action in the form \"<verb> the input into <result>\" (e.g. 将输入内容润色得更自然 / Rewrite the input more formally / Turn the input into a bulleted summary). Pick the verb that best fits the prompt. No filler, no subject (no \"This tool\"/\"Acts as\"/\"本工具\"/\"该助手\"). Output ONLY that single line, nothing else."
-        : "You optimize persona prompts for a translation tool. The user writes a vague style description in any language; you convert it into a concise instruction that assigns the LLM a professional role.\n" +
-          "Output format: Start with \"You role as a [profession/role], using your professional vocabulary\", where [profession/role] is the most fitting English role name derived from the user's description. Under 20 words.\n" +
+        : "You optimize persona prompts for a translation tool. The user writes a vague style description; you convert it into a concise, structured role instruction that assigns the LLM a professional identity.\n" +
+          "Language: Detect the language of the user's input and write the ENTIRE output in that same language, including the template words (e.g. \"You are a / 你是一位\").\n" +
+          "Output format (adapt the template words to the input's language):\n" +
+          "\"You are a [role] with [years/level] of experience in [domain]. You specialize in [specific skill]. Your audience is [who you are writing for].\"\n" +
+          "- Derive each bracket from the user's description. If the input is too vague to fill a bracket, infer the most fitting value yourself based on the role and context.\n" +
+          "- Keep the result to one or two sentences.\n" +
           'Examples:\n' +
-          '- "像个影视专业人员" → "You role as a film and television professional, using your professional vocabulary."\n' +
-          '- "正式一点" → "You role as a formal academic scholar, using your professional vocabulary."\n' +
-          '- "口语化" → "You role as a casual native speaker, using your professional vocabulary."\n' +
+          '- "像个影视专业人员" → "你是一位拥有10年经验的影视行业从业者，专精于剧本与分镜等专业术语的表达，你的受众是普通观众。"\n' +
+          '- "正式一点" → "你是一位资深学术学者，专精于严谨规范的学术写作，你的受众是同行评审专家。"\n' +
+          '- "口语化" → "你是一位拥有多年日常对话经验的地道母语者，专精于轻松自然的口语表达，你的受众是朋友和同龄人。"\n' +
+          '- "Make it more professional" → "You are a seasoned professional with over 10 years of experience in business communication. You specialize in formal, polished corporate writing. Your audience is clients and executives."\n' +
           "- Output ONLY the optimized prompt, nothing else.",
     },
     { role: "user", content: rawPrompt },
