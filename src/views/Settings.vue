@@ -96,6 +96,7 @@ interface ProviderEditState {
   fetching: boolean;
   fetched: FetchModelEntry[];
   status: string;
+  ok: boolean;          // true = last test/fetch succeeded (drives status-pill color)
   manualInput: string;
 }
 const editStates = ref<Map<number, ProviderEditState>>(new Map());
@@ -103,7 +104,7 @@ const editStates = ref<Map<number, ProviderEditState>>(new Map());
 function getEditState(index: number): ProviderEditState {
   let s = editStates.value.get(index);
   if (!s) {
-    s = reactive({ keyVisible: false, fetching: false, fetched: [], status: "", manualInput: "" });
+    s = reactive({ keyVisible: false, fetching: false, fetched: [], status: "", ok: false, manualInput: "" });
     editStates.value.set(index, s);
     editStates.value = new Map(editStates.value);
   }
@@ -561,7 +562,8 @@ function toggleSparkle(index: number, e: MouseEvent) {
 // ── Web search engine management ──
 interface WebEngineEditState {
   testing: boolean;
-  status: string; // "" | "Connected" | error text
+  status: string;        // "" | success text | error text
+  ok: boolean;           // true = last test succeeded (drives status-pill color)
 }
 const webEngineEditStates = ref<Map<number, WebEngineEditState>>(new Map());
 const webEngineShowKey = ref<Set<number>>(new Set());
@@ -569,7 +571,7 @@ const webEngineShowKey = ref<Set<number>>(new Set());
 function getWebEngineEditState(index: number): WebEngineEditState {
   let s = webEngineEditStates.value.get(index);
   if (!s) {
-    s = { testing: false, status: "" };
+    s = { testing: false, status: "", ok: false };
     webEngineEditStates.value.set(index, s);
     webEngineEditStates.value = new Map(webEngineEditStates.value);
   }
@@ -663,11 +665,12 @@ async function testWebEngineConnection(eng: WebEngineConfig, index: number) {
   s.status = "";
   const r = await testWebEngine(eng.preset, eng.api_key);
   s.testing = false;
+  s.ok = r.ok;
   if (r.ok) {
-    s.status = t("settings.testConnectionSuccess");
+    s.status = t("settings.connected");
     setTimeout(() => { s.status = ""; }, 3000);
   } else {
-    s.status = r.error || t("settings.testConnectionFailed");
+    s.status = r.error || t("settings.failedToConnect");
     setTimeout(() => { s.status = ""; }, 4000);
   }
 }
@@ -951,11 +954,12 @@ async function testConnection(provider: ProviderConfig, index: number) {
   testingProvider.value = index;
   const s = getEditState(index);
   const result = await testProviderConnection(provider);
+  s.ok = result.ok;
   if (result.ok) {
-    s.status = "Connected";
+    s.status = t("settings.connected");
     setTimeout(() => { s.status = ""; }, 3000);
   } else {
-    s.status = result.error || "Connection failed";
+    s.status = result.error || t("settings.failedToConnect");
     setTimeout(() => { s.status = ""; }, 4000);
   }
   testingProvider.value = null;
@@ -980,7 +984,8 @@ async function fetchModels(provider: ProviderConfig, index: number) {
       ...fetchedUnique,
     ];
   } else {
-    s.status = result.error || "Fetch failed";
+    s.ok = false;
+    s.status = result.error || t("settings.fetchFailed");
     setTimeout(() => { s.status = ""; }, 5000);
   }
   s.fetching = false;
@@ -1331,7 +1336,7 @@ onUnmounted(() => {
                   <span
                     v-if="editStates.get(index)?.status"
                     class="status-pill"
-                    :class="{ ok: editStates.get(index)?.status === 'Connected', err: editStates.get(index)?.status !== 'Connected' }"
+                    :class="{ ok: editStates.get(index)?.ok, err: !editStates.get(index)?.ok }"
                   >
                     <span class="status-dot" />
                     {{ editStates.get(index)?.status }}
@@ -1430,6 +1435,7 @@ onUnmounted(() => {
           :empty-sub-message="t('settings.addOneToGetStarted')"
           :empty-icon="Globe"
           :validate="validateWebEngine"
+          :builtin-drag-handle="false"
           @add="onWebEngineAdd"
           @confirm="onWebEngineConfirm"
           @cancel="onWebEngineCancel"
@@ -1437,7 +1443,9 @@ onUnmounted(() => {
         >
           <template #collapsed="{ item, index }">
             <div class="we-lhs">
-              <component :is="presetMeta(item.preset).icon" :size="15" :stroke-width="1.8" class="we-icon" />
+              <span class="card-drag-handle we-drag-logo" @click.stop>
+                <component :is="presetMeta(item.preset).icon" :size="16" />
+              </span>
               <button
                 class="we-toggle"
                 :class="{ on: item.enabled }"
@@ -1447,19 +1455,19 @@ onUnmounted(() => {
               >
                 <component :is="item.enabled ? ToggleRight : ToggleLeft" :size="16" :stroke-width="1.8" />
               </button>
-              <span class="we-name">{{ item.custom_name || presetMeta(item.preset).label }}</span>
+              <span class="we-name">{{ presetMeta(item.preset).label }}</span>
             </div>
           </template>
 
           <template #name-input="{ item, index }">
             <div class="name-row-wrap">
-              <component :is="presetMeta(item.preset).icon" :size="16" :stroke-width="1.8" class="we-preset-icon" />
               <button
                 class="web-select-btn"
                 :class="{ active: item.preset }"
                 @click.stop="toggleWebPresetMenu($event, index)"
                 :title="t('settings.selectSearchService')"
               >
+                <component :is="presetMeta(item.preset).icon" :size="14" :stroke-width="1.8" class="web-select-icon" />
                 <span class="web-select-label">{{ presetMeta(item.preset).label }}</span>
                 <ChevronDown :size="13" :stroke-width="2" class="web-select-chevron" />
               </button>
@@ -1490,27 +1498,40 @@ onUnmounted(() => {
               </Transition>
             </Teleport>
             <p class="we-hint">{{ t(presetMeta(item.preset).keyHelpKey) }}</p>
-            <div class="we-key-row">
-              <input
-                :type="webEngineShowKey.has(index) ? 'text' : 'password'"
-                v-model="item.api_key"
-                :placeholder="presetMeta(item.preset).keyRequired ? t('settings.apiKeyRequired') : t('settings.apiKeyOptional')"
-                class="we-key-input"
-                @click.stop
-              />
-              <button class="mini-btn ghost" :title="t('settings.apiKey')" @click.stop="toggleWebEngineKeyVisible(index)">
-                <component :is="webEngineShowKey.has(index) ? EyeOff : Eye" :size="12" :stroke-width="1.8" />
-              </button>
-              <button
-                class="mini-btn gold-micro-text"
-                :disabled="!item.api_key.trim() || getWebEngineEditState(index).testing"
-                @click.stop="testWebEngineConnection(item, index)"
-              >
-                <RefreshCw v-if="getWebEngineEditState(index).testing" :size="11" :stroke-width="1.8" class="spin" />
-                <template v-else>{{ t('settings.testConnection') }}</template>
-              </button>
+            <div class="fields">
+              <div class="field">
+                <label>{{ t('settings.apiKey') }}</label>
+                <div class="key-wrap">
+                  <input
+                    v-model="item.api_key"
+                    :type="webEngineShowKey.has(index) ? 'text' : 'password'"
+                    class="fi key-fi" @click.stop
+                  />
+                  <button class="icon-btn-sm" @click.stop="toggleWebEngineKeyVisible(index)" :title="t('settings.apiKey')">
+                    <component :is="webEngineShowKey.has(index) ? EyeOff : Eye" :size="12" :stroke-width="1.9" />
+                  </button>
+                  <button
+                    class="icon-btn-sm linkish"
+                    @click.stop="testWebEngineConnection(item, index)"
+                    :disabled="!item.api_key.trim() || getWebEngineEditState(index).testing"
+                    :title="t('settings.testConnection')"
+                  >
+                    <Loader2 v-if="getWebEngineEditState(index).testing" :size="12" class="spin" :stroke-width="1.9" />
+                    <Link2 v-else :size="12" :stroke-width="1.9" />
+                  </button>
+                </div>
+                <Transition name="fade">
+                  <span
+                    v-if="getWebEngineEditState(index).status"
+                    class="status-pill"
+                    :class="{ ok: getWebEngineEditState(index).ok, err: !getWebEngineEditState(index).ok }"
+                  >
+                    <span class="status-dot" />
+                    {{ getWebEngineEditState(index).status }}
+                  </span>
+                </Transition>
+              </div>
             </div>
-            <div v-if="getWebEngineEditState(index).status" class="we-status">{{ getWebEngineEditState(index).status }}</div>
           </template>
         </EditableCardList>
 
@@ -3232,7 +3253,14 @@ label {
 
 /* ── Web search engine cards ── */
 .we-lhs { display:flex; align-items:center; gap:9px; min-width:0; flex:1; }
-.we-icon { color: var(--color-text-muted); flex-shrink:0; }
+/* Brand logo doubles as the drag handle (mirrors .prov-drag-logo). */
+.we-drag-logo {
+  display:inline-flex; align-items:center; justify-content:center;
+  width: 18px; height: 26px; border-radius: 5px;
+  cursor: grab; color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.we-drag-logo:active { cursor: grabbing; }
 .we-toggle {
   display:inline-flex; align-items:center; justify-content:center;
   background:none; border:none; cursor:pointer; padding:0;
@@ -3242,9 +3270,8 @@ label {
 .we-toggle:disabled { opacity:.32; cursor:not-allowed; }
 .we-name { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-.we-preset-icon { color: var(--color-text-muted); flex-shrink:0; }
 /* Search-service selector — looks like a dropdown menu trigger:
-   label on the left, chevron on the right. */
+   brand icon + label on the left, chevron on the right. */
 .web-select-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 5px 10px; border-radius: 7px;
@@ -3254,30 +3281,12 @@ label {
 }
 .web-select-btn:hover { border-color: var(--color-border-hover); background: var(--color-surface-hover); }
 .web-select-btn.active { color: var(--color-text); border-color: var(--color-border); }
+.web-select-icon { color: var(--color-text); flex-shrink: 0; }
 .web-select-label { line-height: 1; white-space: nowrap; }
 .web-select-chevron { color: var(--color-text-muted); flex-shrink: 0; }
 
 .we-hint {
   font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
   margin:0 0 9px 0;
-}
-.we-key-row { display:flex; align-items:center; gap:6px; }
-.we-key-input {
-  flex:1; background:none; border:1px solid var(--color-border); border-radius:7px;
-  font-size:12px; color: var(--color-text); padding:6px 9px; outline:none;
-}
-.we-key-input::placeholder { color: var(--color-text-muted); }
-.we-key-input:focus { border-color: var(--color-accent-border); }
-
-/* Text-style mini button (gold accent) for the test-connection action */
-.mini-btn.gold-micro-text {
-  width:auto; padding:5px 10px; font-size:10.5px; font-weight:600;
-  color: var(--color-accent-text); gap:4px;
-}
-.mini-btn.gold-micro-text:hover:not(:disabled) { color: var(--color-accent); background: var(--color-accent-bg); }
-.mini-btn.gold-micro-text:disabled { opacity:.4; cursor:default; }
-
-.we-status {
-  font-size:10.5px; margin-top:7px; color: var(--color-text-muted);
 }
 </style>

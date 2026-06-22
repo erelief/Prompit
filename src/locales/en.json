@@ -41,6 +41,7 @@
     "testConnection": "Test connection",
     "testConnectionSuccess": "Connected",
     "testConnectionFailed": "Failed to connect",
+    "fetchFailed": "Fetch failed",
     "webSearch": "Web Search",
     "selectSearchService": "Select search service",
     "addSearchEngine": "Add search engine",

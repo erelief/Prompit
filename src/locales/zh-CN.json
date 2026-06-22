@@ -41,6 +41,7 @@
     "testConnection": "测试连接",
     "testConnectionSuccess": "连接成功",
     "testConnectionFailed": "连接失败",
+    "fetchFailed": "拉取失败",
     "webSearch": "网页搜索",
     "selectSearchService": "选择搜索服务",
     "addSearchEngine": "添加搜索引擎",
