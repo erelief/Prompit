@@ -1468,13 +1468,12 @@ onUnmounted(() => {
                 class="fi name-fi" @click.stop
               />
               <button
-                class="preset-mini-btn web-preset-btn"
+                class="preset-mini-btn"
                 :class="{ active: item.preset }"
                 @click.stop="toggleWebPresetMenu($event, index)"
-                :title="t('settings.selectSearchService')"
+                :title="item.preset ? `${t('settings.preset')}: ${presetMeta(item.preset).label}` : t('settings.applyPreset')"
               >
-                <component :is="presetMeta(item.preset).icon" :size="12" :stroke-width="1.8" />
-                <ChevronDown :size="11" :stroke-width="2" class="web-preset-chevron" />
+                <CloudDownload :size="12" :stroke-width="1.8" />
               </button>
             </div>
           </template>
@@ -3278,17 +3277,6 @@ label {
 
 /* Brand logo in the name row (edit/add) — mirrors the provider name-row logo. */
 .we-name-logo { color: var(--color-text-muted); flex-shrink:0; }
-/* Preset picker button in the name row — square icon button holding the
-   brand mark + a chevron (no cloud-download). Overrides the base 27px
-   preset-mini-btn width to fit two icons. */
-.preset-mini-btn.web-preset-btn {
-  width: auto;
-  gap: 3px;
-  color: var(--color-text-muted);
-}
-.preset-mini-btn.web-preset-btn:hover { color: var(--color-accent); }
-.preset-mini-btn.web-preset-btn.active { color: var(--color-accent); }
-.web-preset-chevron { flex-shrink: 0; }
 
 .we-hint {
   font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
