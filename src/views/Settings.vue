@@ -1422,6 +1422,7 @@ onUnmounted(() => {
 
         <!-- Web Search -->
         <EditableCardList
+          class="mt"
           :items="appConfig.web_engines"
           :title="t('settings.webSearch')"
           :icon="Globe"
