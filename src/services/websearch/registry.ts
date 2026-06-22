@@ -2,7 +2,7 @@
 // per-preset modules (e.g. anysearch.ts); this registry is metadata-only.
 
 import type { Component } from "vue";
-import { Globe } from "@lucide/vue";
+import AnySearch from "../../components/icons/providers/AnySearch.vue";
 import type { SearchFn } from "./types";
 import { search as anysearchSearch } from "./anysearch";
 
@@ -19,7 +19,7 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
   {
     id: "anysearch",
     label: "AnySearch",
-    icon: Globe,
+    icon: AnySearch,
     supportsAnonymous: true,
     keyRequired: true,
     keyHelpKey: "settings.webSearchKeyHint",

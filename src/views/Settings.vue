@@ -3253,7 +3253,7 @@ label {
   font-size: 13px; font-weight: 700; flex-shrink: 0;
 }
 .web-select-btn:hover { border-color: var(--color-border-hover); background: var(--color-surface-hover); }
-.web-select-btn.active { color: var(--color-accent); border-color: var(--color-accent-border); }
+.web-select-btn.active { color: var(--color-text); border-color: var(--color-border); }
 .web-select-label { line-height: 1; white-space: nowrap; }
 .web-select-chevron { color: var(--color-text-muted); flex-shrink: 0; }
 
