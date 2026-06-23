@@ -1442,20 +1442,23 @@ onUnmounted(() => {
           @remove="onWebEngineRemove"
         >
           <template #collapsed="{ item, index }">
-            <div class="we-lhs">
-              <span class="card-drag-handle we-drag-logo" @click.stop>
+            <div class="prov-lhs">
+              <span class="card-drag-handle prov-drag-logo" @click.stop>
                 <component :is="presetMeta(item.preset).icon" :size="16" />
               </span>
-              <button
-                class="we-toggle"
-                :class="{ on: item.enabled }"
-                :disabled="!item.api_key"
-                :title="item.enabled ? t('common.enabled') : t('common.disabled')"
-                @click.stop="toggleWebEngineExclusive(index, $event)"
-              >
-                <component :is="item.enabled ? ToggleRight : ToggleLeft" :size="16" :stroke-width="1.8" />
-              </button>
-              <span class="we-name" :class="{ dim: !item.custom_name }">{{ item.custom_name || presetMeta(item.preset).label }}</span>
+              <div class="prov-accent" />
+              <div class="prov-meta">
+                <span class="prov-name" :class="{ dim: !item.custom_name }">{{ item.custom_name || presetMeta(item.preset).label }}</span>
+                <button
+                  class="we-toggle"
+                  :class="{ on: item.enabled }"
+                  :disabled="!item.api_key"
+                  :title="item.enabled ? t('common.enabled') : t('common.disabled')"
+                  @click.stop="toggleWebEngineExclusive(index, $event)"
+                >
+                  <component :is="item.enabled ? ToggleRight : ToggleLeft" :size="16" :stroke-width="1.8" />
+                </button>
+              </div>
             </div>
           </template>
 
@@ -3255,16 +3258,10 @@ label {
   font-family: inherit;
 }
 
-/* ── Web search engine cards ── */
-.we-lhs { display:flex; align-items:center; gap:9px; min-width:0; flex:1; }
-/* Brand logo doubles as the drag handle (mirrors .prov-drag-logo). */
-.we-drag-logo {
-  display:inline-flex; align-items:center; justify-content:center;
-  width: 18px; height: 26px; border-radius: 5px;
-  cursor: grab; color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-.we-drag-logo:active { cursor: grabbing; }
+/* ── Web search engine cards ──
+   The collapsed row reuses the provider classes (.prov-lhs / .prov-drag-logo /
+   .prov-accent / .prov-meta / .prov-name) for pixel-perfect alignment, so only
+   the exclusive-toggle button needs its own rule here. */
 .we-toggle {
   display:inline-flex; align-items:center; justify-content:center;
   background:none; border:none; cursor:pointer; padding:0;
@@ -3272,8 +3269,6 @@ label {
 }
 .we-toggle.on { color: var(--color-accent); }
 .we-toggle:disabled { opacity:.32; cursor:not-allowed; }
-.we-name { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.we-name.dim { color: var(--color-text-muted); }
 
 /* Brand logo in the name row (edit/add) — mirrors the provider name-row logo. */
 .we-name-logo { color: var(--color-text-muted); flex-shrink:0; }
