@@ -334,6 +334,7 @@ function navigateHistory(direction: -1 | 1) {
   inputText.value = entry.input;
   translatedText.value = entry.output;
   hasResult.value = !!entry.output;
+  lastResultSearched.value = !!entry.searched;
   lastResultSources.value = entry.sources ?? [];
   sourcesView.value = false;
   errorMessage.value = "";
@@ -466,6 +467,7 @@ onMounted(async () => {
       inputText.value = entry.input || "";
       translatedText.value = entry.output || "";
       hasResult.value = !!entry.output;
+      lastResultSearched.value = !!entry.searched;
       lastResultSources.value = entry.sources ?? [];
       sourcesView.value = false;
       nextTick(() => { isRestoringHistory.value = false; });
@@ -538,20 +540,20 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
-            <button v-if="lastResultSearched" class="provenance-btn" @click="sourcesView = !sourcesView">
-              <Globe :size="11" :stroke-width="1.8" />
-              <span>{{ t('search.sourceSearched') }}</span>
-              <component :is="sourcesView ? ChevronLeft : ChevronRight" :size="11" :stroke-width="2" class="provenance-chevron" />
-            </button>
+            <div v-if="lastResultSearched" class="provenance-row">
+              <button class="provenance-btn" @click="sourcesView = !sourcesView">
+                <Globe :size="11" :stroke-width="1.8" />
+                <span>{{ t('search.sourceSearched') }}</span>
+                <component :is="sourcesView ? ChevronLeft : ChevronRight" :size="11" :stroke-width="2" class="provenance-chevron" />
+              </button>
+              <button v-if="sourcesView" class="sources-back" @click="sourcesView = false">
+                <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
+              </button>
+            </div>
             <!-- Result view (default) -->
             <div v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
             <!-- Sources view (shown when the provenance button is toggled on) -->
             <div v-if="sourcesView" class="sources-view">
-              <div class="sources-header">
-                <button class="sources-back" @click="sourcesView = false">
-                  <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
-                </button>
-              </div>
               <a v-for="(src, i) in lastResultSources" :key="i"
                  :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
                 <div class="source-favicon">🌐</div>
@@ -941,20 +943,20 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
-            <button v-if="lastResultSearched" class="provenance-btn" @click="sourcesView = !sourcesView">
-              <Globe :size="11" :stroke-width="1.8" />
-              <span>{{ t('search.sourceSearched') }}</span>
-              <component :is="sourcesView ? ChevronLeft : ChevronRight" :size="11" :stroke-width="2" class="provenance-chevron" />
-            </button>
+            <div v-if="lastResultSearched" class="provenance-row">
+              <button class="provenance-btn" @click="sourcesView = !sourcesView">
+                <Globe :size="11" :stroke-width="1.8" />
+                <span>{{ t('search.sourceSearched') }}</span>
+                <component :is="sourcesView ? ChevronLeft : ChevronRight" :size="11" :stroke-width="2" class="provenance-chevron" />
+              </button>
+              <button v-if="sourcesView" class="sources-back" @click="sourcesView = false">
+                <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
+              </button>
+            </div>
             <!-- Result view (default) -->
             <div v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
             <!-- Sources view (shown when the provenance button is toggled on) -->
             <div v-if="sourcesView" class="sources-view">
-              <div class="sources-header">
-                <button class="sources-back" @click="sourcesView = false">
-                  <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
-                </button>
-              </div>
               <a v-for="(src, i) in lastResultSources" :key="i"
                  :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
                 <div class="source-favicon">🌐</div>
@@ -1322,6 +1324,12 @@ useShortcutTriggered(() => {
 }
 
 /* ── Web search provenance button + sources view ── */
+.provenance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 5px 0;
+}
 .provenance-btn {
   display: inline-flex;
   align-items: center;
@@ -1331,11 +1339,18 @@ useShortcutTriggered(() => {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 0 5px 0;
+  padding: 0;
   transition: color 0.12s;
 }
 .provenance-btn:hover { color: var(--color-accent); }
 .provenance-chevron { margin-left: 1px; }
+.sources-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; color: var(--color-text-muted);
+  background: none; border: none; cursor: pointer; padding: 0;
+  transition: color 0.12s;
+}
+.sources-back:hover { color: var(--color-text); }
 
 .sources-view {
   display: flex;
@@ -1347,14 +1362,6 @@ useShortcutTriggered(() => {
 }
 .sources-view::-webkit-scrollbar { width: 3px; }
 .sources-view::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
-.sources-header { flex-shrink: 0; padding-bottom: 2px; }
-.sources-back {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 10.5px; color: var(--color-text-muted);
-  background: none; border: none; cursor: pointer; padding: 0;
-  transition: color 0.12s;
-}
-.sources-back:hover { color: var(--color-text); }
 .source-item {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 9px; border-radius: 8px;

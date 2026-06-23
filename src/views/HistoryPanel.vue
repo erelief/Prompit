@@ -203,7 +203,7 @@ onMounted(async () => {
 
     <!-- Sources overlay (in-place, shown when a 🌐 tag is clicked) -->
     <Transition name="fade">
-      <div v-if="sourcesEntry" class="sources-overlay">
+      <div v-if="sourcesEntry" class="sources-overlay" :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)' }">
         <header class="sources-overlay-header">
           <button class="sources-back" @click="closeSources">
             <ArrowLeft :size="14" :stroke-width="1.8" /> {{ t('search.backToHistory') }}
@@ -515,7 +515,6 @@ onMounted(async () => {
 .sources-overlay {
   position: absolute; inset: 0; z-index: 10;
   display: flex; flex-direction: column;
-  background: var(--color-bg);
 }
 .sources-overlay-header {
   display: flex; align-items: center; gap: 12px;
