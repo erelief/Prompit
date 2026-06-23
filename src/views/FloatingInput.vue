@@ -28,6 +28,7 @@ const router = useRouter();
 const inputText = ref("");
 const translatedText = ref("");
 const isLoading = ref(false);
+const abortController = ref<AbortController | null>(null);
 const errorMessage = ref("");
 type WebSearchStatus = "idle" | "searching" | "error" | "done-searched" | "done-nosearch";
 const webSearchStatus = ref<WebSearchStatus>("idle");
@@ -361,6 +362,8 @@ async function handleTranslate() {
   translatedText.value = "";
   webSearchErrorText.value = "";
   isLoading.value = true;
+  const controller = new AbortController();
+  abortController.value = controller;
   // Reflect search intent up front so the toolbar dot can pulse
   if (appConfig.active_mode === "sparkle" && appConfig.web_search_enabled_in_sparkle) {
     webSearchStatus.value = "searching";
@@ -369,7 +372,7 @@ async function handleTranslate() {
   }
 
   try {
-    const outcome: TranslateOutcome = await translate(text);
+    const outcome: TranslateOutcome = await translate(text, controller.signal);
     if (outcome.status === "ok") {
       translatedText.value = outcome.content;
       lastResultSearched.value = outcome.searched;
@@ -381,6 +384,9 @@ async function handleTranslate() {
     }
     // search-error is handled in catch below via SearchFailureError
   } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return;
+    }
     if (err instanceof SearchFailureError) {
       const classified = classifySearchError(err.cause);
       webSearchStatus.value = "error";
@@ -393,6 +399,7 @@ async function handleTranslate() {
       errorMessage.value = String(err);
     }
   } finally {
+    abortController.value = null;
     isLoading.value = false;
   }
 }
@@ -445,6 +452,15 @@ function clearAll() {
   lastResultSources.value = [];
   sourcesView.value = false;
   hasResult.value = false;
+}
+
+function cancelRequest() {
+  abortController.value?.abort();
+  abortController.value = null;
+  isLoading.value = false;
+  webSearchStatus.value = "idle";
+  errorMessage.value = "";
+  webSearchErrorText.value = "";
 }
 
 onMounted(async () => {
@@ -583,6 +599,13 @@ useShortcutTriggered(() => {
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
             {{ webSearchStatus === 'searching' ? t('floating.searching') : t('floating.sending') }}
+            <button
+              @click="cancelRequest"
+              class="cancel-request-btn"
+              :title="t('common.cancel')"
+            >
+              <X :size="12" />
+            </button>
           </div>
         </Transition>
 
@@ -916,6 +939,13 @@ useShortcutTriggered(() => {
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
             {{ webSearchStatus === 'searching' ? t('floating.searching') : t('floating.sending') }}
+            <button
+              @click="cancelRequest"
+              class="cancel-request-btn"
+              :title="t('common.cancel')"
+            >
+              <X :size="12" />
+            </button>
           </div>
         </Transition>
 
@@ -1056,6 +1086,31 @@ useShortcutTriggered(() => {
 .send-btn-inline.paste-mode:hover:not(:disabled) {
   background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 55%, white) 0%, color-mix(in srgb, var(--color-accent) 70%, white) 100%);
   box-shadow: 0 2px 10px var(--color-accent-bg);
+}
+
+/* Cancel request button */
+.cancel-request-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: 4px;
+}
+
+.cancel-request-btn:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+.cancel-request-btn:active {
+  transform: scale(0.9);
 }
 
 /* Model selector button */

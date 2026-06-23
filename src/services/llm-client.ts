@@ -132,7 +132,7 @@ export function resolvePath(obj: any, path: string): any {
   return cur;
 }
 
-export async function translate(text: string): Promise<TranslateOutcome> {
+export async function translate(text: string, signal?: AbortSignal): Promise<TranslateOutcome> {
   const model = getActiveModel();
   if (!model) {
     throw new Error("No model configured. Please add a model in Settings.");
@@ -173,7 +173,7 @@ export async function translate(text: string): Promise<TranslateOutcome> {
   let sources: SearchHit[] | undefined;
   if (mode === "sparkle" && appConfig.web_search_enabled_in_sparkle) {
     try {
-      const hits = await webSearch(text);
+      const hits = await webSearch(text, signal);
       if (hits.length > 0) {
         messages.push({ role: "user", content: formatSearchContext(hits) });
         sources = hits;
@@ -214,6 +214,7 @@ export async function translate(text: string): Promise<TranslateOutcome> {
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    signal,
   });
 
   if (!response.ok) {
