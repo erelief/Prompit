@@ -21,6 +21,7 @@ import OpenRouter from './OpenRouter.vue'
 import AnySearch from './AnySearch.vue'
 import Brave from './Brave.vue'
 import Tavily from './Tavily.vue'
+import Exa from './Exa.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -45,4 +46,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   anysearch: AnySearch,
   brave: Brave,
   tavily: Tavily,
+  exa: Exa,
 }

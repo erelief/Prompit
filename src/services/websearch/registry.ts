@@ -5,10 +5,12 @@ import type { Component } from "vue";
 import AnySearch from "../../components/icons/providers/AnySearch.vue";
 import Brave from "../../components/icons/providers/Brave.vue";
 import Tavily from "../../components/icons/providers/Tavily.vue";
+import Exa from "../../components/icons/providers/Exa.vue";
 import type { SearchFn } from "./types";
 import { search as anysearchSearch } from "./anysearch";
 import { search as braveSearch } from "./brave";
 import { search as tavilySearch } from "./tavily";
+import { search as exaSearch } from "./exa";
 
 export interface SearchPresetMeta {
   id: string;
@@ -53,6 +55,14 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     // No hint — just enter the key.
     apiUrl: "https://app.tavily.com/",
   },
+  {
+    id: "exa",
+    label: "Exa",
+    icon: Exa,
+    supportsAnonymous: false,
+    keyRequired: true,
+    apiUrl: "https://dashboard.exa.ai/api-keys",
+  },
 ];
 
 /** preset id → search implementation */
@@ -60,6 +70,7 @@ const REGISTRY: Record<string, SearchFn> = {
   anysearch: anysearchSearch,
   brave: braveSearch,
   tavily: tavilySearch,
+  exa: exaSearch,
 };
 
 /** Built-in anonymous fallback. Always available so a usable engine exists. */
