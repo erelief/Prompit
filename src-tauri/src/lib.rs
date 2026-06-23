@@ -4,6 +4,8 @@ use tauri::{AppHandle, Manager};
 pub mod commands;
 pub mod config;
 pub mod crypto;
+#[cfg(target_os = "windows")]
+mod power_watcher;
 pub mod shortcut;
 pub mod state;
 
@@ -217,6 +219,17 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            // Watch for system sleep/wake to fix transparent window surface loss
+            #[cfg(target_os = "windows")]
+            if let Some(main_win) = app.get_webview_window("main") {
+                if let Ok(hwnd) = main_win.hwnd() {
+                    let raw = hwnd.0;
+                    if !raw.is_null() {
+                        power_watcher::start(raw);
+                    }
+                }
+            }
 
             Ok(())
         })

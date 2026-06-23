@@ -45,6 +45,7 @@ winreg = "0.55"
 windows-sys = { version = "0.59", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_Foundation",
+    "Win32_System_LibraryLoader",
 ] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
