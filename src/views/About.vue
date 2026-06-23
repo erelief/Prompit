@@ -22,6 +22,8 @@ const deps = [
   { name: "Lobe Icons", version: "1.91.0", url: "https://www.npmjs.com/package/@lobehub/icons" },
   { name: "Tailwind CSS", version: "4.3.0", url: "https://tailwindcss.com" },
   { name: "VueDraggable", version: "4.1.0", url: "https://sortablejs.github.io/vue.draggable.next/" },
+  // AnySearch powers the built-in web search (no npm version — it's a hosted API service).
+  { name: "AnySearch", url: "https://anysearch.com" },
 ];
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -74,7 +76,8 @@ onMounted(() => {
     <div class="about-dep" v-for="dep in deps" :key="dep.name">
       <span class="about-dep-name">{{ dep.name }}</span>
       <a class="about-link" :href="dep.url">
-        <span>v{{ dep.version }}</span>
+        <span v-if="dep.version">v{{ dep.version }}</span>
+        <span v-else>{{ dep.name }}</span>
         <ExternalLink :size="10" :stroke-width="2" />
       </a>
     </div>
