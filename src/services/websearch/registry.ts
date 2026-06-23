@@ -19,6 +19,8 @@ export interface SearchPresetMeta {
   /** i18n key for an explanatory hint, or empty when none is needed.
    *  Only presets with special key semantics (e.g. AnySearch) carry a hint. */
   keyHelpKey?: string;
+  /** URL to the provider's API-key dashboard, shown as a "Get your API key" link. */
+  apiUrl?: string;
 }
 
 export const SEARCH_PRESETS: SearchPresetMeta[] = [
@@ -31,6 +33,7 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     // AnySearch is special: anonymous mode is the built-in fallback, so a
     // user-added instance only makes sense with a key (higher quota).
     keyHelpKey: "settings.webSearchKeyHint",
+    apiUrl: "https://www.anysearch.com/console/api-keys",
   },
   {
     id: "brave",
@@ -39,6 +42,7 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     supportsAnonymous: false,
     keyRequired: true,
     // No hint — just enter the key.
+    apiUrl: "https://brave.com/search/api/",
   },
   {
     id: "tavily",
@@ -47,6 +51,7 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     supportsAnonymous: false,
     keyRequired: true,
     // No hint — just enter the key.
+    apiUrl: "https://app.tavily.com/",
   },
 ];
 

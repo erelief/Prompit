@@ -699,6 +699,9 @@ function toggleWebPresetMenu(e: MouseEvent, index: number) {
 
 function applyWebPreset(item: WebEngineConfig, presetId: string) {
   item.preset = presetId;
+  // Mirror providers: switching the preset overwrites the display name with
+  // the preset's label (the provider-supplied name).
+  item.custom_name = presetMeta(presetId).label;
   showWebPresetMenu.value = false;
   webPresetMenuIndex.value = null;
 }
@@ -1505,6 +1508,11 @@ onUnmounted(() => {
               </Transition>
             </Teleport>
             <p v-if="presetMeta(item.preset).keyHelpKey" class="we-hint">{{ t(presetMeta(item.preset).keyHelpKey!) }}</p>
+            <p v-if="presetMeta(item.preset).apiUrl" class="preset-hint" @click.stop>
+              <a :href="presetMeta(item.preset).apiUrl" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
+                {{ t('settings.getApiKeyAt', { name: presetMeta(item.preset).label }) }}
+              </a>
+            </p>
             <div class="fields">
               <div class="field">
                 <label>{{ t('settings.apiKey') }}</label>
