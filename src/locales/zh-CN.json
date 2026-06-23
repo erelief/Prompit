@@ -28,7 +28,7 @@
     "translation": "翻译",
     "providers": "供应商",
     "noProvidersYet": "暂无供应商。",
-    "addOneToGetStarted": "添加一个以开始使用。",
+    "addOneToGetStarted": "建议添加服务以获得更稳定的体验。",
     "addProviders": "添加供应商",
     "untitledProvider": "未命名供应商",
     "providerName": "供应商名称…",
@@ -49,7 +49,7 @@
     "apiKeyRequired": "API Key（必填）",
     "apiKeyOptional": "API Key（可选）",
     "webSearchKeyHint": "AnySearch 支持匿名访问，但匿名搜索已作为内置兜底。添加此实例意味着使用你自己的 API Key 以获得更高配额，请填入 Key。",
-    "webSearchEmpty": "未配置搜索引擎。",
+    "webSearchEmpty": "未添加搜索引擎，将使用 AnySearch 的匿名额度。",
     "preset": "预设",
     "applyPreset": "应用预设",
     "openaiCompatHint": "需要 OpenAI 兼容的 API。",
@@ -219,7 +219,7 @@
     "selectLanguage": "选择你的语言",
     "selectTheme": "选择主题",
     "welcomeTitle": "欢迎使用 Prompit",
-    "infoTitle": "还需一步",
+    "infoTitle": "开始设置吧",
     "infoBody": "Prompit 需要接入 AI 模型才能使用。接下来会引导你添加一个模型供应商。",
     "addProviderTitle": "添加供应商",
     "preset": "预设",
@@ -252,7 +252,14 @@
     "previous": "上一步",
     "back": "返回",
     "exitConfirm": "设置尚未完成。如果现在退出，下次启动时需要重新进行初始设置。",
-    "exitAnyway": "仍然退出"
+    "exitAnyway": "仍然退出",
+    "searchInfoTitle": "开启联网搜索",
+    "searchInfoBody": "Prompit 支持联网搜索以让 AI 模型获取实时信息，而且内置了 AnySearch 的免费额度作为兜底。但是仍然强烈建议你获取一个独立的搜索 API 以获得更好的搜索体验。",
+    "searchInfoHint": "当然，可以先跳过这一步，之后在设置中配置。",
+    "addSearchTitle": "添加搜索 API",
+    "searchPreset": "搜索服务",
+    "selectSearchPreset": "选择搜索服务…",
+    "skip": "跳过"
   },
   "startupReminder": {
     "hint": "按 {shortcut} 调出输入框"
