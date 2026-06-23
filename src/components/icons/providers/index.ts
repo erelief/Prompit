@@ -19,6 +19,7 @@ import Step from './Step.vue'
 import Agnes from './Agnes.vue'
 import OpenRouter from './OpenRouter.vue'
 import AnySearch from './AnySearch.vue'
+import Brave from './Brave.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -41,4 +42,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   agnes: Agnes,
   openrouter: OpenRouter,
   anysearch: AnySearch,
+  brave: Brave,
 }

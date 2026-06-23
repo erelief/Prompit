@@ -49,6 +49,7 @@
     "apiKeyRequired": "API Key (required)",
     "apiKeyOptional": "API Key (optional)",
     "webSearchKeyHint": "AnySearch supports anonymous access, but anonymous search is already the built-in fallback. Adding this instance means using your own API Key for higher quota — please enter a Key.",
+    "braveKeyHint": "Brave Search has no anonymous tier — an API key (subscription token) is required. Get one from the Brave Search API dashboard.",
     "webSearchEmpty": "No search engine configured.",
     "preset": "Preset",
     "applyPreset": "Apply preset",

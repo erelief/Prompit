@@ -3,8 +3,10 @@
 
 import type { Component } from "vue";
 import AnySearch from "../../components/icons/providers/AnySearch.vue";
+import Brave from "../../components/icons/providers/Brave.vue";
 import type { SearchFn } from "./types";
 import { search as anysearchSearch } from "./anysearch";
+import { search as braveSearch } from "./brave";
 
 export interface SearchPresetMeta {
   id: string;
@@ -24,11 +26,20 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     keyRequired: true,
     keyHelpKey: "settings.webSearchKeyHint",
   },
+  {
+    id: "brave",
+    label: "Brave Search",
+    icon: Brave,
+    supportsAnonymous: false,
+    keyRequired: true,
+    keyHelpKey: "settings.braveKeyHint",
+  },
 ];
 
 /** preset id → search implementation */
 const REGISTRY: Record<string, SearchFn> = {
   anysearch: anysearchSearch,
+  brave: braveSearch,
 };
 
 /** Built-in anonymous fallback. Always available so a usable engine exists. */
