@@ -18,6 +18,9 @@ import MiMo from './MiMo.vue'
 import Step from './Step.vue'
 import Agnes from './Agnes.vue'
 import OpenRouter from './OpenRouter.vue'
+import AnySearch from './AnySearch.vue'
+import Brave from './Brave.vue'
+import Tavily from './Tavily.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -39,4 +42,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   step: Step,
   agnes: Agnes,
   openrouter: OpenRouter,
+  anysearch: AnySearch,
+  brave: Brave,
+  tavily: Tavily,
 }

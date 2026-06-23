@@ -20,6 +20,8 @@ import {
   UserCircle,
   BookText,
   Sparkles,
+  Globe,
+  GlobeOff,
 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
@@ -118,6 +120,13 @@ function togglePersona(e: MouseEvent) {
 function toggleDict(e: MouseEvent) {
   const turning = !appConfig.user_dict_enabled;
   appConfig.user_dict_enabled = turning;
+  if (turning) burstParticles(e.currentTarget as HTMLElement);
+  emit("result-stale");
+}
+
+function toggleWebSearch(e: MouseEvent) {
+  const turning = !appConfig.web_search_enabled_in_sparkle;
+  appConfig.web_search_enabled_in_sparkle = turning;
   if (turning) burstParticles(e.currentTarget as HTMLElement);
   emit("result-stale");
 }
@@ -293,6 +302,18 @@ defineExpose({ closeAllDropdowns });
         </Transition>
       </Teleport>
     </div>
+
+    <!-- Web search toggle (sparkle mode only) — globe on / globe-off, mirrors the
+         send-mode (pin) button's two-icon toggle form. -->
+    <button
+      @click="toggleWebSearch($event)"
+      class="search-toggle"
+      :class="{ on: appConfig.web_search_enabled_in_sparkle }"
+      :title="appConfig.web_search_enabled_in_sparkle ? t('floating.webSearchOn') : t('floating.webSearchOff')"
+    >
+      <Globe v-if="appConfig.web_search_enabled_in_sparkle" :size="11" :stroke-width="1.8" />
+      <GlobeOff v-else :size="11" :stroke-width="1.8" />
+    </button>
   </template>
 
   <!-- Translate mode: language + persona + dict -->
@@ -775,6 +796,36 @@ defineExpose({ closeAllDropdowns });
 
 @media (prefers-reduced-motion: reduce) {
   .persona-wrap.on,
-  .dict-toggle.on { animation: none; }
+  .dict-toggle.on,
+  .search-toggle.on { animation: none; }
+}
+
+/* ── Web search toggle — icon-btn form (mirrors FloatingInput's pin button) ── */
+.search-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+}
+.search-toggle:hover {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+.search-toggle.on {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  animation: toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.search-toggle.on:hover {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
 }
 </style>

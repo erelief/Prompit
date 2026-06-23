@@ -9,7 +9,7 @@ import {
   saveConfig as persistConfig,
 } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
-import type { ProviderConfig, ProviderPreset } from "../stores/config";
+import type { ProviderConfig, ProviderPreset, WebEngineConfig } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import type { ModelInputCapabilities } from "../stores/config";
@@ -35,7 +35,9 @@ import {
   Moon,
   SunMoon,
   Plus,
+  Globe,
 } from "@lucide/vue";
+import { SEARCH_PRESETS, testWebEngine } from "../services/websearch";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -114,6 +116,17 @@ const fetchError = ref("");
 const isConnecting = ref(false);
 const isFetching = ref(false);
 
+// ── Step 6: Search API config ──
+const searchSelectedPreset = ref("");
+const searchShowPresetMenu = ref(false);
+const searchApiKey = ref("");
+const searchShowApiKey = ref(false);
+const searchTestStatus = ref<"ok" | "fail" | "">("");
+const searchTestError = ref("");
+const searchIsTesting = ref(false);
+
+const searchCanNext = computed(() => !!searchSelectedPreset.value && !!searchApiKey.value.trim());
+
 // ── Computed ──
 const canProceed = computed(() => {
   switch (currentStep.value) {
@@ -131,11 +144,15 @@ const canProceed = computed(() => {
       return selectedModels.value.size > 0;
     case 5:
       return true;
+    case 6:
+      return true;
+    case 7:
+      return true;
     default: return false;
   }
 });
 
-const isLastStep = computed(() => currentStep.value === 5);
+const isLastStep = computed(() => currentStep.value === 7);
 
 const shortcutKey = ref("...");
 
@@ -146,12 +163,55 @@ function goNext() {
     confirmProviderAndAdvance();
     return;
   }
-  if (currentStep.value === 5) {
+  if (currentStep.value === 7) {
     finishOnboarding();
     return;
   }
+  // Step 6: save search config if user filled it in
+  if (currentStep.value === 6) {
+    saveSearchConfig();
+  }
   direction.value = "forward";
   currentStep.value++;
+}
+
+function saveSearchConfig() {
+  if (!searchSelectedPreset.value || !searchApiKey.value.trim()) return;
+  const engine: WebEngineConfig = {
+    preset: searchSelectedPreset.value,
+    api_key: searchApiKey.value.trim(),
+    enabled: true,
+  };
+  appConfig.web_engines.push(engine);
+  appConfig.web_search_active_index = appConfig.web_engines.length - 1;
+  appConfig.web_search_enabled_in_sparkle = true;
+}
+
+const currentSearchPresetLabel = computed(() => {
+  if (!searchSelectedPreset.value) return t('onboarding.selectSearchPreset');
+  return SEARCH_PRESETS.find(p => p.id === searchSelectedPreset.value)?.label || searchSelectedPreset.value;
+});
+
+const currentSearchPresetObj = computed(() => {
+  if (!searchSelectedPreset.value) return null;
+  return SEARCH_PRESETS.find(p => p.id === searchSelectedPreset.value) || null;
+});
+
+function applySearchPreset(id: string) {
+  searchSelectedPreset.value = id;
+  searchShowPresetMenu.value = false;
+}
+
+async function testSearchConnection() {
+  if (!searchSelectedPreset.value || !searchApiKey.value.trim()) return;
+  searchIsTesting.value = true;
+  searchTestStatus.value = "";
+  searchTestError.value = "";
+  const r = await testWebEngine(searchSelectedPreset.value, searchApiKey.value.trim());
+  searchTestStatus.value = r.ok ? "ok" : "fail";
+  if (!r.ok) searchTestError.value = r.error || "";
+  searchIsTesting.value = false;
+  setTimeout(() => { searchTestStatus.value = ""; searchTestError.value = ""; }, 3000);
 }
 
 function goPrev() {
@@ -281,7 +341,7 @@ function onRootClick(e: MouseEvent) {
 
 // ── Close button ──
 function handleClose() {
-  if (currentStep.value === 5) {
+  if (currentStep.value === 7) {
     finishOnboarding();
   } else {
     showCloseConfirm.value = true;
@@ -656,8 +716,122 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Step 5: Done -->
+          <!-- Step 5: Search info -->
           <div v-else-if="currentStep === 5" key="step5" class="flex flex-col items-center justify-center h-full py-10">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
+              <Globe :size="22" style="color: var(--color-accent)" />
+            </div>
+            <h2 class="text-xl font-medium mb-3" style="color: var(--color-text)">
+              {{ t('onboarding.searchInfoTitle') }}
+            </h2>
+            <p class="text-sm leading-relaxed text-center max-w-sm mb-4" style="color: var(--color-text-secondary)">
+              {{ t('onboarding.searchInfoBody') }}
+            </p>
+            <p class="text-xs text-center max-w-xs" style="color: var(--color-text-muted); line-height: 1.6">
+              {{ t('onboarding.searchInfoHint') }}
+            </p>
+          </div>
+
+          <!-- Step 6: Search API config -->
+          <div v-else-if="currentStep === 6" key="step6" class="flex flex-col py-6">
+            <h2 class="text-lg font-medium mb-6" style="color: var(--color-text)">
+              {{ t('onboarding.addSearchTitle') }}
+            </h2>
+
+            <!-- Preset selector -->
+            <div class="mb-5">
+              <label class="block text-xs font-medium mb-1.5 tracking-wide uppercase" style="color: var(--color-text-muted)">
+                {{ t('onboarding.searchPreset') }}
+              </label>
+              <div class="sel-wrap" style="position: relative">
+                <button class="sel-btn w-full" @click="searchShowPresetMenu = !searchShowPresetMenu">
+                  <span class="flex items-center gap-2 min-w-0 flex-1">
+                    <component v-if="currentSearchPresetObj?.icon" :is="currentSearchPresetObj.icon" :size="14" :stroke-width="1.8" />
+                    <span class="sel-text" :style="{ opacity: searchSelectedPreset ? 1 : 0.5 }">{{ currentSearchPresetLabel }}</span>
+                  </span>
+                  <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: searchShowPresetMenu }" />
+                </button>
+                <Transition name="drop">
+                  <div v-if="searchShowPresetMenu" class="sel-menu" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 10">
+                    <div class="sel-clip">
+                      <button
+                        v-for="p in SEARCH_PRESETS" :key="p.id"
+                        class="sel-opt"
+                        :class="{ hit: searchSelectedPreset === p.id }"
+                        @click="applySearchPreset(p.id)"
+                      >
+                        <div class="opt-left">
+                          <component :is="p.icon" :size="14" :stroke-width="1.8" />
+                          <div class="opt-info">
+                            <span class="opt-id">{{ p.label }}</span>
+                          </div>
+                        </div>
+                        <Check v-if="searchSelectedPreset === p.id" :size="13" :stroke-width="2.5" />
+                      </button>
+                    </div>
+                  </div>
+                </Transition>
+              </div>
+            </div>
+
+            <!-- API Key -->
+            <div class="mb-4">
+              <label class="block text-xs font-medium mb-1.5 tracking-wide uppercase" style="color: var(--color-text-muted)">
+                {{ t('onboarding.apiKey') }}
+              </label>
+              <div class="flex gap-2">
+                <div class="relative flex-1">
+                  <input
+                    v-model="searchApiKey"
+                    :type="searchShowApiKey ? 'text' : 'password'"
+                    class="w-full h-9 pl-3 pr-9 rounded-lg text-sm outline-none transition-colors select-text"
+                    style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
+                  />
+                  <button
+                    @click="searchShowApiKey = !searchShowApiKey"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded opacity-40 hover:opacity-80 transition-opacity"
+                    style="color: var(--color-text)"
+                    tabindex="-1"
+                  >
+                    <Eye v-if="searchShowApiKey" :size="16" />
+                    <EyeOff v-else :size="16" />
+                  </button>
+                </div>
+                <button
+                  class="flex items-center justify-center h-9 w-9 rounded-lg transition-colors"
+                  :style="{
+                    background: searchTestStatus === 'ok' ? 'var(--color-accent-bg)' : searchTestStatus === 'fail' ? 'rgba(239,68,68,0.1)' : 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    cursor: (!searchSelectedPreset || !searchApiKey.trim() || searchIsTesting) ? 'not-allowed' : 'pointer',
+                    opacity: (!searchSelectedPreset || !searchApiKey.trim()) ? 0.4 : 1,
+                  }"
+                  :disabled="!searchSelectedPreset || !searchApiKey.trim() || searchIsTesting"
+                  @click="testSearchConnection"
+                  :title="t('settings.testConnection')"
+                >
+                  <Loader2 v-if="searchIsTesting" :size="14" class="spin" style="color: var(--color-accent)" />
+                  <Check v-else-if="searchTestStatus === 'ok'" :size="14" style="color: var(--color-accent)" />
+                  <Link2 v-else :size="14" style="color: var(--color-text-muted)" />
+                </button>
+              </div>
+              <p v-if="currentSearchPresetObj?.apiUrl && searchSelectedPreset" class="mt-1.5" style="font-size: 10.5px; line-height: 1.4">
+                <a :href="currentSearchPresetObj.apiUrl" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
+                  {{ t('settings.getApiKeyAt', { name: currentSearchPresetObj.label }) }}
+                </a>
+              </p>
+              <p v-if="currentSearchPresetObj?.keyHelpKey" class="mt-1.5" style="font-size: 10.5px; color: var(--color-text-muted); line-height: 1.5">
+                {{ t(currentSearchPresetObj.keyHelpKey) }}
+              </p>
+              <p v-if="searchIsTesting || searchTestStatus === 'fail'" class="text-xs mt-1.5 flex items-center gap-1.5" :style="{ color: searchTestStatus === 'fail' ? 'var(--color-danger)' : 'var(--color-text-secondary)' }">
+                <Loader2 v-if="searchIsTesting" :size="14" class="spin" style="color: var(--color-accent)" />
+                <template v-if="searchIsTesting">{{ t('onboarding.testingConnection') }}</template>
+                <template v-else-if="searchTestStatus === 'fail'">{{ t('onboarding.connectionFailed') }}{{ searchTestError ? ` (${searchTestError})` : '' }}</template>
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 7: Done -->
+          <div v-else-if="currentStep === 7" key="step7" class="flex flex-col items-center justify-center h-full py-10">
             <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
               <PartyPopper :size="22" style="color: var(--color-accent)" />
             </div>
@@ -692,7 +866,7 @@ onMounted(async () => {
         <!-- Step dots -->
         <div class="flex items-center gap-2">
           <span
-            v-for="i in 6"
+            v-for="i in 8"
             :key="i"
             class="w-1.5 h-1.5 rounded-full transition-all duration-300"
             :style="{
@@ -705,8 +879,22 @@ onMounted(async () => {
           />
         </div>
 
-        <!-- Next button -->
+        <!-- Next button (step 6: Skip/Next in one button) -->
         <button
+          v-if="currentStep === 6"
+          @click="goNext"
+          class="flex items-center gap-1.5 h-9 px-5 rounded-lg text-sm font-medium transition-all"
+          :style="{
+            background: searchCanNext ? 'var(--color-accent)' : 'var(--color-surface)',
+            border: searchCanNext ? 'none' : '1px solid var(--color-border)',
+            color: searchCanNext ? 'white' : 'var(--color-text-secondary)',
+          }"
+        >
+          {{ searchCanNext ? t('onboarding.next') : t('onboarding.skip') }}
+          <ChevronRight v-if="searchCanNext" :size="16" />
+        </button>
+        <button
+          v-else
           @click="goNext"
           :disabled="!canProceed || isConnecting || isFetching"
           class="flex items-center gap-1.5 h-9 px-5 rounded-lg text-sm font-medium transition-all"

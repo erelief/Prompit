@@ -13,7 +13,11 @@ import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import { translate } from "../services/llm-client";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare } from "@lucide/vue";
+import type { TranslateOutcome } from "../services/llm-client";
+import { SearchFailureError } from "../services/llm-client";
+import { classifySearchError } from "../services/websearch";
+import type { SearchHit } from "../services/websearch/types";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
@@ -24,7 +28,14 @@ const router = useRouter();
 const inputText = ref("");
 const translatedText = ref("");
 const isLoading = ref(false);
+const abortController = ref<AbortController | null>(null);
 const errorMessage = ref("");
+type WebSearchStatus = "idle" | "searching" | "error" | "done-searched" | "done-nosearch";
+const webSearchStatus = ref<WebSearchStatus>("idle");
+const webSearchErrorText = ref("");
+const lastResultSearched = ref(false);
+const lastResultSources = ref<SearchHit[]>([]);
+const sourcesView = ref(false);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const hasResult = ref(false);
 const isRestoringHistory = ref(false);
@@ -91,6 +102,16 @@ const inputPlaceholder = computed(() => {
   }
   return hasResult.value ? t("floating.pressEnterToPaste") : t("floating.typeToSend");
 });
+
+/** Extract a display hostname from a URL, stripping the leading "www.".
+ *  Falls back to the raw string on parse failure. */
+function domainOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
 const showModelDropdown = ref(false);
 const floatingPresets = ref<ProviderPreset[]>([]);
@@ -314,6 +335,9 @@ function navigateHistory(direction: -1 | 1) {
   inputText.value = entry.input;
   translatedText.value = entry.output;
   hasResult.value = !!entry.output;
+  lastResultSearched.value = !!entry.searched;
+  lastResultSources.value = entry.sources ?? [];
+  sourcesView.value = false;
   errorMessage.value = "";
   nextTick(() => {
     isRestoringHistory.value = false;
@@ -336,16 +360,46 @@ async function handleTranslate() {
 
   errorMessage.value = "";
   translatedText.value = "";
+  webSearchErrorText.value = "";
   isLoading.value = true;
+  const controller = new AbortController();
+  abortController.value = controller;
+  // Reflect search intent up front so the toolbar dot can pulse
+  if (appConfig.active_mode === "sparkle" && appConfig.web_search_enabled_in_sparkle) {
+    webSearchStatus.value = "searching";
+  } else {
+    webSearchStatus.value = "idle";
+  }
 
   try {
-    const result = await translate(text);
-    translatedText.value = result;
-    hasResult.value = true;
-    await saveHistoryEntry(text, result);
+    const outcome: TranslateOutcome = await translate(text, controller.signal);
+    if (outcome.status === "ok") {
+      translatedText.value = outcome.content;
+      lastResultSearched.value = outcome.searched;
+      lastResultSources.value = outcome.sources ?? [];
+      sourcesView.value = false;
+      webSearchStatus.value = outcome.searched ? "done-searched" : "done-nosearch";
+      hasResult.value = true;
+      await saveHistoryEntry(text, outcome.content, outcome.searched, outcome.sources);
+    }
+    // search-error is handled in catch below via SearchFailureError
   } catch (err) {
-    errorMessage.value = String(err);
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return;
+    }
+    if (err instanceof SearchFailureError) {
+      const classified = classifySearchError(err.cause);
+      webSearchStatus.value = "error";
+      webSearchErrorText.value =
+        t("search.failed", { code: classified.code, message: t(classified.messageKey) }) +
+        " " +
+        t("search.retryOrDisable");
+      // No LLM result; translatedText stays empty
+    } else {
+      errorMessage.value = String(err);
+    }
   } finally {
+    abortController.value = null;
     isLoading.value = false;
   }
 }
@@ -393,7 +447,20 @@ function clearAll() {
   inputText.value = "";
   translatedText.value = "";
   errorMessage.value = "";
+  webSearchErrorText.value = "";
+  webSearchStatus.value = "idle";
+  lastResultSources.value = [];
+  sourcesView.value = false;
   hasResult.value = false;
+}
+
+function cancelRequest() {
+  abortController.value?.abort();
+  abortController.value = null;
+  isLoading.value = false;
+  webSearchStatus.value = "idle";
+  errorMessage.value = "";
+  webSearchErrorText.value = "";
 }
 
 onMounted(async () => {
@@ -416,6 +483,9 @@ onMounted(async () => {
       inputText.value = entry.input || "";
       translatedText.value = entry.output || "";
       hasResult.value = !!entry.output;
+      lastResultSearched.value = !!entry.searched;
+      lastResultSources.value = entry.sources ?? [];
+      sourcesView.value = false;
       nextTick(() => { isRestoringHistory.value = false; });
     } catch { /* ignore */ }
   }
@@ -486,7 +556,31 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
-            <div class="result-text">{{ translatedText }}</div>
+            <div v-if="lastResultSearched" class="provenance-row">
+              <button class="provenance-btn" @click="sourcesView = !sourcesView">
+                <Globe :size="11" :stroke-width="1.8" />
+                <span>{{ t('search.sourceSearched') }}</span>
+                <component :is="sourcesView ? ChevronLeft : ChevronRight" :size="11" :stroke-width="2" class="provenance-chevron" />
+              </button>
+              <button v-if="sourcesView" class="sources-back" @click="sourcesView = false">
+                <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
+              </button>
+            </div>
+            <!-- Result view (default) -->
+            <div v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
+            <!-- Sources view (shown when the provenance button is toggled on) -->
+            <div v-if="sourcesView" class="sources-view">
+              <a v-for="(src, i) in lastResultSources" :key="i"
+                 :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
+                <div class="source-favicon">🌐</div>
+                <div class="source-meta">
+                  <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
+                  <div class="source-domain">{{ domainOf(src.url) }}</div>
+                </div>
+                <ExternalLink :size="11" :stroke-width="1.8" class="source-external" />
+              </a>
+              <div v-if="lastResultSources.length === 0" class="sources-empty">{{ t('search.noSources') }}</div>
+            </div>
           </div>
         </Transition>
 
@@ -504,7 +598,24 @@ useShortcutTriggered(() => {
             class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            {{ t('floating.sending') }}
+            {{ webSearchStatus === 'searching' ? t('floating.searching') : t('floating.sending') }}
+            <button
+              @click="cancelRequest"
+              class="cancel-request-btn"
+              :title="t('common.cancel')"
+            >
+              <X :size="12" />
+            </button>
+          </div>
+        </Transition>
+
+        <!-- Web search error (blocking; one line, no buttons) -->
+        <Transition name="fade">
+          <div
+            v-show="webSearchStatus === 'error' && webSearchErrorText"
+            class="text-[11px] text-red-400/80"
+          >
+            {{ webSearchErrorText }}
           </div>
         </Transition>
 
@@ -827,7 +938,24 @@ useShortcutTriggered(() => {
             class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            {{ t('floating.sending') }}
+            {{ webSearchStatus === 'searching' ? t('floating.searching') : t('floating.sending') }}
+            <button
+              @click="cancelRequest"
+              class="cancel-request-btn"
+              :title="t('common.cancel')"
+            >
+              <X :size="12" />
+            </button>
+          </div>
+        </Transition>
+
+        <!-- Web search error (blocking; one line, no buttons) -->
+        <Transition name="fade">
+          <div
+            v-show="webSearchStatus === 'error' && webSearchErrorText"
+            class="text-[11px] text-red-400/80"
+          >
+            {{ webSearchErrorText }}
           </div>
         </Transition>
 
@@ -845,7 +973,31 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
-            <div class="result-text">{{ translatedText }}</div>
+            <div v-if="lastResultSearched" class="provenance-row">
+              <button class="provenance-btn" @click="sourcesView = !sourcesView">
+                <Globe :size="11" :stroke-width="1.8" />
+                <span>{{ t('search.sourceSearched') }}</span>
+                <component :is="sourcesView ? ChevronLeft : ChevronRight" :size="11" :stroke-width="2" class="provenance-chevron" />
+              </button>
+              <button v-if="sourcesView" class="sources-back" @click="sourcesView = false">
+                <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
+              </button>
+            </div>
+            <!-- Result view (default) -->
+            <div v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
+            <!-- Sources view (shown when the provenance button is toggled on) -->
+            <div v-if="sourcesView" class="sources-view">
+              <a v-for="(src, i) in lastResultSources" :key="i"
+                 :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
+                <div class="source-favicon">🌐</div>
+                <div class="source-meta">
+                  <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
+                  <div class="source-domain">{{ domainOf(src.url) }}</div>
+                </div>
+                <ExternalLink :size="11" :stroke-width="1.8" class="source-external" />
+              </a>
+              <div v-if="lastResultSources.length === 0" class="sources-empty">{{ t('search.noSources') }}</div>
+            </div>
           </div>
         </Transition>
 
@@ -934,6 +1086,31 @@ useShortcutTriggered(() => {
 .send-btn-inline.paste-mode:hover:not(:disabled) {
   background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 55%, white) 0%, color-mix(in srgb, var(--color-accent) 70%, white) 100%);
   box-shadow: 0 2px 10px var(--color-accent-bg);
+}
+
+/* Cancel request button */
+.cancel-request-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: 4px;
+}
+
+.cancel-request-btn:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+.cancel-request-btn:active {
+  transform: scale(0.9);
 }
 
 /* Model selector button */
@@ -1197,6 +1374,68 @@ useShortcutTriggered(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .icon-btn.active { animation: none; }
+  .icon-btn.active { animation: none;
 }
+}
+
+/* ── Web search provenance button + sources view ── */
+.provenance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 5px 0;
+}
+.provenance-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.12s;
+}
+.provenance-btn:hover { color: var(--color-accent); }
+.provenance-chevron { margin-left: 1px; }
+.sources-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; color: var(--color-text-muted);
+  background: none; border: none; cursor: pointer; padding: 0;
+  transition: color 0.12s;
+}
+.sources-back:hover { color: var(--color-text); }
+
+.sources-view {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-bottom: 4px;
+}
+.sources-view::-webkit-scrollbar { width: 3px; }
+.sources-view::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
+.source-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  text-decoration: none; cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.source-item:hover { background: var(--color-surface-hover); border-color: var(--color-border-hover); }
+.source-favicon { flex-shrink: 0; font-size: 13px; line-height: 1; }
+.source-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.source-title {
+  font-size: 11.5px; font-weight: 600; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.source-domain {
+  font-size: 10px; color: var(--color-text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.source-external { flex-shrink: 0; color: var(--color-text-muted); }
+.sources-empty { font-size: 10.5px; color: var(--color-text-muted); padding: 8px 0; }
 </style>

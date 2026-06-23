@@ -38,3 +38,7 @@ src/assets/.sourcefiles
 
 #Superpowers
 docs/superpowers
+
+
+#MimoCode
+.mimocode

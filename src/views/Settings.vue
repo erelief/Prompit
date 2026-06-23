@@ -28,6 +28,8 @@ import { getTheme, setTheme } from "../composables/useTheme";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { testProviderConnection, fetchProviderModels, optimizePrompt } from "../services/llm-client";
 import type { FetchModelEntry } from "../services/llm-client";
+import { SEARCH_PRESETS, presetMeta, testWebEngine } from "../services/websearch";
+import type { WebEngineConfig } from "../stores/config";
 import type { ModelInputCapabilities } from "../stores/config";
 import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
@@ -69,6 +71,7 @@ import {
   Cloudy,
   Keyboard,
   SlidersHorizontal,
+  Globe,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -93,6 +96,7 @@ interface ProviderEditState {
   fetching: boolean;
   fetched: FetchModelEntry[];
   status: string;
+  ok: boolean;          // true = last test/fetch succeeded (drives status-pill color)
   manualInput: string;
 }
 const editStates = ref<Map<number, ProviderEditState>>(new Map());
@@ -100,7 +104,7 @@ const editStates = ref<Map<number, ProviderEditState>>(new Map());
 function getEditState(index: number): ProviderEditState {
   let s = editStates.value.get(index);
   if (!s) {
-    s = reactive({ keyVisible: false, fetching: false, fetched: [], status: "", manualInput: "" });
+    s = reactive({ keyVisible: false, fetching: false, fetched: [], status: "", ok: false, manualInput: "" });
     editStates.value.set(index, s);
     editStates.value = new Map(editStates.value);
   }
@@ -555,6 +559,153 @@ function toggleSparkle(index: number, e: MouseEvent) {
   persistSparkles();
 }
 
+// ── Web search engine management ──
+interface WebEngineEditState {
+  testing: boolean;
+  status: string;        // "" | success text | error text
+  ok: boolean;           // true = last test succeeded (drives status-pill color)
+}
+const webEngineEditStates = ref<Map<number, WebEngineEditState>>(new Map());
+const webEngineShowKey = ref<Set<number>>(new Set());
+
+function getWebEngineEditState(index: number): WebEngineEditState {
+  let s = webEngineEditStates.value.get(index);
+  if (!s) {
+    s = { testing: false, status: "", ok: false };
+    webEngineEditStates.value.set(index, s);
+    webEngineEditStates.value = new Map(webEngineEditStates.value);
+  }
+  return s;
+}
+
+function onWebEngineAdd(draft: WebEngineConfig) {
+  Object.assign(draft, {
+    preset: SEARCH_PRESETS[0].id,
+    api_key: "",
+    enabled: false,
+    custom_name: undefined,
+  });
+}
+
+function onWebEngineConfirm({ index }: { index: number }) {
+  // Draft → real index migration (mirrors provider confirm handling)
+  const draftState = webEngineEditStates.value.get(-1);
+  if (draftState) {
+    webEngineEditStates.value.delete(-1);
+    webEngineEditStates.value.set(index, draftState);
+    webEngineEditStates.value = new Map(webEngineEditStates.value);
+  }
+  // Default the active index to the first confirmed engine so it can be used
+  // once the user toggles it on. Stays -1 (anonymous fallback) until enabled.
+  if (appConfig.web_search_active_index < 0) {
+    appConfig.web_search_active_index = 0;
+  }
+  flushConfigSave();
+}
+
+function onWebEngineCancel() {
+  webEngineEditStates.value.delete(-1);
+  webEngineEditStates.value = new Map(webEngineEditStates.value);
+}
+
+function onWebEngineRemove({ index, indexMap }: { index: number; indexMap: Map<number, number> }) {
+  webEngineEditStates.value.delete(index);
+  const re = new Map<number, WebEngineEditState>();
+  for (const [k, v] of webEngineEditStates.value) {
+    const m = indexMap.get(k);
+    if (m !== undefined) re.set(m, v);
+  }
+  webEngineEditStates.value = re;
+  // Re-point active index; clamp to range, fall back to anonymous if none enabled
+  const anyEnabled = appConfig.web_engines.some((e) => e.enabled);
+  if (!anyEnabled) {
+    appConfig.web_search_active_index = -1;
+  } else if (appConfig.web_search_active_index >= appConfig.web_engines.length) {
+    appConfig.web_search_active_index = appConfig.web_engines.findIndex((e) => e.enabled);
+  }
+  flushConfigSave();
+}
+
+function validateWebEngine(eng: WebEngineConfig): string | null {
+  const meta = presetMeta(eng.preset);
+  if (meta.keyRequired && !eng.api_key.trim()) {
+    return t("settings.apiKeyRequired");
+  }
+  return null;
+}
+
+/** Exclusive toggle: only one engine may be enabled at a time. Mirrors
+ *  toggleTranslationPersona. Key-empty engines can't be enabled (validated). */
+function toggleWebEngineExclusive(index: number, e: MouseEvent) {
+  const eng = appConfig.web_engines[index];
+  if (!eng.api_key) return; // safety: validation should have blocked this
+  const wasOn = eng.enabled;
+  for (const w of appConfig.web_engines) w.enabled = false;
+  if (!wasOn) {
+    eng.enabled = true;
+    appConfig.web_search_active_index = index;
+    burstParticles(e.currentTarget as HTMLElement);
+  } else {
+    appConfig.web_search_active_index = -1; // anonymous fallback
+  }
+  flushConfigSave();
+}
+
+function toggleWebEngineKeyVisible(index: number) {
+  const s = new Set(webEngineShowKey.value);
+  if (s.has(index)) s.delete(index);
+  else s.add(index);
+  webEngineShowKey.value = s;
+}
+
+async function testWebEngineConnection(eng: WebEngineConfig, index: number) {
+  if (!eng.api_key.trim()) return;
+  const s = getWebEngineEditState(index);
+  s.testing = true;
+  s.status = "";
+  const r = await testWebEngine(eng.preset, eng.api_key);
+  s.testing = false;
+  s.ok = r.ok;
+  if (r.ok) {
+    s.status = t("settings.connected");
+    setTimeout(() => { s.status = ""; }, 3000);
+  } else {
+    s.status = r.error || t("settings.failedToConnect");
+    setTimeout(() => { s.status = ""; }, 4000);
+  }
+}
+
+// ── Web search preset selector (mirrors the provider preset-mini-btn + sel-menu pattern) ──
+const showWebPresetMenu = ref(false);
+const webPresetMenuIndex = ref<number | null>(null);
+const webPresetMenuPos = ref({ top: 0, left: 0 });
+
+function toggleWebPresetMenu(e: MouseEvent, index: number) {
+  if (showWebPresetMenu.value && webPresetMenuIndex.value === index) {
+    showWebPresetMenu.value = false;
+    webPresetMenuIndex.value = null;
+    return;
+  }
+  webPresetMenuIndex.value = index;
+  showWebPresetMenu.value = true;
+  const btn = e.currentTarget as HTMLElement;
+  const r = btn.getBoundingClientRect();
+  const menuW = 220;
+  let left = r.right - menuW;
+  if (left + menuW > window.innerWidth - 8) left = window.innerWidth - 8 - menuW;
+  if (left < 8) left = 8;
+  webPresetMenuPos.value = { top: r.bottom + 5, left };
+}
+
+function applyWebPreset(item: WebEngineConfig, presetId: string) {
+  item.preset = presetId;
+  // Mirror providers: switching the preset overwrites the display name with
+  // the preset's label (the provider-supplied name).
+  item.custom_name = presetMeta(presetId).label;
+  showWebPresetMenu.value = false;
+  webPresetMenuIndex.value = null;
+}
+
 async function handleSparkleOptimizePrompt(item: { prompt: string }, index: number) {
   if (!item.prompt.trim() || optimizingIndex.value !== null) return;
   promptUndoStack.set(index, item.prompt);
@@ -806,11 +957,12 @@ async function testConnection(provider: ProviderConfig, index: number) {
   testingProvider.value = index;
   const s = getEditState(index);
   const result = await testProviderConnection(provider);
+  s.ok = result.ok;
   if (result.ok) {
-    s.status = "Connected";
+    s.status = t("settings.connected");
     setTimeout(() => { s.status = ""; }, 3000);
   } else {
-    s.status = result.error || "Connection failed";
+    s.status = result.error || t("settings.failedToConnect");
     setTimeout(() => { s.status = ""; }, 4000);
   }
   testingProvider.value = null;
@@ -835,7 +987,8 @@ async function fetchModels(provider: ProviderConfig, index: number) {
       ...fetchedUnique,
     ];
   } else {
-    s.status = result.error || "Fetch failed";
+    s.ok = false;
+    s.status = result.error || t("settings.fetchFailed");
     setTimeout(() => { s.status = ""; }, 5000);
   }
   s.fetching = false;
@@ -978,6 +1131,10 @@ function onDocClick(e: MouseEvent) {
   if (!t.closest(".preset-menu") && !t.closest(".preset-mini-btn")) {
     showPresetMenu.value = false;
     presetMenuIndex.value = null;
+  }
+  if (!t.closest(".web-preset-menu") && !t.closest(".web-preset-btn")) {
+    showWebPresetMenu.value = false;
+    webPresetMenuIndex.value = null;
   }
   if (!t.closest(".pickable"))
     addingModelProvider.value = null;
@@ -1182,7 +1339,7 @@ onUnmounted(() => {
                   <span
                     v-if="editStates.get(index)?.status"
                     class="status-pill"
-                    :class="{ ok: editStates.get(index)?.status === 'Connected', err: editStates.get(index)?.status !== 'Connected' }"
+                    :class="{ ok: editStates.get(index)?.ok, err: !editStates.get(index)?.ok }"
                   >
                     <span class="status-dot" />
                     {{ editStates.get(index)?.status }}
@@ -1266,6 +1423,128 @@ onUnmounted(() => {
                 >
                   <Plus :size="11" :stroke-width="2.2" />
                 </button>
+              </div>
+            </div>
+          </template>
+        </EditableCardList>
+
+        <!-- Web Search -->
+        <EditableCardList
+          class="mt"
+          :items="appConfig.web_engines"
+          :title="t('settings.webSearch')"
+          :icon="Globe"
+          :empty-message="t('settings.webSearchEmpty')"
+          :empty-sub-message="t('settings.addOneToGetStarted')"
+          :empty-icon="Globe"
+          :validate="validateWebEngine"
+          :builtin-drag-handle="false"
+          @add="onWebEngineAdd"
+          @confirm="onWebEngineConfirm"
+          @cancel="onWebEngineCancel"
+          @remove="onWebEngineRemove"
+        >
+          <template #collapsed="{ item, index }">
+            <div class="prov-lhs">
+              <span class="card-drag-handle prov-drag-logo" @click.stop>
+                <component :is="presetMeta(item.preset).icon" :size="16" />
+              </span>
+              <div class="prov-accent" />
+              <div class="prov-meta">
+                <span class="prov-name" :class="{ dim: !item.custom_name }">{{ item.custom_name || presetMeta(item.preset).label }}</span>
+                <button
+                  class="we-toggle"
+                  :class="{ on: item.enabled }"
+                  :disabled="!item.api_key"
+                  :title="item.enabled ? t('common.enabled') : t('common.disabled')"
+                  @click.stop="toggleWebEngineExclusive(index, $event)"
+                >
+                  <component :is="item.enabled ? ToggleRight : ToggleLeft" :size="16" :stroke-width="1.8" />
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <template #name-input="{ item, index }">
+            <div class="name-row-wrap">
+              <component :is="presetMeta(item.preset).icon" :size="16" :stroke-width="1.8" class="we-name-logo" />
+              <input
+                v-model="item.custom_name"
+                :placeholder="presetMeta(item.preset).label"
+                class="fi name-fi" @click.stop
+              />
+              <button
+                class="preset-mini-btn"
+                :class="{ active: item.preset }"
+                @click.stop="toggleWebPresetMenu($event, index)"
+                :title="item.preset ? `${t('settings.preset')}: ${presetMeta(item.preset).label}` : t('settings.applyPreset')"
+              >
+                <CloudDownload :size="12" :stroke-width="1.8" />
+              </button>
+            </div>
+          </template>
+
+          <template #content="{ item, index }">
+            <Teleport to="body">
+              <Transition name="drop">
+                <div v-if="showWebPresetMenu && webPresetMenuIndex === index" class="sel-menu web-preset-menu" :style="{ top: webPresetMenuPos.top + 'px', left: webPresetMenuPos.left + 'px', width: '220px' }">
+                  <div class="sel-clip settings-scrollbar">
+                    <button
+                      v-for="p in SEARCH_PRESETS" :key="p.id"
+                      class="sel-opt"
+                      :class="{ hit: item.preset === p.id }"
+                      @click="applyWebPreset(item, p.id)"
+                    >
+                      <div class="opt-left"><component :is="p.icon" :size="14" :stroke-width="1.8" />
+                      <div class="opt-info">
+                        <div class="opt-id-row">
+                          <span class="opt-id">{{ p.label }}</span>
+                        </div>
+                      </div></div>
+                      <Check v-if="item.preset === p.id" :size="13" :stroke-width="2.5" />
+                    </button>
+                  </div>
+                </div>
+              </Transition>
+            </Teleport>
+            <p v-if="presetMeta(item.preset).keyHelpKey" class="we-hint">{{ t(presetMeta(item.preset).keyHelpKey!) }}</p>
+            <p v-if="presetMeta(item.preset).apiUrl" class="preset-hint" @click.stop>
+              <a :href="presetMeta(item.preset).apiUrl" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
+                {{ t('settings.getApiKeyAt', { name: presetMeta(item.preset).label }) }}
+              </a>
+            </p>
+            <div class="fields">
+              <div class="field">
+                <label>{{ t('settings.apiKey') }}</label>
+                <div class="key-wrap">
+                  <input
+                    v-model="item.api_key"
+                    :type="webEngineShowKey.has(index) ? 'text' : 'password'"
+                    class="fi key-fi" @click.stop
+                  />
+                  <button class="icon-btn-sm" @click.stop="toggleWebEngineKeyVisible(index)" :title="t('settings.apiKey')">
+                    <component :is="webEngineShowKey.has(index) ? EyeOff : Eye" :size="12" :stroke-width="1.9" />
+                  </button>
+                  <button
+                    class="icon-btn-sm linkish"
+                    @click.stop="testWebEngineConnection(item, index)"
+                    :disabled="!item.api_key.trim() || getWebEngineEditState(index).testing"
+                    :title="t('settings.testConnection')"
+                  >
+                    <Loader2 v-if="getWebEngineEditState(index).testing" :size="12" class="spin" :stroke-width="1.9" />
+                    <Link2 v-else :size="12" :stroke-width="1.9" />
+                  </button>
+                </div>
+                <Transition name="fade">
+                  <span
+                    v-if="getWebEngineEditState(index).status"
+                    class="status-pill"
+                    :class="{ ok: getWebEngineEditState(index).ok, err: !getWebEngineEditState(index).ok }"
+                  >
+                    <span class="status-dot" />
+                    {{ getWebEngineEditState(index).status }}
+                  </span>
+                </Transition>
               </div>
             </div>
           </template>
@@ -2985,5 +3264,25 @@ label {
   font-weight: 600;
   line-height: 1;
   font-family: inherit;
+}
+
+/* ── Web search engine cards ──
+   The collapsed row reuses the provider classes (.prov-lhs / .prov-drag-logo /
+   .prov-accent / .prov-meta / .prov-name) for pixel-perfect alignment, so only
+   the exclusive-toggle button needs its own rule here. */
+.we-toggle {
+  display:inline-flex; align-items:center; justify-content:center;
+  background:none; border:none; cursor:pointer; padding:0;
+  color: var(--color-text-muted); transition: color .12s;
+}
+.we-toggle.on { color: var(--color-accent); }
+.we-toggle:disabled { opacity:.32; cursor:not-allowed; }
+
+/* Brand logo in the name row (edit/add) — mirrors the provider name-row logo. */
+.we-name-logo { color: var(--color-text-muted); flex-shrink:0; }
+
+.we-hint {
+  font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
+  margin:0 0 9px 0;
 }
 </style>

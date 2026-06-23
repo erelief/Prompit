@@ -4,6 +4,7 @@ import { readTextFile } from "@tauri-apps/plugin-fs";
 import { BUILTIN_LANGUAGES, LANGUAGE_GROUPS } from "../constants/languages";
 import { Languages, Sparkles } from "@lucide/vue";
 import i18n from "../i18n";
+import type { SearchHit } from "../services/websearch/types";
 
 export interface ApiFormat {
   auth_header?: string;
@@ -41,6 +42,13 @@ export interface ProviderConfig {
   max_tokens: number | null;
   preset?: string;
   api_format?: ApiFormat;
+}
+
+export interface WebEngineConfig {
+  preset: string;
+  api_key: string;
+  enabled: boolean;
+  custom_name?: string;
 }
 
 export interface ProviderPreset {
@@ -99,6 +107,9 @@ export interface AppConfig {
   show_capability_icons: boolean;
   sparkle_active_provider_index: number;
   sparkle_active_model_index: number;
+  web_engines: WebEngineConfig[];
+  web_search_active_index: number;
+  web_search_enabled_in_sparkle: boolean;
 }
 
 const defaultConfig: AppConfig = {
@@ -121,6 +132,9 @@ const defaultConfig: AppConfig = {
   show_capability_icons: false,
   sparkle_active_provider_index: 0,
   sparkle_active_model_index: 0,
+  web_engines: [],
+  web_search_active_index: -1,
+  web_search_enabled_in_sparkle: false,
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
@@ -272,15 +286,15 @@ export const sparkleStore = reactive<{ sparkles: SparkleEntry[] }>({
   sparkles: [],
 });
 
-function secretKeyId(providerIndex: number): string {
-  return `provider_${providerIndex}`;
+function secretKeyId(namespace: "provider" | "websearch", index: number): string {
+  return `${namespace}_${index}`;
 }
 
 async function loadSecrets(): Promise<void> {
   for (let i = 0; i < appConfig.providers.length; i++) {
     try {
       const key = await invoke<string>("read_secret", {
-        keyId: secretKeyId(i),
+        keyId: secretKeyId("provider", i),
       });
       if (key) {
         appConfig.providers[i].api_key = key;
@@ -289,12 +303,24 @@ async function loadSecrets(): Promise<void> {
       console.error(`Failed to load secret for provider ${i}:`, err);
     }
   }
+  for (let i = 0; i < appConfig.web_engines.length; i++) {
+    try {
+      const key = await invoke<string>("read_secret", {
+        keyId: secretKeyId("websearch", i),
+      });
+      if (key) {
+        appConfig.web_engines[i].api_key = key;
+      }
+    } catch (err) {
+      console.error(`Failed to load secret for websearch ${i}:`, err);
+    }
+  }
 }
 
 async function saveSecrets(): Promise<void> {
   for (let i = appConfig.providers.length; i < 50; i++) {
     try {
-      await invoke("delete_secret", { keyId: secretKeyId(i) });
+      await invoke("delete_secret", { keyId: secretKeyId("provider", i) });
     } catch {
       // Secret may not exist
     }
@@ -303,7 +329,23 @@ async function saveSecrets(): Promise<void> {
     const apiKey = appConfig.providers[i].api_key;
     if (apiKey) {
       await invoke("save_secret", {
-        keyId: secretKeyId(i),
+        keyId: secretKeyId("provider", i),
+        plaintext: apiKey,
+      });
+    }
+  }
+  for (let i = appConfig.web_engines.length; i < 50; i++) {
+    try {
+      await invoke("delete_secret", { keyId: secretKeyId("websearch", i) });
+    } catch {
+      // Secret may not exist
+    }
+  }
+  for (let i = 0; i < appConfig.web_engines.length; i++) {
+    const apiKey = appConfig.web_engines[i].api_key;
+    if (apiKey) {
+      await invoke("save_secret", {
+        keyId: secretKeyId("websearch", i),
         plaintext: apiKey,
       });
     }
@@ -362,6 +404,9 @@ export async function saveConfig(): Promise<void> {
   const raw = JSON.parse(JSON.stringify(toRaw(appConfig)));
   for (const provider of raw.providers) {
     provider.api_key = "";
+  }
+  for (const engine of raw.web_engines) {
+    engine.api_key = "";
   }
   await invoke("save_config", { config: raw });
 }
@@ -624,6 +669,8 @@ export interface HistoryEntry {
   mode?: string;
   persona?: string;   // active persona name (translate mode) — display only
   sparkle?: string;   // active sparkle name (sparkle mode) — display only
+  searched?: boolean;   // whether web search context was used (sparkle mode)
+  sources?: SearchHit[];   // web-search hits used for this entry (sparkle mode)
 }
 
 export const historyStore = reactive<{ entries: HistoryEntry[] }>({
@@ -640,7 +687,7 @@ export async function loadHistory(): Promise<void> {
   }
 }
 
-export async function saveHistoryEntry(input: string, output: string): Promise<void> {
+export async function saveHistoryEntry(input: string, output: string, searched: boolean = false, sources?: SearchHit[]): Promise<void> {
   const active = getActiveModel();
   const mode = appConfig.active_mode || "translate";
   const entry: HistoryEntry = {
@@ -649,6 +696,8 @@ export async function saveHistoryEntry(input: string, output: string): Promise<v
     timestamp: Date.now(),
     model: active?.model || undefined,
     mode,
+    searched,
+    sources: sources && sources.length > 0 ? sources : undefined,
     persona: mode === "translate"
       ? (personaStore.personas.find(p => p.enabled)?.name || undefined)
       : undefined,

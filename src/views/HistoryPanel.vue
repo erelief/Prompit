@@ -3,11 +3,12 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare } from "@lucide/vue";
+import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { appConfig, historyStore, loadHistory, saveHistory, MODES, type HistoryEntry } from "../stores/config";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
+import type { SearchHit } from "../services/websearch/types";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -42,6 +43,25 @@ function selectEntry(entry: { input: string; output: string }) {
   sessionStorage.setItem("history-restore", JSON.stringify(entry));
   router.push("/");
 }
+
+/** Entry whose sources are currently shown in the in-place overlay, or null. */
+const sourcesEntry = ref<HistoryEntry | null>(null);
+function openSources(entry: HistoryEntry) {
+  sourcesEntry.value = entry;
+}
+function closeSources() {
+  sourcesEntry.value = null;
+}
+
+/** Extract a display hostname from a URL, stripping the leading "www." */
+function domainOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+const sourcesList = computed<SearchHit[]>(() => sourcesEntry.value?.sources ?? []);
 
 function shortModel(model: string): string {
   // strip date suffix like "-2024-07-18"
@@ -94,16 +114,23 @@ onMounted(async () => {
     @mousedown="handleDrag"
     :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)' }"
   >
-    <!-- Header -->
+    <!-- Header (normal mode vs sources mode) -->
     <header class="history-header">
-      <button @click="goBack" class="back-btn" :title="t('common.settings')">
+      <button v-if="sourcesEntry" @click="closeSources" class="back-btn" :title="t('search.backToHistory')">
         <ArrowLeft :size="18" :stroke-width="1.8" />
       </button>
-      <h1 class="header-title">
+      <button v-else @click="goBack" class="back-btn" :title="t('common.settings')">
+        <ArrowLeft :size="18" :stroke-width="1.8" />
+      </button>
+      <h1 v-if="sourcesEntry" class="header-title">
+        <Globe :size="14" :stroke-width="1.8" />
+        {{ t('search.sourcesTitle') }}
+      </h1>
+      <h1 v-else class="header-title">
         <History :size="14" :stroke-width="1.8" />
         {{ t('history.title') }}
       </h1>
-      <div class="header-actions">
+      <div v-if="!sourcesEntry" class="header-actions">
         <button
           v-if="!showClearConfirm && modeEntries.length > 0"
           class="reset-btn"
@@ -123,8 +150,22 @@ onMounted(async () => {
       </div>
     </header>
 
-    <!-- List -->
+    <!-- Body: sources view (replaces history list when a 🌐 tag is active) -->
     <main class="history-body">
+      <template v-if="sourcesEntry">
+        <a v-for="(src, i) in sourcesList" :key="i"
+           :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
+          <div class="source-favicon">🌐</div>
+          <div class="source-meta">
+            <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
+            <div class="source-domain">{{ domainOf(src.url) }}</div>
+          </div>
+          <ExternalLink :size="11" :stroke-width="1.8" class="source-external" />
+        </a>
+        <div v-if="sourcesList.length === 0" class="sources-empty">{{ t('search.noSources') }}</div>
+      </template>
+      <!-- Normal history list -->
+      <template v-else>
       <div v-if="modeEntries.length === 0" class="empty-state">
         <History :size="28" :stroke-width="1" class="empty-icon" />
         <span class="empty-text">{{ t('history.empty') }}<br><small>{{ t('history.emptySub') }}</small></span>
@@ -162,6 +203,9 @@ onMounted(async () => {
                   <span>{{ entry.output }}</span>
                   <span v-if="entry.model" class="model-badge">{{ shortModel(entry.model) }}</span>
                   <span v-if="presetTag(entry)" class="preset-badge">{{ presetTag(entry) }}</span>
+                  <button v-if="entry.searched" class="searched-tag" :title="t('search.sourcesTitle')" @click.stop="openSources(entry)">
+                    <Globe :size="9" :stroke-width="2" />
+                  </button>
                 </div>
               </div>
             </button>
@@ -176,6 +220,7 @@ onMounted(async () => {
           {{ t('history.entryCount', { current: modeEntries.length, limit: appConfig.history_limit || 50 }) }}
         </div>
       </div>
+      </template>
     </main>
   </div>
 </template>
@@ -451,4 +496,38 @@ onMounted(async () => {
   color: var(--color-text-tertiary, var(--color-text-muted));
   letter-spacing: 0.01em;
 }
+
+/* ── Searched tag (🌐) + sources overlay ── */
+.searched-tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  width: 16px; height: 16px; border-radius: 4px;
+  background: var(--color-surface-hover); border: none;
+  color: var(--color-accent); cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.searched-tag:hover { background: var(--color-accent-bg); color: var(--color-accent); }
+
+/* Source-item list (used inside history-body when viewing sources) */
+.source-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  text-decoration: none; cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.source-item:hover { background: var(--color-surface-hover); border-color: var(--color-border-hover); }
+.source-favicon { flex-shrink: 0; font-size: 13px; line-height: 1; }
+.source-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.source-title {
+  font-size: 12px; font-weight: 600; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.source-domain {
+  font-size: 10px; color: var(--color-text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.source-external { flex-shrink: 0; color: var(--color-text-muted); }
+.sources-empty { font-size: 11px; color: var(--color-text-muted); padding: 16px 0; text-align: center; }
 </style>

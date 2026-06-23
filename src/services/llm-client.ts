@@ -1,10 +1,26 @@
 import { getActiveModel, appConfig, personaStore, sparkleStore, loadDictionary } from "../stores/config";
 import type { ApiFormat, ProviderConfig, ModelInputCapabilities } from "../stores/config";
 import { detectInputCapabilitiesAsync } from "./model-capabilities";
+import { webSearch, formatSearchContext } from "./websearch";
+import type { ClassifiedSearchError, SearchHit } from "./websearch/types";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
+}
+
+export type TranslateOutcome =
+  | { status: "ok"; content: string; searched: boolean; sources?: SearchHit[] }
+  | { status: "search-error"; error: ClassifiedSearchError };
+
+/** Wraps a search failure so the caller (FloatingInput) can classify it. */
+export class SearchFailureError extends Error {
+  cause: unknown;
+  constructor(cause: unknown) {
+    super("Web search failed");
+    this.name = "SearchFailureError";
+    this.cause = cause;
+  }
 }
 
 export interface FetchModelEntry {
@@ -116,7 +132,7 @@ export function resolvePath(obj: any, path: string): any {
   return cur;
 }
 
-export async function translate(text: string): Promise<string> {
+export async function translate(text: string, signal?: AbortSignal): Promise<TranslateOutcome> {
   const model = getActiveModel();
   if (!model) {
     throw new Error("No model configured. Please add a model in Settings.");
@@ -152,6 +168,24 @@ export async function translate(text: string): Promise<string> {
     }
   }
 
+  // ── Web search (Sparkle mode only) ──
+  let searched = false;
+  let sources: SearchHit[] | undefined;
+  if (mode === "sparkle" && appConfig.web_search_enabled_in_sparkle) {
+    try {
+      const hits = await webSearch(text, signal);
+      if (hits.length > 0) {
+        messages.push({ role: "user", content: formatSearchContext(hits) });
+        sources = hits;
+      }
+      searched = true;
+    } catch (searchErr) {
+      // Blocking: do NOT call the LLM without the requested context.
+      // Defer classification to the caller to avoid an i18n import cycle here.
+      throw new SearchFailureError(searchErr);
+    }
+  }
+
   messages.push({ role: "user", content: text });
 
   // Build request body using field mappings
@@ -180,6 +214,7 @@ export async function translate(text: string): Promise<string> {
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    signal,
   });
 
   if (!response.ok) {
@@ -196,7 +231,7 @@ export async function translate(text: string): Promise<string> {
     throw new Error("Empty response from LLM API");
   }
 
-  return String(content).trim();
+  return { status: "ok", content: String(content).trim(), searched, sources };
 }
 
 export async function optimizePrompt(rawPrompt: string, mode: "translate" | "sparkle" | "summarize" = "translate"): Promise<string> {

@@ -19,6 +19,10 @@ pub struct HistoryEntry {
     pub persona: Option<String>,
     #[serde(default)]
     pub sparkle: Option<String>,
+    #[serde(default)]
+    pub searched: bool,
+    #[serde(default)]
+    pub sources: Option<Vec<serde_json::Value>>,
 }
 
 fn history_path(app: &AppHandle) -> Result<PathBuf, String> {
