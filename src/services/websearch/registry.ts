@@ -4,9 +4,11 @@
 import type { Component } from "vue";
 import AnySearch from "../../components/icons/providers/AnySearch.vue";
 import Brave from "../../components/icons/providers/Brave.vue";
+import Tavily from "../../components/icons/providers/Tavily.vue";
 import type { SearchFn } from "./types";
 import { search as anysearchSearch } from "./anysearch";
 import { search as braveSearch } from "./brave";
+import { search as tavilySearch } from "./tavily";
 
 export interface SearchPresetMeta {
   id: string;
@@ -38,12 +40,21 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     keyRequired: true,
     // No hint — just enter the key.
   },
+  {
+    id: "tavily",
+    label: "Tavily",
+    icon: Tavily,
+    supportsAnonymous: false,
+    keyRequired: true,
+    // No hint — just enter the key.
+  },
 ];
 
 /** preset id → search implementation */
 const REGISTRY: Record<string, SearchFn> = {
   anysearch: anysearchSearch,
   brave: braveSearch,
+  tavily: tavilySearch,
 };
 
 /** Built-in anonymous fallback. Always available so a usable engine exists. */
