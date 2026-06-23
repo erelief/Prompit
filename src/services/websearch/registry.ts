@@ -24,6 +24,8 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     icon: AnySearch,
     supportsAnonymous: true,
     keyRequired: true,
+    // AnySearch is special: anonymous mode is the built-in fallback, so a
+    // user-added instance only makes sense with a key (higher quota).
     keyHelpKey: "settings.webSearchKeyHint",
   },
   {
@@ -32,7 +34,7 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     icon: Brave,
     supportsAnonymous: false,
     keyRequired: true,
-    keyHelpKey: "settings.braveKeyHint",
+    keyHelpKey: "settings.apiKeyHint",
   },
 ];
 
