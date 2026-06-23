@@ -21,6 +21,7 @@ import {
   BookText,
   Sparkles,
   Globe,
+  GlobeOff,
 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
@@ -302,15 +303,16 @@ defineExpose({ closeAllDropdowns });
       </Teleport>
     </div>
 
-    <!-- Web search toggle (sparkle mode only) -->
+    <!-- Web search toggle (sparkle mode only) — globe on / globe-off, mirrors the
+         send-mode (pin) button's two-icon toggle form. -->
     <button
       @click="toggleWebSearch($event)"
       class="search-toggle"
       :class="{ on: appConfig.web_search_enabled_in_sparkle }"
-      :title="t('floating.enableWebSearch')"
+      :title="appConfig.web_search_enabled_in_sparkle ? t('floating.webSearchOn') : t('floating.webSearchOff')"
     >
-      <Globe :size="11" :stroke-width="1.8" />
-      <span v-if="appConfig.web_search_enabled_in_sparkle" class="search-dot" />
+      <Globe v-if="appConfig.web_search_enabled_in_sparkle" :size="11" :stroke-width="1.8" />
+      <GlobeOff v-else :size="11" :stroke-width="1.8" />
     </button>
   </template>
 
@@ -798,43 +800,32 @@ defineExpose({ closeAllDropdowns });
   .search-toggle.on { animation: none; }
 }
 
-/* ── Web search toggle (mirrors .dict-toggle) ── */
+/* ── Web search toggle — icon-btn form (mirrors FloatingInput's pin button) ── */
 .search-toggle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  width: 28px;
   height: 28px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid var(--color-surface);
-  background: var(--color-surface);
+  border-radius: 7px;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all 0.18s ease;
-  font-size: 11px;
-  font-family: inherit;
+  transition: all 0.15s ease;
   flex-shrink: 0;
+  border: none;
+  background: none;
 }
 .search-toggle:hover {
-  color: var(--color-text-secondary);
-  background: var(--color-border);
+  color: var(--color-text);
+  background: var(--color-surface);
 }
 .search-toggle.on {
   color: var(--color-accent);
-  background: var(--color-accent-bg);
-  border-color: var(--color-accent-border);
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
   animation: toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .search-toggle.on:hover {
   color: var(--color-accent);
-  background: var(--color-accent-bg);
-}
-.search-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 5px var(--color-accent-border);
-  flex-shrink: 0;
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
 }
 </style>

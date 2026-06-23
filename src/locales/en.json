@@ -139,6 +139,8 @@
     "goToSettings": "Go to Settings",
     "selectSparkle": "Select Sparkle",
     "enableWebSearch": "Toggle web search",
+    "webSearchOn": "Web search on",
+    "webSearchOff": "Web search off",
     "searching": "Searching…",
     "history": "History",
     "aiDisclaimer": "AI-generated, for reference only"

@@ -139,6 +139,8 @@
     "goToSettings": "前往设置",
     "selectSparkle": "选择灵感",
     "enableWebSearch": "切换网页搜索",
+    "webSearchOn": "联网搜索已开启",
+    "webSearchOff": "联网搜索已关闭",
     "searching": "正在搜索…",
     "history": "历史记录",
     "aiDisclaimer": "内容由 AI 生成，请仔细甄别"
