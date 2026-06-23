@@ -265,6 +265,11 @@
     "err429": "请求频繁，匿名模式已限流，可在设置添加自己的 Key",
     "errNetwork": "网络连接失败",
     "errUnknown": "未知错误",
-    "sourceSearched": "联网搜索（已用结果）"
+    "sourceSearched": "联网搜索（已用结果）",
+    "backToResult": "返回结果",
+    "backToHistory": "返回",
+    "sourcesTitle": "来源",
+    "untitledSource": "无标题",
+    "noSources": "无来源信息"
   }
 }

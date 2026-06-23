@@ -16,7 +16,8 @@ import { translate } from "../services/llm-client";
 import type { TranslateOutcome } from "../services/llm-client";
 import { SearchFailureError } from "../services/llm-client";
 import { classifySearchError } from "../services/websearch";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare } from "@lucide/vue";
+import type { SearchHit } from "../services/websearch/types";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
@@ -32,6 +33,8 @@ type WebSearchStatus = "idle" | "searching" | "error" | "done-searched" | "done-
 const webSearchStatus = ref<WebSearchStatus>("idle");
 const webSearchErrorText = ref("");
 const lastResultSearched = ref(false);
+const lastResultSources = ref<SearchHit[]>([]);
+const sourcesView = ref(false);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const hasResult = ref(false);
 const isRestoringHistory = ref(false);
@@ -98,6 +101,16 @@ const inputPlaceholder = computed(() => {
   }
   return hasResult.value ? t("floating.pressEnterToPaste") : t("floating.typeToSend");
 });
+
+/** Extract a display hostname from a URL, stripping the leading "www.".
+ *  Falls back to the raw string on parse failure. */
+function domainOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
 const showModelDropdown = ref(false);
 const floatingPresets = ref<ProviderPreset[]>([]);
@@ -321,6 +334,8 @@ function navigateHistory(direction: -1 | 1) {
   inputText.value = entry.input;
   translatedText.value = entry.output;
   hasResult.value = !!entry.output;
+  lastResultSources.value = entry.sources ?? [];
+  sourcesView.value = false;
   errorMessage.value = "";
   nextTick(() => {
     isRestoringHistory.value = false;
@@ -357,9 +372,11 @@ async function handleTranslate() {
     if (outcome.status === "ok") {
       translatedText.value = outcome.content;
       lastResultSearched.value = outcome.searched;
+      lastResultSources.value = outcome.sources ?? [];
+      sourcesView.value = false;
       webSearchStatus.value = outcome.searched ? "done-searched" : "done-nosearch";
       hasResult.value = true;
-      await saveHistoryEntry(text, outcome.content, outcome.searched);
+      await saveHistoryEntry(text, outcome.content, outcome.searched, outcome.sources);
     }
     // search-error is handled in catch below via SearchFailureError
   } catch (err) {
@@ -424,6 +441,8 @@ function clearAll() {
   errorMessage.value = "";
   webSearchErrorText.value = "";
   webSearchStatus.value = "idle";
+  lastResultSources.value = [];
+  sourcesView.value = false;
   hasResult.value = false;
 }
 
@@ -447,6 +466,8 @@ onMounted(async () => {
       inputText.value = entry.input || "";
       translatedText.value = entry.output || "";
       hasResult.value = !!entry.output;
+      lastResultSources.value = entry.sources ?? [];
+      sourcesView.value = false;
       nextTick(() => { isRestoringHistory.value = false; });
     } catch { /* ignore */ }
   }
@@ -517,10 +538,31 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
-            <div v-if="lastResultSearched" class="result-provenance">
-              <span>🌐 {{ t('search.sourceSearched') }}</span>
+            <button v-if="lastResultSearched" class="provenance-btn" @click="sourcesView = !sourcesView">
+              <Globe :size="11" :stroke-width="1.8" />
+              <span>{{ t('search.sourceSearched') }}</span>
+              <component :is="sourcesView ? ChevronLeft : ChevronRight" :size="11" :stroke-width="2" class="provenance-chevron" />
+            </button>
+            <!-- Result view (default) -->
+            <div v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
+            <!-- Sources view (shown when the provenance button is toggled on) -->
+            <div v-if="sourcesView" class="sources-view">
+              <div class="sources-header">
+                <button class="sources-back" @click="sourcesView = false">
+                  <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
+                </button>
+              </div>
+              <a v-for="(src, i) in lastResultSources" :key="i"
+                 :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
+                <div class="source-favicon">🌐</div>
+                <div class="source-meta">
+                  <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
+                  <div class="source-domain">{{ domainOf(src.url) }}</div>
+                </div>
+                <ExternalLink :size="11" :stroke-width="1.8" class="source-external" />
+              </a>
+              <div v-if="lastResultSources.length === 0" class="sources-empty">{{ t('search.noSources') }}</div>
             </div>
-            <div class="result-text">{{ translatedText }}</div>
           </div>
         </Transition>
 
@@ -899,10 +941,31 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
-            <div v-if="lastResultSearched" class="result-provenance">
-              <span>🌐 {{ t('search.sourceSearched') }}</span>
+            <button v-if="lastResultSearched" class="provenance-btn" @click="sourcesView = !sourcesView">
+              <Globe :size="11" :stroke-width="1.8" />
+              <span>{{ t('search.sourceSearched') }}</span>
+              <component :is="sourcesView ? ChevronLeft : ChevronRight" :size="11" :stroke-width="2" class="provenance-chevron" />
+            </button>
+            <!-- Result view (default) -->
+            <div v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
+            <!-- Sources view (shown when the provenance button is toggled on) -->
+            <div v-if="sourcesView" class="sources-view">
+              <div class="sources-header">
+                <button class="sources-back" @click="sourcesView = false">
+                  <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
+                </button>
+              </div>
+              <a v-for="(src, i) in lastResultSources" :key="i"
+                 :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
+                <div class="source-favicon">🌐</div>
+                <div class="source-meta">
+                  <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
+                  <div class="source-domain">{{ domainOf(src.url) }}</div>
+                </div>
+                <ExternalLink :size="11" :stroke-width="1.8" class="source-external" />
+              </a>
+              <div v-if="lastResultSources.length === 0" class="sources-empty">{{ t('search.noSources') }}</div>
             </div>
-            <div class="result-text">{{ translatedText }}</div>
           </div>
         </Transition>
 
@@ -1258,10 +1321,59 @@ useShortcutTriggered(() => {
 }
 }
 
-/* ── Web search provenance badge ── */
-.result-provenance {
+/* ── Web search provenance button + sources view ── */
+.provenance-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 10.5px;
   color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
   padding: 0 0 5px 0;
+  transition: color 0.12s;
 }
+.provenance-btn:hover { color: var(--color-accent); }
+.provenance-chevron { margin-left: 1px; }
+
+.sources-view {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-bottom: 4px;
+}
+.sources-view::-webkit-scrollbar { width: 3px; }
+.sources-view::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
+.sources-header { flex-shrink: 0; padding-bottom: 2px; }
+.sources-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; color: var(--color-text-muted);
+  background: none; border: none; cursor: pointer; padding: 0;
+  transition: color 0.12s;
+}
+.sources-back:hover { color: var(--color-text); }
+.source-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  text-decoration: none; cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.source-item:hover { background: var(--color-surface-hover); border-color: var(--color-border-hover); }
+.source-favicon { flex-shrink: 0; font-size: 13px; line-height: 1; }
+.source-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.source-title {
+  font-size: 11.5px; font-weight: 600; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.source-domain {
+  font-size: 10px; color: var(--color-text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.source-external { flex-shrink: 0; color: var(--color-text-muted); }
+.sources-empty { font-size: 10.5px; color: var(--color-text-muted); padding: 8px 0; }
 </style>

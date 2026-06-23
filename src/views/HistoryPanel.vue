@@ -3,11 +3,12 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare } from "@lucide/vue";
+import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { appConfig, historyStore, loadHistory, saveHistory, MODES, type HistoryEntry } from "../stores/config";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
+import type { SearchHit } from "../services/websearch/types";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -42,6 +43,25 @@ function selectEntry(entry: { input: string; output: string }) {
   sessionStorage.setItem("history-restore", JSON.stringify(entry));
   router.push("/");
 }
+
+/** Entry whose sources are currently shown in the in-place overlay, or null. */
+const sourcesEntry = ref<HistoryEntry | null>(null);
+function openSources(entry: HistoryEntry) {
+  sourcesEntry.value = entry;
+}
+function closeSources() {
+  sourcesEntry.value = null;
+}
+
+/** Extract a display hostname from a URL, stripping the leading "www." */
+function domainOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+const sourcesList = computed<SearchHit[]>(() => sourcesEntry.value?.sources ?? []);
 
 function shortModel(model: string): string {
   // strip date suffix like "-2024-07-18"
@@ -162,6 +182,9 @@ onMounted(async () => {
                   <span>{{ entry.output }}</span>
                   <span v-if="entry.model" class="model-badge">{{ shortModel(entry.model) }}</span>
                   <span v-if="presetTag(entry)" class="preset-badge">{{ presetTag(entry) }}</span>
+                  <button v-if="entry.searched" class="searched-tag" :title="t('search.sourcesTitle')" @click.stop="openSources(entry)">
+                    <Globe :size="9" :stroke-width="2" />
+                  </button>
                 </div>
               </div>
             </button>
@@ -177,6 +200,32 @@ onMounted(async () => {
         </div>
       </div>
     </main>
+
+    <!-- Sources overlay (in-place, shown when a 🌐 tag is clicked) -->
+    <Transition name="fade">
+      <div v-if="sourcesEntry" class="sources-overlay">
+        <header class="sources-overlay-header">
+          <button class="sources-back" @click="closeSources">
+            <ArrowLeft :size="14" :stroke-width="1.8" /> {{ t('search.backToHistory') }}
+          </button>
+          <h2 class="sources-overlay-title">
+            <Globe :size="12" :stroke-width="1.8" /> {{ t('search.sourcesTitle') }}
+          </h2>
+        </header>
+        <div class="sources-overlay-body">
+          <a v-for="(src, i) in sourcesList" :key="i"
+             :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
+            <div class="source-favicon">🌐</div>
+            <div class="source-meta">
+              <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
+              <div class="source-domain">{{ domainOf(src.url) }}</div>
+            </div>
+            <ExternalLink :size="11" :stroke-width="1.8" class="source-external" />
+          </a>
+          <div v-if="sourcesList.length === 0" class="sources-empty">{{ t('search.noSources') }}</div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -451,4 +500,67 @@ onMounted(async () => {
   color: var(--color-text-tertiary, var(--color-text-muted));
   letter-spacing: 0.01em;
 }
+
+/* ── Searched tag (🌐) + sources overlay ── */
+.searched-tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  width: 16px; height: 16px; border-radius: 4px;
+  background: var(--color-surface-hover); border: none;
+  color: var(--color-accent); cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.searched-tag:hover { background: var(--color-accent-bg); color: var(--color-accent); }
+
+.sources-overlay {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  background: var(--color-bg);
+}
+.sources-overlay-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--color-surface);
+  flex-shrink: 0;
+}
+.sources-back {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--color-text-muted);
+  background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 7px;
+  transition: background 0.12s, color 0.12s;
+}
+.sources-back:hover { background: var(--color-surface-hover); color: var(--color-text); }
+.sources-overlay-title {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 700; color: var(--color-text);
+  margin: 0; flex: 1;
+}
+.sources-overlay-body {
+  flex: 1; overflow-y: auto;
+  padding: 10px 20px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.sources-overlay-body::-webkit-scrollbar { width: 3px; }
+.sources-overlay-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
+.source-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  text-decoration: none; cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.source-item:hover { background: var(--color-surface-hover); border-color: var(--color-border-hover); }
+.source-favicon { flex-shrink: 0; font-size: 13px; line-height: 1; }
+.source-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.source-title {
+  font-size: 12px; font-weight: 600; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.source-domain {
+  font-size: 10px; color: var(--color-text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.source-external { flex-shrink: 0; color: var(--color-text-muted); }
+.sources-empty { font-size: 11px; color: var(--color-text-muted); padding: 16px 0; text-align: center; }
 </style>

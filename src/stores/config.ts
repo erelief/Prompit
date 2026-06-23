@@ -4,6 +4,7 @@ import { readTextFile } from "@tauri-apps/plugin-fs";
 import { BUILTIN_LANGUAGES, LANGUAGE_GROUPS } from "../constants/languages";
 import { Languages, Sparkles } from "@lucide/vue";
 import i18n from "../i18n";
+import type { SearchHit } from "../services/websearch/types";
 
 export interface ApiFormat {
   auth_header?: string;
@@ -669,6 +670,7 @@ export interface HistoryEntry {
   persona?: string;   // active persona name (translate mode) — display only
   sparkle?: string;   // active sparkle name (sparkle mode) — display only
   searched?: boolean;   // whether web search context was used (sparkle mode)
+  sources?: SearchHit[];   // web-search hits used for this entry (sparkle mode)
 }
 
 export const historyStore = reactive<{ entries: HistoryEntry[] }>({
@@ -685,7 +687,7 @@ export async function loadHistory(): Promise<void> {
   }
 }
 
-export async function saveHistoryEntry(input: string, output: string, searched: boolean = false): Promise<void> {
+export async function saveHistoryEntry(input: string, output: string, searched: boolean = false, sources?: SearchHit[]): Promise<void> {
   const active = getActiveModel();
   const mode = appConfig.active_mode || "translate";
   const entry: HistoryEntry = {
@@ -695,6 +697,7 @@ export async function saveHistoryEntry(input: string, output: string, searched: 
     model: active?.model || undefined,
     mode,
     searched,
+    sources: sources && sources.length > 0 ? sources : undefined,
     persona: mode === "translate"
       ? (personaStore.personas.find(p => p.enabled)?.name || undefined)
       : undefined,

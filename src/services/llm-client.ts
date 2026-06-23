@@ -2,7 +2,7 @@ import { getActiveModel, appConfig, personaStore, sparkleStore, loadDictionary }
 import type { ApiFormat, ProviderConfig, ModelInputCapabilities } from "../stores/config";
 import { detectInputCapabilitiesAsync } from "./model-capabilities";
 import { webSearch, formatSearchContext } from "./websearch";
-import type { ClassifiedSearchError } from "./websearch/types";
+import type { ClassifiedSearchError, SearchHit } from "./websearch/types";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -10,7 +10,7 @@ interface ChatMessage {
 }
 
 export type TranslateOutcome =
-  | { status: "ok"; content: string; searched: boolean }
+  | { status: "ok"; content: string; searched: boolean; sources?: SearchHit[] }
   | { status: "search-error"; error: ClassifiedSearchError };
 
 /** Wraps a search failure so the caller (FloatingInput) can classify it. */
@@ -170,11 +170,13 @@ export async function translate(text: string): Promise<TranslateOutcome> {
 
   // ── Web search (Sparkle mode only) ──
   let searched = false;
+  let sources: SearchHit[] | undefined;
   if (mode === "sparkle" && appConfig.web_search_enabled_in_sparkle) {
     try {
       const hits = await webSearch(text);
       if (hits.length > 0) {
         messages.push({ role: "user", content: formatSearchContext(hits) });
+        sources = hits;
       }
       searched = true;
     } catch (searchErr) {
@@ -228,7 +230,7 @@ export async function translate(text: string): Promise<TranslateOutcome> {
     throw new Error("Empty response from LLM API");
   }
 
-  return { status: "ok", content: String(content).trim(), searched };
+  return { status: "ok", content: String(content).trim(), searched, sources };
 }
 
 export async function optimizePrompt(rawPrompt: string, mode: "translate" | "sparkle" | "summarize" = "translate"): Promise<string> {
