@@ -114,16 +114,23 @@ onMounted(async () => {
     @mousedown="handleDrag"
     :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)' }"
   >
-    <!-- Header -->
+    <!-- Header (normal mode vs sources mode) -->
     <header class="history-header">
-      <button @click="goBack" class="back-btn" :title="t('common.settings')">
+      <button v-if="sourcesEntry" @click="closeSources" class="back-btn" :title="t('search.backToHistory')">
         <ArrowLeft :size="18" :stroke-width="1.8" />
       </button>
-      <h1 class="header-title">
+      <button v-else @click="goBack" class="back-btn" :title="t('common.settings')">
+        <ArrowLeft :size="18" :stroke-width="1.8" />
+      </button>
+      <h1 v-if="sourcesEntry" class="header-title">
+        <Globe :size="14" :stroke-width="1.8" />
+        {{ t('search.sourcesTitle') }}
+      </h1>
+      <h1 v-else class="header-title">
         <History :size="14" :stroke-width="1.8" />
         {{ t('history.title') }}
       </h1>
-      <div class="header-actions">
+      <div v-if="!sourcesEntry" class="header-actions">
         <button
           v-if="!showClearConfirm && modeEntries.length > 0"
           class="reset-btn"
@@ -143,8 +150,22 @@ onMounted(async () => {
       </div>
     </header>
 
-    <!-- List -->
+    <!-- Body: sources view (replaces history list when a 🌐 tag is active) -->
     <main class="history-body">
+      <template v-if="sourcesEntry">
+        <a v-for="(src, i) in sourcesList" :key="i"
+           :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
+          <div class="source-favicon">🌐</div>
+          <div class="source-meta">
+            <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
+            <div class="source-domain">{{ domainOf(src.url) }}</div>
+          </div>
+          <ExternalLink :size="11" :stroke-width="1.8" class="source-external" />
+        </a>
+        <div v-if="sourcesList.length === 0" class="sources-empty">{{ t('search.noSources') }}</div>
+      </template>
+      <!-- Normal history list -->
+      <template v-else>
       <div v-if="modeEntries.length === 0" class="empty-state">
         <History :size="28" :stroke-width="1" class="empty-icon" />
         <span class="empty-text">{{ t('history.empty') }}<br><small>{{ t('history.emptySub') }}</small></span>
@@ -199,33 +220,8 @@ onMounted(async () => {
           {{ t('history.entryCount', { current: modeEntries.length, limit: appConfig.history_limit || 50 }) }}
         </div>
       </div>
+      </template>
     </main>
-
-    <!-- Sources overlay (in-place, shown when a 🌐 tag is clicked) -->
-    <Transition name="fade">
-      <div v-if="sourcesEntry" class="sources-overlay" :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)' }">
-        <header class="sources-overlay-header">
-          <button class="sources-back" @click="closeSources">
-            <ArrowLeft :size="14" :stroke-width="1.8" /> {{ t('search.backToHistory') }}
-          </button>
-          <h2 class="sources-overlay-title">
-            <Globe :size="12" :stroke-width="1.8" /> {{ t('search.sourcesTitle') }}
-          </h2>
-        </header>
-        <div class="sources-overlay-body">
-          <a v-for="(src, i) in sourcesList" :key="i"
-             :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
-            <div class="source-favicon">🌐</div>
-            <div class="source-meta">
-              <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
-              <div class="source-domain">{{ domainOf(src.url) }}</div>
-            </div>
-            <ExternalLink :size="11" :stroke-width="1.8" class="source-external" />
-          </a>
-          <div v-if="sourcesList.length === 0" class="sources-empty">{{ t('search.noSources') }}</div>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -512,35 +508,7 @@ onMounted(async () => {
 }
 .searched-tag:hover { background: var(--color-accent-bg); color: var(--color-accent); }
 
-.sources-overlay {
-  position: absolute; inset: 0; z-index: 10;
-  display: flex; flex-direction: column;
-}
-.sources-overlay-header {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 20px 10px;
-  border-bottom: 1px solid var(--color-surface);
-  flex-shrink: 0;
-}
-.sources-back {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; color: var(--color-text-muted);
-  background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 7px;
-  transition: background 0.12s, color 0.12s;
-}
-.sources-back:hover { background: var(--color-surface-hover); color: var(--color-text); }
-.sources-overlay-title {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 13px; font-weight: 700; color: var(--color-text);
-  margin: 0; flex: 1;
-}
-.sources-overlay-body {
-  flex: 1; overflow-y: auto;
-  padding: 10px 20px 16px;
-  display: flex; flex-direction: column; gap: 6px;
-}
-.sources-overlay-body::-webkit-scrollbar { width: 3px; }
-.sources-overlay-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
+/* Source-item list (used inside history-body when viewing sources) */
 .source-item {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 10px; border-radius: 8px;
