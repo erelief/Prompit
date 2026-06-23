@@ -1501,7 +1501,7 @@ onUnmounted(() => {
                 </div>
               </Transition>
             </Teleport>
-            <p class="we-hint">{{ t(presetMeta(item.preset).keyHelpKey) }}</p>
+            <p v-if="presetMeta(item.preset).keyHelpKey" class="we-hint">{{ t(presetMeta(item.preset).keyHelpKey!) }}</p>
             <div class="fields">
               <div class="field">
                 <label>{{ t('settings.apiKey') }}</label>

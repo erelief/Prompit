@@ -14,7 +14,9 @@ export interface SearchPresetMeta {
   icon: Component;
   supportsAnonymous: boolean;
   keyRequired: boolean;
-  keyHelpKey: string; // i18n key explaining the key requirement
+  /** i18n key for an explanatory hint, or empty when none is needed.
+   *  Only presets with special key semantics (e.g. AnySearch) carry a hint. */
+  keyHelpKey?: string;
 }
 
 export const SEARCH_PRESETS: SearchPresetMeta[] = [
@@ -34,7 +36,7 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     icon: Brave,
     supportsAnonymous: false,
     keyRequired: true,
-    keyHelpKey: "settings.apiKeyHint",
+    // No hint — just enter the key.
   },
 ];
 
