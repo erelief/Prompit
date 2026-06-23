@@ -517,9 +517,8 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
-            <div v-if="webSearchStatus === 'done-searched' || webSearchStatus === 'done-nosearch'" class="result-provenance">
-              <span v-if="lastResultSearched">🌐 {{ t('search.sourceSearched') }}</span>
-              <span v-else class="muted">{{ t('search.sourceNotSearched') }}</span>
+            <div v-if="lastResultSearched" class="result-provenance">
+              <span>🌐 {{ t('search.sourceSearched') }}</span>
             </div>
             <div class="result-text">{{ translatedText }}</div>
           </div>
@@ -900,9 +899,8 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
-            <div v-if="webSearchStatus === 'done-searched' || webSearchStatus === 'done-nosearch'" class="result-provenance">
-              <span v-if="lastResultSearched">🌐 {{ t('search.sourceSearched') }}</span>
-              <span v-else class="muted">{{ t('search.sourceNotSearched') }}</span>
+            <div v-if="lastResultSearched" class="result-provenance">
+              <span>🌐 {{ t('search.sourceSearched') }}</span>
             </div>
             <div class="result-text">{{ translatedText }}</div>
           </div>
@@ -1266,5 +1264,4 @@ useShortcutTriggered(() => {
   color: var(--color-text-secondary);
   padding: 0 0 5px 0;
 }
-.result-provenance .muted { opacity: 0.7; }
 </style>

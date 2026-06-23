@@ -265,7 +265,6 @@
     "err429": "Rate limited; anonymous tier throttled, add your own Key in Settings",
     "errNetwork": "Network connection failed",
     "errUnknown": "Unknown error",
-    "sourceSearched": "Web search (results used)",
-    "sourceNotSearched": "Not searched"
+    "sourceSearched": "Web search (results used)"
   }
 }
