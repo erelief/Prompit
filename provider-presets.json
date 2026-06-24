@@ -249,59 +249,60 @@
       }
     },
     {
-      "name": "阶跃星辰",
-      "provider_name": "阶跃星辰",
+      "name": "StepFun/阶跃星辰",
       "icon": "step",
       "model_series": "Step",
-      "base_url": "https://api.stepfun.com/v1",
-      "api_url": "https://platform.stepfun.com/interface-key",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
         "chat_endpoint": "/chat/completions",
         "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "阶跃星辰 Step Plan",
-      "provider_name": "阶跃星辰 Step Plan",
-      "icon": "step",
-      "model_series": "Step",
-      "base_url": "https://api.stepfun.com/step_plan/v1",
-      "api_url": "https://platform.stepfun.com/step-plan",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "StepFun",
-      "provider_name": "StepFun",
-      "icon": "step",
-      "model_series": "Step",
-      "base_url": "https://api.stepfun.ai/v1",
-      "api_url": "https://platform.stepfun.ai/interface-key",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "Step Plan",
-      "provider_name": "Step Plan",
-      "icon": "step",
-      "model_series": "Step",
-      "base_url": "https://api.stepfun.ai/step_plan/v1",
-      "api_url": "https://platform.stepfun.ai/step-plan",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
+      },
+      "variants": {
+        "default_region": "cn",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn",
+            "label": "CN",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "阶跃星辰",
+                "base_url": "https://api.stepfun.com/v1",
+                "api_url": "https://platform.stepfun.com/interface-key"
+              },
+              {
+                "key": "step_plan",
+                "label": "Step Plan",
+                "provider_name": "阶跃星辰 Step Plan",
+                "base_url": "https://api.stepfun.com/step_plan/v1",
+                "api_url": "https://platform.stepfun.com/step-plan"
+              }
+            ]
+          },
+          {
+            "key": "global",
+            "label": "Global",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "StepFun",
+                "base_url": "https://api.stepfun.ai/v1",
+                "api_url": "https://platform.stepfun.ai/interface-key"
+              },
+              {
+                "key": "step_plan",
+                "label": "Step Plan",
+                "provider_name": "Step Plan",
+                "base_url": "https://api.stepfun.ai/step_plan/v1",
+                "api_url": "https://platform.stepfun.ai/step-plan"
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -347,59 +348,60 @@
       }
     },
     {
-      "name": "智谱|BigModel",
-      "provider_name": "智谱|BigModel",
+      "name": "Z.AI/智谱|BigModel",
       "icon": "zhipu",
       "model_series": "GLM",
-      "base_url": "https://open.bigmodel.cn/api/paas/v4",
-      "api_url": "https://bigmodel.cn/apikey/platform",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
         "chat_endpoint": "/chat/completions",
         "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "智谱|BigModel Coding Plan",
-      "provider_name": "智谱|BigModel Coding Plan",
-      "icon": "zhipu",
-      "model_series": "GLM",
-      "base_url": "https://open.bigmodel.cn/api/coding/paas/v4",
-      "api_url": "https://bigmodel.cn/coding-plan/personal/overview",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "Z.AI",
-      "provider_name": "Z.AI",
-      "icon": "zhipu",
-      "model_series": "GLM",
-      "base_url": "https://api.z.ai/api/paas/v4/",
-      "api_url": "https://z.ai/manage-apikey/apikey-list",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "GLM Coding Plan",
-      "provider_name": "GLM Coding Plan",
-      "icon": "zhipu",
-      "model_series": "GLM",
-      "base_url": "https://api.z.ai/api/coding/paas/v4",
-      "api_url": "https://z.ai/manage-apikey/apikey-list",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
+      },
+      "variants": {
+        "default_region": "cn",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn",
+            "label": "Bigmodel.cn",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "智谱|BigModel",
+                "base_url": "https://open.bigmodel.cn/api/paas/v4",
+                "api_url": "https://bigmodel.cn/apikey/platform"
+              },
+              {
+                "key": "coding",
+                "label": "Coding Plan",
+                "provider_name": "智谱|BigModel Coding Plan",
+                "base_url": "https://open.bigmodel.cn/api/coding/paas/v4",
+                "api_url": "https://bigmodel.cn/coding-plan/personal/overview"
+              }
+            ]
+          },
+          {
+            "key": "global",
+            "label": "Z.ai",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "Z.AI",
+                "base_url": "https://api.z.ai/api/paas/v4/",
+                "api_url": "https://z.ai/manage-apikey/apikey-list"
+              },
+              {
+                "key": "coding",
+                "label": "Coding Plan",
+                "provider_name": "GLM Coding Plan",
+                "base_url": "https://api.z.ai/api/coding/paas/v4",
+                "api_url": "https://z.ai/manage-apikey/apikey-list"
+              }
+            ]
+          }
+        ]
       }
     }
   ]

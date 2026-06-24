@@ -160,7 +160,7 @@ const allModels = computed(() => {
         pIndex: pi,
         mIndex: mi,
         id: m.id,
-        icon: prov.preset ? (floatingPresets.value.find(p => p.name === prov.preset)?.icon ?? '') : '',
+        icon: getProviderIcon(prov, floatingPresets.value),
         input_capabilities: m.input_capabilities,
       });
     });

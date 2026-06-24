@@ -20,8 +20,20 @@ import {
 } from "../stores/config";
 import { burstParticles } from "../utils/burstParticles";
 import { keyCodeToToken, shortcutsEqual } from "../utils/shortcut";
-import type { ProviderConfig, ProviderPreset } from "../stores/config";
-import { getProviderIcon, getProviderSeries } from "../stores/config";
+import type { ProviderConfig, ProviderPreset, PresetVariantEndpoint, PresetVariantRegion } from "../stores/config";
+import {
+  getProviderIcon,
+  getProviderSeries,
+  resolvePreset,
+  presetBelongsToFamily,
+  defaultSelection,
+  endpointsOf,
+  defaultEndpoint,
+  regionLabel,
+  endpointLabel,
+  variantRegionLabelKey,
+  variantEndpointLabelKey,
+} from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import { getTheme, setTheme } from "../composables/useTheme";
@@ -789,12 +801,83 @@ function togglePresetMenu(e: MouseEvent, _item: ProviderConfig, index: number) {
 }
 
 function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
-  item.preset = preset.name !== "Custom" ? preset.name : undefined;
-  item.base_url = preset.base_url;
-  item.api_format = preset.api_format && Object.keys(preset.api_format).length > 0 ? { ...preset.api_format } : undefined;
-  if (preset.name !== "Custom") item.name = preset.provider_name;
+  if (preset.name === "Custom") {
+    item.preset = undefined;
+    item.base_url = "";
+    item.api_format = undefined;
+    showPresetMenu.value = false;
+    presetMenuIndex.value = null;
+    return;
+  }
+  // Variant family → land on its default region/endpoint selection.
+  if (preset.variants) {
+    const { endpoint } = defaultSelection(preset);
+    applyEndpoint(item, preset, endpoint);
+  } else {
+    applyVariantFields(item, preset, undefined);
+  }
   showPresetMenu.value = false;
   presetMenuIndex.value = null;
+}
+
+/** Write a specific endpoint (within a family) onto the form item. */
+function applyEndpoint(item: ProviderConfig, family: ProviderPreset, endpoint?: PresetVariantEndpoint) {
+  applyVariantFields(item, family, endpoint);
+}
+
+function applyVariantFields(
+  item: ProviderConfig,
+  preset: ProviderPreset,
+  endpoint?: PresetVariantEndpoint,
+) {
+  item.preset = endpoint ? endpoint.provider_name : preset.name;
+  item.base_url = endpoint ? endpoint.base_url : (preset.base_url ?? "");
+  item.api_format = preset.api_format && Object.keys(preset.api_format).length > 0
+    ? { ...preset.api_format }
+    : undefined;
+  item.name = endpoint ? endpoint.provider_name : (preset.provider_name ?? preset.name);
+}
+
+/** Switch the region; if the current endpoint key is unavailable in the new
+ *  region, fall back to that region's default/first endpoint. */
+function applyRegion(item: ProviderConfig, regionKey: string) {
+  const family = resolvePreset(item.preset, providerPresets.value).preset;
+  if (!family?.variants) return;
+  const cur = resolvePreset(item.preset, providerPresets.value).endpoint;
+  const eps = endpointsOf(family, regionKey);
+  const next = eps.find(e => e.key === cur?.key) ?? defaultEndpoint(family, regionKey);
+  if (next) applyEndpoint(item, family, next);
+}
+
+/** Switch the endpoint within the current region. */
+function applyEndpointKey(item: ProviderConfig, endpointKey: string) {
+  const { preset: family, region } = resolvePreset(item.preset, providerPresets.value);
+  if (!family?.variants || !region) return;
+  const ep = region.endpoints.find(e => e.key === endpointKey);
+  if (ep) applyEndpoint(item, family, ep);
+}
+
+// ── Template helpers (variant selectors) ──
+function variantFamily(item: ProviderConfig): ProviderPreset | undefined {
+  return resolvePreset(item.preset, providerPresets.value).preset;
+}
+function variantRegions(item: ProviderConfig): PresetVariantRegion[] {
+  return variantFamily(item)?.variants?.regions ?? [];
+}
+function variantEndpoints(item: ProviderConfig): PresetVariantEndpoint[] {
+  const { preset: family, region } = resolvePreset(item.preset, providerPresets.value);
+  return region ? region.endpoints : (family?.variants ? endpointsOf(family, family.variants.default_region ?? "") : []);
+}
+function currentRegionKey(item: ProviderConfig): string | undefined {
+  return resolvePreset(item.preset, providerPresets.value).region?.key;
+}
+function currentEndpointKey(item: ProviderConfig): string | undefined {
+  return resolvePreset(item.preset, providerPresets.value).endpoint?.key;
+}
+/** Resolve the "Get API key" link for the current preset (endpoint first). */
+function presetApiKeyUrl(item: ProviderConfig): string | undefined {
+  const { preset, endpoint } = resolvePreset(item.preset, providerPresets.value);
+  return endpoint?.api_url || preset?.api_url;
 }
 
 // ── Language management ──
@@ -1287,7 +1370,7 @@ onUnmounted(() => {
                     <button
                       v-for="p in providerPresets" :key="p.name"
                       class="sel-opt"
-                      :class="{ hit: item.preset === p.name || (!item.preset && p.name === 'Custom') }"
+                      :class="{ hit: presetBelongsToFamily(item.preset, p) || (!item.preset && p.name === 'Custom') }"
                       @click="applyPreset(item, p)"
                     >
                       <div class="opt-left"><ProviderIcon :icon="p.icon" :size="14" />
@@ -1298,7 +1381,7 @@ onUnmounted(() => {
                         </div>
                       </div></div>
                       <Check
-                        v-if="item.preset === p.name || (!item.preset && p.name === 'Custom')"
+                        v-if="presetBelongsToFamily(item.preset, p) || (!item.preset && p.name === 'Custom')"
                         :size="13" :stroke-width="2.5"
                       />
                     </button>
@@ -1310,12 +1393,46 @@ onUnmounted(() => {
               </Transition>
             </Teleport>
 
-            <!-- hint -->
+            <!-- hint (compatibility note for non-preset / custom) -->
             <p v-if="!item.preset" class="preset-hint" @click.stop>
               {{ t('settings.openaiCompatHint') }}
             </p>
-            <p v-else-if="providerPresets.find(p => p.name === item.preset)?.api_url" class="preset-hint" @click.stop>
-              <a :href="providerPresets.find(p => p.name === item.preset)!.api_url" target="_blank" rel="noopener noreferrer" @click.prevent="openExternal(providerPresets.find(p => p.name === item.preset)!.api_url)" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
+
+            <!-- variant selector (only for multi-variant family presets) -->
+            <div
+              v-if="variantFamily(item)?.variants"
+              class="variant-block"
+              @click.stop
+            >
+              <!-- Region row -->
+              <div class="variant-row">
+                <span class="variant-label">{{ t(variantRegionLabelKey()) }}</span>
+                <div class="variant-btns">
+                  <button
+                    v-for="r in variantRegions(item)" :key="r.key"
+                    class="variant-btn"
+                    :class="{ active: currentRegionKey(item) === r.key }"
+                    @click="applyRegion(item, r.key)"
+                  >{{ regionLabel(r) }}</button>
+                </div>
+              </div>
+              <!-- Endpoint row (options depend on the selected region) -->
+              <div v-if="variantEndpoints(item).length > 0" class="variant-row">
+                <span class="variant-label">{{ t(variantEndpointLabelKey()) }}</span>
+                <div class="variant-btns">
+                  <button
+                    v-for="ep in variantEndpoints(item)" :key="ep.key"
+                    class="variant-btn"
+                    :class="{ active: currentEndpointKey(item) === ep.key }"
+                    @click="applyEndpointKey(item, ep.key)"
+                  >{{ endpointLabel(ep) }}</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- get API key link (below variants, above fields) -->
+            <p v-if="item.preset && presetApiKeyUrl(item)" class="preset-hint" @click.stop>
+              <a :href="presetApiKeyUrl(item)" target="_blank" rel="noopener noreferrer" @click.prevent="openExternal(presetApiKeyUrl(item)!)" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
                 {{ t('settings.getApiKeyAt', { name: item.preset }) }}
               </a>
             </p>
@@ -2396,6 +2513,32 @@ onUnmounted(() => {
 .preset-hint {
   font-size: 10.5px; color: var(--color-text-muted);
   margin: -2px 0 8px 0; line-height: 1.4;
+}
+
+/* Variant selector (e.g. Region / Plan) for multi-variant family presets */
+.variant-block {
+  display: flex; flex-direction: column; gap: 6px;
+  margin: -2px 0 10px 0;
+}
+.variant-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.variant-label {
+  font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .055em; color: var(--color-text-muted);
+  min-width: 52px;
+}
+.variant-btns { display: flex; gap: 4px; }
+.variant-btn {
+  font-size: 11px; padding: 3px 10px; border-radius: 6px;
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text-muted); cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.variant-btn:hover { color: var(--color-text); border-color: var(--color-accent-border); }
+.variant-btn.active {
+  color: var(--color-accent); border-color: var(--color-accent-border);
+  background: var(--color-accent-bg);
 }
 
 label {

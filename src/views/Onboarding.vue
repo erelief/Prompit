@@ -9,7 +9,18 @@ import {
   saveConfig as persistConfig,
 } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
-import type { ProviderConfig, ProviderPreset, WebEngineConfig } from "../stores/config";
+import type { ProviderConfig, ProviderPreset, PresetVariantEndpoint, PresetVariantRegion, WebEngineConfig } from "../stores/config";
+import {
+  resolvePreset,
+  presetBelongsToFamily,
+  defaultSelection,
+  endpointsOf,
+  defaultEndpoint,
+  regionLabel,
+  endpointLabel,
+  variantRegionLabelKey,
+  variantEndpointLabelKey,
+} from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import type { ModelInputCapabilities } from "../stores/config";
@@ -73,11 +84,23 @@ const currentPresetLabel = computed(() => {
   return selectedPreset.value;
 });
 
-// Computed: current preset object (for api_url)
+// Computed: current preset FAMILY object (resolves endpoint names to their family)
 const currentPresetObj = computed(() => {
   if (!selectedPreset.value) return null;
-  return providerPresets.value.find((p) => p.name === selectedPreset.value) || null;
+  return resolvePreset(selectedPreset.value, providerPresets.value).preset || null;
 });
+
+// Computed: current variant region/endpoint (only set when a variant family is active)
+const currentVariantRegion = computed<PresetVariantRegion | undefined>(() => {
+  if (!selectedPreset.value) return undefined;
+  return resolvePreset(selectedPreset.value, providerPresets.value).region;
+});
+const currentVariantEndpoint = computed<PresetVariantEndpoint | undefined>(() => {
+  if (!selectedPreset.value) return undefined;
+  return resolvePreset(selectedPreset.value, providerPresets.value).endpoint;
+});
+const variantRegions = computed<PresetVariantRegion[]>(() => currentPresetObj.value?.variants?.regions ?? []);
+const variantEndpoints = computed<PresetVariantEndpoint[]>(() => currentVariantRegion.value?.endpoints ?? []);
 
 async function testKeyConnection() {
   if (!providerForm.value.api_key || !providerForm.value.base_url) return;
@@ -226,12 +249,53 @@ function goPrev() {
 function applyPreset(presetName: string) {
   const preset = providerPresets.value.find((p) => p.name === presetName);
   if (!preset) return;
-  selectedPreset.value = presetName;
-  providerForm.value.name = preset.provider_name;
-  providerForm.value.base_url = preset.base_url;
-  providerForm.value.preset = presetName !== "Custom" ? presetName : undefined;
-  providerForm.value.api_format = preset.api_format && Object.keys(preset.api_format).length > 0 ? { ...preset.api_format } : undefined;
   showPresetMenu.value = false;
+  if (presetName === "Custom") {
+    selectedPreset.value = presetName;
+    providerForm.value.name = "";
+    providerForm.value.base_url = "";
+    providerForm.value.preset = undefined;
+    providerForm.value.api_format = undefined;
+    return;
+  }
+  // Variant family → land on its default region/endpoint selection.
+  if (preset.variants) {
+    const { endpoint } = defaultSelection(preset);
+    applyEndpointFields(preset, endpoint);
+  } else {
+    applyEndpointFields(preset, undefined);
+  }
+}
+
+/** Shared field writer for both preset apply and endpoint switching. */
+function applyEndpointFields(preset: ProviderPreset, endpoint?: PresetVariantEndpoint) {
+  selectedPreset.value = endpoint ? endpoint.provider_name : preset.name;
+  providerForm.value.name = endpoint ? endpoint.provider_name : (preset.provider_name ?? preset.name);
+  providerForm.value.base_url = endpoint ? endpoint.base_url : (preset.base_url ?? "");
+  providerForm.value.preset = endpoint ? endpoint.provider_name : preset.name;
+  providerForm.value.api_format = preset.api_format && Object.keys(preset.api_format).length > 0
+    ? { ...preset.api_format }
+    : undefined;
+}
+
+/** Switch region; keep current endpoint key if still valid in the new region,
+ *  otherwise fall back to the region's default/first endpoint. */
+function applyRegion(regionKey: string) {
+  const family = currentPresetObj.value;
+  if (!family?.variants) return;
+  const eps = endpointsOf(family, regionKey);
+  const next = eps.find(e => e.key === currentVariantEndpoint.value?.key)
+    ?? defaultEndpoint(family, regionKey);
+  if (next) applyEndpointFields(family, next);
+}
+
+/** Switch endpoint within the current region. */
+function applyEndpointByKey(endpointKey: string) {
+  const family = currentPresetObj.value;
+  const region = currentVariantRegion.value;
+  if (!family?.variants || !region) return;
+  const ep = region.endpoints.find(e => e.key === endpointKey);
+  if (ep) applyEndpointFields(family, ep);
 }
 
 // ── Step 3 flow ──
@@ -506,7 +570,7 @@ onMounted(async () => {
                       <button
                         v-for="p in providerPresets" :key="p.name"
                         class="sel-opt"
-                        :class="{ hit: selectedPreset === p.name }"
+                        :class="{ hit: presetBelongsToFamily(selectedPreset || undefined, p) || (!selectedPreset && p.name === 'Custom') }"
                         @click="applyPreset(p.name)"
                       >
                         <div class="opt-left"><ProviderIcon :icon="p.icon" :size="14" />
@@ -516,7 +580,7 @@ onMounted(async () => {
                             <span v-if="p.model_series" class="opt-series-tag">{{ p.model_series }}</span>
                           </div>
                         </div></div>
-                        <Check v-if="selectedPreset === p.name" :size="13" :stroke-width="2.5" />
+                        <Check v-if="presetBelongsToFamily(selectedPreset || undefined, p) || (!selectedPreset && p.name === 'Custom')" :size="13" :stroke-width="2.5" />
                       </button>
                     </div>
                   </div>
@@ -538,12 +602,42 @@ onMounted(async () => {
               <p v-if="!selectedPreset || selectedPreset === 'Custom'" class="mt-1.5" style="font-size: 10.5px; color: var(--color-text-muted); line-height: 1.4">
                 {{ t('settings.openaiCompatHint') }}
               </p>
-              <p v-else-if="currentPresetObj?.api_url" class="mt-1.5" style="font-size: 10.5px; line-height: 1.4">
-                <a :href="currentPresetObj.api_url" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
-                  {{ t('settings.getApiKeyAt', { name: currentPresetObj.name }) }}
-                </a>
-              </p>
             </div>
+
+            <!-- Variant selector (only for multi-variant family presets) -->
+            <div v-if="currentPresetObj?.variants" class="mb-4">
+              <!-- Region row -->
+              <div class="ob-variant-row">
+                <span class="ob-variant-label">{{ t(variantRegionLabelKey()) }}</span>
+                <div class="ob-variant-btns">
+                  <button
+                    v-for="r in variantRegions" :key="r.key"
+                    class="ob-variant-btn"
+                    :class="{ active: currentVariantRegion?.key === r.key }"
+                    @click="applyRegion(r.key)"
+                  >{{ regionLabel(r) }}</button>
+                </div>
+              </div>
+              <!-- Endpoint row (options depend on the selected region) -->
+              <div v-if="variantEndpoints.length > 0" class="ob-variant-row">
+                <span class="ob-variant-label">{{ t(variantEndpointLabelKey()) }}</span>
+                <div class="ob-variant-btns">
+                  <button
+                    v-for="ep in variantEndpoints" :key="ep.key"
+                    class="ob-variant-btn"
+                    :class="{ active: currentVariantEndpoint?.key === ep.key }"
+                    @click="applyEndpointByKey(ep.key)"
+                  >{{ endpointLabel(ep) }}</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Get API key link (below variants) -->
+            <p v-if="selectedPreset && selectedPreset !== 'Custom' && (currentVariantEndpoint?.api_url || currentPresetObj?.api_url)" class="mb-4 -mt-1" style="font-size: 10.5px; line-height: 1.4">
+              <a :href="currentVariantEndpoint?.api_url || currentPresetObj?.api_url" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
+                {{ t('settings.getApiKeyAt', { name: selectedPreset }) }}
+              </a>
+            </p>
 
             <!-- Base URL -->
             <div class="mb-4">
@@ -1048,6 +1142,26 @@ div::-webkit-scrollbar-thumb {
 .sel-opt:hover{ background: var(--color-surface-hover); color: var(--color-text); }
 .sel-opt.hit{
   background: var(--color-accent-bg); color: var(--color-accent);
+}
+
+/* Variant selector (e.g. Region / Plan) for multi-variant family presets */
+.ob-variant-row{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.ob-variant-row:last-child{ margin-bottom:0; }
+.ob-variant-label{
+  font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .055em; color: var(--color-text-muted); min-width: 52px;
+}
+.ob-variant-btns{ display:flex; gap:4px; }
+.ob-variant-btn{
+  font-size: 11px; padding: 3px 10px; border-radius: 6px;
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  color: var(--color-text-muted); cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.ob-variant-btn:hover{ color: var(--color-text); border-color: var(--color-accent-border); }
+.ob-variant-btn.active{
+  color: var(--color-accent); border-color: var(--color-accent-border);
+  background: var(--color-accent-bg);
 }
 .opt-left{ display:flex; align-items:center; gap:8px; min-width:0; flex:1; }
 .opt-info{ display:flex; flex-direction:column; gap:1px; min-width:0; }

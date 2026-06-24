@@ -56,6 +56,8 @@
     "applyPreset": "应用预设",
     "openaiCompatHint": "需要 OpenAI 兼容的 API。",
     "getApiKeyAt": "在 {name} 获取 API 密钥",
+    "variantAxisRegion": "区域",
+    "variantAxisEndpoint": "端口",
     "noPresetsFound": "未找到预设。编辑预设文件以添加。",
     "fetch": "获取",
     "fetching": "获取中",

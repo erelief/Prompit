@@ -49,19 +49,52 @@ impl ApiFormat {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PresetVariantEndpoint {
+    pub key: String,
+    #[serde(default)]
+    pub label: String,
+    pub provider_name: String,
+    pub base_url: String,
+    #[serde(default)]
+    pub api_url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PresetVariantRegion {
+    pub key: String,
+    #[serde(default)]
+    pub label: String,
+    pub endpoints: Vec<PresetVariantEndpoint>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PresetVariants {
+    #[serde(default)]
+    pub default_region: String,
+    #[serde(default)]
+    pub default_endpoint: String,
+    #[serde(default)]
+    pub regions: Vec<PresetVariantRegion>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderPreset {
     pub name: String,
+    #[serde(default)]
     pub provider_name: String,
     #[serde(default)]
     pub icon: String,
     #[serde(default)]
     pub model_series: String,
+    #[serde(default)]
     pub base_url: String,
     #[serde(default)]
     pub api_url: String,
     #[serde(default)]
     pub api_format: ApiFormat,
+    #[serde(default)]
+    pub variants: Option<PresetVariants>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -51,14 +51,55 @@ export interface WebEngineConfig {
   custom_name?: string;
 }
 
-export interface ProviderPreset {
-  name: string;
+export interface PresetVariantOption {
+  key: string;
+  label: string;
+}
+
+/** A selectable endpoint under a region. Endpoints are scoped per-region, so
+ *  their count and labels may differ across regions. */
+export interface PresetVariantEndpoint {
+  /** Endpoint identifier; its label is resolved via i18n key
+   *  `settings.variantEndpoint_<key>`, falling back to `label` if present. */
+  key: string;
+  label?: string;
+  /** Value written into ProviderConfig.preset AND the Name input field.
+   *  Mirrors the role of the top-level `provider_name` field. */
   provider_name: string;
-  icon: string;
-  model_series?: string;
   base_url: string;
   api_url: string;
+}
+
+/** A region groups one or more endpoints. Endpoints vary per region. */
+export interface PresetVariantRegion {
+  /** Region identifier; its label is resolved via i18n key
+   *  `settings.variantRegion_<key>`, falling back to `label` if present. */
+  key: string;
+  label?: string;
+  endpoints: PresetVariantEndpoint[];
+}
+
+export interface PresetVariants {
+  /** Default region key selected on first apply. */
+  default_region?: string;
+  /** Default endpoint key within the default region. */
+  default_endpoint?: string;
+  regions: PresetVariantRegion[];
+}
+
+export interface ProviderPreset {
+  name: string;
+  provider_name?: string;
+  icon: string;
+  model_series?: string;
+  base_url?: string;
+  api_url?: string;
   api_format: ApiFormat;
+  /** Optional multi-variant family: one menu entry that fans out into
+   *  region → endpoint selections (e.g. CN/Global × Standard/Coding Plan).
+   *  When present, provider_name/base_url/api_url are read from the selected
+   *  endpoint instead, so the top-level copies may be omitted. */
+  variants?: PresetVariants;
 }
 
 export interface PersonaConfig {
@@ -552,14 +593,102 @@ export async function loadModelCapabilities(): Promise<ModelCapabilityItem[]> {
   return await invoke<ModelCapabilityItem[]>("read_model_capabilities");
 }
 
+/** Resolve a stored `preset` name back to its family preset and (if it is a
+ *  variant endpoint) the specific region + endpoint. A preset name may be a
+ *  top-level preset `name`, or the `name` of an endpoint nested under some
+ *  family's `variants.regions[].endpoints[]`. Returns `{ preset: undefined }`
+ *  when nothing matches. */
+export function resolvePreset(
+  presetName: string | undefined,
+  presets: ProviderPreset[],
+): { preset?: ProviderPreset; region?: PresetVariantRegion; endpoint?: PresetVariantEndpoint } {
+  if (!presetName) return {};
+  // 1) direct top-level match
+  const direct = presets.find(p => p.name === presetName);
+  if (direct) return { preset: direct };
+  // 2) endpoint match across variant families
+  for (const p of presets) {
+    for (const r of p.variants?.regions ?? []) {
+      const ep = r.endpoints.find(e => e.provider_name === presetName);
+      if (ep) return { preset: p, region: r, endpoint: ep };
+    }
+  }
+  return {};
+}
+
 export function getProviderIcon(provider: ProviderConfig, presets: ProviderPreset[]): string {
   if (!provider.preset) return ''
-  return presets.find(p => p.name === provider.preset)?.icon ?? ''
+  return resolvePreset(provider.preset, presets).preset?.icon ?? ''
 }
 
 export function getProviderSeries(provider: ProviderConfig, presets: ProviderPreset[]): string {
   if (!provider.preset) return ''
-  return presets.find(p => p.name === provider.preset)?.model_series ?? ''
+  return resolvePreset(provider.preset, presets).preset?.model_series ?? ''
+}
+
+// ── Variant helpers (hierarchical: region → endpoints) ──
+
+/** The i18n key for the "Region" axis label (fixed concept, not from JSON). */
+export function variantRegionLabelKey(): string {
+  return "settings.variantAxisRegion";
+}
+/** The i18n key for the "Endpoint" axis label (fixed concept, not from JSON). */
+export function variantEndpointLabelKey(): string {
+  return "settings.variantAxisEndpoint";
+}
+
+/** A region's display label: prefer `label`, else its i18n key, else the key. */
+export function regionLabel(region: PresetVariantRegion): string {
+  return region.label ?? `settings.variantRegion_${region.key}` ?? region.key;
+}
+/** An endpoint's display label: prefer `label`, else its i18n key, else the key. */
+export function endpointLabel(endpoint: PresetVariantEndpoint): string {
+  return endpoint.label ?? `settings.variantEndpoint_${endpoint.key}` ?? endpoint.key;
+}
+
+/** The default region of a variant family (variants.default_region, else first). */
+export function defaultRegion(family: ProviderPreset): PresetVariantRegion | undefined {
+  const v = family.variants;
+  if (!v || v.regions.length === 0) return undefined;
+  return v.regions.find(r => r.key === v.default_region) ?? v.regions[0];
+}
+
+/** Find a region by key within a family. */
+export function findRegion(family: ProviderPreset, regionKey: string): PresetVariantRegion | undefined {
+  return family.variants?.regions.find(r => r.key === regionKey);
+}
+
+/** The endpoints available under a given region (key). Empty if none. */
+export function endpointsOf(family: ProviderPreset, regionKey: string): PresetVariantEndpoint[] {
+  return findRegion(family, regionKey)?.endpoints ?? [];
+}
+
+/** The default endpoint of a region: default_endpoint if present & valid,
+ *  else the region's first endpoint. */
+export function defaultEndpoint(family: ProviderPreset, regionKey: string): PresetVariantEndpoint | undefined {
+  const eps = endpointsOf(family, regionKey);
+  if (eps.length === 0) return undefined;
+  const dk = family.variants?.default_endpoint;
+  return (dk ? eps.find(e => e.key === dk) : undefined) ?? eps[0];
+}
+
+/** The region→endpoint selection applied on first selecting the family. */
+export function defaultSelection(family: ProviderPreset): { region?: PresetVariantRegion; endpoint?: PresetVariantEndpoint } {
+  const region = defaultRegion(family);
+  if (!region) return {};
+  const endpoint = defaultEndpoint(family, region.key);
+  return { region, endpoint };
+}
+
+/** True when `presetName` is the family's top-level name OR the name of any of
+ *  its endpoints. Used to highlight the family entry in the preset menu. */
+export function presetBelongsToFamily(
+  presetName: string | undefined,
+  family: ProviderPreset,
+): boolean {
+  if (!presetName) return false;
+  if (family.name === presetName) return true;
+  return family.variants?.regions.some(r => r.endpoints.some(e => e.provider_name === presetName)) ?? false;
 }
 
 // ── Sparkle store ──
