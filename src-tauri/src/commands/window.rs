@@ -47,7 +47,11 @@ pub fn resize_main_window(app: AppHandle, width: f64, height: f64) -> Result<(),
 /// On other platforms (Linux) the previous two-call behavior is kept as a
 /// fallback.
 #[tauri::command]
-pub fn resize_and_reposition(app: AppHandle, height: f64, width: Option<f64>) -> Result<(), String> {
+pub fn resize_and_reposition(
+    app: AppHandle,
+    height: f64,
+    width: Option<f64>,
+) -> Result<(), String> {
     let window = app
         .get_webview_window("main")
         .ok_or("Main window not found")?;
@@ -95,8 +99,18 @@ pub fn resize_and_reposition(app: AppHandle, height: f64, width: Option<f64>) ->
         // Convert desired client size -> outer window size, accounting for the
         // shadow offset the same way tao::set_inner_size does.
         let (outer_w, outer_h): (i32, i32) = unsafe {
-            let mut client = RECT { left: 0, top: 0, right: 0, bottom: 0 };
-            let mut win = RECT { left: 0, top: 0, right: 0, bottom: 0 };
+            let mut client = RECT {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+            };
+            let mut win = RECT {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+            };
             if GetClientRect(hwnd_raw, &mut client) == 0 || GetWindowRect(hwnd_raw, &mut win) == 0 {
                 // Fallback: assume no shadow offset.
                 (physical_w as i32, physical_h as i32)
@@ -127,15 +141,7 @@ pub fn resize_and_reposition(app: AppHandle, height: f64, width: Option<f64>) ->
 
         let flags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOCOPYBITS;
         unsafe {
-            SetWindowPos(
-                hwnd_raw,
-                0 as _,
-                new_x,
-                new_y,
-                outer_w,
-                outer_h,
-                flags,
-            );
+            SetWindowPos(hwnd_raw, 0 as _, new_x, new_y, outer_w, outer_h, flags);
         }
     }
 
@@ -239,7 +245,10 @@ pub fn show_onboarding_window(app: AppHandle) -> Result<(), String> {
     let h = (560.0 * scale) as u32;
 
     window
-        .set_size(tauri::PhysicalSize { width: w, height: h })
+        .set_size(tauri::PhysicalSize {
+            width: w,
+            height: h,
+        })
         .map_err(|e| e.to_string())?;
     window.center().map_err(|e| e.to_string())?;
     window.show().map_err(|e| e.to_string())?;
@@ -264,7 +273,10 @@ pub fn show_startup_reminder_window(app: AppHandle) -> Result<(), String> {
     let h = (280.0 * scale) as u32;
 
     window
-        .set_size(tauri::PhysicalSize { width: w, height: h })
+        .set_size(tauri::PhysicalSize {
+            width: w,
+            height: h,
+        })
         .map_err(|e| e.to_string())?;
     window.center().map_err(|e| e.to_string())?;
     window.show().map_err(|e| e.to_string())?;

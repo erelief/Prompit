@@ -36,11 +36,12 @@ fn load_dict_store(app: &AppHandle) -> Result<DictStore, String> {
     let payload: crate::crypto::EncryptedPayload =
         serde_json::from_str(&content).map_err(|e| format!("parse: {e}"))?;
 
-    let bytes = crate::crypto::decrypt("dictionary", &payload)
-        .or_else(|_| -> Result<Vec<u8>, String> {
+    let bytes =
+        crate::crypto::decrypt("dictionary", &payload).or_else(|_| -> Result<Vec<u8>, String> {
             let plaintext = crate::crypto::decrypt_legacy(&payload)?;
             let new_payload = crate::crypto::encrypt("dictionary", &plaintext)?;
-            let out = serde_json::to_string_pretty(&new_payload).map_err(|e| format!("serialize: {e}"))?;
+            let out = serde_json::to_string_pretty(&new_payload)
+                .map_err(|e| format!("serialize: {e}"))?;
             fs::write(&path, out).map_err(|e| format!("write: {e}"))?;
             Ok(plaintext)
         })?;
@@ -104,11 +105,22 @@ pub fn import_dictionary_csv(
         }
         let persona = if record.len() >= 4 {
             let val = record[3].trim().to_string();
-            if val.is_empty() { None } else { Some(val) }
+            if val.is_empty() {
+                None
+            } else {
+                Some(val)
+            }
         } else {
             None
         };
-        parsed.push((lang, DictEntry { source, target, persona }));
+        parsed.push((
+            lang,
+            DictEntry {
+                source,
+                target,
+                persona,
+            },
+        ));
     }
 
     let mut store = load_dict_store(&app)?;
@@ -132,9 +144,9 @@ pub fn import_dictionary_csv(
         // "add" mode — dedup on (lang, source, target)
         for (lang, entry) in parsed {
             let existing = store.entry(lang.clone()).or_default();
-            let exists = existing
-                .iter()
-                .any(|e| e.source == entry.source && e.target == entry.target && e.persona == entry.persona);
+            let exists = existing.iter().any(|e| {
+                e.source == entry.source && e.target == entry.target && e.persona == entry.persona
+            });
             if !exists {
                 existing.push(entry);
                 imported += 1;
@@ -274,7 +286,8 @@ mod tests {
         let mut wtr = csv::WriterBuilder::new()
             .has_headers(false)
             .from_writer(vec![]);
-        wtr.write_record(["lang", "source", "target", "persona"]).unwrap();
+        wtr.write_record(["lang", "source", "target", "persona"])
+            .unwrap();
         for entry in &entries {
             wtr.serialize((
                 "English",
@@ -300,16 +313,30 @@ mod tests {
         let mut entries = Vec::new();
         for result in rdr.records() {
             let record = result.unwrap();
-            if record.len() < 3 { continue; }
+            if record.len() < 3 {
+                continue;
+            }
             let lang = record[0].trim().to_string();
             let source = record[1].trim().to_string();
             let target = record[2].trim().to_string();
-            if lang.is_empty() || source.is_empty() || target.is_empty() { continue; }
+            if lang.is_empty() || source.is_empty() || target.is_empty() {
+                continue;
+            }
             let persona = if record.len() >= 4 {
                 let val = record[3].trim().to_string();
-                if val.is_empty() { None } else { Some(val) }
-            } else { None };
-            entries.push(DictEntry { source, target, persona });
+                if val.is_empty() {
+                    None
+                } else {
+                    Some(val)
+                }
+            } else {
+                None
+            };
+            entries.push(DictEntry {
+                source,
+                target,
+                persona,
+            });
         }
         assert_eq!(entries.len(), 2);
         assert_eq!(entries[0].persona, Some("Formal".into()));
@@ -325,16 +352,30 @@ mod tests {
         let mut entries = Vec::new();
         for result in rdr.records() {
             let record = result.unwrap();
-            if record.len() < 3 { continue; }
+            if record.len() < 3 {
+                continue;
+            }
             let lang = record[0].trim().to_string();
             let source = record[1].trim().to_string();
             let target = record[2].trim().to_string();
-            if lang.is_empty() || source.is_empty() || target.is_empty() { continue; }
+            if lang.is_empty() || source.is_empty() || target.is_empty() {
+                continue;
+            }
             let persona = if record.len() >= 4 {
                 let val = record[3].trim().to_string();
-                if val.is_empty() { None } else { Some(val) }
-            } else { None };
-            entries.push(DictEntry { source, target, persona });
+                if val.is_empty() {
+                    None
+                } else {
+                    Some(val)
+                }
+            } else {
+                None
+            };
+            entries.push(DictEntry {
+                source,
+                target,
+                persona,
+            });
         }
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].persona, None);

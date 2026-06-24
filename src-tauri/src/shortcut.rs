@@ -19,7 +19,12 @@ fn compute_position(window: &tauri::WebviewWindow) -> Option<(tauri::Position, b
         .current_monitor()
         .ok()
         .flatten()
-        .or_else(|| window.available_monitors().ok().and_then(|m| m.into_iter().next()))
+        .or_else(|| {
+            window
+                .available_monitors()
+                .ok()
+                .and_then(|m| m.into_iter().next())
+        })
         .map(|m| m.scale_factor())
         .unwrap_or(1.0);
 
@@ -76,7 +81,9 @@ pub fn parse_shortcut(s: &str) -> Result<Shortcut, String> {
     use std::str::FromStr;
     let shortcut = Shortcut::from_str(s).map_err(|e| format!("invalid shortcut \"{s}\": {e}"))?;
     if shortcut.mods.is_empty() {
-        return Err(format!("shortcut must include at least one modifier (Alt/Ctrl/Shift/Cmd): \"{s}\""));
+        return Err(format!(
+            "shortcut must include at least one modifier (Alt/Ctrl/Shift/Cmd): \"{s}\""
+        ));
     }
     Ok(shortcut)
 }
@@ -122,12 +129,12 @@ pub fn finish_record_shortcut(app: AppHandle) -> Result<(), String> {
 }
 
 pub fn register(app: &AppHandle, shortcut_str: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let shortcut = parse_shortcut(shortcut_str).unwrap_or(Shortcut::new(Some(Modifiers::ALT), Code::KeyY));
+    let shortcut =
+        parse_shortcut(shortcut_str).unwrap_or(Shortcut::new(Some(Modifiers::ALT), Code::KeyY));
 
     let app_handle = app.clone();
-    app.global_shortcut().on_shortcut(
-        shortcut,
-        move |_app, _event, event: ShortcutEvent| {
+    app.global_shortcut()
+        .on_shortcut(shortcut, move |_app, _event, event: ShortcutEvent| {
             if event.state() == ShortcutState::Pressed {
                 // Skip shortcut during onboarding
                 if let Some(state) = app_handle.try_state::<crate::state::OnboardingState>() {
@@ -186,8 +193,7 @@ pub fn register(app: &AppHandle, shortcut_str: &str) -> Result<(), Box<dyn std::
                     let _ = main_window.emit("window-config", grow_above);
                 }
             }
-        },
-    )?;
+        })?;
 
     Ok(())
 }

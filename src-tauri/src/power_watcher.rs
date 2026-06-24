@@ -5,20 +5,15 @@ use std::thread;
 
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, GetMessageW, RegisterClassW,
-    HWND_MESSAGE, MSG, WNDCLASSW, WS_EX_NOACTIVATE, WM_POWERBROADCAST,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, GetMessageW, RegisterClassW, HWND_MESSAGE, MSG,
+    WM_POWERBROADCAST, WNDCLASSW, WS_EX_NOACTIVATE,
 };
 
 const PBT_APMRESUMEAUTOMATIC: WPARAM = 0x00000012;
 
 static MAIN_HWND: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 
-unsafe extern "system" fn wndproc(
-    hwnd: HWND,
-    msg: u32,
-    wparam: WPARAM,
-    lparam: LPARAM,
-) -> LRESULT {
+unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     if msg == WM_POWERBROADCAST && wparam == PBT_APMRESUMEAUTOMATIC {
         let main = MAIN_HWND.load(Ordering::Relaxed);
         if !main.is_null() {

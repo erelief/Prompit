@@ -31,8 +31,8 @@ fn load_sparkles_encrypted(app: &AppHandle) -> Result<Vec<SparkleEntry>, String>
     let payload: EncryptedPayload =
         serde_json::from_str(&content).map_err(|e| format!("parse: {e}"))?;
 
-    let bytes = crypto::decrypt("sparkles", &payload)
-        .or_else(|_: String| -> Result<Vec<u8>, String> {
+    let bytes =
+        crypto::decrypt("sparkles", &payload).or_else(|_: String| -> Result<Vec<u8>, String> {
             let plaintext = crypto::decrypt_legacy(&payload)?;
             let new_payload = crypto::encrypt("sparkles", &plaintext)?;
             let out = serde_json::to_string_pretty(&new_payload).map_err(|e| format!("{e}"))?;
@@ -69,14 +69,12 @@ mod tests {
 
     #[test]
     fn test_sparkle_entry_serialize_roundtrip() {
-        let entries = vec![
-            SparkleEntry {
-                name: "Formal".to_string(),
-                prompt: "Translate formally".to_string(),
-                description: "Rewrite input formally".to_string(),
-                enabled: true,
-            },
-        ];
+        let entries = vec![SparkleEntry {
+            name: "Formal".to_string(),
+            prompt: "Translate formally".to_string(),
+            description: "Rewrite input formally".to_string(),
+            enabled: true,
+        }];
         let json = serde_json::to_string(&entries).unwrap();
         let deserialized: Vec<SparkleEntry> = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.len(), 1);
