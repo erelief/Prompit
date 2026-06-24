@@ -2642,11 +2642,14 @@ label {
 }
 .persona-textarea::placeholder { color: var(--color-text-placeholder); }
 .persona-textarea:focus { border-color: var(--color-accent-border); box-shadow: 0 0 0 2px var(--color-accent-bg); }
+.persona-textarea { scrollbar-width: thin; scrollbar-color: var(--color-scrollbar) transparent; }
+.persona-textarea::-webkit-scrollbar { width: 4px; }
+.persona-textarea::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 4px; }
 
 /* ── Persona textarea wrapper (wand button) ── */
 .persona-textarea-wrap { position: relative; }
 .persona-wand-btn {
-  position:absolute; top:-11px; right:-11px;
+  position:absolute; top:-11px; left:-11px;
   width:22px; height:22px; border-radius:50%;
   border: 1px solid var(--color-border); background:var(--color-bg);
   color:var(--color-text-muted); cursor:pointer;
