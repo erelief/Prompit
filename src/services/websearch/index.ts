@@ -33,10 +33,14 @@ export function resolveActiveEngine(): ResolvedEngine {
 }
 
 /** Run a search using the resolved engine. Throws on failure (see classifySearchError). */
-export async function webSearch(query: string, signal?: AbortSignal): Promise<SearchHit[]> {
+export async function webSearch(
+  query: string,
+  signal?: AbortSignal,
+  maxResults?: number
+): Promise<SearchHit[]> {
   const engine = resolveActiveEngine();
   const fn = getSearchFn(engine.preset);
-  return fn(query, { apiKey: engine.apiKey, signal });
+  return fn(query, { apiKey: engine.apiKey, signal, maxResults });
 }
 
 const MAX_HITS = 5;

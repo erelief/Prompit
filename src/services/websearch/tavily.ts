@@ -13,7 +13,7 @@ import type { SearchFn, SearchHit, SearchOptions } from "./types";
 import { SearchHttpError } from "./types";
 
 const ENDPOINT = "https://api.tavily.com/search";
-const MAX_RESULTS = 5;
+const DEFAULT_MAX_RESULTS = 5;
 
 export const search: SearchFn = async (
   query,
@@ -31,9 +31,10 @@ export const search: SearchFn = async (
 
   // Tavily recommends keeping queries under 400 chars; send as-is for now
   // (very long inputs are unusual for the single-shot input workflow).
+  const maxResults = opts.maxResults ?? DEFAULT_MAX_RESULTS;
   const body = JSON.stringify({
     query,
-    max_results: MAX_RESULTS,
+    max_results: maxResults,
     include_answer: false,
     include_raw_content: false,
     search_depth: "basic",

@@ -10,7 +10,7 @@ import type { SearchFn, SearchHit, SearchOptions } from "./types";
 import { SearchHttpError } from "./types";
 
 const ENDPOINT = "https://api.exa.ai/search";
-const MAX_RESULTS = 5;
+const DEFAULT_MAX_RESULTS = 5;
 
 export const search: SearchFn = async (
   query,
@@ -25,9 +25,10 @@ export const search: SearchFn = async (
     "x-api-key": opts.apiKey,
   };
 
+  const maxResults = opts.maxResults ?? DEFAULT_MAX_RESULTS;
   const body = JSON.stringify({
     query,
-    numResults: MAX_RESULTS,
+    numResults: maxResults,
     contents: {
       highlights: true,
     },

@@ -7,7 +7,7 @@ import type { SearchFn, SearchHit, SearchOptions } from "./types";
 import { SearchHttpError } from "./types";
 
 const ENDPOINT = "https://api.anysearch.com/v1/search";
-const MAX_RESULTS = 5;
+const DEFAULT_MAX_RESULTS = 5;
 
 export const search: SearchFn = async (
   query,
@@ -20,7 +20,8 @@ export const search: SearchFn = async (
     headers["Authorization"] = `Bearer ${opts.apiKey}`;
   }
 
-  const body = JSON.stringify({ query, max_results: MAX_RESULTS });
+  const maxResults = opts.maxResults ?? DEFAULT_MAX_RESULTS;
+  const body = JSON.stringify({ query, max_results: maxResults });
 
   const response = await fetch(ENDPOINT, {
     method: "POST",

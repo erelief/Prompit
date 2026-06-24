@@ -10,6 +10,8 @@ export interface SearchHit {
 
 export interface SearchOptions {
   apiKey?: string;
+  /** Max results to request. Falls back to each preset's default when unset. */
+  maxResults?: number;
   signal?: AbortSignal;
 }
 
