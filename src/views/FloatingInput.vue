@@ -456,6 +456,13 @@ function clearAll() {
   hasResult.value = false;
 }
 
+function closeResult() {
+  hasResult.value = false;
+  translatedText.value = "";
+  lastResultSources.value = [];
+  sourcesView.value = false;
+}
+
 function cancelRequest() {
   abortController.value?.abort();
   abortController.value = null;
@@ -562,10 +569,18 @@ useShortcutTriggered(() => {
       class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-1.5 overflow-y-auto flex-shrink-0 h-fit"
       :class="{ 'justify-end': growAbove }">
       <!-- growAbove: result grows upward, input anchored at bottom -->
-      <template v-if="growAbove">
+        <template v-if="growAbove">
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
+            <!-- Close result button (top-left corner) -->
+            <button
+              @click="closeResult"
+              class="close-result-btn"
+              :title="t('common.close')"
+            >
+              <X :size="12" />
+            </button>
             <div v-if="lastResultSearched" class="provenance-row">
               <button class="provenance-btn" @click="sourcesView = !sourcesView">
                 <Globe :size="11" :stroke-width="1.8" />
@@ -983,6 +998,14 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
+            <!-- Close result button (top-left corner) -->
+            <button
+              @click="closeResult"
+              class="close-result-btn"
+              :title="t('common.close')"
+            >
+              <X :size="12" />
+            </button>
             <div v-if="lastResultSearched" class="provenance-row">
               <button class="provenance-btn" @click="sourcesView = !sourcesView">
                 <Globe :size="11" :stroke-width="1.8" />
@@ -1277,7 +1300,39 @@ useShortcutTriggered(() => {
   border-right: 1px solid var(--color-accent-border);
   border-bottom: 1px solid var(--color-accent-border);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+}
+
+/* Close result button - matches history button pattern */
+.close-result-btn {
+  position: absolute !important;
+  top: -11px !important;
+  left: -11px !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 0 !important;
+  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s !important;
+  z-index: 9999 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
+  background: var(--color-bg) !important;
+}
+
+.result-block:hover .close-result-btn {
+  opacity: 1 !important;
+}
+
+.close-result-btn:hover {
+  color: var(--color-danger) !important;
+  border-color: var(--color-danger) !important;
+  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-bg)) !important;
 }
 
 .result-text {
@@ -1289,6 +1344,8 @@ useShortcutTriggered(() => {
   word-break: break-word;
   overflow-y: auto;
   max-height: 200px;
+  position: relative;
+  z-index: 1;
 }
 
 /* AI disclaimer shown below the result */

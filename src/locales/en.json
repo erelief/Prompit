@@ -11,6 +11,7 @@
     "cannotBeUndone": "This cannot be undone.",
     "settings": "Settings",
     "hide": "Hide (Esc)",
+    "close": "Close",
     "closeAfterSend": "Close after send",
     "keepOpenAfterSend": "Keep open after send",
     "enabled": "Enabled",

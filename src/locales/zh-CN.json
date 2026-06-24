@@ -11,6 +11,7 @@
     "cannotBeUndone": "此操作不可撤销。",
     "settings": "设置",
     "hide": "隐藏 (Esc)",
+    "close": "关闭",
     "closeAfterSend": "发送后关闭",
     "keepOpenAfterSend": "发送后不关闭",
     "enabled": "已启用",
