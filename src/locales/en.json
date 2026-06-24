@@ -106,7 +106,7 @@
     "about": "About",
     "userData": "User Data",
     "reset": {
-      "description": "Delete all user data and settings.",
+      "description": "Delete all user data and settings",
       "button": "Reset Software",
       "pageTitle": "Reset Software",
       "warning": "This action will permanently delete all your data and settings. The application will close after the reset is complete.",
@@ -254,7 +254,7 @@
     "exitConfirm": "Setup is not complete. If you exit now, you'll need to go through the setup again next time.",
     "exitAnyway": "Exit anyway",
     "searchInfoTitle": "Enable web search",
-    "searchInfoBody": "Prompit supports web search to give AI models real-time information, with built-in AnySearch free quota as a fallback. However, we strongly recommend getting your own search API key for a better experience.",
+    "searchInfoBody": "Prompit supports web search to give AI models real-time information, with built-in AnySearch's anonymous search as a fallback. However, we strongly recommend getting your own API key for a better experience.",
     "searchInfoHint": "You can skip this step and set it up later in Settings.",
     "addSearchTitle": "Add search API",
     "searchPreset": "Search provider",
