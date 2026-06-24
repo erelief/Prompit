@@ -52,6 +52,7 @@ const bodyHeight = ref(0);
 let lastSentHeight = 0;
 let resizeObserver: ResizeObserver | null = null;
 let unlistenConfig: (() => void) | null = null;
+let unlistenResume: (() => void) | null = null;
 
 // ── History browsing (terminal-style ↑↓) ──
 const historyIndex = ref<number | null>(null);
@@ -514,6 +515,13 @@ onMounted(async () => {
   if (contentWrapRef.value) {
     resizeObserver.observe(contentWrapRef.value);
   }
+
+  // After system resume (lid close/open), DWM hide/show fixes the composited
+  // surface but Vue layout can go stale. Force a reflow by re-sending the
+  // current height to the backend.
+  unlistenResume = await listen("system-resumed", () => {
+    invoke("resize_and_reposition", { height: bodyHeight.value, width: MAIN_WIDTH });
+  });
 });
 
 // Config auto-save is centralized in stores/config.ts (enabled at startup).
@@ -522,6 +530,7 @@ onUnmounted(() => {
   document.removeEventListener("mousedown", onDocumentClick);
   window.removeEventListener("keydown", onModeShortcutKeydown);
   unlistenConfig?.();
+  unlistenResume?.();
   resizeObserver?.disconnect();
 });
 

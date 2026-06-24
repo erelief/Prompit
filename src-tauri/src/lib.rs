@@ -234,7 +234,7 @@ pub fn run() {
                 if let Ok(hwnd) = main_win.hwnd() {
                     let raw = hwnd.0;
                     if !raw.is_null() {
-                        power_watcher::start(raw);
+                        power_watcher::start(raw, app.handle().clone());
                     }
                 }
             }

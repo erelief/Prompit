@@ -1,8 +1,10 @@
 use std::ffi::c_void;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::OnceLock;
 use std::thread;
 
+use tauri::{AppHandle, Emitter, Manager};
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, GetMessageW, RegisterClassW, HWND_MESSAGE, MSG,
@@ -12,6 +14,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 const PBT_APMRESUMEAUTOMATIC: WPARAM = 0x00000012;
 
 static MAIN_HWND: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
 unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     if msg == WM_POWERBROADCAST && wparam == PBT_APMRESUMEAUTOMATIC {
@@ -33,16 +36,18 @@ unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: 
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
             );
         }
+        if let Some(app) = APP_HANDLE.get() {
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.emit("system-resumed", ());
+            }
+        }
     }
     DefWindowProcW(hwnd, msg, wparam, lparam)
 }
 
-/// Spawn a background thread that listens for system resume events and forces
-/// the main window to rebuild its composited surface. This works around a
-/// WebView2 bug where transparent, undecorated windows lose their alpha surface
-/// after lid-close / sleep / wake.
-pub fn start(main_hwnd: *mut c_void) {
+pub fn start(main_hwnd: *mut c_void, app: AppHandle) {
     MAIN_HWND.store(main_hwnd, Ordering::Relaxed);
+    let _ = APP_HANDLE.set(app);
 
     thread::spawn(move || unsafe {
         let class_name: Vec<u16> = "PrompitPowerWatcher\0".encode_utf16().collect();
@@ -74,9 +79,7 @@ pub fn start(main_hwnd: *mut c_void) {
         }
 
         let mut msg: MSG = std::mem::zeroed();
-        while GetMessageW(&mut msg, hwnd, 0, 0) > 0 {
-            // wndproc is invoked directly by GetMessageW
-        }
+        while GetMessageW(&mut msg, hwnd, 0, 0) > 0 {}
 
         DestroyWindow(hwnd);
     });
