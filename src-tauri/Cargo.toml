@@ -29,6 +29,8 @@ aes-gcm = "0.10"
 sha2 = "0.10"
 base64 = "0.22"
 rand = "0.8"
+argon2 = "0.5"
+zeroize = { version = "1", features = ["zeroize_derive"] }
 dotenvy = "0.15"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"

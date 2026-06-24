@@ -22,8 +22,7 @@ pub fn read_config(app: AppHandle) -> Result<AppConfig, String> {
 #[tauri::command]
 pub fn save_config(app: AppHandle, config: AppConfig) -> Result<(), String> {
     let path = config_path(&app)?;
-    let json =
-        serde_json::to_string_pretty(&config).map_err(|e| format!("serialize: {e}"))?;
+    let json = serde_json::to_string_pretty(&config).map_err(|e| format!("serialize: {e}"))?;
     fs::write(&path, json).map_err(|e| format!("write: {e}"))?;
     Ok(())
 }
@@ -80,7 +79,10 @@ mod tests {
                 name: "OpenAI".to_string(),
                 api_key: "".to_string(),
                 base_url: "https://api.openai.com/v1".to_string(),
-                models: vec![ProviderModel { id: "gpt-4o-mini".to_string(), input_capabilities: None }],
+                models: vec![ProviderModel {
+                    id: "gpt-4o-mini".to_string(),
+                    input_capabilities: None,
+                }],
                 temperature: Some(0.3),
                 max_tokens: Some(1024),
                 preset: None,
@@ -104,6 +106,9 @@ mod tests {
             mode_shortcut: "Alt+M".to_string(),
             launch_on_startup: false,
             show_capability_icons: true,
+            web_engines: vec![],
+            web_search_active_index: -1,
+            web_search_enabled_in_sparkle: false,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();

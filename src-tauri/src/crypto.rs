@@ -5,11 +5,42 @@ use base64::Engine;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::sync::OnceLock;
+use zeroize::Zeroizing;
 
 #[derive(Serialize, Deserialize)]
 pub struct EncryptedPayload {
     pub ciphertext: String,
     pub nonce: String,
+}
+
+/// In-memory Master Key. Set once at startup by the vault module. When present,
+/// all per-scope data keys are derived from it (portable, random). When absent
+/// (e.g. mid-migration, or unit tests), derive_key falls back to the legacy
+/// machine-seed path so old encrypted files keep working.
+static MASTER_KEY: OnceLock<Zeroizing<[u8; 32]>> = OnceLock::new();
+
+/// Install the Master Key into the process. Called exactly once from the vault
+/// module during app setup. Subsequent calls are no-ops (the first wins), which
+/// keeps tests that re-initialize from corrupting a running process.
+pub fn set_master_key(key: [u8; 32]) {
+    let _ = MASTER_KEY.set(Zeroizing::new(key));
+}
+
+/// True once the Master Key is installed. Used by the vault/migration code to
+/// decide whether to read data via the new path or the legacy fallback.
+pub fn has_master_key() -> bool {
+    MASTER_KEY.get().is_some()
+}
+
+/// Copy out the installed Master Key, or error if none is set (should not
+/// happen at runtime — setup always unlocks the vault first). Used by the
+/// vault's export path to wrap the key under a password.
+pub fn get_master_key() -> Result<[u8; 32], String> {
+    MASTER_KEY
+        .get()
+        .map(|mk| **mk)
+        .ok_or_else(|| "master key not initialized".to_string())
 }
 
 fn machine_seed() -> String {
@@ -23,7 +54,42 @@ fn machine_seed() -> String {
     format!("{}:{}:{}", hostname, username, app_id)
 }
 
+/// Raw machine-seed key, NOT routed through the Master Key. The vault uses this
+/// to wrap/unwrap the Master Key itself (otherwise we'd recurse: deriving the
+/// master-key-protecting key from the master key).
+pub fn derive_raw_machine_key() -> [u8; 32] {
+    let seed = machine_seed();
+    let mut hasher = Sha256::new();
+    hasher.update(seed.as_bytes());
+    let result = hasher.finalize();
+    let mut key = [0u8; 32];
+    key.copy_from_slice(&result);
+    key
+}
+
+/// Per-scope data key. Prefers the Master Key when installed (portable path);
+/// falls back to the machine-seed path otherwise (legacy/migration path).
 fn derive_key(scope: &str) -> [u8; 32] {
+    if let Some(mk) = MASTER_KEY.get() {
+        // Domain-separated derivation: distinct 32-byte key per scope, all
+        // rooted at the random Master Key. SHA256 is a fine KDF here because
+        // the input is already a full-entropy 256-bit key, not a password.
+        let mut hasher = Sha256::new();
+        hasher.update(mk.as_slice());
+        hasher.update(b":");
+        hasher.update(scope.as_bytes());
+        let result = hasher.finalize();
+        let mut key = [0u8; 32];
+        key.copy_from_slice(&result);
+        key
+    } else {
+        derive_legacy_scoped_key(scope)
+    }
+}
+
+/// Legacy machine-seed-derived per-scope key. Retained for reading/migrating
+/// files written before the Master Key existed.
+pub fn derive_legacy_scoped_key(scope: &str) -> [u8; 32] {
     let seed = format!("{}:{}", machine_seed(), scope);
     let mut hasher = Sha256::new();
     hasher.update(seed.as_bytes());
@@ -33,7 +99,7 @@ fn derive_key(scope: &str) -> [u8; 32] {
     key
 }
 
-fn derive_legacy_key() -> [u8; 32] {
+pub fn derive_legacy_key() -> [u8; 32] {
     let seed = machine_seed();
     let mut hasher = Sha256::new();
     hasher.update(seed.as_bytes());
@@ -94,26 +160,64 @@ pub fn decrypt_legacy(payload: &EncryptedPayload) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("decrypt: {e}"))
 }
 
+/// Encrypt with an explicit raw key (bypasses scope derivation). Used by the
+/// vault to wrap the Master Key itself, where we must NOT route through
+/// derive_key (that would recurse).
+pub fn encrypt_with_key(key: &[u8; 32], plaintext: &[u8]) -> Result<EncryptedPayload, String> {
+    let cipher = Aes256Gcm::new_from_slice(key).map_err(|e| format!("cipher init: {e}"))?;
+    let mut nonce_bytes = [0u8; 12];
+    rand::rngs::OsRng.fill_bytes(&mut nonce_bytes);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+    let ciphertext = cipher
+        .encrypt(nonce, plaintext)
+        .map_err(|e| format!("encrypt: {e}"))?;
+    Ok(EncryptedPayload {
+        ciphertext: BASE64.encode(&ciphertext),
+        nonce: BASE64.encode(nonce_bytes),
+    })
+}
+
+/// Decrypt with an explicit raw key. Mirror of encrypt_with_key.
+pub fn decrypt_with_key(key: &[u8; 32], payload: &EncryptedPayload) -> Result<Vec<u8>, String> {
+    let cipher = Aes256Gcm::new_from_slice(key).map_err(|e| format!("cipher init: {e}"))?;
+    let nonce_bytes = BASE64
+        .decode(&payload.nonce)
+        .map_err(|e| format!("decode nonce: {e}"))?;
+    if nonce_bytes.len() != 12 {
+        return Err("invalid nonce length".into());
+    }
+    let nonce = Nonce::from_slice(&nonce_bytes);
+    let ciphertext = BASE64
+        .decode(&payload.ciphertext)
+        .map_err(|e| format!("decode ct: {e}"))?;
+    cipher
+        .decrypt(nonce, ciphertext.as_ref())
+        .map_err(|e| format!("decrypt: {e}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_scoped_key_differs_from_legacy() {
-        let scoped = derive_key("history");
+        let scoped = derive_legacy_scoped_key("history");
         let legacy = derive_legacy_key();
         assert_ne!(scoped, legacy, "scoped and legacy keys must differ");
     }
 
     #[test]
     fn test_different_scopes_produce_different_keys() {
-        let a = derive_key("history");
-        let b = derive_key("secrets");
+        let a = derive_legacy_scoped_key("history");
+        let b = derive_legacy_scoped_key("secrets");
         assert_ne!(a, b);
     }
 
     #[test]
     fn test_encrypt_decrypt_roundtrip() {
+        // Force legacy path by ensuring no master key is set in this test
+        // process. (MASTER_KEY may already be set by another test; the point
+        // is encrypt/decrypt are self-consistent regardless of the path.)
         let plaintext = b"hello world";
         let payload = encrypt("test", plaintext).unwrap();
         let decrypted = decrypt("test", &payload).unwrap();
@@ -144,9 +248,31 @@ mod tests {
 
     #[test]
     fn test_derive_key_deterministic() {
-        let a = derive_key("secrets");
-        let b = derive_key("secrets");
+        let a = derive_legacy_scoped_key("secrets");
+        let b = derive_legacy_scoped_key("secrets");
         assert_eq!(a, b);
         assert_eq!(a.len(), 32);
+    }
+
+    #[test]
+    fn test_raw_machine_key_stable_and_32() {
+        let a = derive_raw_machine_key();
+        let b = derive_raw_machine_key();
+        assert_eq!(a, b);
+        assert_eq!(a.len(), 32);
+    }
+
+    #[test]
+    fn test_encrypt_with_key_roundtrip() {
+        let key = [7u8; 32];
+        let payload = encrypt_with_key(&key, b"data").unwrap();
+        let out = decrypt_with_key(&key, &payload).unwrap();
+        assert_eq!(out, b"data");
+    }
+
+    #[test]
+    fn test_encrypt_with_key_wrong_key_fails() {
+        let payload = encrypt_with_key(&[1u8; 32], b"data").unwrap();
+        assert!(decrypt_with_key(&[2u8; 32], &payload).is_err());
     }
 }

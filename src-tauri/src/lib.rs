@@ -8,6 +8,7 @@ pub mod crypto;
 mod power_watcher;
 pub mod shortcut;
 pub mod state;
+pub mod vault;
 
 #[cfg(target_os = "windows")]
 fn read_windows_system_proxy() -> Option<String> {
@@ -146,6 +147,8 @@ pub fn run() {
             commands::history::clear_history,
             commands::presets::read_provider_presets,
             commands::presets::read_model_capabilities,
+            vault::export_data,
+            vault::import_data,
             get_proxy_url,
             is_sandbox,
         ])
@@ -166,6 +169,12 @@ pub fn run() {
                 app.manage(state::DataDir(None));
             }
 
+            // Unlock (or create) the Master Key vault before any encrypted data
+            // is read. Must run after DataDir is registered, since the vault
+            // lives in the data dir. A failure here is fatal: without a Master
+            // Key, no encrypted file can be decrypted.
+            vault::unlock_or_migrate(app.handle()).expect("fatal: failed to initialize vault");
+
             let handle = app.handle().clone();
             let saved_shortcut = commands::config_cmd::read_config(app.handle().clone())
                 .map(|c| c.shortcut)
@@ -176,8 +185,7 @@ pub fn run() {
             use tauri::menu::{MenuBuilder, MenuItemBuilder};
             use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 
-            let settings_item =
-                MenuItemBuilder::with_id("settings", "Settings...").build(app)?;
+            let settings_item = MenuItemBuilder::with_id("settings", "Settings...").build(app)?;
             let exit_item = MenuItemBuilder::with_id("exit", "Exit").build(app)?;
             let menu = MenuBuilder::new(app)
                 .items(&[&settings_item, &exit_item])
