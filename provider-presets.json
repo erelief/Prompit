@@ -223,6 +223,32 @@
       }
     },
     {
+      "name": "硅基流动",
+      "provider_name": "硅基流动",
+      "icon": "siliconflow",
+      "base_url": "https://api.siliconflow.cn/v1",
+      "api_url": "https://cloud.siliconflow.cn/",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
+      "name": "SiliconFlow",
+      "provider_name": "SiliconFlow",
+      "icon": "siliconflow",
+      "base_url": "https://api.siliconflow.com/v1/",
+      "api_url": "https://cloud.siliconflow.com/",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      }
+    },
+    {
       "name": "阶跃星辰",
       "provider_name": "阶跃星辰",
       "icon": "step",
