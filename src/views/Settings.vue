@@ -1157,6 +1157,14 @@ async function handleDrag(e: MouseEvent) {
   await getCurrentWindow().startDragging();
 }
 
+function openExternal(url: string) {
+  if (isTauri) {
+    import("@tauri-apps/plugin-shell").then(({ open }) => open(url));
+  } else {
+    window.open(url, "_blank");
+  }
+}
+
 onMounted(async () => {
   if (route.query.tab === "translation") {
     activeTab.value = "translation";
@@ -1307,7 +1315,7 @@ onUnmounted(() => {
               {{ t('settings.openaiCompatHint') }}
             </p>
             <p v-else-if="providerPresets.find(p => p.name === item.preset)?.api_url" class="preset-hint" @click.stop>
-              <a :href="providerPresets.find(p => p.name === item.preset)!.api_url" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
+              <a :href="providerPresets.find(p => p.name === item.preset)!.api_url" target="_blank" rel="noopener noreferrer" @click.prevent="openExternal(providerPresets.find(p => p.name === item.preset)!.api_url)" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
                 {{ t('settings.getApiKeyAt', { name: item.preset }) }}
               </a>
             </p>
@@ -1510,7 +1518,7 @@ onUnmounted(() => {
             </Teleport>
             <p v-if="presetMeta(item.preset).keyHelpKey" class="we-hint">{{ t(presetMeta(item.preset).keyHelpKey!) }}</p>
             <p v-if="presetMeta(item.preset).apiUrl" class="preset-hint" @click.stop>
-              <a :href="presetMeta(item.preset).apiUrl" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
+              <a :href="presetMeta(item.preset).apiUrl" target="_blank" rel="noopener noreferrer" @click.prevent="openExternal(presetMeta(item.preset).apiUrl!)" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
                 {{ t('settings.getApiKeyAt', { name: presetMeta(item.preset).label }) }}
               </a>
             </p>
