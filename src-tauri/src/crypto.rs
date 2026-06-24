@@ -27,12 +27,6 @@ pub fn set_master_key(key: [u8; 32]) {
     let _ = MASTER_KEY.set(Zeroizing::new(key));
 }
 
-/// True once the Master Key is installed. Used by the vault/migration code to
-/// decide whether to read data via the new path or the legacy fallback.
-pub fn has_master_key() -> bool {
-    MASTER_KEY.get().is_some()
-}
-
 /// Copy out the installed Master Key, or error if none is set (should not
 /// happen at runtime — setup always unlocks the vault first). Used by the
 /// vault's export path to wrap the key under a password.
@@ -70,39 +64,18 @@ pub fn derive_raw_machine_key() -> [u8; 32] {
 /// Per-scope data key. Prefers the Master Key when installed (portable path);
 /// falls back to the machine-seed path otherwise (legacy/migration path).
 fn derive_key(scope: &str) -> [u8; 32] {
-    if let Some(mk) = MASTER_KEY.get() {
-        // Domain-separated derivation: distinct 32-byte key per scope, all
-        // rooted at the random Master Key. SHA256 is a fine KDF here because
-        // the input is already a full-entropy 256-bit key, not a password.
-        let mut hasher = Sha256::new();
-        hasher.update(mk.as_slice());
-        hasher.update(b":");
-        hasher.update(scope.as_bytes());
-        let result = hasher.finalize();
-        let mut key = [0u8; 32];
-        key.copy_from_slice(&result);
-        key
-    } else {
-        derive_legacy_scoped_key(scope)
-    }
-}
-
-/// Legacy machine-seed-derived per-scope key. Retained for reading/migrating
-/// files written before the Master Key existed.
-pub fn derive_legacy_scoped_key(scope: &str) -> [u8; 32] {
-    let seed = format!("{}:{}", machine_seed(), scope);
+    // Domain-separated derivation: distinct 32-byte key per scope, all rooted
+    // at the random Master Key. SHA256 is a fine KDF here because the input is
+    // already a full-entropy 256-bit key, not a password. The Master Key is
+    // always installed by the time any data is read (vault::unlock_or_migrate
+    // runs in setup, before commands are served), so there is no fallback.
+    let mk = MASTER_KEY
+        .get()
+        .expect("derive_key called before Master Key was installed");
     let mut hasher = Sha256::new();
-    hasher.update(seed.as_bytes());
-    let result = hasher.finalize();
-    let mut key = [0u8; 32];
-    key.copy_from_slice(&result);
-    key
-}
-
-pub fn derive_legacy_key() -> [u8; 32] {
-    let seed = machine_seed();
-    let mut hasher = Sha256::new();
-    hasher.update(seed.as_bytes());
+    hasher.update(mk.as_slice());
+    hasher.update(b":");
+    hasher.update(scope.as_bytes());
     let result = hasher.finalize();
     let mut key = [0u8; 32];
     key.copy_from_slice(&result);
@@ -140,34 +113,6 @@ pub fn decrypt(scope: &str, payload: &EncryptedPayload) -> Result<Vec<u8>, Strin
     cipher
         .decrypt(nonce, ciphertext.as_ref())
         .map_err(|e| format!("decrypt: {e}"))
-}
-
-pub fn decrypt_legacy(payload: &EncryptedPayload) -> Result<Vec<u8>, String> {
-    let key = derive_legacy_key();
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|e| format!("cipher init: {e}"))?;
-    let nonce_bytes = BASE64
-        .decode(&payload.nonce)
-        .map_err(|e| format!("decode nonce: {e}"))?;
-    if nonce_bytes.len() != 12 {
-        return Err("invalid nonce length".into());
-    }
-    let nonce = Nonce::from_slice(&nonce_bytes);
-    let ciphertext = BASE64
-        .decode(&payload.ciphertext)
-        .map_err(|e| format!("decode ct: {e}"))?;
-    cipher
-        .decrypt(nonce, ciphertext.as_ref())
-        .map_err(|e| format!("decrypt: {e}"))
-}
-
-/// Decrypt a payload written by the pre-Master-Key scheme, which used a
-/// per-scope machine-seed key: SHA256(machine_seed + ":" + scope). This is the
-/// actual format of all data files created before the vault refactor, so it is
-/// the correct migration fallback (the global `decrypt_legacy` only handles the
-/// even-older scope-less format).
-pub fn decrypt_legacy_scoped(scope: &str, payload: &EncryptedPayload) -> Result<Vec<u8>, String> {
-    let key = derive_legacy_scoped_key(scope);
-    decrypt_with_key(&key, payload)
 }
 
 /// Encrypt with an explicit raw key (bypasses scope derivation). Used by the
@@ -209,25 +154,17 @@ pub fn decrypt_with_key(key: &[u8; 32], payload: &EncryptedPayload) -> Result<Ve
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_scoped_key_differs_from_legacy() {
-        let scoped = derive_legacy_scoped_key("history");
-        let legacy = derive_legacy_key();
-        assert_ne!(scoped, legacy, "scoped and legacy keys must differ");
-    }
-
-    #[test]
-    fn test_different_scopes_produce_different_keys() {
-        let a = derive_legacy_scoped_key("history");
-        let b = derive_legacy_scoped_key("secrets");
-        assert_ne!(a, b);
+    /// Install a fixed Master Key for the test process. OnceLock is first-write-
+    /// wins, so this runs once; subsequent calls are no-ops. All encrypt/decrypt
+    /// tests below share this key, which is fine — they assert self-consistency,
+    /// not key independence.
+    fn ensure_test_master_key() {
+        set_master_key([0x42u8; 32]);
     }
 
     #[test]
     fn test_encrypt_decrypt_roundtrip() {
-        // Force legacy path by ensuring no master key is set in this test
-        // process. (MASTER_KEY may already be set by another test; the point
-        // is encrypt/decrypt are self-consistent regardless of the path.)
+        ensure_test_master_key();
         let plaintext = b"hello world";
         let payload = encrypt("test", plaintext).unwrap();
         let decrypted = decrypt("test", &payload).unwrap();
@@ -236,32 +173,21 @@ mod tests {
 
     #[test]
     fn test_wrong_scope_fails() {
+        ensure_test_master_key();
         let plaintext = b"secret data";
         let payload = encrypt("secrets", plaintext).unwrap();
         assert!(decrypt("history", &payload).is_err());
     }
 
     #[test]
-    fn test_legacy_decrypt_reads_old_format() {
-        let key = derive_legacy_key();
-        let cipher = Aes256Gcm::new_from_slice(&key).unwrap();
-        let nonce_bytes = [0u8; 12];
-        let nonce = Nonce::from_slice(&nonce_bytes);
-        let ciphertext = cipher.encrypt(nonce, b"legacy data".as_slice()).unwrap();
-        let payload = EncryptedPayload {
-            ciphertext: BASE64.encode(&ciphertext),
-            nonce: BASE64.encode(nonce_bytes),
-        };
-        let decrypted = decrypt_legacy(&payload).unwrap();
-        assert_eq!(decrypted, b"legacy data");
-    }
-
-    #[test]
-    fn test_derive_key_deterministic() {
-        let a = derive_legacy_scoped_key("secrets");
-        let b = derive_legacy_scoped_key("secrets");
-        assert_eq!(a, b);
-        assert_eq!(a.len(), 32);
+    fn test_different_scopes_produce_different_keys() {
+        ensure_test_master_key();
+        // Round-trip under two scopes; wrong-scope decrypt fails (asserted
+        // above), which implies the per-scope keys differ.
+        let a = encrypt("history", b"x").unwrap();
+        let b = encrypt("secrets", b"x").unwrap();
+        assert!(decrypt("secrets", &a).is_err());
+        assert!(decrypt("history", &b).is_err());
     }
 
     #[test]
@@ -284,24 +210,5 @@ mod tests {
     fn test_encrypt_with_key_wrong_key_fails() {
         let payload = encrypt_with_key(&[1u8; 32], b"data").unwrap();
         assert!(decrypt_with_key(&[2u8; 32], &payload).is_err());
-    }
-
-    #[test]
-    fn test_decrypt_legacy_scoped_reads_pre_vault_format() {
-        // A data file written before the Master Key refactor was encrypted with
-        // SHA256(machine_seed:"scope"). Simulate exactly that: encrypt with the
-        // scoped legacy key directly, then confirm decrypt_legacy_scoped opens
-        // it while the current (no-master-key-set in this proc) derive_key
-        // path also coincides — and that the scope-less legacy path does NOT.
-        let scope = "secrets";
-        let legacy_scoped = derive_legacy_scoped_key(scope);
-        let payload = encrypt_with_key(&legacy_scoped, b"an-api-key").unwrap();
-
-        // The scoped-legacy path must recover it.
-        let plain = decrypt_legacy_scoped(scope, &payload).unwrap();
-        assert_eq!(plain, b"an-api-key");
-
-        // The scope-less global legacy key must fail (different key).
-        assert!(decrypt_legacy(&payload).is_err());
     }
 }

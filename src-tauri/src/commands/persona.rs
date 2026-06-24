@@ -29,16 +29,7 @@ fn load_personas_encrypted(app: &AppHandle) -> Result<Vec<PersonaEntry>, String>
     let payload: EncryptedPayload =
         serde_json::from_str(&content).map_err(|e| format!("parse: {e}"))?;
 
-    let bytes = crypto::decrypt("personas", &payload).or_else(|_| {
-        // Migration: scoped machine-seed key first, then scope-less legacy.
-        let plaintext = crypto::decrypt_legacy_scoped("personas", &payload)
-            .or_else(|_| crypto::decrypt_legacy(&payload))?;
-        let new_payload = crypto::encrypt("personas", &plaintext)?;
-        let out =
-            serde_json::to_string_pretty(&new_payload).map_err(|e| format!("re-encrypt: {e}"))?;
-        fs::write(&path, out).map_err(|e| format!("write re-encrypted: {e}"))?;
-        Ok::<Vec<u8>, String>(plaintext)
-    })?;
+    let bytes = crypto::decrypt("personas", &payload)?;
 
     serde_json::from_slice(&bytes).map_err(|e| format!("deserialize: {e}"))
 }

@@ -50,27 +50,13 @@ pub fn read_secret(app: AppHandle, key_id: String) -> Result<String, String> {
         }
     }
 
-    let mut store = load_store(&app)?;
+    let store = load_store(&app)?;
     let entry = match store.get(&key_id) {
         Some(e) => e,
         None => return Ok(String::new()),
     };
 
-    let bytes = match crypto::decrypt("secrets", entry) {
-        Ok(b) => b,
-        Err(_) => {
-            // Migration: pre-Master-Key files used a scoped machine-seed key
-            // (SHA256(seed:"secrets")); fall back to that first, then to the
-            // even-older scope-less legacy key. Re-encrypt under the current
-            // (Master-Key-derived) key once recovered.
-            let plaintext = crypto::decrypt_legacy_scoped("secrets", entry)
-                .or_else(|_| crypto::decrypt_legacy(entry))?;
-            let new_payload = crypto::encrypt("secrets", &plaintext)?;
-            store.insert(key_id, new_payload);
-            save_store(&app, &store)?;
-            plaintext
-        }
-    };
+    let bytes = crypto::decrypt("secrets", entry)?;
 
     String::from_utf8(bytes).map_err(|e| format!("utf8: {e}"))
 }
@@ -88,6 +74,7 @@ mod tests {
 
     #[test]
     fn test_secrets_store_type_compiles() {
+        crate::crypto::set_master_key([0x42u8; 32]);
         let mut store: SecretStore = HashMap::new();
         let payload = crate::crypto::encrypt("secrets", b"test-key").unwrap();
         store.insert("provider_0".to_string(), payload);

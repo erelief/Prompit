@@ -41,19 +41,7 @@ pub fn read_history(app: AppHandle) -> Result<Vec<HistoryEntry>, String> {
     let payload: EncryptedPayload =
         serde_json::from_str(&content).map_err(|e| format!("parse: {e}"))?;
 
-    let bytes = crypto::decrypt("history", &payload).or_else(|_| {
-        // Migration: pre-Master-Key files used a scoped machine-seed key
-        // (SHA256(seed:"history")); try that first, then the scope-less legacy
-        // key. Re-encrypt under the current key once recovered.
-        let plaintext = crypto::decrypt_legacy_scoped("history", &payload)
-            .or_else(|_| crypto::decrypt_legacy(&payload))?;
-        let new_payload =
-            crypto::encrypt("history", &plaintext).map_err(|e| format!("re-encrypt: {e}"))?;
-        let out =
-            serde_json::to_string_pretty(&new_payload).map_err(|e| format!("serialize: {e}"))?;
-        fs::write(&path, out).map_err(|e| format!("write migrated: {e}"))?;
-        Ok::<Vec<u8>, String>(plaintext)
-    })?;
+    let bytes = crypto::decrypt("history", &payload)?;
 
     serde_json::from_slice(&bytes).map_err(|e| format!("deserialize: {e}"))
 }
