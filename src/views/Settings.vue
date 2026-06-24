@@ -1456,7 +1456,7 @@ onUnmounted(() => {
                 <button
                   class="we-toggle"
                   :class="{ on: item.enabled }"
-                  :disabled="!item.api_key"
+                  :disabled="presetMeta(item.preset).keyRequired && !item.api_key"
                   :title="item.enabled ? t('common.enabled') : t('common.disabled')"
                   @click.stop="toggleWebEngineExclusive(index, $event)"
                 >

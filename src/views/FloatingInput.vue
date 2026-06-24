@@ -390,8 +390,9 @@ async function handleTranslate() {
     if (err instanceof SearchFailureError) {
       const classified = classifySearchError(err.cause);
       webSearchStatus.value = "error";
+      const detail = classified.rawMessage ?? t(classified.messageKey);
       webSearchErrorText.value =
-        t("search.failed", { code: classified.code, message: t(classified.messageKey) }) +
+        t("search.failed", { code: classified.code, message: detail }) +
         " " +
         t("search.retryOrDisable");
       // No LLM result; translatedText stays empty

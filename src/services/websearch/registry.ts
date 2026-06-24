@@ -45,17 +45,7 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     icon: Brave,
     supportsAnonymous: false,
     keyRequired: true,
-    // No hint — just enter the key.
     apiUrl: "https://brave.com/search/api/",
-  },
-  {
-    id: "tavily",
-    label: "Tavily",
-    icon: Tavily,
-    supportsAnonymous: false,
-    keyRequired: true,
-    // No hint — just enter the key.
-    apiUrl: "https://app.tavily.com/",
   },
   {
     id: "exa",
@@ -73,6 +63,14 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     keyRequired: false,
     keyHelpKey: "settings.anonymousKeyHint",
     apiUrl: "https://www.firecrawl.dev/app",
+  },
+  {
+    id: "tavily",
+    label: "Tavily",
+    icon: Tavily,
+    supportsAnonymous: false,
+    keyRequired: true,
+    apiUrl: "https://app.tavily.com/",
   },
 ];
 
