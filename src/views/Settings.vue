@@ -638,7 +638,8 @@ function validateWebEngine(eng: WebEngineConfig): string | null {
  *  toggleTranslationPersona. Key-empty engines can't be enabled (validated). */
 function toggleWebEngineExclusive(index: number, e: MouseEvent) {
   const eng = appConfig.web_engines[index];
-  if (!eng.api_key) return; // safety: validation should have blocked this
+  const meta = presetMeta(eng.preset);
+  if (meta.keyRequired && !eng.api_key) return; // safety: validation should have blocked this
   const wasOn = eng.enabled;
   for (const w of appConfig.web_engines) w.enabled = false;
   if (!wasOn) {

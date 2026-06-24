@@ -1,12 +1,12 @@
 // Public API: resolve engine, search, format context for the LLM, classify errors.
 
 import { appConfig } from "../../stores/config";
-import { ANONYMOUS_FALLBACK, getSearchFn } from "./registry";
+import { ANONYMOUS_FALLBACK, getSearchFn, presetMeta } from "./registry";
 import type { SearchHit, ClassifiedSearchError } from "./types";
 import { SearchHttpError } from "./types";
 
 // Re-export for convenience
-export { SEARCH_PRESETS, presetMeta, ANONYMOUS_FALLBACK } from "./registry";
+export { SEARCH_PRESETS, presetMeta, ANONYMOUS_FALLBACK, getSearchFn } from "./registry";
 export type { SearchHit, SearchFn, ClassifiedSearchError } from "./types";
 
 interface ResolvedEngine {
@@ -25,8 +25,14 @@ export function resolveActiveEngine(): ResolvedEngine {
   const engines = appConfig.web_engines;
   if (idx >= 0 && idx < engines.length) {
     const engine = engines[idx];
-    if (engine.enabled && engine.api_key) {
-      return { preset: engine.preset, apiKey: engine.api_key, isAnonymous: false };
+    if (engine.enabled) {
+      const meta = presetMeta(engine.preset);
+      if (engine.api_key) {
+        return { preset: engine.preset, apiKey: engine.api_key, isAnonymous: false };
+      }
+      if (!meta.keyRequired) {
+        return { preset: engine.preset, apiKey: undefined, isAnonymous: true };
+      }
     }
   }
   return { preset: ANONYMOUS_FALLBACK.preset, apiKey: undefined, isAnonymous: true };

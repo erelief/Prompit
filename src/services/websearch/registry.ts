@@ -6,11 +6,13 @@ import AnySearch from "../../components/icons/providers/AnySearch.vue";
 import Brave from "../../components/icons/providers/Brave.vue";
 import Tavily from "../../components/icons/providers/Tavily.vue";
 import Exa from "../../components/icons/providers/Exa.vue";
+import Firecrawl from "../../components/icons/providers/Firecrawl.vue";
 import type { SearchFn } from "./types";
 import { search as anysearchSearch } from "./anysearch";
 import { search as braveSearch } from "./brave";
 import { search as tavilySearch } from "./tavily";
 import { search as exaSearch } from "./exa";
+import { search as firecrawlSearch } from "./firecrawl";
 
 export interface SearchPresetMeta {
   id: string;
@@ -63,6 +65,15 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     keyRequired: true,
     apiUrl: "https://dashboard.exa.ai/api-keys",
   },
+  {
+    id: "firecrawl",
+    label: "Firecrawl",
+    icon: Firecrawl,
+    supportsAnonymous: true,
+    keyRequired: false,
+    keyHelpKey: "settings.anonymousKeyHint",
+    apiUrl: "https://www.firecrawl.dev/app",
+  },
 ];
 
 /** preset id → search implementation */
@@ -71,6 +82,7 @@ const REGISTRY: Record<string, SearchFn> = {
   brave: braveSearch,
   tavily: tavilySearch,
   exa: exaSearch,
+  firecrawl: firecrawlSearch,
 };
 
 /** Built-in anonymous fallback. Always available so a usable engine exists. */

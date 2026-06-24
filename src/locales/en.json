@@ -49,6 +49,7 @@
     "apiKeyRequired": "API Key (required)",
     "apiKeyOptional": "API Key (optional)",
     "webSearchKeyHint": "AnySearch supports anonymous access, but anonymous search is already the built-in fallback. Adding this instance means using your own API Key for higher quota — please enter a Key.",
+    "anonymousKeyHint": "Supports anonymous access, API Key can be left blank, but it is strongly recommended to get one for a more stable experience.",
     "webSearchEmpty": "No search engine configured. Using AnySearch anonymous quota as fallback.",
     "preset": "Preset",
     "applyPreset": "Apply preset",
