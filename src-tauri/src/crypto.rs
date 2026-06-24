@@ -160,6 +160,16 @@ pub fn decrypt_legacy(payload: &EncryptedPayload) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("decrypt: {e}"))
 }
 
+/// Decrypt a payload written by the pre-Master-Key scheme, which used a
+/// per-scope machine-seed key: SHA256(machine_seed + ":" + scope). This is the
+/// actual format of all data files created before the vault refactor, so it is
+/// the correct migration fallback (the global `decrypt_legacy` only handles the
+/// even-older scope-less format).
+pub fn decrypt_legacy_scoped(scope: &str, payload: &EncryptedPayload) -> Result<Vec<u8>, String> {
+    let key = derive_legacy_scoped_key(scope);
+    decrypt_with_key(&key, payload)
+}
+
 /// Encrypt with an explicit raw key (bypasses scope derivation). Used by the
 /// vault to wrap the Master Key itself, where we must NOT route through
 /// derive_key (that would recurse).
@@ -274,5 +284,24 @@ mod tests {
     fn test_encrypt_with_key_wrong_key_fails() {
         let payload = encrypt_with_key(&[1u8; 32], b"data").unwrap();
         assert!(decrypt_with_key(&[2u8; 32], &payload).is_err());
+    }
+
+    #[test]
+    fn test_decrypt_legacy_scoped_reads_pre_vault_format() {
+        // A data file written before the Master Key refactor was encrypted with
+        // SHA256(machine_seed:"scope"). Simulate exactly that: encrypt with the
+        // scoped legacy key directly, then confirm decrypt_legacy_scoped opens
+        // it while the current (no-master-key-set in this proc) derive_key
+        // path also coincides — and that the scope-less legacy path does NOT.
+        let scope = "secrets";
+        let legacy_scoped = derive_legacy_scoped_key(scope);
+        let payload = encrypt_with_key(&legacy_scoped, b"an-api-key").unwrap();
+
+        // The scoped-legacy path must recover it.
+        let plain = decrypt_legacy_scoped(scope, &payload).unwrap();
+        assert_eq!(plain, b"an-api-key");
+
+        // The scope-less global legacy key must fail (different key).
+        assert!(decrypt_legacy(&payload).is_err());
     }
 }

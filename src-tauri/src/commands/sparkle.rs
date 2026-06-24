@@ -33,7 +33,9 @@ fn load_sparkles_encrypted(app: &AppHandle) -> Result<Vec<SparkleEntry>, String>
 
     let bytes =
         crypto::decrypt("sparkles", &payload).or_else(|_: String| -> Result<Vec<u8>, String> {
-            let plaintext = crypto::decrypt_legacy(&payload)?;
+            // Migration: scoped machine-seed key first, then scope-less legacy.
+            let plaintext = crypto::decrypt_legacy_scoped("sparkles", &payload)
+                .or_else(|_| crypto::decrypt_legacy(&payload))?;
             let new_payload = crypto::encrypt("sparkles", &plaintext)?;
             let out = serde_json::to_string_pretty(&new_payload).map_err(|e| format!("{e}"))?;
             fs::write(&path, out).map_err(|e| format!("write: {e}"))?;

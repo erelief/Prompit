@@ -38,7 +38,9 @@ fn load_dict_store(app: &AppHandle) -> Result<DictStore, String> {
 
     let bytes =
         crate::crypto::decrypt("dictionary", &payload).or_else(|_| -> Result<Vec<u8>, String> {
-            let plaintext = crate::crypto::decrypt_legacy(&payload)?;
+            // Migration: scoped machine-seed key first, then scope-less legacy.
+            let plaintext = crate::crypto::decrypt_legacy_scoped("dictionary", &payload)
+                .or_else(|_| crate::crypto::decrypt_legacy(&payload))?;
             let new_payload = crate::crypto::encrypt("dictionary", &plaintext)?;
             let out = serde_json::to_string_pretty(&new_payload)
                 .map_err(|e| format!("serialize: {e}"))?;
