@@ -85,23 +85,16 @@ export function formatSearchContext(hits: SearchHit[]): string {
 }
 
 /**
- * Classify a search error into a user-facing i18n key + code.
+ * Classify a search error into a code + raw message from the server.
  */
 export function classifySearchError(e: unknown): ClassifiedSearchError {
   if (e instanceof SearchHttpError) {
-    const raw = extractErrorMessage(e.message);
-    if (e.status === 401 || e.status === 403) {
-      return { code: String(e.status), messageKey: "search.err401", rawMessage: raw || undefined };
-    }
-    if (e.status === 429) {
-      return { code: "429", messageKey: "search.err429", rawMessage: raw || undefined };
-    }
-    return { code: String(e.status), messageKey: "search.errUnknown", rawMessage: raw || undefined };
+    return { code: String(e.status), rawMessage: extractErrorMessage(e.message) || undefined };
   }
   if (e instanceof Error && /network|fetch|Failed to fetch/i.test(e.message)) {
-    return { code: "NETWORK", messageKey: "search.errNetwork" };
+    return { code: "NETWORK" };
   }
-  return { code: "UNKNOWN", messageKey: "search.errUnknown" };
+  return { code: "UNKNOWN" };
 }
 
 /** Try to extract a human-readable error string from an HTTP response body. */

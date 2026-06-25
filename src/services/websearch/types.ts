@@ -21,9 +21,7 @@ export type SearchFn = (query: string, opts: SearchOptions) => Promise<SearchHit
 /** Result of classifying a search error for user display. */
 export interface ClassifiedSearchError {
   code: string; // HTTP status as string, or "NETWORK" / "UNKNOWN"
-  messageKey: string; // i18n key for the human message
-  /** Raw error text from the server, shown to the user when present. */
-  rawMessage?: string;
+  rawMessage?: string; // Raw error text from the server
 }
 
 /** Thrown by preset modules; carries the HTTP status for classification. */

@@ -14,7 +14,7 @@ import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import { translate } from "../services/llm-client";
 import type { TranslateOutcome } from "../services/llm-client";
-import { SearchFailureError } from "../services/llm-client";
+import { SearchFailureError, ModelHttpError } from "../services/llm-client";
 import { classifySearchError } from "../services/websearch";
 import type { SearchHit } from "../services/websearch/types";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink } from "@lucide/vue";
@@ -391,12 +391,12 @@ async function handleTranslate() {
     if (err instanceof SearchFailureError) {
       const classified = classifySearchError(err.cause);
       webSearchStatus.value = "error";
-      const detail = classified.rawMessage ?? t(classified.messageKey);
       webSearchErrorText.value =
-        t("search.failed", { code: classified.code, message: detail }) +
+        t("search.failed", { code: classified.code, message: classified.rawMessage ?? "" }) +
         " " +
         t("search.retryOrDisable");
-      // No LLM result; translatedText stays empty
+    } else if (err instanceof ModelHttpError) {
+      errorMessage.value = t("failed", { code: err.status, message: err.message });
     } else {
       errorMessage.value = String(err);
     }

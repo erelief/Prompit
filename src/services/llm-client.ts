@@ -23,6 +23,16 @@ export class SearchFailureError extends Error {
   }
 }
 
+/** Thrown by translate/optimizePrompt on HTTP errors; carries status code. */
+export class ModelHttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ModelHttpError";
+    this.status = status;
+  }
+}
+
 export interface FetchModelEntry {
   id: string;
   input_capabilities: ModelInputCapabilities; // {} when nothing detected
@@ -219,7 +229,7 @@ export async function translate(text: string, signal?: AbortSignal): Promise<Tra
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`API error ${response.status}: ${errorText}`);
+    throw new ModelHttpError(response.status, errorText || `HTTP ${response.status}`);
   }
 
   const data = await response.json();
@@ -293,7 +303,7 @@ export async function optimizePrompt(rawPrompt: string, mode: "translate" | "spa
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`API error ${response.status}: ${errorText}`);
+    throw new ModelHttpError(response.status, errorText || `HTTP ${response.status}`);
   }
 
   const data = await response.json();
