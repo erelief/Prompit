@@ -33,6 +33,7 @@ import {
   endpointLabel,
   variantRegionLabelKey,
   variantEndpointLabelKey,
+  isLocalProvider,
 } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
@@ -505,7 +506,8 @@ function handleUpdateClick() {
 function validateProvider(p: ProviderConfig): string | null {
   const missing: string[] = [];
   if (!p.name.trim()) missing.push("Name");
-  if (!p.api_key.trim()) missing.push("API Key");
+  // Local-app providers (LM Studio, …) don't require an API key.
+  if (!isLocalProvider(p, providerPresets.value) && !p.api_key.trim()) missing.push("API Key");
   if (!p.base_url.trim()) missing.push("Base URL");
   if (p.models.length === 0) missing.push("at least one Model");
   return missing.length ? `Required: ${missing.join(", ")}` : null;
@@ -1443,10 +1445,10 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- get API key link (below variants, above fields) -->
+            <!-- get API key / download link (below variants, above fields) -->
             <p v-if="item.preset && presetApiKeyUrl(item)" class="preset-hint" @click.stop>
               <a :href="presetApiKeyUrl(item)" target="_blank" rel="noopener noreferrer" @click.prevent="openExternal(presetApiKeyUrl(item)!)" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
-                {{ t('settings.getApiKeyAt', { name: item.preset }) }}
+                {{ isLocalProvider(item, providerPresets) ? t('settings.downloadAt', { name: item.preset }) : t('settings.getApiKeyAt', { name: item.preset }) }}
               </a>
             </p>
 
@@ -1467,7 +1469,7 @@ onUnmounted(() => {
                   <button
                     class="icon-btn-sm linkish"
                     @click.stop="testConnection(item, index)"
-                    :disabled="!item.api_key || testingProvider === index"
+                    :disabled="(!item.api_key && !isLocalProvider(item, providerPresets)) || testingProvider === index"
                     :title="t('settings.testConnection')"
                   >
                     <Loader2 v-if="testingProvider === index" :size="12" class="spin" :stroke-width="1.9" />
@@ -1484,6 +1486,9 @@ onUnmounted(() => {
                     {{ editStates.get(index)?.status }}
                   </span>
                 </Transition>
+                <p v-if="isLocalProvider(item, providerPresets)" class="preset-hint" style="margin-top: 4px;">
+                  {{ t('settings.localApiKeyHint') }}
+                </p>
               </div>
 
               <div class="field">
@@ -1499,7 +1504,7 @@ onUnmounted(() => {
                 <button
                   class="pill-btn micro"
                   @click.stop="fetchModels(item, index)"
-                  :disabled="!item.api_key || !item.base_url || editStates.get(index)?.fetching"
+                  :disabled="(!item.api_key && !isLocalProvider(item, providerPresets)) || !item.base_url || editStates.get(index)?.fetching"
                 >
                   <Loader2 v-if="editStates.get(index)?.fetching" :size="10" class="spin" :stroke-width="2" />
                   <RefreshCw v-else :size="10" :stroke-width="2" />
@@ -1565,8 +1570,8 @@ onUnmounted(() => {
               </div>
             </div>
           </template>
-          <template #disclaimer>
-            <div class="api-disclaimer">
+          <template #disclaimer="{ item }">
+            <div v-if="!isLocalProvider(item, providerPresets)" class="api-disclaimer">
               <Info :size="11" :stroke-width="1.8" />
               <span>{{ t('settings.apiKeyDisclaimer') }}</span>
             </div>

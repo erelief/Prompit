@@ -95,6 +95,10 @@ export interface ProviderPreset {
   base_url?: string;
   api_url?: string;
   api_format: ApiFormat;
+  /** True for local-app providers (LM Studio, Ollama, …). Renders a distinct
+   *  template: the hint becomes a "download" link, the API-key disclaimer is
+   *  hidden, and the API-key field is optional. */
+  is_local?: boolean;
   /** Optional multi-variant family: one menu entry that fans out into
    *  region → endpoint selections (e.g. CN/Global × Standard/Coding Plan).
    *  When present, provider_name/base_url/api_url are read from the selected
@@ -602,24 +606,27 @@ export async function loadModelCapabilities(): Promise<ModelCapabilityItem[]> {
 
 /** Resolve a stored `preset` name back to its family preset and (if it is a
  *  variant endpoint) the specific region + endpoint. A preset name may be a
- *  top-level preset `name`, or the `name` of an endpoint nested under some
- *  family's `variants.regions[].endpoints[]`. Returns `{ preset: undefined }`
+ *  top-level preset `name`, or the `provider_name` of an endpoint nested under
+ *  some family's `variants.regions[].endpoints[]`. Returns `{ preset: undefined }`
  *  when nothing matches. */
 export function resolvePreset(
   presetName: string | undefined,
   presets: ProviderPreset[],
 ): { preset?: ProviderPreset; region?: PresetVariantRegion; endpoint?: PresetVariantEndpoint } {
   if (!presetName) return {};
-  // 1) direct top-level match
-  const direct = presets.find(p => p.name === presetName);
-  if (direct) return { preset: direct };
-  // 2) endpoint match across variant families
+  // 1) endpoint match across variant families — checked FIRST so that a
+  //    family whose top-level `name` collides with one of its endpoint
+  //    provider_names (e.g. family "Kimi" vs endpoint "Kimi") still resolves
+  //    the region/endpoint correctly instead of short-circuiting below.
   for (const p of presets) {
     for (const r of p.variants?.regions ?? []) {
       const ep = r.endpoints.find(e => e.provider_name === presetName);
       if (ep) return { preset: p, region: r, endpoint: ep };
     }
   }
+  // 2) direct top-level match (plain presets without variants)
+  const direct = presets.find(p => p.name === presetName);
+  if (direct) return { preset: direct };
   return {};
 }
 
@@ -631,6 +638,14 @@ export function getProviderIcon(provider: ProviderConfig, presets: ProviderPrese
 export function getProviderSeries(provider: ProviderConfig, presets: ProviderPreset[]): string {
   if (!provider.preset) return ''
   return resolvePreset(provider.preset, presets).preset?.model_series ?? ''
+}
+
+/** True when the provider's preset is flagged is_local (LM Studio, Ollama, …).
+ *  Such providers use a distinct UI template: no API-key disclaimer, the hint
+ *  is a "download" link, and the API-key field is optional. */
+export function isLocalProvider(provider: ProviderConfig, presets: ProviderPreset[]): boolean {
+  if (!provider.preset) return false
+  return resolvePreset(provider.preset, presets).preset?.is_local ?? false
 }
 
 // ── Variant helpers (hierarchical: region → endpoints) ──

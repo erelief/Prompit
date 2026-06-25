@@ -20,6 +20,7 @@ import {
   endpointLabel,
   variantRegionLabelKey,
   variantEndpointLabelKey,
+  isLocalProvider,
 } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
@@ -104,7 +105,7 @@ const variantRegions = computed<PresetVariantRegion[]>(() => currentPresetObj.va
 const variantEndpoints = computed<PresetVariantEndpoint[]>(() => currentVariantRegion.value?.endpoints ?? []);
 
 async function testKeyConnection() {
-  if (!providerForm.value.api_key || !providerForm.value.base_url) return;
+  if ((!providerForm.value.api_key && !isLocalProvider(providerForm.value, providerPresets.value)) || !providerForm.value.base_url) return;
   isTestingKey.value = true;
   testKeyStatus.value = "";
   testKeyError.value = "";
@@ -159,7 +160,7 @@ const canProceed = computed(() => {
     case 2:
       return (
         providerForm.value.name.trim() !== "" &&
-        providerForm.value.api_key.trim() !== "" &&
+        (isLocalProvider(providerForm.value, providerPresets.value) || providerForm.value.api_key.trim() !== "") &&
         providerForm.value.base_url.trim() !== ""
       );
     case 3:
@@ -633,10 +634,10 @@ onMounted(async () => {
               </div>
             </div>
 
-            <!-- Get API key link (below variants) -->
+            <!-- Get API key / download link (below variants) -->
             <p v-if="selectedPreset && selectedPreset !== 'Custom' && (currentVariantEndpoint?.api_url || currentPresetObj?.api_url)" class="mb-4 -mt-1" style="font-size: 10.5px; line-height: 1.4">
               <a :href="currentVariantEndpoint?.api_url || currentPresetObj?.api_url" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
-                {{ t('settings.getApiKeyAt', { name: selectedPreset }) }}
+                {{ isLocalProvider(providerForm, providerPresets) ? t('settings.downloadAt', { name: selectedPreset }) : t('settings.getApiKeyAt', { name: selectedPreset }) }}
               </a>
             </p>
 
@@ -682,10 +683,10 @@ onMounted(async () => {
                   :style="{
                     background: testKeyStatus === 'ok' ? 'var(--color-accent-bg)' : testKeyStatus === 'fail' ? 'rgba(239,68,68,0.1)' : 'var(--color-surface)',
                     border: '1px solid var(--color-border)',
-                    cursor: (!providerForm.api_key || !providerForm.base_url || isTestingKey) ? 'not-allowed' : 'pointer',
-                    opacity: (!providerForm.api_key || !providerForm.base_url) ? 0.4 : 1,
+                    cursor: ((!providerForm.api_key && !isLocalProvider(providerForm, providerPresets)) || !providerForm.base_url || isTestingKey) ? 'not-allowed' : 'pointer',
+                    opacity: ((!providerForm.api_key && !isLocalProvider(providerForm, providerPresets)) || !providerForm.base_url) ? 0.4 : 1,
                   }"
-                  :disabled="!providerForm.api_key || !providerForm.base_url || isTestingKey"
+                  :disabled="(!providerForm.api_key && !isLocalProvider(providerForm, providerPresets)) || !providerForm.base_url || isTestingKey"
                   @click="testKeyConnection"
                   :title="t('settings.testConnection')"
                 >
@@ -701,8 +702,11 @@ onMounted(async () => {
                 <template v-else-if="testKeyStatus === 'fail'">{{ t('onboarding.connectionFailed') }}{{ testKeyError ? ` (${testKeyError})` : '' }}</template>
                 <template v-else>{{ t('onboarding.connectionFailed') }}{{ fetchError ? ` (${fetchError})` : '' }}</template>
               </p>
+              <p v-if="isLocalProvider(providerForm, providerPresets)" class="mt-1.5" style="font-size: 10.5px; color: var(--color-text-muted); line-height: 1.4">
+                {{ t('settings.localApiKeyHint') }}
+              </p>
             </div>
-            <div class="api-disclaimer">
+            <div v-if="!isLocalProvider(providerForm, providerPresets)" class="api-disclaimer">
               <Info :size="11" :stroke-width="1.8" />
               <span>{{ t('settings.apiKeyDisclaimer') }}</span>
             </div>

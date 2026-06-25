@@ -226,9 +226,10 @@
       }
     },
     {
-      "name": "LM Studio (local)",
+      "name": "LM Studio",
       "provider_name": "LM Studio",
       "icon": "lmstudio",
+      "is_local": true,
       "base_url": "http://localhost:1234/v1",
       "api_url": "https://lmstudio.ai",
       "api_format": {
@@ -267,7 +268,7 @@
               {
                 "key": "standard",
                 "label": "Standard",
-                "provider_name": "MiniMax",
+                "provider_name": "MiniMaxi.com",
                 "base_url": "https://api.minimaxi.com/anthropic/v1",
                 "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key"
               }
@@ -280,7 +281,7 @@
               {
                 "key": "standard",
                 "label": "Standard",
-                "provider_name": "MiniMax",
+                "provider_name": "MiniMax.io",
                 "base_url": "https://api.minimax.io/anthropic/v1",
                 "api_url": "https://platform.minimax.io/user-center/basic-information/interface-key"
               }

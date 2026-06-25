@@ -94,6 +94,8 @@ pub struct ProviderPreset {
     #[serde(default)]
     pub api_format: ApiFormat,
     #[serde(default)]
+    pub is_local: bool,
+    #[serde(default)]
     pub variants: Option<PresetVariants>,
 }
 
