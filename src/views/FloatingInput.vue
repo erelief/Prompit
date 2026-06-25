@@ -430,6 +430,9 @@ async function handlePasteResult() {
 }
 
 async function handleHide() {
+  if (isEditing.value) {
+    cancelEditing();
+  }
   await invoke("hide_main_window");
 }
 
@@ -448,6 +451,9 @@ async function handleDrag(e: MouseEvent) {
 }
 
 async function handleOpenSettings() {
+  if (isEditing.value) {
+    cancelEditing();
+  }
   await invoke("open_settings_window");
   router.push("/settings");
 }
@@ -878,7 +884,7 @@ useShortcutTriggered(() => {
 
           <div class="flex-1"></div>
 
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1 toolbar-keep-active">
             <button
               @click="togglePin"
               class="icon-btn"
@@ -902,11 +908,11 @@ useShortcutTriggered(() => {
             </button>
           </div>
         </div>
-      </template>
+    </template>
 
-      <!-- !growAbove: result grows downward, input at top (default) -->
-      <template v-else>
-        <!-- Toolbar -->
+    <!-- !growAbove: result grows downward, input at top (default) -->
+    <template v-else>
+      <!-- Toolbar -->
         <div class="flex items-center gap-2" :class="{ 'toolbar-disabled': isEditing }">
           <!-- Mode switch button -->
           <div class="relative">
@@ -995,7 +1001,7 @@ useShortcutTriggered(() => {
 
           <div class="flex-1"></div>
 
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1 toolbar-keep-active">
             <button
               @click="togglePin"
               class="icon-btn"
@@ -1593,6 +1599,11 @@ useShortcutTriggered(() => {
 .toolbar-disabled {
   opacity: 0.5;
   pointer-events: none;
+}
+
+.toolbar-disabled .toolbar-keep-active {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .result-text {
