@@ -140,6 +140,7 @@ export interface AppConfig {
   app_lang: string;
   theme: "light" | "dark" | "system";
   floating_opacity: number;
+  font_size: number;
   show_startup_reminder: boolean;
   history_limit: number;
   history_enabled: boolean;
@@ -166,6 +167,7 @@ const defaultConfig: AppConfig = {
   app_lang: "en",
   theme: "system",
   floating_opacity: 90,
+  font_size: 100,
   show_startup_reminder: true,
   history_limit: 50,
   history_enabled: true,
@@ -230,6 +232,9 @@ export function enableConfigAutosave(): void {
     () => JSON.stringify(appConfig),
     () => { scheduleSave(); },
   );
+  watch(() => appConfig.font_size, (v) => {
+    document.documentElement.style.setProperty('--font-scale', String((v ?? 100) / 100));
+  }, { immediate: true });
 }
 
 export const dictStore = reactive({

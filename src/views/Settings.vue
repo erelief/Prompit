@@ -167,6 +167,13 @@ const currentAppLangLabel = computed(() => {
   return appLanguageOptions.find(o => o.value === appConfig.app_lang)?.label || "English";
 });
 
+const fontSizeOptions = computed(() => [
+  { value: 85, label: t('settings.fontSizeSmall') },
+  { value: 100, label: t('settings.fontSizeStandard') },
+  { value: 115, label: t('settings.fontSizeLarge') },
+  { value: 130, label: t('settings.fontSizeXLarge') },
+]);
+
 // ── Auto-update ──
 // idle | checking | up-to-date | has-update | preparing | downloading | installing | restarting | error
 const updateStatus = ref("idle");
@@ -1746,6 +1753,21 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
+          <!-- Floating Window Font Size -->
+          <div class="card-row">
+            <span class="card-label">{{ t('settings.fontSize') }}</span>
+            <div class="theme-toggle compact">
+              <button
+                v-for="opt in fontSizeOptions"
+                :key="opt.value"
+                class="theme-btn"
+                :class="{ on: appConfig.font_size === opt.value }"
+                @click="appConfig.font_size = opt.value"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
           <!-- Language -->
           <div class="card-row">
             <span class="card-label">{{ t('settings.language') }}</span>
@@ -2368,7 +2390,7 @@ onUnmounted(() => {
    Design tokens & base
    ══════════════════════════════════════ */
 .settings-root {
-  height: 100dvh; display: flex; flex-direction: column;
+  height: calc(100dvh / var(--font-scale, 1)); display: flex; flex-direction: column;
   background: var(--color-bg); color: var(--color-text); overflow: hidden;
   border-radius: 11px;
 }

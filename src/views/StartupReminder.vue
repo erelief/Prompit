@@ -70,7 +70,7 @@ onUnmounted(() => {
 
 <style scoped>
 .reminder-root {
-  height: 100dvh;
+  height: calc(100dvh / var(--font-scale, 1));
   display: flex;
   align-items: center;
   justify-content: center;

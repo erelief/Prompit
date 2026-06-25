@@ -14,6 +14,7 @@
    Theme tokens
    ══════════════════════════════════════ */
 :root {
+  --font-scale: 1;
   --color-bg:              #F8F7F4;
   --color-surface:         rgba(0,0,0,0.055);
   --color-surface-hover:   rgba(0,0,0,0.085);
@@ -67,6 +68,7 @@ body {
 
 #app {
   background: transparent;
+  zoom: var(--font-scale, 1);
 }
 
 ::selection {

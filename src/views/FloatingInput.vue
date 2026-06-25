@@ -96,6 +96,8 @@ const glassBg = computed(() => {
 
 const floatingAlpha = computed(() => (appConfig.floating_opacity ?? 90) / 100);
 
+const fontScale = computed(() => (appConfig.font_size ?? 100) / 100);
+
 // When a sparkle with a description is active, surface it as the input placeholder.
 const inputPlaceholder = computed(() => {
   if (appConfig.active_mode === "sparkle") {
@@ -592,7 +594,7 @@ onMounted(async () => {
   // surface but Vue layout can go stale. Force a reflow by re-sending the
   // current height to the backend.
   unlistenResume = await listen("system-resumed", () => {
-    invoke("resize_and_reposition", { height: bodyHeight.value, width: MAIN_WIDTH });
+    invoke("resize_and_reposition", { height: bodyHeight.value * fontScale.value, width: MAIN_WIDTH * fontScale.value });
   });
 });
 
@@ -610,8 +612,15 @@ onUnmounted(() => {
 watch(bodyHeight, (h) => {
   if (h !== lastSentHeight) {
     lastSentHeight = h;
-    invoke("resize_and_reposition", { height: h, width: MAIN_WIDTH });
+    invoke("resize_and_reposition", { height: h * fontScale.value, width: MAIN_WIDTH * fontScale.value });
   }
+});
+
+watch(fontScale, () => {
+  lastSentHeight = -1;
+  nextTick(() => {
+    invoke("resize_and_reposition", { height: bodyHeight.value * fontScale.value, width: MAIN_WIDTH * fontScale.value });
+  });
 });
 
 defineExpose({ clearAll });
@@ -626,12 +635,13 @@ useShortcutTriggered(() => {
 <template>
   <div
     @mousedown="handleDrag"
-    class="w-full h-[100dvh] flex justify-center overflow-hidden"
+    class="w-full flex justify-center overflow-hidden"
     :class="growAbove ? 'items-end' : 'items-start'"
-    :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)' }"
+    :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)', height: 'calc(100dvh / var(--font-scale, 1))' }"
   >
     <div ref="contentWrapRef"
-      class="w-full max-w-[560px] px-5 py-4 flex flex-col gap-1.5 overflow-y-auto flex-shrink-0 h-fit"
+      class="w-full px-5 py-4 flex flex-col gap-1.5 overflow-y-auto flex-shrink-0 h-fit"
+      :style="{ maxWidth: 560 * fontScale + 'px' }"
       :class="{ 'justify-end': growAbove }">
       <!-- growAbove: result grows upward, input anchored at bottom -->
         <template v-if="growAbove">

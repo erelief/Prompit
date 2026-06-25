@@ -239,7 +239,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100dvh;
+  height: calc(100dvh / var(--font-scale, 1));
   overflow: hidden;
 }
 .history-root.grow-above {

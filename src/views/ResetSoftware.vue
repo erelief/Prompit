@@ -92,7 +92,7 @@ async function handleConfirm() {
 
 <style scoped>
 .reset-root {
-  height: 100dvh;
+  height: calc(100dvh / var(--font-scale, 1));
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
