@@ -47,6 +47,7 @@ import {
   SunMoon,
   Plus,
   Globe,
+  Info,
 } from "@lucide/vue";
 import { SEARCH_PRESETS, testWebEngine } from "../services/websearch";
 
@@ -701,6 +702,10 @@ onMounted(async () => {
                 <template v-else>{{ t('onboarding.connectionFailed') }}{{ fetchError ? ` (${fetchError})` : '' }}</template>
               </p>
             </div>
+            <div class="api-disclaimer">
+              <Info :size="11" :stroke-width="1.8" />
+              <span>{{ t('settings.apiKeyDisclaimer') }}</span>
+            </div>
           </div>
 
           <!-- Step 3: Lightweight model suggestion -->
@@ -921,6 +926,10 @@ onMounted(async () => {
                 <template v-if="searchIsTesting">{{ t('onboarding.testingConnection') }}</template>
                 <template v-else-if="searchTestStatus === 'fail'">{{ t('onboarding.connectionFailed') }}{{ searchTestError ? ` (${searchTestError})` : '' }}</template>
               </p>
+            </div>
+            <div class="api-disclaimer">
+              <Info :size="11" :stroke-width="1.8" />
+              <span>{{ t('settings.apiKeyDisclaimer') }}</span>
             </div>
           </div>
 
@@ -1218,4 +1227,11 @@ div::-webkit-scrollbar-thumb {
   background: var(--color-surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
+
+.api-disclaimer {
+  display: flex; align-items: flex-start; gap: 5px;
+  margin-top: 8px;
+  font-size: 10px; line-height: 1.45; color: var(--color-text-muted);
+}
+.api-disclaimer svg { flex-shrink: 0; margin-top: 1px; opacity: .65; }
 </style>

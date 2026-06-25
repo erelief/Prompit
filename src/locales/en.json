@@ -56,6 +56,7 @@
     "applyPreset": "Apply preset",
     "openaiCompatHint": "Requires an OpenAI-compatible API.",
     "getApiKeyAt": "Get your API key at {name}",
+    "apiKeyDisclaimer": "Please obtain API keys from legitimate channels and use them within the provider's terms of service.",
     "variantAxisRegion": "Region",
     "variantAxisEndpoint": "Endpoint",
     "noPresetsFound": "No presets found. Edit the presets file to add one.",

@@ -1553,6 +1553,10 @@ onUnmounted(() => {
             </div>
           </template>
         </EditableCardList>
+        <div class="api-disclaimer">
+          <Info :size="11" :stroke-width="1.8" />
+          <span>{{ t('settings.apiKeyDisclaimer') }}</span>
+        </div>
 
         <!-- Web Search -->
         <EditableCardList
@@ -1675,6 +1679,10 @@ onUnmounted(() => {
             </div>
           </template>
         </EditableCardList>
+        <div class="api-disclaimer">
+          <Info :size="11" :stroke-width="1.8" />
+          <span>{{ t('settings.apiKeyDisclaimer') }}</span>
+        </div>
 
         <!-- Interface -->
         <div class="section-head mt">
@@ -3440,4 +3448,11 @@ label {
   font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
   margin:0 0 9px 0;
 }
+
+.api-disclaimer {
+  display:flex; align-items:flex-start; gap:5px;
+  margin-top:8px; padding:0 2px;
+  font-size:10px; line-height:1.45; color: var(--color-text-muted);
+}
+.api-disclaimer svg { flex-shrink:0; margin-top:1px; opacity:.65; }
 </style>

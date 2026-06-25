@@ -23,34 +23,6 @@
       }
     },
     {
-      "name": "阿里云百炼",
-      "provider_name": "阿里云百炼",
-      "icon": "bailian",
-      "model_series": "Qwen",
-      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-      "api_url": "https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "阿里云百炼 Token Plan",
-      "provider_name": "阿里云百炼 Token Plan",
-      "icon": "bailian",
-      "model_series": "Qwen",
-      "base_url": "https://token-plan.cn-beijing.maas.aliyuncs.com/v1",
-      "api_url": "https://common-buy.aliyun.com/token-plan",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
       "name": "Anthropic",
       "provider_name": "Anthropic",
       "icon": "anthropic",
@@ -70,6 +42,102 @@
         },
         "system_key": "system",
         "force_fields": ["max_tokens"]
+      }
+    },
+    {
+      "name": "Bailian/阿里云百炼",
+      "icon": "bailian",
+      "model_series": "Qwen",
+      "api_format": {
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "chat_endpoint": "/chat/completions",
+        "models_endpoint": "/models"
+      },
+      "variants": {
+        "default_region": "cn-beijing",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn-beijing",
+            "label": "北京",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "阿里云百炼",
+                "base_url": "https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+                "api_url": "https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key"
+              },
+              {
+                "key": "token_plan",
+                "label": "Token Plan",
+                "provider_name": "阿里云百炼 Token Plan",
+                "base_url": "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+                "api_url": "https://common-buy.aliyun.com/token-plan"
+              },
+              {
+                "key": "coding",
+                "label": "Coding Plan",
+                "provider_name": "阿里云百炼 Coding Plan",
+                "base_url": "https://coding.dashscope.aliyuncs.com/v1",
+                "api_url": "https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key"
+              }
+            ]
+          },
+          {
+            "key": "ap-southeast-1",
+            "label": "Singapore",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "Bailian (SP)",
+                "base_url": "https://{WorkspaceId}.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
+                "api_url": "https://bailian.console.aliyun.com/ap-southeast-1?tab=model#/api-key"
+              }
+            ]
+          },
+          {
+            "key": "eu-central-1",
+            "label": "Germany (Frankfurt)",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "Bailian (EU)",
+                "base_url": "https://{WorkspaceId}.eu-central-1.maas.aliyuncs.com/compatible-mode/v1",
+                "api_url": "https://bailian.console.aliyun.com/eu-central-1?tab=model#/api-key"
+              }
+            ]
+          },
+          {
+            "key": "ap-northeast-1",
+            "label": "Japan (Tokyo)",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "Bailian (JP)",
+                "base_url": "https://{WorkspaceId}.ap-northeast-1.maas.aliyuncs.com/compatible-mode/v1",
+                "api_url": "https://bailian.console.aliyun.com/ap-northeast-1?tab=model#/api-key"
+              }
+            ]
+          },
+          {
+            "key": "us",
+            "label": "United States (Virginia)",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "Bailian (US)",
+                "base_url": "https://dashscope-us.aliyuncs.com/compatible-mode/v1",
+                "api_url": "https://bailian.console.aliyun.com/us-west-1?tab=model#/api-key"
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -102,30 +170,59 @@
     },
     {
       "name": "Kimi",
-      "provider_name": "Kimi",
       "icon": "kimi",
       "model_series": "Kimi",
-      "base_url": "https://api.moonshot.cn/v1",
-      "api_url": "https://platform.kimi.com/console/api-keys",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
         "chat_endpoint": "/chat/completions",
         "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "Kimi (Global)",
-      "provider_name": "Kimi",
-      "icon": "kimi",
-      "model_series": "Kimi",
-      "base_url": "https://api.moonshot.ai/v1",
-      "api_url": "https://platform.kimi.ai/console/api-keys",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
+      },
+      "variants": {
+        "default_region": "cn",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn",
+            "label": "CN",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "Kimi",
+                "base_url": "https://api.moonshot.cn/v1",
+                "api_url": "https://platform.kimi.com/console/api-keys"
+              },
+              {
+                "key": "coding",
+                "label": "Coding",
+                "provider_name": "Kimi Code",
+                "base_url": "https://api.kimi.com/coding/v1",
+                "api_url": "https://platform.kimi.com/console/api-keys"
+              }
+            ]
+          },
+          {
+            "key": "global",
+            "label": "Global",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "Kimi (Global)",
+                "base_url": "https://api.moonshot.ai/v1",
+                "api_url": "https://platform.kimi.ai/console/api-keys"
+              },
+              {
+                "key": "coding",
+                "label": "Coding",
+                "provider_name": "Kimi Code (Global)",
+                "base_url": "https://api.kimi.ai/coding/v1",
+                "api_url": "https://platform.kimi.ai/console/api-keys"
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -143,30 +240,53 @@
     },
     {
       "name": "MiniMax",
-      "provider_name": "MiniMax",
       "icon": "minimax",
       "model_series": "MiniMax",
-      "base_url": "https://api.minimaxi.com/v1",
-      "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key",
       "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "MiniMax (Global)",
-      "provider_name": "MiniMax",
-      "icon": "minimax",
-      "model_series": "MiniMax",
-      "base_url": "https://api.minimax.io/v1",
-      "api_url": "https://platform.minimax.io/user-center/basic-information/interface-key",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
+        "auth_header": "x-api-key",
+        "auth_prefix": "",
+        "extra_headers": {
+          "anthropic-version": "2023-06-01"
+        },
+        "chat_endpoint": "/messages",
+        "models_endpoint": "/models",
+        "response": {
+          "content": "content.0.text"
+        },
+        "system_key": "system",
+        "force_fields": ["max_tokens"]
+      },
+      "variants": {
+        "default_region": "cn",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn",
+            "label": "CN (minimaxi.com)",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "MiniMax",
+                "base_url": "https://api.minimaxi.com/anthropic/v1",
+                "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key"
+              }
+            ]
+          },
+          {
+            "key": "global",
+            "label": "Global (minimax.io)",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "MiniMax",
+                "base_url": "https://api.minimax.io/anthropic/v1",
+                "api_url": "https://platform.minimax.io/user-center/basic-information/interface-key"
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -184,29 +304,39 @@
       }
     },
     {
-      "name": "OpenCode Zen",
-      "provider_name": "OpenCode Zen",
+      "name": "OpenCode",
       "icon": "opencode",
-      "base_url": "https://opencode.ai/zen/v1",
-      "api_url": "https://opencode.ai/auth",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
         "chat_endpoint": "/chat/completions",
         "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "OpenCode Go",
-      "provider_name": "OpenCode Go",
-      "icon": "opencode",
-      "base_url": "https://opencode.ai/zen/go/v1",
-      "api_url": "https://opencode.ai/auth",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
+      },
+      "variants": {
+        "default_region": "default",
+        "default_endpoint": "zen",
+        "regions": [
+          {
+            "key": "default",
+            "label": "Global",
+            "endpoints": [
+              {
+                "key": "zen",
+                "label": "Zen",
+                "provider_name": "OpenCode Zen",
+                "base_url": "https://opencode.ai/zen/v1",
+                "api_url": "https://opencode.ai/auth"
+              },
+              {
+                "key": "go",
+                "label": "Go",
+                "provider_name": "OpenCode Go",
+                "base_url": "https://opencode.ai/zen/go/v1",
+                "api_url": "https://opencode.ai/auth"
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -223,29 +353,45 @@
       }
     },
     {
-      "name": "硅基流动",
-      "provider_name": "硅基流动",
+      "name": "SiliconFlow/硅基流动",
       "icon": "siliconflow",
-      "base_url": "https://api.siliconflow.cn/v1",
-      "api_url": "https://cloud.siliconflow.cn/",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
         "chat_endpoint": "/chat/completions",
         "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "SiliconFlow",
-      "provider_name": "SiliconFlow",
-      "icon": "siliconflow",
-      "base_url": "https://api.siliconflow.com/v1/",
-      "api_url": "https://cloud.siliconflow.com/",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
+      },
+      "variants": {
+        "default_region": "cn",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn",
+            "label": "CN",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "硅基流动",
+                "base_url": "https://api.siliconflow.cn/v1",
+                "api_url": "https://cloud.siliconflow.cn/"
+              }
+            ]
+          },
+          {
+            "key": "global",
+            "label": "Global",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "SiliconFlow",
+                "base_url": "https://api.siliconflow.com/v1/",
+                "api_url": "https://cloud.siliconflow.com/"
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -321,30 +467,39 @@
     },
     {
       "name": "Xiaomi MiMo",
-      "provider_name": "Xiaomi MiMo",
       "icon": "mimo",
       "model_series": "MiMo",
-      "base_url": "https://api.xiaomimimo.com/v1",
-      "api_url": "https://platform.xiaomimimo.com/console/api-keys",
       "api_format": {
         "auth_header": "Authorization",
         "auth_prefix": "Bearer ",
         "chat_endpoint": "/chat/completions",
         "models_endpoint": "/models"
-      }
-    },
-    {
-      "name": "Xiaomi MiMo Token Plan",
-      "provider_name": "Xiaomi MiMo Token Plan",
-      "icon": "mimo",
-      "model_series": "MiMo",
-      "base_url": "https://token-plan-cn.xiaomimimo.com/v1",
-      "api_url": "https://platform.xiaomimimo.com/console/plan-manage",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
+      },
+      "variants": {
+        "default_region": "default",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "default",
+            "label": "MiMo",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "Xiaomi MiMo",
+                "base_url": "https://api.xiaomimimo.com/v1",
+                "api_url": "https://platform.xiaomimimo.com/console/api-keys"
+              },
+              {
+                "key": "token_plan",
+                "label": "Token Plan (CN-Only)",
+                "provider_name": "Xiaomi MiMo Token Plan",
+                "base_url": "https://token-plan-cn.xiaomimimo.com/v1",
+                "api_url": "https://platform.xiaomimimo.com/console/plan-manage"
+              }
+            ]
+          }
+        ]
       }
     },
     {
