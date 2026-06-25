@@ -157,6 +157,7 @@
     "clearAll": "清除全部",
     "clearConfirm": "确认删除所有历史记录？此操作不可撤销。",
     "historySettings": "历史记录",
+    "historyEnabled": "记录历史",
     "historyLimit": "最大历史条数",
     "clearHistory": "清除历史记录",
     "entryCount": "最大条数: {current}/{limit}",

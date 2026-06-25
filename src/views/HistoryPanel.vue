@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink } from "@lucide/vue";
+import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink, ToggleRight, ToggleLeft } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { appConfig, historyStore, loadHistory, saveHistory, MODES, type HistoryEntry } from "../stores/config";
 import { isDark } from "../composables/useTheme";
@@ -131,6 +131,14 @@ onMounted(async () => {
         {{ t('history.title') }}
       </h1>
       <div v-if="!sourcesEntry" class="header-actions">
+        <button
+          class="reset-btn"
+          :class="{ 'toggle-on': appConfig.history_enabled }"
+          @click.stop="appConfig.history_enabled = !appConfig.history_enabled"
+        >
+          <ToggleRight v-if="appConfig.history_enabled" :size="11" :stroke-width="1.9" />
+          <ToggleLeft v-else :size="11" :stroke-width="1.9" />{{ t('history.historyEnabled') }}
+        </button>
         <button
           v-if="!showClearConfirm && modeEntries.length > 0"
           class="reset-btn"
@@ -545,4 +553,12 @@ onMounted(async () => {
 }
 .source-external { flex-shrink: 0; color: var(--color-text-muted); }
 .sources-empty { font-size: 11px; color: var(--color-text-muted); padding: 16px 0; text-align: center; }
+
+/* Toggle button */
+.reset-btn.toggle-on {
+  color: var(--color-accent);
+}
+.reset-btn.toggle-on:hover {
+  color: var(--color-accent);
+}
 </style>

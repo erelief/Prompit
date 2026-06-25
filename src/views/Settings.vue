@@ -1880,6 +1880,13 @@ onUnmounted(() => {
         </div>
         <div class="card-section" :class="{ 'remove-pending': showHistoryClearConfirm }">
           <div class="card-row">
+            <span class="card-label">{{ t('history.historyEnabled') }}</span>
+            <button class="about-auto-btn" :class="{ 'toggle-on': appConfig.history_enabled }" @click="appConfig.history_enabled = !appConfig.history_enabled">
+              <ToggleRight v-if="appConfig.history_enabled" :size="15" :stroke-width="1.7" />
+              <ToggleLeft v-else :size="15" :stroke-width="1.7" />
+            </button>
+          </div>
+          <div class="card-row">
             <span class="card-label">{{ t('history.historyLimit') }}</span>
             <div class="opacity-row compact">
               <input

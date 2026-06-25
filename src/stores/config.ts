@@ -142,6 +142,7 @@ export interface AppConfig {
   floating_opacity: number;
   show_startup_reminder: boolean;
   history_limit: number;
+  history_enabled: boolean;
   shortcut: string;
   mode_shortcut: string;
   launch_on_startup: boolean;
@@ -167,6 +168,7 @@ const defaultConfig: AppConfig = {
   floating_opacity: 90,
   show_startup_reminder: true,
   history_limit: 50,
+  history_enabled: true,
   shortcut: "Alt+Y",
   mode_shortcut: "Alt+M",
   launch_on_startup: false,
@@ -818,6 +820,7 @@ export async function loadHistory(): Promise<void> {
 }
 
 export async function saveHistoryEntry(input: string, output: string, searched: boolean = false, sources?: SearchHit[], edited: boolean = false): Promise<void> {
+  if (!appConfig.history_enabled) return;
   const active = getActiveModel();
   const mode = appConfig.active_mode || "translate";
   const entry: HistoryEntry = {

@@ -157,6 +157,7 @@
     "clearAll": "Clear All",
     "clearConfirm": "Delete all history? This cannot be undone.",
     "historySettings": "History",
+    "historyEnabled": "Record History",
     "historyLimit": "Max History Entries",
     "clearHistory": "Clear History",
     "entryCount": "Max entries: {current}/{limit}",
