@@ -239,6 +239,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
         <slot name="content" :item="addDraft" :index="-1" :is-adding="true" />
         <div v-if="validationError" class="validation-error">{{ validationError }}</div>
         <div class="ecl-actions">
+          <slot name="disclaimer" :item="addDraft" :index="-1" :is-adding="true" />
           <button class="mini-btn gold-active" :title="t('common.confirm')" @click.stop="handleConfirm">
             <Check :size="11" :stroke-width="2.5" />
           </button>
@@ -314,6 +315,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
             <slot name="content" :item="drafts.get(oi)" :index="oi" :is-adding="false" />
             <div v-if="validationError" class="validation-error">{{ validationError }}</div>
             <div class="ecl-actions">
+              <slot name="disclaimer" :item="drafts.get(oi)" :index="oi" :is-adding="false" />
               <button class="mini-btn gold-active" :title="t('common.confirm')" @click.stop="confirmEdit(oi)">
                 <Check :size="11" :stroke-width="2.5" />
               </button>

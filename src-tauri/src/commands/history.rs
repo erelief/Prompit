@@ -23,6 +23,8 @@ pub struct HistoryEntry {
     pub searched: bool,
     #[serde(default)]
     pub sources: Option<Vec<serde_json::Value>>,
+    #[serde(default)]
+    pub edited: bool,
 }
 
 fn history_path(app: &AppHandle) -> Result<PathBuf, String> {

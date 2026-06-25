@@ -1552,11 +1552,13 @@ onUnmounted(() => {
               </div>
             </div>
           </template>
+          <template #disclaimer>
+            <div class="api-disclaimer">
+              <Info :size="11" :stroke-width="1.8" />
+              <span>{{ t('settings.apiKeyDisclaimer') }}</span>
+            </div>
+          </template>
         </EditableCardList>
-        <div class="api-disclaimer">
-          <Info :size="11" :stroke-width="1.8" />
-          <span>{{ t('settings.apiKeyDisclaimer') }}</span>
-        </div>
 
         <!-- Web Search -->
         <EditableCardList
@@ -1678,11 +1680,13 @@ onUnmounted(() => {
               </div>
             </div>
           </template>
+          <template #disclaimer>
+            <div class="api-disclaimer">
+              <Info :size="11" :stroke-width="1.8" />
+              <span>{{ t('settings.apiKeyDisclaimer') }}</span>
+            </div>
+          </template>
         </EditableCardList>
-        <div class="api-disclaimer">
-          <Info :size="11" :stroke-width="1.8" />
-          <span>{{ t('settings.apiKeyDisclaimer') }}</span>
-        </div>
 
         <!-- Interface -->
         <div class="section-head mt">
@@ -3450,8 +3454,7 @@ label {
 }
 
 .api-disclaimer {
-  display:flex; align-items:flex-start; gap:5px;
-  margin-top:8px; padding:0 2px;
+  display:flex; align-items:flex-start; gap:5px; flex:1; min-width:0;
   font-size:10px; line-height:1.45; color: var(--color-text-muted);
 }
 .api-disclaimer svg { flex-shrink:0; margin-top:1px; opacity:.65; }

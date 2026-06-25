@@ -800,6 +800,7 @@ export interface HistoryEntry {
   sparkle?: string;   // active sparkle name (sparkle mode) — display only
   searched?: boolean;   // whether web search context was used (sparkle mode)
   sources?: SearchHit[];   // web-search hits used for this entry (sparkle mode)
+  edited?: boolean;   // whether the entry was edited by the user
 }
 
 export const historyStore = reactive<{ entries: HistoryEntry[] }>({
@@ -816,7 +817,7 @@ export async function loadHistory(): Promise<void> {
   }
 }
 
-export async function saveHistoryEntry(input: string, output: string, searched: boolean = false, sources?: SearchHit[]): Promise<void> {
+export async function saveHistoryEntry(input: string, output: string, searched: boolean = false, sources?: SearchHit[], edited: boolean = false): Promise<void> {
   const active = getActiveModel();
   const mode = appConfig.active_mode || "translate";
   const entry: HistoryEntry = {
@@ -833,6 +834,7 @@ export async function saveHistoryEntry(input: string, output: string, searched: 
     sparkle: mode === "sparkle"
       ? (sparkleStore.sparkles.find(s => s.enabled)?.name || undefined)
       : undefined,
+    edited,
   };
   historyStore.entries.unshift(entry);
   const limit = appConfig.history_limit || 50;

@@ -159,7 +159,8 @@
     "historySettings": "History",
     "historyLimit": "Max History Entries",
     "clearHistory": "Clear History",
-    "entryCount": "Max entries: {current}/{limit}"
+    "entryCount": "Max entries: {current}/{limit}",
+    "edited": "Edited"
   },
   "dictionary": {
     "userDictionary": "User Dictionary",

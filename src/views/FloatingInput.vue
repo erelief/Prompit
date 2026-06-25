@@ -17,7 +17,7 @@ import type { TranslateOutcome } from "../services/llm-client";
 import { SearchFailureError, ModelHttpError } from "../services/llm-client";
 import { classifySearchError } from "../services/websearch";
 import type { SearchHit } from "../services/websearch/types";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink, Pencil, Check } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
@@ -41,6 +41,8 @@ const hasResult = ref(false);
 const isRestoringHistory = ref(false);
 const growAbove = ref(false);
 const pinned = ref(false);
+const isEditing = ref(false);
+const editedText = ref("");
 function togglePin() {
   pinned.value = !pinned.value;
   invoke("set_main_pinned", { pinned: pinned.value });
@@ -276,6 +278,11 @@ function handleKeydown(e: KeyboardEvent) {
     }
   }
 
+  // 在编辑模式下禁用 Enter 键发送功能
+  if (isEditing.value) {
+    return;
+  }
+
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     if (hasResult.value) {
@@ -436,7 +443,7 @@ function handleResultStale() {
 async function handleDrag(e: MouseEvent) {
   // Only drag from the background, not from interactive elements
   const target = e.target as HTMLElement;
-  if (target.closest("textarea, button, input, a, .model-dropdown")) return;
+  if (target.closest("textarea, button, input, a, .model-dropdown, .resize-handle")) return;
   await getCurrentWindow().startDragging();
 }
 
@@ -461,6 +468,58 @@ function closeResult() {
   translatedText.value = "";
   lastResultSources.value = [];
   sourcesView.value = false;
+}
+
+function startEditing() {
+  editedText.value = translatedText.value;
+  isEditing.value = true;
+}
+
+function cancelEditing() {
+  isEditing.value = false;
+  editedText.value = "";
+}
+
+async function confirmEditing() {
+  // 保存到历史记录，添加 "已编辑" tag
+  await saveHistoryEntry(inputText.value, editedText.value, lastResultSearched.value, lastResultSources.value, true);
+  
+  // 更新当前显示
+  translatedText.value = editedText.value;
+  isEditing.value = false;
+  editedText.value = "";
+}
+
+function handleEditKeydown(e: KeyboardEvent) {
+  // 阻止 Enter 键发送
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+  }
+}
+
+function startResize(e: MouseEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  const textarea = (e.target as HTMLElement).closest('.result-edit-textarea-wrapper')?.querySelector('textarea') as HTMLTextAreaElement | null;
+  if (!textarea) return;
+  
+  const startY = e.clientY;
+  const startHeight = textarea.offsetHeight;
+  
+  function onMouseMove(e: MouseEvent) {
+    const deltaY = e.clientY - startY;
+    const newHeight = Math.max(60, Math.min(200, startHeight + deltaY));
+    textarea!.style.height = `${newHeight}px`;
+  }
+  
+  function onMouseUp() {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+  
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
 }
 
 function cancelRequest() {
@@ -573,15 +632,27 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
-            <!-- Close result button (top-left corner) -->
+            <!-- Edit button (top-left corner) - replaces close button position -->
+            <button
+              v-if="!isEditing"
+              @click="startEditing"
+              class="edit-result-btn"
+              :title="t('common.edit')"
+            >
+              <Pencil :size="12" />
+            </button>
+            
+            <!-- Close result button (top-right corner) - moved -->
             <button
               @click="closeResult"
               class="close-result-btn"
               :title="t('common.close')"
+              :class="{ 'editing-mode': isEditing }"
             >
               <X :size="12" />
             </button>
-            <div v-if="lastResultSearched" class="provenance-row">
+            
+            <div v-if="lastResultSearched && !isEditing" class="provenance-row">
               <button class="provenance-btn" @click="sourcesView = !sourcesView">
                 <Globe :size="11" :stroke-width="1.8" />
                 <span>{{ t('search.sourceSearched') }}</span>
@@ -591,10 +662,36 @@ useShortcutTriggered(() => {
                 <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
               </button>
             </div>
+            
             <!-- Result view (default) -->
-            <div v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
+            <div v-if="!isEditing" v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
+            
+            <!-- Edit mode -->
+            <div v-if="isEditing" class="result-edit-textarea-wrapper">
+              <textarea
+                v-model="editedText"
+                class="result-edit-textarea"
+                @keydown="handleEditKeydown"
+              ></textarea>
+              <div class="resize-handle" @mousedown="startResize">
+                <svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="currentColor" d="M14.228 16.227a1 1 0 0 1-.707-1.707l1-1a1 1 0 0 1 1.416 1.414l-1 1a1 1 0 0 1-.707.293zm-5.638 0a1 1 0 0 1-.707-1.707l6.638-6.638a1 1 0 0 1 1.416 1.414l-6.638 6.638a1 1 0 0 1-.707.293z"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Edit action buttons (bottom-right) -->
+            <div v-if="isEditing" class="edit-actions">
+              <button @click="cancelEditing" class="edit-action-btn cancel" :title="t('common.cancel')">
+                <X :size="14" />
+              </button>
+              <button @click="confirmEditing" class="edit-action-btn confirm" :title="t('common.confirm')">
+                <Check :size="14" />
+              </button>
+            </div>
+            
             <!-- Sources view (shown when the provenance button is toggled on) -->
-            <div v-if="sourcesView" class="sources-view">
+            <div v-if="sourcesView && !isEditing" class="sources-view">
               <a v-for="(src, i) in lastResultSources" :key="i"
                  :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
                 <div class="source-favicon">🌐</div>
@@ -669,6 +766,7 @@ useShortcutTriggered(() => {
 
             <!-- History button (top-left corner of textarea) -->
             <button
+              v-if="!isEditing"
               @click="router.push('/history')"
               class="history-btn"
               :title="t('floating.history')"
@@ -680,7 +778,7 @@ useShortcutTriggered(() => {
 
           <button
             @click="hasResult ? handlePasteResult() : handleTranslate()"
-            :disabled="(!inputText.trim() && !hasResult) || isLoading"
+            :disabled="(!inputText.trim() && !hasResult) || isLoading || isEditing"
             class="send-btn-inline"
             :class="{ 'paste-mode': hasResult }"
             :title="hasResult ? t('floating.pasteIntoActiveField') : t('floating.send')"
@@ -692,7 +790,7 @@ useShortcutTriggered(() => {
         </div>
 
         <!-- Toolbar -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2" :class="{ 'toolbar-disabled': isEditing }">
           <!-- Mode switch button -->
           <div class="relative">
             <button
@@ -701,6 +799,7 @@ useShortcutTriggered(() => {
               class="mode-btn"
               :class="{ active: showModeDropdown }"
               :title="t(currentMode.labelKey)"
+              :disabled="isEditing"
             >
               <component :is="currentMode.icon" :size="14" :stroke-width="1.8" />
             </button>
@@ -808,7 +907,7 @@ useShortcutTriggered(() => {
       <!-- !growAbove: result grows downward, input at top (default) -->
       <template v-else>
         <!-- Toolbar -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2" :class="{ 'toolbar-disabled': isEditing }">
           <!-- Mode switch button -->
           <div class="relative">
             <button
@@ -817,6 +916,7 @@ useShortcutTriggered(() => {
               class="mode-btn"
               :class="{ active: showModeDropdown }"
               :title="t(currentMode.labelKey)"
+              :disabled="isEditing"
             >
               <component :is="currentMode.icon" :size="14" :stroke-width="1.8" />
             </button>
@@ -934,6 +1034,7 @@ useShortcutTriggered(() => {
 
             <!-- History button (top-left corner of textarea) -->
             <button
+              v-if="!isEditing"
               @click="router.push('/history')"
               class="history-btn"
               :title="t('floating.history')"
@@ -945,7 +1046,7 @@ useShortcutTriggered(() => {
 
           <button
             @click="hasResult ? handlePasteResult() : handleTranslate()"
-            :disabled="(!inputText.trim() && !hasResult) || isLoading"
+            :disabled="(!inputText.trim() && !hasResult) || isLoading || isEditing"
             class="send-btn-inline"
             :class="{ 'paste-mode': hasResult }"
             :title="hasResult ? t('floating.pasteIntoActiveField') : t('floating.send')"
@@ -998,15 +1099,27 @@ useShortcutTriggered(() => {
         <!-- Result area -->
         <Transition name="fade">
           <div v-show="translatedText" class="result-block">
-            <!-- Close result button (top-left corner) -->
+            <!-- Edit button (top-left corner) - replaces close button position -->
+            <button
+              v-if="!isEditing"
+              @click="startEditing"
+              class="edit-result-btn"
+              :title="t('common.edit')"
+            >
+              <Pencil :size="12" />
+            </button>
+            
+            <!-- Close result button (top-right corner) - moved -->
             <button
               @click="closeResult"
               class="close-result-btn"
               :title="t('common.close')"
+              :class="{ 'editing-mode': isEditing }"
             >
               <X :size="12" />
             </button>
-            <div v-if="lastResultSearched" class="provenance-row">
+            
+            <div v-if="lastResultSearched && !isEditing" class="provenance-row">
               <button class="provenance-btn" @click="sourcesView = !sourcesView">
                 <Globe :size="11" :stroke-width="1.8" />
                 <span>{{ t('search.sourceSearched') }}</span>
@@ -1016,10 +1129,36 @@ useShortcutTriggered(() => {
                 <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
               </button>
             </div>
+            
             <!-- Result view (default) -->
-            <div v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
+            <div v-if="!isEditing" v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
+            
+            <!-- Edit mode -->
+            <div v-if="isEditing" class="result-edit-textarea-wrapper">
+              <textarea
+                v-model="editedText"
+                class="result-edit-textarea"
+                @keydown="handleEditKeydown"
+              ></textarea>
+              <div class="resize-handle" @mousedown="startResize">
+                <svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="currentColor" d="M14.228 16.227a1 1 0 0 1-.707-1.707l1-1a1 1 0 0 1 1.416 1.414l-1 1a1 1 0 0 1-.707.293zm-5.638 0a1 1 0 0 1-.707-1.707l6.638-6.638a1 1 0 0 1 1.416 1.414l-6.638 6.638a1 1 0 0 1-.707.293z"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Edit action buttons (bottom-right) -->
+            <div v-if="isEditing" class="edit-actions">
+              <button @click="cancelEditing" class="edit-action-btn cancel" :title="t('common.cancel')">
+                <X :size="14" />
+              </button>
+              <button @click="confirmEditing" class="edit-action-btn confirm" :title="t('common.confirm')">
+                <Check :size="14" />
+              </button>
+            </div>
+            
             <!-- Sources view (shown when the provenance button is toggled on) -->
-            <div v-if="sourcesView" class="sources-view">
+            <div v-if="sourcesView && !isEditing" class="sources-view">
               <a v-for="(src, i) in lastResultSources" :key="i"
                  :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
                 <div class="source-favicon">🌐</div>
@@ -1304,11 +1443,43 @@ useShortcutTriggered(() => {
   position: relative;
 }
 
-/* Close result button - matches history button pattern */
-.close-result-btn {
+/* Edit button - replaces close button position */
+.edit-result-btn {
   position: absolute !important;
   top: -11px !important;
   left: -11px !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 0 !important;
+  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s !important;
+  z-index: 9999 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
+  background: var(--color-bg) !important;
+}
+
+.result-block:hover .edit-result-btn {
+  opacity: 1 !important;
+}
+
+.edit-result-btn:hover {
+  color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
+}
+
+/* Close result button - moved to top-right */
+.close-result-btn {
+  position: absolute !important;
+  top: -11px !important;
+  right: -11px !important;
+  left: auto !important;
   width: 22px !important;
   height: 22px !important;
   border-radius: 50% !important;
@@ -1333,6 +1504,95 @@ useShortcutTriggered(() => {
   color: var(--color-danger) !important;
   border-color: var(--color-danger) !important;
   background: color-mix(in srgb, var(--color-danger) 12%, var(--color-bg)) !important;
+}
+
+/* Edit textarea */
+.result-edit-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  min-height: 60px;
+  max-height: 200px;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.result-edit-textarea-wrapper {
+  position: relative;
+}
+
+.resize-handle {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  cursor: ns-resize;
+  opacity: 0.3;
+  transition: opacity 0.15s;
+  z-index: 2;
+}
+
+.resize-handle:hover {
+  opacity: 0.6;
+}
+
+.resize-handle svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Edit action buttons */
+.edit-actions {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
+.edit-action-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.edit-action-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.edit-action-btn.confirm:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+
+.edit-action-btn.cancel:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+
+/* Disable toolbar buttons in edit mode */
+.toolbar-disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .result-text {

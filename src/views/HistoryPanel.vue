@@ -203,6 +203,7 @@ onMounted(async () => {
                   <span>{{ entry.output }}</span>
                   <span v-if="entry.model" class="model-badge">{{ shortModel(entry.model) }}</span>
                   <span v-if="presetTag(entry)" class="preset-badge">{{ presetTag(entry) }}</span>
+                  <span v-if="entry.edited" class="edited-tag">{{ t('history.edited') }}</span>
                   <button v-if="entry.searched" class="searched-tag" :title="t('search.sourcesTitle')" @click.stop="openSources(entry)">
                     <Globe :size="9" :stroke-width="2" />
                   </button>
@@ -507,6 +508,20 @@ onMounted(async () => {
   transition: background 0.12s, color 0.12s;
 }
 .searched-tag:hover { background: var(--color-accent-bg); color: var(--color-accent); }
+
+/* ── Edited tag ── */
+.edited-tag {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-tertiary, var(--color-text-muted));
+  background: var(--color-surface-hover);
+  padding: 0 5px;
+  border-radius: 4px;
+  line-height: 16px;
+  white-space: nowrap;
+}
 
 /* Source-item list (used inside history-body when viewing sources) */
 .source-item {
