@@ -712,8 +712,7 @@ function toggleWebPresetMenu(e: MouseEvent, index: number) {
 
 function applyWebPreset(item: WebEngineConfig, presetId: string) {
   item.preset = presetId;
-  // Mirror providers: switching the preset overwrites the display name with
-  // the preset's label (the provider-supplied name).
+  item.api_key = "";
   item.custom_name = presetMeta(presetId).label;
   showWebPresetMenu.value = false;
   webPresetMenuIndex.value = null;
@@ -805,9 +804,16 @@ function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
     item.preset = undefined;
     item.base_url = "";
     item.api_format = undefined;
+    item.api_key = "";
     showPresetMenu.value = false;
     presetMenuIndex.value = null;
     return;
+  }
+  // Clear API key when switching to a different provider family.
+  // Preserves key when switching endpoints within the same variant family.
+  const oldFamily = resolvePreset(item.preset, providerPresets.value).preset;
+  if (oldFamily?.name !== preset.name) {
+    item.api_key = "";
   }
   // Variant family → land on its default region/endpoint selection.
   if (preset.variants) {
