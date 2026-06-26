@@ -5,8 +5,7 @@
       "provider_name": "",
       "icon": "",
       "base_url": "",
-      "api_url": "",
-      "api_format": {}
+      "api_url": ""
     },
     {
       "name": "Agnes",
@@ -15,12 +14,7 @@
       "model_series": "Agnes",
       "base_url": "https://apihub.agnes-ai.com/v1",
       "api_url": "https://platform.agnes-ai.com/settings/apiKeys",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
+      "api_format": "openai"
     },
     {
       "name": "Anthropic",
@@ -29,31 +23,13 @@
       "model_series": "Claude",
       "base_url": "https://api.anthropic.com/v1",
       "api_url": "https://console.anthropic.com/settings/keys",
-      "api_format": {
-        "auth_header": "x-api-key",
-        "auth_prefix": "",
-        "extra_headers": {
-          "anthropic-version": "2023-06-01"
-        },
-        "chat_endpoint": "/messages",
-        "models_endpoint": "/models",
-        "response": {
-          "content": "content.0.text"
-        },
-        "system_key": "system",
-        "force_fields": ["max_tokens"]
-      }
+      "api_format": "anthropic"
     },
     {
       "name": "Bailian/阿里云百炼",
       "icon": "bailian",
       "model_series": "Qwen",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      },
+      "api_format": "openai",
       "variants": {
         "default_region": "cn-beijing",
         "default_endpoint": "standard",
@@ -147,12 +123,7 @@
       "model_series": "Deepseek",
       "base_url": "https://api.deepseek.com",
       "api_url": "https://platform.deepseek.com/apikeys",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
+      "api_format": "openai"
     },
     {
       "name": "Google",
@@ -161,23 +132,16 @@
       "model_series": "Gemini",
       "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
       "api_url": "https://aistudio.google.com/app/apikey",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
+      "api_format": "openai"
     },
     {
       "name": "Kimi",
       "icon": "kimi",
-      "model_series": "Kimi",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      },
+      "model_series": [
+        "Kimi",
+        "Moonshot"
+      ],
+      "api_format": "openai",
       "variants": {
         "default_region": "cn",
         "default_endpoint": "standard",
@@ -243,20 +207,7 @@
       "name": "MiniMax",
       "icon": "minimax",
       "model_series": "MiniMax",
-      "api_format": {
-        "auth_header": "x-api-key",
-        "auth_prefix": "",
-        "extra_headers": {
-          "anthropic-version": "2023-06-01"
-        },
-        "chat_endpoint": "/messages",
-        "models_endpoint": "/models",
-        "response": {
-          "content": "content.0.text"
-        },
-        "system_key": "system",
-        "force_fields": ["max_tokens"]
-      },
+      "api_format": "anthropic",
       "variants": {
         "default_region": "cn",
         "default_endpoint": "standard",
@@ -297,22 +248,12 @@
       "model_series": "ChatGPT",
       "base_url": "https://api.openai.com/v1",
       "api_url": "https://platform.openai.com/apikeys",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
+      "api_format": "openai"
     },
     {
       "name": "OpenCode",
       "icon": "opencode",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      },
+      "api_format": "openai",
       "variants": {
         "default_region": "default",
         "default_endpoint": "zen",
@@ -346,22 +287,12 @@
       "icon": "openrouter",
       "base_url": "https://openrouter.ai/api/v1",
       "api_url": "https://openrouter.ai/settings/keys",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
+      "api_format": "openai"
     },
     {
       "name": "SiliconFlow/硅基流动",
       "icon": "siliconflow",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      },
+      "api_format": "openai",
       "variants": {
         "default_region": "cn",
         "default_endpoint": "standard",
@@ -396,15 +327,22 @@
       }
     },
     {
+      "name": "SenseNova/商汤「日日新」",
+      "provider_name": "SenseNova/商汤「日日新」",
+      "icon": "sensenova",
+      "model_series": [
+        "SenseNova",
+        "DeepSeek"
+      ],
+      "base_url": "https://token.sensenova.cn/v1",
+      "api_url": "https://console.sensenova.cn/",
+      "api_format": "openai"
+    },
+    {
       "name": "StepFun/阶跃星辰",
       "icon": "step",
       "model_series": "Step",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      },
+      "api_format": "openai",
       "variants": {
         "default_region": "cn",
         "default_endpoint": "standard",
@@ -459,23 +397,13 @@
       "model_series": "Grok",
       "base_url": "https://api.x.ai/v1",
       "api_url": "https://console.x.ai",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      }
+      "api_format": "openai"
     },
     {
       "name": "Xiaomi MiMo",
       "icon": "mimo",
       "model_series": "MiMo",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      },
+      "api_format": "openai",
       "variants": {
         "default_region": "default",
         "default_endpoint": "standard",
@@ -507,12 +435,7 @@
       "name": "Z.AI/智谱|BigModel",
       "icon": "zhipu",
       "model_series": "GLM",
-      "api_format": {
-        "auth_header": "Authorization",
-        "auth_prefix": "Bearer ",
-        "chat_endpoint": "/chat/completions",
-        "models_endpoint": "/models"
-      },
+      "api_format": "openai",
       "variants": {
         "default_region": "cn",
         "default_endpoint": "standard",

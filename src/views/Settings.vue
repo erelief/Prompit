@@ -132,7 +132,7 @@ const addingModelProvider = ref<number | null>(null);
 const showModelSelector = ref(false);
 const translationShowLangSelector = ref(false);
 const showPresetMenu = ref(false);
-const presetMenuPos = ref({ top: 0, left: 0 });
+const presetMenuPos = ref({ top: 0, left: 0, width: 220 });
 const presetMenuIndex = ref<number | null>(null);
 const providerPresets = ref<ProviderPreset[]>([]);
 const selMenuPos = ref({ top: 0, left: 0 });
@@ -700,7 +700,7 @@ async function testWebEngineConnection(eng: WebEngineConfig, index: number) {
 // ── Web search preset selector (mirrors the provider preset-mini-btn + sel-menu pattern) ──
 const showWebPresetMenu = ref(false);
 const webPresetMenuIndex = ref<number | null>(null);
-const webPresetMenuPos = ref({ top: 0, left: 0 });
+const webPresetMenuPos = ref({ top: 0, left: 0, width: 220 });
 
 function toggleWebPresetMenu(e: MouseEvent, index: number) {
   if (showWebPresetMenu.value && webPresetMenuIndex.value === index) {
@@ -711,12 +711,13 @@ function toggleWebPresetMenu(e: MouseEvent, index: number) {
   webPresetMenuIndex.value = index;
   showWebPresetMenu.value = true;
   const btn = e.currentTarget as HTMLElement;
-  const r = btn.getBoundingClientRect();
-  const menuW = 220;
-  let left = r.right - menuW;
+  const input = btn.parentElement?.querySelector('.name-fi') as HTMLElement | null;
+  const r = (input ?? btn).getBoundingClientRect();
+  const menuW = r.width;
+  let left = r.left;
   if (left + menuW > window.innerWidth - 8) left = window.innerWidth - 8 - menuW;
   if (left < 8) left = 8;
-  webPresetMenuPos.value = { top: r.bottom + 5, left };
+  webPresetMenuPos.value = { top: r.bottom + 4, left, width: menuW };
 }
 
 function applyWebPreset(item: WebEngineConfig, presetId: string) {
@@ -799,13 +800,13 @@ function togglePresetMenu(e: MouseEvent, _item: ProviderConfig, index: number) {
   presetMenuIndex.value = index;
   showPresetMenu.value = true;
   const btn = e.currentTarget as HTMLElement;
-  const r = btn.getBoundingClientRect();
-  const menuW = 220;
-  // Right-align the menu to the button's right edge, clamped to the viewport
-  let left = r.right - menuW;
+  const input = btn.parentElement?.querySelector('.name-fi') as HTMLElement | null;
+  const r = (input ?? btn).getBoundingClientRect();
+  const menuW = r.width;
+  let left = r.left;
   if (left + menuW > window.innerWidth - 8) left = window.innerWidth - 8 - menuW;
   if (left < 8) left = 8;
-  presetMenuPos.value = { top: r.bottom + 5, left };
+  presetMenuPos.value = { top: r.bottom + 4, left, width: menuW };
 }
 
 function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
@@ -1356,7 +1357,7 @@ onUnmounted(() => {
               <div class="prov-accent" />
               <div class="prov-meta">
                 <span class="prov-name" :class="{ dim: !item.name }">{{ item.name || t('settings.untitledProvider') }}</span>
-                <span v-if="getProviderSeries(item, providerPresets)" class="prov-series-tag">{{ getProviderSeries(item, providerPresets) }}</span>
+                <span v-for="s in getProviderSeries(item, providerPresets)" :key="s" class="prov-series-tag">{{ s }}</span>
                 <span class="prov-badge">{{ item.models.length }} {{ t('settings.model') }}</span>
               </div>
             </div>
@@ -1380,7 +1381,7 @@ onUnmounted(() => {
           <template #content="{ item, index }">
             <Teleport to="body">
               <Transition name="drop">
-                <div v-if="showPresetMenu && presetMenuIndex === index" class="sel-menu preset-menu" :style="{ top: presetMenuPos.top + 'px', left: presetMenuPos.left + 'px', width: '220px' }">
+                <div v-if="showPresetMenu && presetMenuIndex === index" class="sel-menu preset-menu" :style="{ top: presetMenuPos.top + 'px', left: presetMenuPos.left + 'px', width: presetMenuPos.width + 'px' }">
                   <div class="sel-clip settings-scrollbar">
                     <button
                       v-for="p in providerPresets" :key="p.name"
@@ -1392,7 +1393,7 @@ onUnmounted(() => {
                       <div class="opt-info">
                         <div class="opt-id-row">
                           <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
-                          <span v-if="p.model_series" class="opt-series-tag">{{ p.model_series }}</span>
+                          <span v-for="s in p.model_series" :key="s" class="opt-series-tag">{{ s }}</span>
                         </div>
                       </div></div>
                       <Check
@@ -1637,7 +1638,7 @@ onUnmounted(() => {
           <template #content="{ item, index }">
             <Teleport to="body">
               <Transition name="drop">
-                <div v-if="showWebPresetMenu && webPresetMenuIndex === index" class="sel-menu web-preset-menu" :style="{ top: webPresetMenuPos.top + 'px', left: webPresetMenuPos.left + 'px', width: '220px' }">
+                <div v-if="showWebPresetMenu && webPresetMenuIndex === index" class="sel-menu web-preset-menu" :style="{ top: webPresetMenuPos.top + 'px', left: webPresetMenuPos.left + 'px', width: webPresetMenuPos.width + 'px' }">
                   <div class="sel-clip settings-scrollbar">
                     <button
                       v-for="p in SEARCH_PRESETS" :key="p.id"
@@ -2783,6 +2784,8 @@ label {
   box-shadow: 0 16px 40px rgba(0,0,0,.55), 0 0 0 1px var(--color-surface);
   z-index:99999; overflow:hidden;
 }
+.preset-menu { max-width:none; min-width:0; }
+.web-preset-menu { max-width:none; min-width:0; }
 .sel-clip{ max-height:inherit; overflow-y:auto; overflow-x:hidden; padding:5px 7px 5px 5px; }
 .sel-menu-inner{ min-height:0; }
 .sel-opt {

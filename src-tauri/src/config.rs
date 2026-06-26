@@ -47,6 +47,28 @@ impl ApiFormat {
             force_fields: Vec::new(),
         }
     }
+
+    /// Anthropic Messages API format (the only non-OpenAI built-in).
+    pub fn anthropic_default() -> Self {
+        let mut extra_headers = HashMap::new();
+        extra_headers.insert(
+            "anthropic-version".to_string(),
+            "2023-06-01".to_string(),
+        );
+        let mut response = HashMap::new();
+        response.insert("content".to_string(), "content.0.text".to_string());
+        Self {
+            auth_header: "x-api-key".to_string(),
+            auth_prefix: String::new(),
+            extra_headers,
+            chat_endpoint: "/messages".to_string(),
+            models_endpoint: "/models".to_string(),
+            request: HashMap::new(),
+            response,
+            system_key: "system".to_string(),
+            force_fields: vec!["max_tokens".to_string()],
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -85,18 +107,68 @@ pub struct ProviderPreset {
     pub provider_name: String,
     #[serde(default)]
     pub icon: String,
-    #[serde(default)]
-    pub model_series: String,
+    #[serde(default, deserialize_with = "deserialize_model_series",)]
+    pub model_series: Vec<String>,
     #[serde(default)]
     pub base_url: String,
     #[serde(default)]
     pub api_url: String,
-    #[serde(default)]
+    #[serde(default = "default_api_format", deserialize_with = "deserialize_api_format")]
     pub api_format: ApiFormat,
     #[serde(default)]
     pub is_local: bool,
     #[serde(default)]
     pub variants: Option<PresetVariants>,
+}
+
+/// Accept `model_series` as either a single string (`"Step"`) or an array of
+/// strings (`["SenseNova","DeepSeek"]`), normalizing to `Vec<String>`.
+fn deserialize_model_series<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Series {
+        Single(String),
+        Multi(Vec<String>),
+    }
+    Ok(match Option::<Series>::deserialize(deserializer)? {
+        Some(Series::Single(s)) => vec![s],
+        Some(Series::Multi(v)) => v,
+        None => Vec::new(),
+    })
+}
+
+fn default_api_format() -> ApiFormat {
+    ApiFormat::openai_default()
+}
+
+/// Accept `api_format` as either a built-in tag string (`"openai"` /
+/// `"anthropic"`, defaulting to OpenAI when absent) or a full inline object
+/// for custom formats. This keeps provider-presets.json terse — OpenAI /
+/// Anthropic presets only need a tag instead of repeating the whole object.
+fn deserialize_api_format<'de, D>(deserializer: D) -> Result<ApiFormat, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Raw {
+        Tag(String),
+        Inline(ApiFormat),
+    }
+    Ok(match Option::<Raw>::deserialize(deserializer)? {
+        Some(Raw::Tag(tag)) => match tag.as_str() {
+            "anthropic" => ApiFormat::anthropic_default(),
+            // "openai" and any unknown tag fall back to OpenAI defaults.
+            _ => ApiFormat::openai_default(),
+        },
+        Some(Raw::Inline(fmt)) => fmt,
+        None => ApiFormat::openai_default(),
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

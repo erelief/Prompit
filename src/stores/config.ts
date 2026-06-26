@@ -91,7 +91,7 @@ export interface ProviderPreset {
   name: string;
   provider_name?: string;
   icon: string;
-  model_series?: string;
+  model_series?: string[];
   base_url?: string;
   api_url?: string;
   api_format: ApiFormat;
@@ -635,9 +635,9 @@ export function getProviderIcon(provider: ProviderConfig, presets: ProviderPrese
   return resolvePreset(provider.preset, presets).preset?.icon ?? ''
 }
 
-export function getProviderSeries(provider: ProviderConfig, presets: ProviderPreset[]): string {
-  if (!provider.preset) return ''
-  return resolvePreset(provider.preset, presets).preset?.model_series ?? ''
+export function getProviderSeries(provider: ProviderConfig, presets: ProviderPreset[]): string[] {
+  if (!provider.preset) return []
+  return resolvePreset(provider.preset, presets).preset?.model_series ?? []
 }
 
 /** True when the provider's preset is flagged is_local (LM Studio, Ollama, …).

@@ -579,7 +579,7 @@ onMounted(async () => {
                         <div class="opt-info">
                           <div class="opt-id-row">
                             <span class="opt-id">{{ p.name === 'Custom' ? t('onboarding.custom') : p.name }}</span>
-                            <span v-if="p.model_series" class="opt-series-tag">{{ p.model_series }}</span>
+                            <span v-for="s in p.model_series" :key="s" class="opt-series-tag">{{ s }}</span>
                           </div>
                         </div></div>
                         <Check v-if="presetBelongsToFamily(selectedPreset || undefined, p) || (!selectedPreset && p.name === 'Custom')" :size="13" :stroke-width="2.5" />

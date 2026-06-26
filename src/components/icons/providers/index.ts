@@ -23,6 +23,7 @@ import Brave from './Brave.vue'
 import Tavily from './Tavily.vue'
 import Exa from './Exa.vue'
 import SiliconFlow from './SiliconFlow.vue'
+import SenseNova from './SenseNova.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -49,4 +50,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   tavily: Tavily,
   exa: Exa,
   siliconflow: SiliconFlow,
+  sensenova: SenseNova,
 }
