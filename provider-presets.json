@@ -391,6 +391,43 @@
       }
     },
     {
+      "name": "Volcengine/火山方舟（字节跳动）",
+      "icon": "volcengine",
+      "model_series": [
+        "Doubao",
+        "DeepSeek",
+		"GLM",
+		"Kimi",
+		"MiniMax"
+      ],      "api_format": "openai",
+      "variants": {
+        "default_region": "cn",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn",
+            "label": "CN",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "火山方舟",
+                "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+                "api_url": "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey"
+              },
+              {
+                "key": "agent_plan",
+                "label": "Agent Plan",
+                "provider_name": "方舟 Agent Plan",
+                "base_url": "https://ark.cn-beijing.volces.com/api/plan/v3",
+                "api_url": "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "xAI",
       "provider_name": "xAI",
       "icon": "xai",

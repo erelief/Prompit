@@ -148,6 +148,7 @@ pub fn run() {
             commands::history::clear_history,
             commands::presets::read_provider_presets,
             commands::presets::read_model_capabilities,
+            commands::http_proxy::llm_http,
             vault::export_data,
             vault::import_data,
             get_proxy_url,

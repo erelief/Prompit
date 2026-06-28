@@ -1,5 +1,6 @@
 import { getActiveModel, appConfig, personaStore, sparkleStore, loadDictionary } from "../stores/config";
 import type { ApiFormat, ProviderConfig, ModelInputCapabilities } from "../stores/config";
+import { invoke } from "@tauri-apps/api/core";
 import { detectInputCapabilitiesAsync } from "./model-capabilities";
 import { webSearch, formatSearchContext } from "./websearch";
 import type { ClassifiedSearchError, SearchHit } from "./websearch/types";
@@ -7,6 +8,40 @@ import type { ClassifiedSearchError, SearchHit } from "./websearch/types";
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
+}
+
+/** Raw HTTP response from the Rust backend proxy. */
+interface LlmProxyResponse {
+  status: number;
+  body: string;
+  ok: boolean;
+}
+
+/**
+ * Issue an HTTP request through the Rust backend (`llm_http` command) instead
+ * of the browser `fetch`. This bypasses WebView2 CORS restrictions so providers
+ * that don't return CORS headers (e.g. Volcano Engine Ark) can connect.
+ *
+ * Transport failures throw an `Error`; HTTP error responses (4xx/5xx) resolve
+ * normally with `ok: false` so callers can reuse their status-based handling.
+ */
+async function llmFetch(
+  url: string,
+  opts: { method: "GET" | "POST"; headers: Record<string, string>; body?: string },
+): Promise<LlmProxyResponse> {
+  try {
+    return await invoke<LlmProxyResponse>("llm_http", {
+      req: {
+        method: opts.method,
+        url,
+        headers: opts.headers,
+        body: opts.body,
+      },
+    });
+  } catch (err) {
+    // invoke() rejects on transport-level failures (network, timeout, etc.)
+    throw new Error(`Connection failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
 export type TranslateOutcome =
@@ -219,20 +254,20 @@ export async function translate(text: string, signal?: AbortSignal): Promise<Tra
   }
 
   const baseUrl = model.base_url.replace(/\/$/, "");
+  signal?.throwIfAborted();
 
-  const response = await fetch(`${baseUrl}${fmt.chat_endpoint}`, {
+  const response = await llmFetch(`${baseUrl}${fmt.chat_endpoint}`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
-    signal,
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new ModelHttpError(response.status, errorText || `HTTP ${response.status}`);
+    throw new ModelHttpError(response.status, response.body || `HTTP ${response.status}`);
   }
+  signal?.throwIfAborted();
 
-  const data = await response.json();
+  const data = JSON.parse(response.body);
 
   const contentPath = fmt.response["content"] ?? "choices.0.message.content";
   const content = resolvePath(data, contentPath);
@@ -295,18 +330,17 @@ export async function optimizePrompt(rawPrompt: string, mode: "translate" | "spa
 
   const baseUrl = model.base_url.replace(/\/$/, "");
 
-  const response = await fetch(`${baseUrl}${fmt.chat_endpoint}`, {
+  const response = await llmFetch(`${baseUrl}${fmt.chat_endpoint}`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new ModelHttpError(response.status, errorText || `HTTP ${response.status}`);
+    throw new ModelHttpError(response.status, response.body || `HTTP ${response.status}`);
   }
 
-  const data = await response.json();
+  const data = JSON.parse(response.body);
 
   const contentPath = fmt.response["content"] ?? "choices.0.message.content";
   const content = resolvePath(data, contentPath);
@@ -361,14 +395,14 @@ export async function testProviderConnection(
       headers[k] = v;
     }
     const modelsEndpoint = fmt.models_endpoint || "/models";
-    const r = await fetch(`${url}${modelsEndpoint}`, {
+    const r = await llmFetch(`${url}${modelsEndpoint}`, {
       method: "GET",
       headers,
     });
     if (r.ok) {
       return { ok: true };
     } else {
-      const errorText = await r.text();
+      const errorText = r.body;
       let detail = `Failed (${r.status})`;
       try {
         const parsed = JSON.parse(errorText);
@@ -400,12 +434,12 @@ export async function fetchProviderModels(
       headers[k] = v;
     }
     const modelsEndpoint = fmt.models_endpoint || "/models";
-    const r = await fetch(`${url}${modelsEndpoint}`, {
+    const r = await llmFetch(`${url}${modelsEndpoint}`, {
       method: "GET",
       headers,
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
+    const data = JSON.parse(r.body);
 
     // Extract raw {id, raw} pairs so layer ① can inspect the full object.
     const modelsListPath = fmt.response["models_list"];

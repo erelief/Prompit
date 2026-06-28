@@ -2,6 +2,7 @@ pub mod clipboard;
 pub mod config_cmd;
 pub mod dictionary;
 pub mod history;
+pub mod http_proxy;
 pub mod persona;
 pub mod presets;
 pub mod secrets;
