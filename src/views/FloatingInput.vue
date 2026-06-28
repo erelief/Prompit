@@ -17,7 +17,7 @@ import type { TranslateOutcome } from "../services/llm-client";
 import { SearchFailureError, ModelHttpError } from "../services/llm-client";
 import { classifySearchError } from "../services/websearch";
 import type { SearchHit } from "../services/websearch/types";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink, Pencil, Check } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink, Pencil, Check, Copy } from "@lucide/vue";
 import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
@@ -43,6 +43,26 @@ const growAbove = ref(false);
 const pinned = ref(false);
 const isEditing = ref(false);
 const editedText = ref("");
+
+// Copy-to-clipboard success feedback (mirrors Settings.vue's shortcutError pattern)
+const copiedFlash = ref(false);
+let copiedFlashTimer: ReturnType<typeof setTimeout> | null = null;
+function showCopiedFlash() {
+  if (copiedFlashTimer) clearTimeout(copiedFlashTimer);
+  copiedFlash.value = true;
+  copiedFlashTimer = setTimeout(() => {
+    copiedFlash.value = false;
+    copiedFlashTimer = null;
+  }, 1500);
+}
+async function copyResult() {
+  const text = translatedText.value;
+  if (!text) return;
+  try {
+    await invoke("copy_text", { text });
+    showCopiedFlash();
+  } catch { /* ignore clipboard errors */ }
+}
 function togglePin() {
   pinned.value = !pinned.value;
   invoke("set_main_pinned", { pinned: pinned.value });
@@ -239,6 +259,21 @@ function onModeShortcutKeydown(e: KeyboardEvent) {
     e.preventDefault();
     cycleMode();
   }
+}
+
+// Ctrl/Cmd+C copies the full result when not editing and nothing is selected.
+// Disabled while editing (requirement: "在编辑返回结果的时候，不启用") so the
+// textarea's native copy keeps working. A non-empty selection is left to the
+// browser so users can still copy just a highlighted snippet.
+function onCopyShortcutKeydown(e: KeyboardEvent) {
+  if (isEditing.value) return;
+  if (!translatedText.value) return;
+  const isCopy = (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === "c" || e.key === "C");
+  if (!isCopy) return;
+  const sel = window.getSelection?.();
+  if (sel && sel.toString().trim().length > 0) return;
+  e.preventDefault();
+  copyResult();
 }
 
 function onDocumentClick(e: MouseEvent) {
@@ -567,6 +602,7 @@ onMounted(async () => {
   }
   document.addEventListener("mousedown", onDocumentClick);
   window.addEventListener("keydown", onModeShortcutKeydown);
+  window.addEventListener("keydown", onCopyShortcutKeydown);
   nextTick(() => {
     textareaRef.value?.focus();
   });
@@ -603,6 +639,7 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener("mousedown", onDocumentClick);
   window.removeEventListener("keydown", onModeShortcutKeydown);
+  window.removeEventListener("keydown", onCopyShortcutKeydown);
   unlistenConfig?.();
   unlistenResume?.();
   resizeObserver?.disconnect();
@@ -657,7 +694,26 @@ useShortcutTriggered(() => {
             >
               <Pencil :size="12" />
             </button>
-            
+
+            <!-- Copy button (top-left, beside Edit) -->
+            <button
+              v-if="!isEditing"
+              @click="copyResult"
+              class="copy-result-btn"
+              :class="{ 'copied': copiedFlash }"
+              :title="t('common.copy')"
+            >
+              <Check v-if="copiedFlash" :size="12" />
+              <Copy v-else :size="12" />
+            </button>
+
+            <!-- Copy success hint -->
+            <Transition name="fade">
+              <div v-if="copiedFlash && !isEditing" class="copy-hint">
+                <Check :size="11" :stroke-width="2.2" /> {{ t('common.copied') }}
+              </div>
+            </Transition>
+
             <!-- Close result button (top-right corner) - moved -->
             <button
               @click="closeResult"
@@ -667,7 +723,7 @@ useShortcutTriggered(() => {
             >
               <X :size="12" />
             </button>
-            
+
             <div v-if="lastResultSearched && !isEditing" class="provenance-row">
               <button class="provenance-btn" @click="sourcesView = !sourcesView">
                 <Globe :size="11" :stroke-width="1.8" />
@@ -678,7 +734,7 @@ useShortcutTriggered(() => {
                 <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
               </button>
             </div>
-            
+
             <!-- Result view (default) -->
             <div v-if="!isEditing" v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
             
@@ -1124,7 +1180,26 @@ useShortcutTriggered(() => {
             >
               <Pencil :size="12" />
             </button>
-            
+
+            <!-- Copy button (top-left, beside Edit) -->
+            <button
+              v-if="!isEditing"
+              @click="copyResult"
+              class="copy-result-btn"
+              :class="{ 'copied': copiedFlash }"
+              :title="t('common.copy')"
+            >
+              <Check v-if="copiedFlash" :size="12" />
+              <Copy v-else :size="12" />
+            </button>
+
+            <!-- Copy success hint -->
+            <Transition name="fade">
+              <div v-if="copiedFlash && !isEditing" class="copy-hint">
+                <Check :size="11" :stroke-width="2.2" /> {{ t('common.copied') }}
+              </div>
+            </Transition>
+
             <!-- Close result button (top-right corner) - moved -->
             <button
               @click="closeResult"
@@ -1134,7 +1209,7 @@ useShortcutTriggered(() => {
             >
               <X :size="12" />
             </button>
-            
+
             <div v-if="lastResultSearched && !isEditing" class="provenance-row">
               <button class="provenance-btn" @click="sourcesView = !sourcesView">
                 <Globe :size="11" :stroke-width="1.8" />
@@ -1145,7 +1220,7 @@ useShortcutTriggered(() => {
                 <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
               </button>
             </div>
-            
+
             <!-- Result view (default) -->
             <div v-if="!isEditing" v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
             
@@ -1488,6 +1563,66 @@ useShortcutTriggered(() => {
   color: var(--color-accent) !important;
   border-color: var(--color-accent) !important;
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
+}
+
+/* Copy button - sits beside the Edit button (top-left) */
+.copy-result-btn {
+  position: absolute !important;
+  top: -11px !important;
+  left: 15px !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 0 !important;
+  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s !important;
+  z-index: 9999 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
+  background: var(--color-bg) !important;
+}
+
+.result-block:hover .copy-result-btn {
+  opacity: 1 !important;
+}
+
+.copy-result-btn:hover {
+  color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
+}
+
+/* Copied success state (green) */
+.copy-result-btn.copied {
+  opacity: 1 !important;
+  color: #16a34a !important;
+  border-color: #16a34a !important;
+  background: color-mix(in srgb, #16a34a 14%, var(--color-bg)) !important;
+}
+
+/* Transient "Copied" hint pill */
+.copy-hint {
+  position: absolute !important;
+  top: 8px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 9999 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 3px 9px !important;
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  color: #16a34a !important;
+  background: var(--color-bg) !important;
+  border: 1px solid #16a34a !important;
+  border-radius: 999px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12) !important;
+  pointer-events: none !important;
 }
 
 /* Close result button - moved to top-right */

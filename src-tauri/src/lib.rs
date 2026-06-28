@@ -120,6 +120,7 @@ pub fn run() {
             commands::window::reset_app_data,
             commands::clipboard::simulate_paste,
             commands::clipboard::paste_pinned,
+            commands::clipboard::copy_text,
             commands::config_cmd::read_config,
             commands::config_cmd::save_config,
             commands::config_cmd::get_config_dir,

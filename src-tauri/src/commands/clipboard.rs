@@ -25,6 +25,19 @@ fn simulate_paste_keystrokes(enigo: &mut Enigo) -> Result<(), String> {
     Ok(())
 }
 
+/// Plain copy-to-clipboard (no paste simulation, no focus change).
+/// Cross-platform via `arboard` — used by the "Copy result" button and the
+/// Ctrl/Cmd+C shortcut while a result is on screen.
+#[tauri::command]
+pub fn copy_text(text: String) -> Result<(), String> {
+    let mut clipboard =
+        arboard::Clipboard::new().map_err(|e| format!("clipboard init: {e}"))?;
+    clipboard
+        .set_text(text)
+        .map_err(|e| format!("clipboard set: {e}"))?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn simulate_paste(text: String) -> Result<(), String> {
     let mut enigo =

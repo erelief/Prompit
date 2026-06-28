@@ -5,6 +5,8 @@
     "confirm": "Confirm",
     "delete": "Delete",
     "edit": "Edit",
+    "copy": "Copy",
+    "copied": "Copied",
     "add": "Add",
     "remove": "Remove",
     "confirmRemove": "Confirm remove",
