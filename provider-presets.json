@@ -428,6 +428,51 @@
       }
     },
     {
+      "name": "TencentCloud/腾讯云",
+      "icon": "tencentcloud",
+      "model_series": "Hy",
+      "api_format": "openai",
+      "variants": {
+        "default_region": "cn",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn",
+            "label": "Guangzhou (CN)",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "腾讯云大模型" ,
+                "provider_name": "腾讯云大模型",
+                "base_url": "https://tokenhub.tencentmaas.com/v1",
+                "api_url": "https://console.cloud.tencent.com/?Is=sdk-topnav"
+              },
+              {
+                "key": "coding",
+                "label": "Hy Token Plan",
+                "provider_name": "Hy Token Plan",
+                "base_url": "https://api.lkeap.cloud.tencent.com/plan/v3",
+                "api_url": "https://console.cloud.tencent.com/tokenhub/tokenplan"
+              }
+            ]
+          },
+          {
+            "key": "global",
+            "label": "Singapore (Global)",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Tokenhub",
+                "provider_name": "Tencent Cloud Tokenhub",
+                "base_url": "https://tokenhub-intl.tencentmaas.com/v1",
+                "api_url": "https://www.tencentcloud.com/account/"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "xAI",
       "provider_name": "xAI",
       "icon": "xai",

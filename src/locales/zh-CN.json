@@ -60,7 +60,7 @@
     "openaiCompatHint": "需要 OpenAI 兼容的 API。",
     "getApiKeyAt": "在 {name} 获取 API Key",
     "downloadAt": "前往下载 {name}",
-    "apiKeyDisclaimer": "请通过正规渠道获取 API Key，并在与供应商约定的服务范围内使用，所有消费均由您与供应商直接结算。",
+    "apiKeyDisclaimer": "本配置仅供参考，官方设置可能有所变动。请通过正规渠道获取 API Key，并在与供应商约定的服务范围内使用，所有消费均由您与供应商直接结算。",
     "variantAxisRegion": "地区",
     "variantAxisEndpoint": "接入点",
     "noPresetsFound": "未找到预设。编辑预设文件以添加。",

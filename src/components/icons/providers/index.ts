@@ -24,6 +24,7 @@ import Tavily from './Tavily.vue'
 import Exa from './Exa.vue'
 import SiliconFlow from './SiliconFlow.vue'
 import SenseNova from './SenseNova.vue'
+import TencentCloud from './TencentCloud.vue'
 
 export const PROVIDER_ICONS: Record<string, Component> = {
   openai: OpenAI,
@@ -51,4 +52,5 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   exa: Exa,
   siliconflow: SiliconFlow,
   sensenova: SenseNova,
+  tencentcloud: TencentCloud,
 }
