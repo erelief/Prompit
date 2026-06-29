@@ -26,6 +26,45 @@
       "api_format": "anthropic"
     },
     {
+      "name": "Baidu/百度千帆",
+      "icon": "baidu",
+      "model_series": "ERNIE",
+      "api_format": "openai",
+      "variants": {
+        "default_region": "cn",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn",
+            "label": "CN",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "百度千帆",
+                "base_url": "https://qianfan.baidubce.com/v2",
+                "api_url": "https://console.bce.baidu.com/iam/#/iam/apikey/list"
+              },
+              {
+                "key": "coding",
+                "label": "Coding Plan",
+                "provider_name": "百度千帆 Coding Plan",
+                "base_url": "https://qianfan.baidubce.com/v2/coding",
+                "api_url": "https://console.bce.baidu.com/qianfan/resource/subscribe"
+              },
+              {
+                "key": "token",
+                "label": "Token Plan Team",
+                "provider_name": "百度千帆 Token Plan 企业版",
+                "base_url": "https://qianfan.baidubce.com/v2/tokenplan/team",
+                "api_url": "https://console.bce.baidu.com/qianfan/resource/token-plan-enterprise/my-subscription"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "Bailian/阿里云百炼",
       "icon": "bailian",
       "model_series": "Qwen",
@@ -159,7 +198,7 @@
               },
               {
                 "key": "coding",
-                "label": "Coding",
+                "label": "Kimi Code",
                 "provider_name": "Kimi Code",
                 "base_url": "https://api.kimi.com/coding/v1",
                 "api_url": "https://platform.kimi.com/console/api-keys"
@@ -330,10 +369,7 @@
       "name": "SenseNova/商汤「日日新」",
       "provider_name": "SenseNova/商汤「日日新」",
       "icon": "sensenova",
-      "model_series": [
-        "SenseNova",
-        "DeepSeek"
-      ],
+      "model_series": "SenseNova",
       "base_url": "https://token.sensenova.cn/v1",
       "api_url": "https://console.sensenova.cn/",
       "api_format": "openai"
@@ -393,13 +429,8 @@
     {
       "name": "Volcengine/火山方舟（字节跳动）",
       "icon": "volcengine",
-      "model_series": [
-        "Doubao",
-        "DeepSeek",
-		"GLM",
-		"Kimi",
-		"MiniMax"
-      ],      "api_format": "openai",
+      "model_series": "Doubao",
+      "api_format": "openai",
       "variants": {
         "default_region": "cn",
         "default_endpoint": "standard",
