@@ -607,7 +607,11 @@ onMounted(async () => {
     textareaRef.value?.focus();
   });
 
-  // Listen for grow_above config from backend
+  // Sync grow_above from backend on mount. The backend WindowConfig survives
+  // a wake-triggered remount (process keeps running), but this component's
+  // growAbove ref resets to false — so re-sync or controls anchor on the
+  // wrong edge after lid open.
+  growAbove.value = await invoke<boolean>("get_grow_above");
   unlistenConfig = await listen<boolean>("window-config", (e) => {
     growAbove.value = e.payload;
     nextTick(() => {
@@ -626,12 +630,24 @@ onMounted(async () => {
     resizeObserver.observe(contentWrapRef.value);
   }
 
-  // After system resume (lid close/open), DWM hide/show fixes the composited
-  // surface but Vue layout can go stale. Force a reflow by re-sending the
-  // current height to the backend.
-  unlistenResume = await listen("system-resumed", () => {
-    invoke("resize_and_reposition", { height: bodyHeight.value * fontScale.value, width: MAIN_WIDTH * fontScale.value });
-  });
+  // After system resume (lid close/open) the DWM hide/show done in the backend
+  // fixes the composited surface, but this component is typically remounted by
+  // the wake (WebView re-runs main.ts) — so the `system-resumed` event emitted
+  // by the backend can land before this listener is wired up and get lost.
+  // Poll the backend's process-level wake flag on mount as a race-free fallback:
+  // if the system woke at all this session, force a geometry recompute.
+  const recomputeGeometry = () => {
+    lastSentHeight = -1;
+    nextTick(() => {
+      invoke("resize_and_reposition", { height: bodyHeight.value * fontScale.value, width: MAIN_WIDTH * fontScale.value });
+    });
+  };
+  invoke<boolean>("woke_since_process_start")
+    .then((woke) => { if (woke) recomputeGeometry(); })
+    .catch(() => { /* non-Windows: command absent */ });
+
+  // Also react to live wake events for the in-place (non-remount) case.
+  unlistenResume = await listen("system-resumed", recomputeGeometry);
 });
 
 // Config auto-save is centralized in stores/config.ts (enabled at startup).

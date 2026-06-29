@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 use std::ptr;
-use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use std::sync::OnceLock;
 use std::thread;
 
@@ -16,8 +16,20 @@ const PBT_APMRESUMEAUTOMATIC: WPARAM = 0x00000012;
 static MAIN_HWND: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
+/// Set true when the system resumed from sleep in this process session. The
+/// frontend polls this on mount so a remount triggered by the wake itself
+/// (which races ahead of the system-resumed event listener) can still detect
+/// that a wake happened and force a layout recompute.
+static WOKE_SINCE_PROCESS_START: AtomicBool = AtomicBool::new(false);
+
+/// Whether the system has resumed from sleep at least once in this process.
+pub fn woke_since_process_start() -> bool {
+    WOKE_SINCE_PROCESS_START.load(Ordering::Relaxed)
+}
+
 unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     if msg == WM_POWERBROADCAST && wparam == PBT_APMRESUMEAUTOMATIC {
+        WOKE_SINCE_PROCESS_START.store(true, Ordering::Relaxed);
         let main = MAIN_HWND.load(Ordering::Relaxed);
         if !main.is_null() {
             use windows_sys::Win32::UI::WindowsAndMessaging::{

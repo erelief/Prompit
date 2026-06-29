@@ -53,6 +53,17 @@ pub fn mark_startup_reminder_shown(app: AppHandle) {
     }
 }
 
+/// Whether the system has resumed from sleep at least once in this process
+/// session. The frontend polls this on mount so a wake-triggered remount
+/// (which races ahead of the `system-resumed` event listener being wired up)
+/// can still detect the wake and force a geometry recompute, fixing the layout
+/// corruption (wrong window size / misplaced controls) seen after lid open.
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn woke_since_process_start() -> bool {
+    crate::power_watcher::woke_since_process_start()
+}
+
 #[tauri::command]
 pub fn get_config_dir(app: AppHandle) -> Result<String, String> {
     let dir = crate::get_data_dir(&app)?;

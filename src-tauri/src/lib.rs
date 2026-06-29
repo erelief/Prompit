@@ -127,6 +127,8 @@ pub fn run() {
             commands::config_cmd::set_onboarding_complete,
             commands::config_cmd::has_shown_startup_reminder,
             commands::config_cmd::mark_startup_reminder_shown,
+            #[cfg(target_os = "windows")]
+            commands::config_cmd::woke_since_process_start,
             commands::config_cmd::get_shortcut_label,
             shortcut::update_shortcut,
             shortcut::start_record_shortcut,
