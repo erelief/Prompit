@@ -127,3 +127,6 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
   40% { transform: scale(1.18); }
   100% { transform: scale(1); }
 }
+/* The "toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1)" declaration is
+   repeated in several .on/.toggle-on rules (TranslateToolbar, Settings) and
+   set inline by popElement() in utils/burstParticles.ts. Keep them in sync. */
