@@ -61,7 +61,10 @@ function isEditing(index: number): boolean {
 
 function toggleEdit(index: number) {
   if (editing.has(index)) return;
-  drafts.value.set(index, structuredClone(props.items[index]));
+  // JSON round-trip, not structuredClone: props.items[index] is a Vue
+  // reactive proxy, and the structured-clone algorithm cannot clone proxies
+  // (throws). JSON.stringify reads through the proxy to the raw values.
+  drafts.value.set(index, JSON.parse(JSON.stringify(props.items[index])));
   validationError.value = null;
   editing.add(index);
 }

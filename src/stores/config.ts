@@ -461,7 +461,10 @@ watch(
 export async function saveConfig(): Promise<void> {
   await saveSecrets();
 
-  const raw = structuredClone(toRaw(appConfig));
+  // JSON round-trip, not structuredClone: appConfig's nested objects stay
+  // reactive proxies after toRaw (which only unwraps the top level), and the
+  // structured-clone algorithm throws on proxies. JSON reads through them.
+  const raw = JSON.parse(JSON.stringify(toRaw(appConfig)));
   for (const provider of raw.providers) {
     provider.api_key = "";
   }
@@ -494,7 +497,7 @@ export async function loadPersonas(): Promise<void> {
         personaStore.personas = parsed.personas;
         await savePersonas();
         // Strip personas from config.json by re-saving without them
-        const sanitized = structuredClone(toRaw(appConfig));
+        const sanitized = JSON.parse(JSON.stringify(toRaw(appConfig)));
         await invoke("save_config", { config: sanitized });
         return;
       }
