@@ -79,7 +79,6 @@ const OPENAI_FORMAT: Required<ApiFormat> = {
   extra_headers: {},
   chat_endpoint: "/chat/completions",
   models_endpoint: "/models",
-  request: {},
   response: {},
   system_key: "",
   force_fields: [],
@@ -93,14 +92,16 @@ export function resolveFormat(apiFormat?: ApiFormat): Required<ApiFormat> {
     extra_headers: apiFormat.extra_headers ?? {},
     chat_endpoint: apiFormat.chat_endpoint ?? OPENAI_FORMAT.chat_endpoint,
     models_endpoint: apiFormat.models_endpoint ?? OPENAI_FORMAT.models_endpoint,
-    request: apiFormat.request ?? {},
     response: apiFormat.response ?? {},
     system_key: apiFormat.system_key ?? "",
     force_fields: apiFormat.force_fields ?? [],
   };
 }
 
-/** Build request body with field mappings, system_key extraction, and force_fields support. */
+/** Build request body. Extracts system messages into a top-level field when
+ *  `system_key` is set (Anthropic), and forces required fields (Anthropic
+ *  requires `max_tokens`). Field-name remapping is intentionally not
+ *  supported — every preset speaks the OpenAI field vocabulary directly. */
 function buildRequestBody(
   fmt: Required<ApiFormat>,
   model: string,
@@ -108,9 +109,8 @@ function buildRequestBody(
   temperature: number | null,
   maxTokens: number | null,
 ): Record<string, any> {
-  const skipFields: string[] = fmt.request._skip_fields ?? [];
-
-  // Extract system messages if system_key is configured
+  // Extract system messages if system_key is configured (e.g. Anthropic's
+  // top-level `system` field — its /messages API rejects role:"system").
   let systemContent: string | undefined;
   let nonSystemMessages = messages;
   if (fmt.system_key) {
@@ -121,41 +121,16 @@ function buildRequestBody(
     nonSystemMessages = messages.filter((m) => m.role !== "system");
   }
 
-  const body: Record<string, any> = {};
-  const fieldMap: Record<string, string> = {
-    model: "model",
-    messages: "messages",
-    temperature: "temperature",
-    max_tokens: "max_tokens",
-  };
-
-  const defaults: Record<string, any> = {
-    max_tokens: 4096,
-  };
-
-  const values: Record<string, any> = {
+  const body: Record<string, any> = {
     model,
     messages: nonSystemMessages,
-    temperature,
-    max_tokens: maxTokens,
   };
+  if (temperature != null) body.temperature = temperature;
+  // max_tokens: Anthropic requires it; fill the conventional default when the
+  // user left it unset. OpenAI-style APIs accept it as optional.
+  body.max_tokens = maxTokens ?? (fmt.force_fields.includes("max_tokens") ? 4096 : undefined);
+  if (body.max_tokens == null) delete body.max_tokens;
 
-  for (const [stdKey, defaultTarget] of Object.entries(fieldMap)) {
-    if (skipFields.includes(stdKey)) continue;
-    const val = values[stdKey];
-    const targetKey = fmt.request[stdKey] ?? defaultTarget;
-
-    // force_fields: include field even if value is null, using a default
-    if (val == null) {
-      if (fmt.force_fields.includes(stdKey)) {
-        body[targetKey] = defaults[stdKey] ?? 0;
-      }
-      continue;
-    }
-    body[targetKey] = val;
-  }
-
-  // Set system prompt as top-level field if system_key is configured
   if (fmt.system_key && systemContent !== undefined) {
     body[fmt.system_key] = systemContent;
   }
@@ -166,11 +141,9 @@ function buildRequestBody(
 /** Resolve a dot-path like "choices.0.message.content" against an object. */
 export function resolvePath(obj: any, path: string): any {
   if (!path) return obj;
-  const parts = path.split(".");
   let cur = obj;
-  for (const part of parts) {
+  for (const part of path.split(".")) {
     if (cur == null) return undefined;
-    if (part === "*") continue; // wildcard — caller handles
     const idx = Number(part);
     cur = Number.isInteger(idx) && Array.isArray(cur) ? cur[idx] : cur[part];
   }
@@ -442,26 +415,11 @@ export async function fetchProviderModels(
     const data = JSON.parse(r.body);
 
     // Extract raw {id, raw} pairs so layer ① can inspect the full object.
-    const modelsListPath = fmt.response["models_list"];
-    let pairs: Array<{ id: string; raw: any }>;
-    if (modelsListPath) {
-      const raw = resolvePath(data, modelsListPath.replace(/\.\*$/, ""));
-      if (!Array.isArray(raw)) {
-        pairs = [];
-      } else if (raw.length > 0 && typeof raw[0] === "string") {
-        pairs = raw.map((m: any) => ({ id: String(m), raw: m }));
-      } else {
-        // Array of objects — extract id via the configured path or "id".
-        pairs = raw
-          .map((m: any) => ({ id: String(m?.id ?? ""), raw: m }))
-          .filter((p: any) => p.id);
-      }
-    } else {
-      const arr = Array.isArray(data?.data) ? data.data : [];
-      pairs = arr
-        .map((m: any) => ({ id: String(m?.id ?? ""), raw: m }))
-        .filter((p: { id: string }) => p.id);
-    }
+    // All providers serve the OpenAI shape { data: [{id, ...}] }.
+    const arr = Array.isArray(data?.data) ? data.data : [];
+    const pairs: Array<{ id: string; raw: any }> = arr
+      .map((m: any) => ({ id: String(m?.id ?? ""), raw: m }))
+      .filter((p: { id: string }) => p.id);
 
     // Detect capabilities per model (maintained list loaded lazily + cached).
     const entries = await Promise.all(

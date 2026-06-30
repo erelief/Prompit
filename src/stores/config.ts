@@ -12,7 +12,6 @@ export interface ApiFormat {
   extra_headers?: Record<string, string>;
   chat_endpoint?: string;
   models_endpoint?: string;
-  request?: Record<string, any>;
   response?: Record<string, string>;
   system_key?: string;
   force_fields?: string[];

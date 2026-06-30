@@ -14,8 +14,6 @@ pub struct ApiFormat {
     #[serde(default)]
     pub models_endpoint: String,
     #[serde(default)]
-    pub request: HashMap<String, serde_json::Value>,
-    #[serde(default)]
     pub response: HashMap<String, String>,
     #[serde(default)]
     pub system_key: String,
@@ -41,7 +39,6 @@ impl ApiFormat {
             extra_headers: HashMap::new(),
             chat_endpoint: "/chat/completions".to_string(),
             models_endpoint: "/models".to_string(),
-            request: HashMap::new(),
             response: HashMap::new(),
             system_key: String::new(),
             force_fields: Vec::new(),
@@ -63,7 +60,6 @@ impl ApiFormat {
             extra_headers,
             chat_endpoint: "/messages".to_string(),
             models_endpoint: "/models".to_string(),
-            request: HashMap::new(),
             response,
             system_key: "system".to_string(),
             force_fields: vec!["max_tokens".to_string()],
