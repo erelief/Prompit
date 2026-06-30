@@ -5,8 +5,9 @@ import { ANONYMOUS_FALLBACK, getSearchFn, presetMeta } from "./registry";
 import type { SearchHit, ClassifiedSearchError } from "./types";
 import { SearchHttpError } from "./types";
 
-// Re-export for convenience
-export { SEARCH_PRESETS, presetMeta, ANONYMOUS_FALLBACK, getSearchFn } from "./registry";
+// Re-export for convenience (getSearchFn / ANONYMOUS_FALLBACK stay internal —
+// no consumer outside this module imports them).
+export { SEARCH_PRESETS, presetMeta } from "./registry";
 export type { SearchHit, SearchFn, ClassifiedSearchError } from "./types";
 
 interface ResolvedEngine {
