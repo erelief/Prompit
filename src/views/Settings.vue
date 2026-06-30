@@ -970,25 +970,22 @@ const {
 
 
 // ── Click outside panels ──
+// Each dropdown is identified by a pair of CSS classes (its menu + trigger).
+// A click landing outside both closes that dropdown. Data-driven so adding a
+// new dropdown is one table row instead of another if-branch.
+const clickOutsideMap: Array<{ menu: string; btn: string; close: () => void }> = [
+  { menu: ".sel-menu", btn: ".sel-btn", close: () => { showModelSelector.value = false; showAppLangMenu.value = false; } },
+  { menu: ".lang-menu", btn: ".lang-btn", close: () => { translationShowLangSelector.value = false; } },
+  { menu: ".preset-menu", btn: ".preset-mini-btn", close: () => { showPresetMenu.value = false; presetMenuIndex.value = null; } },
+  { menu: ".web-preset-menu", btn: ".web-preset-btn", close: () => { showWebPresetMenu.value = false; webPresetMenuIndex.value = null; } },
+];
 
 function onDocClick(e: MouseEvent) {
   const t = e.target as HTMLElement;
-  if (!t.closest(".sel-menu") && !t.closest(".sel-btn"))
-    showModelSelector.value = false;
-  if (!t.closest(".sel-menu") && !t.closest(".sel-btn"))
-    showAppLangMenu.value = false;
-  if (!t.closest(".lang-menu") && !t.closest(".lang-btn"))
-    translationShowLangSelector.value = false;
-  if (!t.closest(".preset-menu") && !t.closest(".preset-mini-btn")) {
-    showPresetMenu.value = false;
-    presetMenuIndex.value = null;
+  for (const { menu, btn, close } of clickOutsideMap) {
+    if (!t.closest(menu) && !t.closest(btn)) close();
   }
-  if (!t.closest(".web-preset-menu") && !t.closest(".web-preset-btn")) {
-    showWebPresetMenu.value = false;
-    webPresetMenuIndex.value = null;
-  }
-  if (!t.closest(".pickable"))
-    addingModelProvider.value = null;
+  if (!t.closest(".pickable")) addingModelProvider.value = null;
 }
 
 // ── Navigation ──
