@@ -19,7 +19,8 @@ import {
   MODES,
 } from "../stores/config";
 import { burstParticles } from "../utils/burstParticles";
-import { keyCodeToToken, shortcutsEqual } from "../utils/shortcut";
+import { shortcutsEqual } from "../utils/shortcut";
+import { useShortcutRecorder } from "../composables/useShortcutRecorder";
 import type { ProviderConfig, ProviderPreset, PresetVariantEndpoint, PresetVariantRegion } from "../stores/config";
 import {
   getProviderIcon,
@@ -218,214 +219,33 @@ async function toggleLaunchOnStartup(e: MouseEvent) {
   }
 }
 
-// ── Shortcut recorder ──
-const shortcutRecording = ref(false);
-const shortcutError = ref("");
-const shortcutRecBtn = ref<HTMLButtonElement | null>(null);
-// Auto-dismiss timer for the validation error so it fades after ~1.8s without
-// requiring the user to click anything.
-let shortcutErrorTimer: ReturnType<typeof setTimeout> | null = null;
+// ── Shortcut recorders (wake-up + mode-switch) ──
+// Both share the same UI/validate/conflict logic via useShortcutRecorder.
+// The wake shortcut is an OS-global hotkey re-registered through Tauri; the
+// mode shortcut is webview-scoped and just writes the config field.
+const wakeField = computed({ get: () => appConfig.shortcut, set: (v) => { appConfig.shortcut = v; } });
+const modeField = computed({ get: () => appConfig.mode_shortcut, set: (v) => { appConfig.mode_shortcut = v; } });
 
-/** Show a validation error that auto-clears itself after ~1.8s. Exits the
- *  recording state so the error text is actually rendered (the template's
- *  `v-if="recording"` branch would otherwise keep the button stuck on the
- *  "Press a shortcut…" label and hide the message). */
-function showShortcutError(msg: string) {
-  shortcutRecording.value = false;
-  if (isTauri) invoke("finish_record_shortcut").catch(() => { /* best-effort */ });
-  if (shortcutErrorTimer) clearTimeout(shortcutErrorTimer);
-  shortcutError.value = msg;
-  shortcutErrorTimer = setTimeout(() => {
-    shortcutError.value = "";
-    shortcutErrorTimer = null;
-  }, 1800);
-}
+const {
+  recording: shortcutRecording, error: shortcutError, recBtn: shortcutRecBtn,
+  tokens: shortcutTokens, start: startShortcutRecord, cancel: cancelShortcutRecord,
+  onKeydown: onShortcutKeydown, reset: resetShortcut,
+} = useShortcutRecorder(t, {
+  field: wakeField, otherField: modeField,
+  defaultBinding: "Alt+Y",
+  invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
+  tauriGlobal: true,
+});
 
-/** Immediately clear the validation error and its auto-hide timer. */
-function clearShortcutError() {
-  if (shortcutErrorTimer) { clearTimeout(shortcutErrorTimer); shortcutErrorTimer = null; }
-  shortcutError.value = "";
-}
-
-// Split the current shortcut string into display tokens, e.g. "Ctrl+Shift+P" → ["Ctrl","Shift","P"]
-const shortcutTokens = computed(() => appConfig.shortcut.split("+").map((s) => s.trim()).filter(Boolean));
-
-function startShortcutRecord() {
-  if (!isTauri) return;
-  clearShortcutError();
-  shortcutRecording.value = true;
-  // Release the OS-level hotkey so raw key presses reach the webview while recording.
-  invoke("start_record_shortcut").catch(() => { /* best-effort */ });
-  nextTick(() => shortcutRecBtn.value?.focus());
-}
-
-async function cancelShortcutRecord() {
-  if (!shortcutRecording.value) return;
-  shortcutRecording.value = false;
-  clearShortcutError();
-  // Restore the saved binding since the user did not pick a new one.
-  if (isTauri) await invoke("finish_record_shortcut").catch(() => {});
-}
-
-async function onShortcutKeydown(e: KeyboardEvent) {
-  if (!shortcutRecording.value) return;
-  e.preventDefault();
-  e.stopPropagation();
-
-  // Escape cancels without change; Backspace restores default
-  if (e.code === "Escape") { await cancelShortcutRecord(); return; }
-  if (e.code === "Backspace") {
-    shortcutRecording.value = false;
-    await applyShortcut("Alt+Y");
-    return;
-  }
-
-  const token = keyCodeToToken(e.code);
-  // Modifier-only presses (Alt/Ctrl/Shift/Cmd alone) carry no main key token:
-  // stay quiet and wait for the actual key instead of flashing an error.
-  if (!token) return;
-  // A real key was pressed but no modifier is held → invalid. Auto-clears so
-  // the user can immediately retry without dismissing anything by hand.
-  if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-    showShortcutError(t("settings.shortcutInvalid"));
-    return;
-  }
-
-  const mods: string[] = [];
-  if (e.ctrlKey) mods.push("Ctrl");
-  if (e.altKey) mods.push("Alt");
-  if (e.shiftKey) mods.push("Shift");
-  if (e.metaKey) mods.push("Cmd");
-  const candidate = [...mods, token].join("+");
-  // Reject if it collides with the mode-switch shortcut (the two must stay
-  // distinct so neither binding silently shadows the other).
-  if (shortcutsEqual(candidate, appConfig.mode_shortcut)) {
-    showShortcutError(t("settings.shortcutConflict"));
-    return;
-  }
-  shortcutRecording.value = false;
-  await applyShortcut(candidate);
-}
-
-async function applyShortcut(shortcut: string) {
-  clearShortcutError();
-  if (!isTauri) return;
-  try {
-    await invoke("update_shortcut", { shortcut });
-    appConfig.shortcut = shortcut; // existing watcher persists config.json
-    if (shortcutRecBtn.value) burstParticles(shortcutRecBtn.value);
-  } catch {
-    showShortcutError(t("settings.shortcutConflict"));
-    // update_shortcut already rolled back to the previous binding; nothing to restore.
-  }
-}
-
-// Restore the wake-up shortcut to its factory default (Alt+Y). Same conflict
-// guard as manual recording: refuses if the mode-switch shortcut currently
-// holds that binding.
-async function resetShortcut() {
-  const def = "Alt+Y";
-  if (shortcutsEqual(def, appConfig.shortcut)) return;
-  if (shortcutsEqual(def, appConfig.mode_shortcut)) {
-    showShortcutError(t("settings.shortcutConflict"));
-    return;
-  }
-  shortcutRecording.value = false;
-  await applyShortcut(def);
-}
-
-// ── Mode-switch shortcut recorder ──
-// Unlike the wake shortcut, this is a webview-scoped binding (not an OS global
-// hotkey), so there is no Rust re-registration: we just persist the token
-// string and the FloatingInput listener reads it at keydown time.
-const modeShortcutRecording = ref(false);
-const modeShortcutError = ref("");
-const modeShortcutRecBtn = ref<HTMLButtonElement | null>(null);
-let modeShortcutErrorTimer: ReturnType<typeof setTimeout> | null = null;
-
-function showModeShortcutError(msg: string) {
-  modeShortcutRecording.value = false;
-  if (modeShortcutErrorTimer) clearTimeout(modeShortcutErrorTimer);
-  modeShortcutError.value = msg;
-  modeShortcutErrorTimer = setTimeout(() => {
-    modeShortcutError.value = "";
-    modeShortcutErrorTimer = null;
-  }, 1800);
-}
-
-function clearModeShortcutError() {
-  if (modeShortcutErrorTimer) { clearTimeout(modeShortcutErrorTimer); modeShortcutErrorTimer = null; }
-  modeShortcutError.value = "";
-}
-
-const modeShortcutTokens = computed(() =>
-  appConfig.mode_shortcut.split("+").map((s) => s.trim()).filter(Boolean)
-);
-
-function startModeShortcutRecord() {
-  clearModeShortcutError();
-  modeShortcutRecording.value = true;
-  nextTick(() => modeShortcutRecBtn.value?.focus());
-}
-
-function cancelModeShortcutRecord() {
-  modeShortcutRecording.value = false;
-  clearModeShortcutError();
-}
-
-async function onModeShortcutKeydown(e: KeyboardEvent) {
-  if (!modeShortcutRecording.value) return;
-  e.preventDefault();
-  e.stopPropagation();
-
-  if (e.code === "Escape") { cancelModeShortcutRecord(); return; }
-  if (e.code === "Backspace") {
-    modeShortcutRecording.value = false;
-    appConfig.mode_shortcut = "Alt+M";
-    return;
-  }
-
-  const token = keyCodeToToken(e.code);
-  // Modifier-only presses (Alt/Ctrl/Shift/Cmd alone) carry no main key token:
-  // stay quiet and wait for the actual key instead of flashing an error.
-  if (!token) return;
-  // A real key was pressed but no modifier is held → invalid. Auto-clears so
-  // the user can immediately retry without dismissing anything by hand.
-  if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-    showModeShortcutError(t("settings.shortcutInvalid"));
-    return;
-  }
-  const mods: string[] = [];
-  if (e.ctrlKey) mods.push("Ctrl");
-  if (e.altKey) mods.push("Alt");
-  if (e.shiftKey) mods.push("Shift");
-  if (e.metaKey) mods.push("Cmd");
-  const candidate = [...mods, token].join("+");
-  // Reject if it collides with the wake-up shortcut.
-  if (shortcutsEqual(candidate, appConfig.shortcut)) {
-    showModeShortcutError(t("settings.shortcutConflict"));
-    return;
-  }
-  modeShortcutRecording.value = false;
-  clearModeShortcutError();
-  appConfig.mode_shortcut = candidate;
-  if (modeShortcutRecBtn.value) burstParticles(modeShortcutRecBtn.value);
-}
-
-// Restore the mode-switch shortcut to its factory default (Alt+M). Refuses if
-// the wake-up shortcut currently holds that binding.
-function resetModeShortcut() {
-  const def = "Alt+M";
-  if (shortcutsEqual(def, appConfig.mode_shortcut)) return;
-  if (shortcutsEqual(def, appConfig.shortcut)) {
-    showModeShortcutError(t("settings.shortcutConflict"));
-    return;
-  }
-  modeShortcutRecording.value = false;
-  clearModeShortcutError();
-  appConfig.mode_shortcut = def;
-  if (modeShortcutRecBtn.value) burstParticles(modeShortcutRecBtn.value);
-}
+const {
+  recording: modeShortcutRecording, error: modeShortcutError, recBtn: modeShortcutRecBtn,
+  tokens: modeShortcutTokens, start: startModeShortcutRecord, cancel: cancelModeShortcutRecord,
+  onKeydown: onModeShortcutKeydown, reset: resetModeShortcut,
+} = useShortcutRecorder(t, {
+  field: modeField, otherField: wakeField,
+  defaultBinding: "Alt+M",
+  invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
+});
 
 function toggleTranslationDict(e: MouseEvent) {
   const turning = !appConfig.user_dict_enabled;
