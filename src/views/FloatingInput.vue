@@ -156,21 +156,17 @@ function selectModel(pIndex: number, mIndex: number) {
 }
 
 // Flatten all provider models for dropdown: [{pIndex, mIndex, id, icon, input_capabilities}]
-const allModels = computed(() => {
-  const result: Array<{ pIndex: number; mIndex: number; id: string; icon: string; input_capabilities?: ModelInputCapabilities }> = [];
-  appConfig.providers.forEach((prov, pi) => {
-    prov.models.forEach((m, mi) => {
-      result.push({
-        pIndex: pi,
-        mIndex: mi,
-        id: m.id,
-        icon: getProviderIcon(prov, floatingPresets.value),
-        input_capabilities: m.input_capabilities,
-      });
-    });
-  });
-  return result;
-});
+const allModels = computed(() =>
+  appConfig.providers.flatMap((prov, pi) =>
+    prov.models.map((m, mi) => ({
+      pIndex: pi,
+      mIndex: mi,
+      id: m.id,
+      icon: getProviderIcon(prov, floatingPresets.value),
+      input_capabilities: m.input_capabilities,
+    }))
+  )
+);
 
 const isActiveModelEntry = (pIndex: number, mIndex: number) => {
   const mode = appConfig.active_mode || "translate";

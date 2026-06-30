@@ -941,22 +941,18 @@ function getFetchedModels(pi: number): FetchModelEntry[] {
 // Both modes share the same label/icon/pick/isActive logic via dynamic keys
 // (mirroring FloatingInput.vue and config.ts). allFlat feeds both menus.
 
-const allFlat = computed<FlatEntry[]>(() => {
-  const out: FlatEntry[] = [];
-  appConfig.providers.forEach((prov, pi) =>
-    prov.models.forEach((m, mi) =>
-      out.push({
-        pIndex: pi,
-        mIndex: mi,
-        id: m.id,
-        providerName: prov.name || `Provider ${pi + 1}`,
-        icon: getProviderIcon(prov, providerPresets.value),
-        input_capabilities: m.input_capabilities,
-      })
-    )
-  );
-  return out;
-});
+const allFlat = computed<FlatEntry[]>(() =>
+  appConfig.providers.flatMap((prov, pi) =>
+    prov.models.map((m, mi) => ({
+      pIndex: pi,
+      mIndex: mi,
+      id: m.id,
+      providerName: prov.name || `Provider ${pi + 1}`,
+      icon: getProviderIcon(prov, providerPresets.value),
+      input_capabilities: m.input_capabilities,
+    }))
+  )
+);
 
 const {
   label: translationActiveLabel, icon: translationActiveIcon,
