@@ -337,13 +337,27 @@ function validateTranslationPersona(p: { name: string; prompt: string }, index: 
   return validateNamedItem(personaStore.personas, p, index, t("settings.duplicateName"));
 }
 
-function toggleTranslationPersona(index: number, e: MouseEvent) {
-  const wasOn = personaStore.personas[index].enabled;
-  for (const p of personaStore.personas) p.enabled = false;
+/** Exclusive radio-style toggle: turn every item off, then turn the clicked
+ *  one back on (unless it was already on). Fires burstParticles on activate.
+ *  The caller handles any guard (min-count, key-required) and post-action
+ *  persist/active-index work via `onActivate(turningOn)`. */
+function activateExclusive(
+  arr: { enabled: boolean }[],
+  index: number,
+  e: MouseEvent,
+  onActivate?: (turningOn: boolean) => void,
+) {
+  const wasOn = arr[index].enabled;
+  for (const it of arr) it.enabled = false;
   if (!wasOn) {
-    personaStore.personas[index].enabled = true;
+    arr[index].enabled = true;
     burstParticles(e.currentTarget as HTMLElement);
   }
+  onActivate?.(!wasOn);
+}
+
+function toggleTranslationPersona(index: number, e: MouseEvent) {
+  activateExclusive(personaStore.personas, index, e);
 }
 
 async function handleTranslationOptimizePrompt(item: { prompt: string }, index: number) {
@@ -374,14 +388,9 @@ function validateSkillsLite(s: { name: string; prompt: string }, index: number):
 }
 
 function toggleSkillsLite(index: number, e: MouseEvent) {
-  const wasOn = skillsLiteStore.skillsLites[index].enabled;
-  if (wasOn && skillsLiteStore.skillsLites.length <= 1) return;
-  for (const s of skillsLiteStore.skillsLites) s.enabled = false;
-  if (!wasOn) {
-    skillsLiteStore.skillsLites[index].enabled = true;
-    burstParticles(e.currentTarget as HTMLElement);
-  }
-  persistSkillsLites();
+  // Guard: never disable the last remaining skills-lite.
+  if (skillsLiteStore.skillsLites[index].enabled && skillsLiteStore.skillsLites.length <= 1) return;
+  activateExclusive(skillsLiteStore.skillsLites, index, e, () => persistSkillsLites());
 }
 
 // ── Web search engine management ──
@@ -465,16 +474,10 @@ function toggleWebEngineExclusive(index: number, e: MouseEvent) {
   const eng = appConfig.web_engines[index];
   const meta = presetMeta(eng.preset);
   if (meta.keyRequired && !eng.api_key) return; // safety: validation should have blocked this
-  const wasOn = eng.enabled;
-  for (const w of appConfig.web_engines) w.enabled = false;
-  if (!wasOn) {
-    eng.enabled = true;
-    appConfig.web_search_active_index = index;
-    burstParticles(e.currentTarget as HTMLElement);
-  } else {
-    appConfig.web_search_active_index = -1; // anonymous fallback
-  }
-  flushConfigSave();
+  activateExclusive(appConfig.web_engines, index, e, (turningOn) => {
+    appConfig.web_search_active_index = turningOn ? index : -1; // -1 = anonymous fallback
+    flushConfigSave();
+  });
 }
 
 function toggleWebEngineKeyVisible(index: number) {
