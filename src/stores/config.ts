@@ -461,7 +461,7 @@ watch(
 export async function saveConfig(): Promise<void> {
   await saveSecrets();
 
-  const raw = JSON.parse(JSON.stringify(toRaw(appConfig)));
+  const raw = structuredClone(toRaw(appConfig));
   for (const provider of raw.providers) {
     provider.api_key = "";
   }

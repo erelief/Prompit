@@ -61,7 +61,7 @@ function isEditing(index: number): boolean {
 
 function toggleEdit(index: number) {
   if (editing.value.has(index)) return;
-  drafts.value.set(index, JSON.parse(JSON.stringify(props.items[index])));
+  drafts.value.set(index, structuredClone(props.items[index]));
   validationError.value = null;
   const s = new Set(editing.value);
   s.add(index);
