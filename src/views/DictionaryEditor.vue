@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useIntervalFn } from "@vueuse/core";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { getLangName } from "../constants/languages";
 import { open, save } from "@tauri-apps/plugin-dialog";
@@ -260,13 +261,16 @@ const pendingImportPath = ref("");
 const showOverwriteWarn = ref(false);
 const importMessage = ref("");
 const overwriteCountdown = ref(5);
-let overwriteTimer: ReturnType<typeof setInterval> | null = null;
+const overwriteTimer = useIntervalFn(() => {
+  if (overwriteCountdown.value > 0) overwriteCountdown.value--;
+  else overwriteTimer.pause();
+}, 1000, { immediate: false });
 
 function cancelImportMode() {
   showImportMode.value = false;
   showOverwriteWarn.value = false;
   pendingImportPath.value = "";
-  if (overwriteTimer) { clearInterval(overwriteTimer); overwriteTimer = null; }
+  overwriteTimer.pause();
   overwriteCountdown.value = 5;
 }
 
@@ -290,15 +294,7 @@ async function chooseImportMode(mode: "add" | "overwrite") {
   if (mode === "overwrite") {
     showOverwriteWarn.value = true;
     overwriteCountdown.value = 5;
-    if (overwriteTimer) clearInterval(overwriteTimer);
-    overwriteTimer = setInterval(() => {
-      if (overwriteCountdown.value > 0) {
-        overwriteCountdown.value--;
-      } else {
-        clearInterval(overwriteTimer!);
-        overwriteTimer = null;
-      }
-    }, 1000);
+    overwriteTimer.resume();
     return;
   }
   showImportMode.value = false;
@@ -351,7 +347,10 @@ async function handleExport() {
 /* ── Clear flow ── */
 const pendingClear = ref<"current" | "all" | null>(null);
 const clearCountdown = ref(5);
-let clearTimer: ReturnType<typeof setInterval> | null = null;
+const clearTimer = useIntervalFn(() => {
+  if (clearCountdown.value > 0) clearCountdown.value--;
+  else clearTimer.pause();
+}, 1000, { immediate: false });
 
 function requestClearCurrent() {
   pendingClear.value = "current";
@@ -365,20 +364,12 @@ function requestClearAll() {
 
 function startClearCountdown() {
   clearCountdown.value = 5;
-  if (clearTimer) clearInterval(clearTimer);
-  clearTimer = setInterval(() => {
-    if (clearCountdown.value > 0) {
-      clearCountdown.value--;
-    } else {
-      clearInterval(clearTimer!);
-      clearTimer = null;
-    }
-  }, 1000);
+  clearTimer.resume();
 }
 
 function cancelClear() {
   pendingClear.value = null;
-  if (clearTimer) { clearInterval(clearTimer); clearTimer = null; }
+  clearTimer.pause();
   clearCountdown.value = 5;
 }
 

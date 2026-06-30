@@ -1,4 +1,5 @@
 import { reactive, toRaw, watch } from "vue";
+import { useTimeoutFn } from "@vueuse/core";
 import { invoke } from "@tauri-apps/api/core";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { BUILTIN_LANGUAGES, LANGUAGE_GROUPS } from "../constants/languages";
@@ -193,7 +194,6 @@ export const appConfig = reactive<AppConfig>({ ...defaultConfig });
 // place. Changes are debounced (150ms) to coalesce rapid mutations (drag
 // reorders, opacity slider, typing), but critical ops flush immediately.
 let _saveEnabled = false;
-let _saveTimer: ReturnType<typeof setTimeout> | null = null;
 const SAVE_DEBOUNCE_MS = 150;
 
 // Flipped to true once loadConfig() has populated appConfig. The router guard
@@ -207,23 +207,28 @@ export function isConfigLoaded(): boolean {
   return _configLoaded;
 }
 
+// Debounced save — collapses rapid bursts of config mutations into one write.
+// useTimeoutFn restarts on each start() call, giving debounce semantics, and
+// exposes a typed stop() for flush. immediate:false so it never fires before
+// the first mutation. Created lazily so saveConfig (declared below) is in scope.
+let _saveTimer: ReturnType<typeof useTimeoutFn<() => void>> | null = null;
+function saveTimer() {
+  if (!_saveTimer) {
+    _saveTimer = useTimeoutFn(() => { void saveConfig(); }, SAVE_DEBOUNCE_MS, { immediate: false });
+  }
+  return _saveTimer;
+}
+
 /** Schedules a debounced save. Safe to call repeatedly; collapses bursts. */
 function scheduleSave(): void {
   if (!_saveEnabled) return;
-  if (_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(() => {
-    _saveTimer = null;
-    saveConfig();
-  }, SAVE_DEBOUNCE_MS);
+  saveTimer().start(); // restarts the timer each call → debounce
 }
 
 /** Cancels any pending debounced save and writes to disk immediately. */
 export async function flushConfigSave(): Promise<void> {
   if (!_saveEnabled) return;
-  if (_saveTimer) {
-    clearTimeout(_saveTimer);
-    _saveTimer = null;
-  }
+  if (_saveTimer) _saveTimer.stop();
   await saveConfig();
 }
 

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
+import { useIntervalFn } from "@vueuse/core";
 import { ArrowLeft, ShieldAlert, Check, X } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -11,21 +12,17 @@ const router = useRouter();
 const countdown = ref(5);
 const ready = ref(false);
 const isSandbox = ref(false);
-let timer: ReturnType<typeof setInterval> | null = null;
+
+const { pause } = useIntervalFn(() => {
+  countdown.value--;
+  if (countdown.value <= 0) {
+    ready.value = true;
+    pause();
+  }
+}, 1000);
 
 onMounted(async () => {
   isSandbox.value = await invoke<boolean>("is_sandbox");
-  timer = setInterval(() => {
-    countdown.value--;
-    if (countdown.value <= 0) {
-      ready.value = true;
-      if (timer) clearInterval(timer);
-    }
-  }, 1000);
-});
-
-onUnmounted(() => {
-  if (timer) clearInterval(timer);
 });
 
 function cancel() {

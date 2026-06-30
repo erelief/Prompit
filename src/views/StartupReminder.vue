@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
+import { useIntervalFn } from "@vueuse/core";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { isDark } from "../composables/useTheme";
 import { X } from "@lucide/vue";
@@ -12,42 +13,29 @@ const router = useRouter();
 
 const shortcutLabel = ref("...");
 const countdown = ref(10);
-let timer: ReturnType<typeof setInterval> | null = null;
 
 function close() {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
+  pause();
   router.replace("/");
   invoke("hide_main_window");
 }
 
 useShortcutTriggered(() => {
   // Shortcut pressed: transition to input view without hiding window
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
+  pause();
   router.replace("/");
 });
+
+const { pause } = useIntervalFn(() => {
+  countdown.value--;
+  if (countdown.value <= 0) {
+    close();
+  }
+}, 1000);
 
 onMounted(async () => {
   shortcutLabel.value = await invoke<string>("get_shortcut_label");
   invoke("show_startup_reminder_window");
-
-  timer = setInterval(() => {
-    countdown.value--;
-    if (countdown.value <= 0) {
-      close();
-    }
-  }, 1000);
-});
-
-onUnmounted(() => {
-  if (timer) {
-    clearInterval(timer);
-  }
 });
 </script>
 
