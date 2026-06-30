@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import App from "./App.vue";
 import router from "./router";
 import i18n from "./i18n";
-import { loadConfig, loadSparkles, appConfig, enableConfigAutosave } from "./stores/config";
+import { loadConfig, loadSkillsLites, appConfig, enableConfigAutosave } from "./stores/config";
 import { initTheme } from "./composables/useTheme";
 import "./style.css";
 
@@ -31,7 +31,7 @@ router.isReady().then(async () => {
   // don't trigger an immediate write-back, and all views share one save path.
   enableConfigAutosave();
   initTheme();
-  await loadSparkles();
+  await loadSkillsLites();
 
   // Mark onboarding complete for returning users
   // (OnboardingState defaults to false on each launch; only set to true

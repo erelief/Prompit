@@ -6,9 +6,9 @@ import { burstParticles } from "../utils/burstParticles";
 import {
   appConfig,
   personaStore,
-  sparkleStore,
+  skillsLiteStore,
   savePersonas,
-  saveSparkles,
+  saveSkillsLites,
   getOrderedLanguages,
   dictStore,
   refreshDictStatus,
@@ -55,48 +55,48 @@ const personaBtnRef = ref<HTMLButtonElement | null>(null);
 const personaMenuRef = ref<HTMLDivElement | null>(null);
 const personaDropdownPos = ref({ top: 0, left: 0 });
 
-// ── Sparkle selector (sparkle mode) ──
-const activeSparkleName = computed(() => {
-  const s = sparkleStore.sparkles.find((s) => s.enabled);
+// ── Skills Lite selector (skills_lite mode) ──
+const activeSkillsLiteName = computed(() => {
+  const s = skillsLiteStore.skillsLites.find((s) => s.enabled);
   return s?.name || null;
 });
 
-const showSparkleDropdown = ref(false);
-const sparkleDropdownRef = ref<HTMLDivElement | null>(null);
-const sparkleBtnRef = ref<HTMLButtonElement | null>(null);
-const sparkleMenuRef = ref<HTMLDivElement | null>(null);
-const sparkleDropdownPos = ref({ top: 0, left: 0 });
+const showSkillsLiteDropdown = ref(false);
+const skillsLiteDropdownRef = ref<HTMLDivElement | null>(null);
+const skillsLiteBtnRef = ref<HTMLButtonElement | null>(null);
+const skillsLiteMenuRef = ref<HTMLDivElement | null>(null);
+const skillsLiteDropdownPos = ref({ top: 0, left: 0 });
 
-function toggleSparkleDropdown() {
-  if (!showSparkleDropdown.value && sparkleBtnRef.value) {
-    const rect = sparkleBtnRef.value.getBoundingClientRect();
-    const wrapLeft = sparkleDropdownRef.value?.getBoundingClientRect().left ?? rect.left;
-    sparkleDropdownPos.value = { top: rect.bottom + 4, left: wrapLeft };
-    showSparkleDropdown.value = true;
+function toggleSkillsLiteDropdown() {
+  if (!showSkillsLiteDropdown.value && skillsLiteBtnRef.value) {
+    const rect = skillsLiteBtnRef.value.getBoundingClientRect();
+    const wrapLeft = skillsLiteDropdownRef.value?.getBoundingClientRect().left ?? rect.left;
+    skillsLiteDropdownPos.value = { top: rect.bottom + 4, left: wrapLeft };
+    showSkillsLiteDropdown.value = true;
     nextTick(() => {
-      if (sparkleMenuRef.value) {
-        const menuH = sparkleMenuRef.value.offsetHeight;
+      if (skillsLiteMenuRef.value) {
+        const menuH = skillsLiteMenuRef.value.offsetHeight;
         const spaceBelow = window.innerHeight - rect.bottom - 4;
         const spaceAbove = rect.top - 4;
         if (menuH > spaceBelow && menuH <= spaceAbove) {
-          sparkleDropdownPos.value = { top: rect.top - menuH - 4, left: wrapLeft };
+          skillsLiteDropdownPos.value = { top: rect.top - menuH - 4, left: wrapLeft };
         }
       }
     });
   } else {
-    showSparkleDropdown.value = false;
+    showSkillsLiteDropdown.value = false;
   }
 }
 
-function selectSparkle(index: number) {
-  for (const s of sparkleStore.sparkles) s.enabled = false;
-  sparkleStore.sparkles[index].enabled = true;
-  showSparkleDropdown.value = false;
-  saveSparkles();
+function selectSkillsLite(index: number) {
+  for (const s of skillsLiteStore.skillsLites) s.enabled = false;
+  skillsLiteStore.skillsLites[index].enabled = true;
+  showSkillsLiteDropdown.value = false;
+  saveSkillsLites();
   emit("result-stale");
 }
 
-const sparkleDropdownStyle = computed(() => capHeight(sparkleStore.sparkles.length));
+const skillsLiteDropdownStyle = computed(() => capHeight(skillsLiteStore.skillsLites.length));
 
 // ── Empty-state hint modal ──
 const emptyHintTarget = ref<'persona' | 'dict' | null>(null);
@@ -125,8 +125,8 @@ function toggleDict(e: MouseEvent) {
 }
 
 function toggleWebSearch(e: MouseEvent) {
-  const turning = !appConfig.web_search_enabled_in_sparkle;
-  appConfig.web_search_enabled_in_sparkle = turning;
+  const turning = !appConfig.web_search_enabled_in_skills_lite;
+  appConfig.web_search_enabled_in_skills_lite = turning;
   if (turning) burstParticles(e.currentTarget as HTMLElement);
   emit("result-stale");
 }
@@ -207,7 +207,7 @@ const langDropdownStyle = computed(() => capHeight(targetLanguages.value.length)
 function closeAllDropdowns() {
   showPersonaDropdown.value = false;
   showLangDropdown.value = false;
-  showSparkleDropdown.value = false;
+  showSkillsLiteDropdown.value = false;
 }
 
 function onDocumentClick(e: MouseEvent) {
@@ -229,12 +229,12 @@ function onDocumentClick(e: MouseEvent) {
   showLangDropdown.value = false;
 
   if (
-    sparkleDropdownRef.value?.contains(target) ||
-    sparkleMenuRef.value?.contains(target)
+    skillsLiteDropdownRef.value?.contains(target) ||
+    skillsLiteMenuRef.value?.contains(target)
   ) {
     return;
   }
-  showSparkleDropdown.value = false;
+  showSkillsLiteDropdown.value = false;
 }
 
 const chevronTransform = (open: boolean) =>
@@ -264,54 +264,54 @@ defineExpose({ closeAllDropdowns });
 </script>
 
 <template>
-  <!-- Sparkle mode: only sparkle selector -->
-  <template v-if="appConfig.active_mode === 'sparkle'">
-    <div class="sparkle-wrap" ref="sparkleDropdownRef">
+  <!-- Skills Lite mode: only skills-lite selector -->
+  <template v-if="appConfig.active_mode === 'skills_lite'">
+    <div class="skills-lite-wrap" ref="skillsLiteDropdownRef">
       <button
-        ref="sparkleBtnRef"
-        @click="toggleSparkleDropdown"
-        class="sparkle-btn"
-        :class="{ active: showSparkleDropdown }"
-        :title="t('floating.selectSparkle')"
+        ref="skillsLiteBtnRef"
+        @click="toggleSkillsLiteDropdown"
+        class="skills-lite-btn"
+        :class="{ active: showSkillsLiteDropdown }"
+        :title="t('floating.selectSkillsLite')"
       >
         <Sparkles :size="11" :stroke-width="1.8" />
-        <span class="truncate max-w-[5em] min-w-0">{{ activeSparkleName }}</span>
+        <span class="truncate max-w-[5em] min-w-0">{{ activeSkillsLiteName }}</span>
         <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
-          :style="{ transform: chevronTransform(showSparkleDropdown) }" />
+          :style="{ transform: chevronTransform(showSkillsLiteDropdown) }" />
       </button>
 
       <Teleport to="body">
         <Transition name="dropdown">
           <div
-            v-if="showSparkleDropdown"
-            ref="sparkleMenuRef"
-            class="model-dropdown sparkle-dropdown"
-            :style="{ top: sparkleDropdownPos.top + 'px', left: sparkleDropdownPos.left + 'px', ...sparkleDropdownStyle }"
+            v-if="showSkillsLiteDropdown"
+            ref="skillsLiteMenuRef"
+            class="model-dropdown skills-lite-dropdown"
+            :style="{ top: skillsLiteDropdownPos.top + 'px', left: skillsLiteDropdownPos.left + 'px', ...skillsLiteDropdownStyle }"
           >
             <button
-              v-for="(sparkle, si) in sparkleStore.sparkles"
+              v-for="(skillsLite, si) in skillsLiteStore.skillsLites"
               :key="si"
-              @click="selectSparkle(si)"
+              @click="selectSkillsLite(si)"
               class="model-option"
-              :class="{ selected: sparkle.enabled }"
+              :class="{ selected: skillsLite.enabled }"
             >
-              <span class="truncate">{{ sparkle.name }}</span>
-              <span v-if="sparkle.enabled" class="check-mark">&#10003;</span>
+              <span class="truncate">{{ skillsLite.name }}</span>
+              <span v-if="skillsLite.enabled" class="check-mark">&#10003;</span>
             </button>
           </div>
         </Transition>
       </Teleport>
     </div>
 
-    <!-- Web search toggle (sparkle mode only) — globe on / globe-off, mirrors the
+    <!-- Web search toggle (skills_lite mode only) — globe on / globe-off, mirrors the
          send-mode (pin) button's two-icon toggle form. -->
     <button
       @click="toggleWebSearch($event)"
       class="search-toggle"
-      :class="{ on: appConfig.web_search_enabled_in_sparkle }"
-      :title="appConfig.web_search_enabled_in_sparkle ? t('floating.webSearchOn') : t('floating.webSearchOff')"
+      :class="{ on: appConfig.web_search_enabled_in_skills_lite }"
+      :title="appConfig.web_search_enabled_in_skills_lite ? t('floating.webSearchOn') : t('floating.webSearchOff')"
     >
-      <Globe v-if="appConfig.web_search_enabled_in_sparkle" :size="11" :stroke-width="1.8" />
+      <Globe v-if="appConfig.web_search_enabled_in_skills_lite" :size="11" :stroke-width="1.8" />
       <GlobeOff v-else :size="11" :stroke-width="1.8" />
     </button>
   </template>
@@ -637,9 +637,9 @@ defineExpose({ closeAllDropdowns });
   background: var(--color-surface);
 }
 
-/* Sparkle selector */
-.sparkle-wrap { display: inline-flex; flex-shrink: 0; }
-.sparkle-btn {
+/* Skills Lite selector */
+.skills-lite-wrap { display: inline-flex; flex-shrink: 0; }
+.skills-lite-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -653,8 +653,8 @@ defineExpose({ closeAllDropdowns });
   border: 1px solid var(--color-surface);
   transition: all 0.15s ease;
 }
-.sparkle-btn:hover,
-.sparkle-btn.active {
+.skills-lite-btn:hover,
+.skills-lite-btn.active {
   color: var(--color-accent);
   background: var(--color-accent-bg);
   border-color: var(--color-accent-border);

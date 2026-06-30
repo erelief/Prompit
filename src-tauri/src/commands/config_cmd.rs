@@ -102,8 +102,8 @@ mod tests {
             active_mode: "translate".to_string(),
             translate_active_provider_index: 0,
             translate_active_model_index: 0,
-            sparkle_active_provider_index: 0,
-            sparkle_active_model_index: 0,
+            skills_lite_active_provider_index: 0,
+            skills_lite_active_model_index: 0,
             target_lang: "Japanese".to_string(),
             user_dict_enabled: false,
             custom_languages: vec![],
@@ -119,7 +119,7 @@ mod tests {
             show_capability_icons: true,
             web_engines: vec![],
             web_search_active_index: -1,
-            web_search_enabled_in_sparkle: false,
+            web_search_enabled_in_skills_lite: false,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();

@@ -209,7 +209,7 @@ function saveSearchConfig() {
   };
   appConfig.web_engines.push(engine);
   appConfig.web_search_active_index = appConfig.web_engines.length - 1;
-  appConfig.web_search_enabled_in_sparkle = true;
+  appConfig.web_search_enabled_in_skills_lite = true;
 }
 
 const currentSearchPresetLabel = computed(() => {

@@ -229,10 +229,10 @@ pub struct AppConfig {
     pub translate_active_provider_index: usize,
     #[serde(default, alias = "translation_active_model_index")]
     pub translate_active_model_index: usize,
-    #[serde(default)]
-    pub sparkle_active_provider_index: usize,
-    #[serde(default)]
-    pub sparkle_active_model_index: usize,
+    #[serde(default, alias = "sparkle_active_provider_index")]
+    pub skills_lite_active_provider_index: usize,
+    #[serde(default, alias = "sparkle_active_model_index")]
+    pub skills_lite_active_model_index: usize,
     #[serde(default = "default_target_lang")]
     pub target_lang: String,
     #[serde(default)]
@@ -263,8 +263,8 @@ pub struct AppConfig {
     pub web_engines: Vec<WebEngineConfig>,
     #[serde(default = "default_web_search_active_index")]
     pub web_search_active_index: i64,
-    #[serde(default)]
-    pub web_search_enabled_in_sparkle: bool,
+    #[serde(default, alias = "web_search_enabled_in_sparkle")]
+    pub web_search_enabled_in_skills_lite: bool,
 }
 
 fn default_target_lang() -> String {
@@ -302,8 +302,8 @@ impl Default for AppConfig {
             active_mode: "translate".to_string(),
             translate_active_provider_index: 0,
             translate_active_model_index: 0,
-            sparkle_active_provider_index: 0,
-            sparkle_active_model_index: 0,
+            skills_lite_active_provider_index: 0,
+            skills_lite_active_model_index: 0,
             target_lang: "English".to_string(),
             user_dict_enabled: false,
             custom_languages: vec![],
@@ -319,7 +319,7 @@ impl Default for AppConfig {
             show_capability_icons: false,
             web_engines: vec![],
             web_search_active_index: -1,
-            web_search_enabled_in_sparkle: false,
+            web_search_enabled_in_skills_lite: false,
         }
     }
 }
@@ -355,8 +355,8 @@ mod tests {
             active_mode: "translate".to_string(),
             translate_active_provider_index: 0,
             translate_active_model_index: 0,
-            sparkle_active_provider_index: 0,
-            sparkle_active_model_index: 0,
+            skills_lite_active_provider_index: 0,
+            skills_lite_active_model_index: 0,
             target_lang: "Japanese".to_string(),
             user_dict_enabled: false,
             custom_languages: vec!["Klingon".to_string()],
@@ -376,7 +376,7 @@ mod tests {
             show_capability_icons: false,
             web_engines: vec![],
             web_search_active_index: -1,
-            web_search_enabled_in_sparkle: false,
+            web_search_enabled_in_skills_lite: false,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();
@@ -463,16 +463,16 @@ mod tests {
 
     #[test]
     fn test_per_mode_active_indices_survive_roundtrip() {
-        // Both translate_active_* and sparkle_active_* must persist through a
+        // Both translate_active_* and skills_lite_active_* must persist through a
         // save_config → read_config cycle. Field names must match the
-        // `active_mode` ids ("translate"/"sparkle") used for dynamic access.
+        // `active_mode` ids ("translate"/"skills_lite") used for dynamic access.
         let json = r#"{
             "providers": [],
-            "active_mode": "sparkle",
+            "active_mode": "skills_lite",
             "translate_active_provider_index": 3,
             "translate_active_model_index": 1,
-            "sparkle_active_provider_index": 2,
-            "sparkle_active_model_index": 4,
+            "skills_lite_active_provider_index": 2,
+            "skills_lite_active_model_index": 4,
             "target_lang": "English"
         }"#;
         let config: AppConfig = serde_json::from_str(json).unwrap();
@@ -481,13 +481,38 @@ mod tests {
 
         assert_eq!(reloaded.translate_active_provider_index, 3);
         assert_eq!(reloaded.translate_active_model_index, 1);
-        assert_eq!(reloaded.sparkle_active_provider_index, 2);
-        assert_eq!(reloaded.sparkle_active_model_index, 4);
+        assert_eq!(reloaded.skills_lite_active_provider_index, 2);
+        assert_eq!(reloaded.skills_lite_active_model_index, 4);
         // Written JSON must use the new names.
         assert!(written.contains("translate_active_provider_index"));
         assert!(written.contains("translate_active_model_index"));
-        assert!(written.contains("sparkle_active_provider_index"));
-        assert!(written.contains("sparkle_active_model_index"));
+        assert!(written.contains("skills_lite_active_provider_index"));
+        assert!(written.contains("skills_lite_active_model_index"));
+    }
+
+    #[test]
+    fn test_legacy_sparkle_active_alias_migrates() {
+        // Old config files used `sparkle_active_*` / `web_search_enabled_in_sparkle`
+        // (note: "sparkle"). The new fields are `skills_lite_active_*` /
+        // `web_search_enabled_in_skills_lite`; serde aliases keep reads working.
+        let json = r#"{
+            "providers": [],
+            "active_mode": "translate",
+            "sparkle_active_provider_index": 2,
+            "sparkle_active_model_index": 4,
+            "web_search_enabled_in_sparkle": true,
+            "target_lang": "English"
+        }"#;
+        let config: AppConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(config.skills_lite_active_provider_index, 2);
+        assert_eq!(config.skills_lite_active_model_index, 4);
+        assert!(config.web_search_enabled_in_skills_lite);
+        // Once re-serialized, the new name is written (migration is one-way).
+        let written = serde_json::to_string(&config).unwrap();
+        assert!(written.contains("skills_lite_active_provider_index"));
+        assert!(!written.contains("sparkle_active_"));
+        assert!(written.contains("web_search_enabled_in_skills_lite"));
+        assert!(!written.contains("web_search_enabled_in_sparkle"));
     }
 
     #[test]

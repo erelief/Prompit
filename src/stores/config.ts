@@ -112,7 +112,7 @@ export interface PersonaConfig {
   enabled: boolean;
 }
 
-export interface SparkleEntry {
+export interface SkillsLiteEntry {
   name: string;
   prompt: string;
   description: string;
@@ -152,11 +152,11 @@ export interface AppConfig {
   mode_shortcut: string;
   launch_on_startup: boolean;
   show_capability_icons: boolean;
-  sparkle_active_provider_index: number;
-  sparkle_active_model_index: number;
+  skills_lite_active_provider_index: number;
+  skills_lite_active_model_index: number;
   web_engines: WebEngineConfig[];
   web_search_active_index: number;
-  web_search_enabled_in_sparkle: boolean;
+  web_search_enabled_in_skills_lite: boolean;
 }
 
 const defaultConfig: AppConfig = {
@@ -179,11 +179,11 @@ const defaultConfig: AppConfig = {
   mode_shortcut: "Alt+M",
   launch_on_startup: false,
   show_capability_icons: false,
-  sparkle_active_provider_index: 0,
-  sparkle_active_model_index: 0,
+  skills_lite_active_provider_index: 0,
+  skills_lite_active_model_index: 0,
   web_engines: [],
   web_search_active_index: -1,
-  web_search_enabled_in_sparkle: false,
+  web_search_enabled_in_skills_lite: false,
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });
@@ -334,8 +334,8 @@ export const personaStore = reactive<{ personas: PersonaConfig[] }>({
   personas: [],
 });
 
-export const sparkleStore = reactive<{ sparkles: SparkleEntry[] }>({
-  sparkles: [],
+export const skillsLiteStore = reactive<{ skillsLites: SkillsLiteEntry[] }>({
+  skillsLites: [],
 });
 
 function secretKeyId(namespace: "provider" | "websearch", index: number): string {
@@ -427,6 +427,10 @@ export async function loadConfig(): Promise<void> {
     if (!anyLoaded.active_mode) {
       anyLoaded.active_mode = "translate";
     }
+    // Migration: old mode id "sparkle" → "skills_lite".
+    if (anyLoaded.active_mode === "sparkle") {
+      anyLoaded.active_mode = "skills_lite";
+    }
 
     Object.assign(appConfig, loaded);
     if (appConfig.target_lang === "Chinese") {
@@ -494,7 +498,7 @@ export async function loadPersonas(): Promise<void> {
       // No old config or no personas to migrate
     }
     // Nothing stored yet (fresh install): seed a reference preset the user
-    // can edit or delete. Mirrors the sparkle default-seeding behavior.
+    // can edit or delete. Mirrors the skills-lite default-seeding behavior.
     personaStore.personas = [DEFAULT_CODING_PERSONA];
     await savePersonas();
   } catch (err) {
@@ -713,9 +717,9 @@ export function presetBelongsToFamily(
   return family.variants?.regions.some(r => r.endpoints.some(e => e.provider_name === presetName)) ?? false;
 }
 
-// ── Sparkle store ──
+// ── Skills Lite store ──
 
-const DEFAULT_POLISH_SPARKLE: SparkleEntry = {
+const DEFAULT_POLISH_SKILLS_LITE: SkillsLiteEntry = {
   name: "Polish（润色）",
   prompt:
     "Detect the language of the user's input. Adopt the role of a native speaker of that language. Rewrite the user's input as a more idiomatic, accurate, and natural expression in the same language, preserving the original meaning and intent.",
@@ -723,31 +727,31 @@ const DEFAULT_POLISH_SPARKLE: SparkleEntry = {
   enabled: true,
 };
 
-export async function loadSparkles(): Promise<void> {
+export async function loadSkillsLites(): Promise<void> {
   try {
-    const entries = await invoke<SparkleEntry[]>("read_sparkles");
+    const entries = await invoke<SkillsLiteEntry[]>("read_skills_lites");
     if (entries.length === 0) {
-      sparkleStore.sparkles = [DEFAULT_POLISH_SPARKLE];
-      await saveSparkles();
+      skillsLiteStore.skillsLites = [DEFAULT_POLISH_SKILLS_LITE];
+      await saveSkillsLites();
     } else {
       // Belt-and-suspenders with the Rust #[serde(default)]: guarantee
       // `description` is always a string even for data persisted before the field existed.
-      sparkleStore.sparkles = entries.map((e) => ({
+      skillsLiteStore.skillsLites = entries.map((e) => ({
         ...e,
         description: typeof e.description === "string" ? e.description : "",
       }));
     }
   } catch (err) {
-    console.error("Failed to load sparkles:", err);
-    sparkleStore.sparkles = [DEFAULT_POLISH_SPARKLE];
+    console.error("Failed to load skills lites:", err);
+    skillsLiteStore.skillsLites = [DEFAULT_POLISH_SKILLS_LITE];
   }
 }
 
-export async function saveSparkles(): Promise<void> {
+export async function saveSkillsLites(): Promise<void> {
   try {
-    await invoke("save_sparkles", { sparkles: sparkleStore.sparkles });
+    await invoke("save_skills_lites", { skillsLites: skillsLiteStore.skillsLites });
   } catch (err) {
-    console.error("Failed to save sparkles:", err);
+    console.error("Failed to save skills lites:", err);
   }
 }
 
@@ -761,10 +765,10 @@ export const MODES: ModeDefinition[] = [
     settingTabKey: "translation",
   },
   {
-    id: "sparkle",
+    id: "skills_lite",
     icon: Sparkles,
-    labelKey: "modes.sparkle",
-    settingTabKey: "sparkle",
+    labelKey: "modes.skillsLite",
+    settingTabKey: "skills_lite",
   },
 ];
 
@@ -819,9 +823,9 @@ export interface HistoryEntry {
   model?: string;
   mode?: string;
   persona?: string;   // active persona name (translate mode) — display only
-  sparkle?: string;   // active sparkle name (sparkle mode) — display only
-  searched?: boolean;   // whether web search context was used (sparkle mode)
-  sources?: SearchHit[];   // web-search hits used for this entry (sparkle mode)
+  skills_lite?: string;   // active skills-lite name (skills_lite mode) — display only
+  searched?: boolean;   // whether web search context was used (skills_lite mode)
+  sources?: SearchHit[];   // web-search hits used for this entry (skills_lite mode)
   edited?: boolean;   // whether the entry was edited by the user
 }
 
@@ -854,8 +858,8 @@ export async function saveHistoryEntry(input: string, output: string, searched: 
     persona: mode === "translate"
       ? (personaStore.personas.find(p => p.enabled)?.name || undefined)
       : undefined,
-    sparkle: mode === "sparkle"
-      ? (sparkleStore.sparkles.find(s => s.enabled)?.name || undefined)
+    skills_lite: mode === "skills_lite"
+      ? (skillsLiteStore.skillsLites.find(s => s.enabled)?.name || undefined)
       : undefined,
     edited,
   };

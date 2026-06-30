@@ -7,7 +7,7 @@ use tauri::AppHandle;
 use crate::crypto::{self, EncryptedPayload};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SparkleEntry {
+pub struct SkillsLiteEntry {
     pub name: String,
     pub prompt: String,
     #[serde(default)]
@@ -16,14 +16,14 @@ pub struct SparkleEntry {
     pub enabled: bool,
 }
 
-fn sparkles_path(app: &AppHandle) -> Result<PathBuf, String> {
+fn skills_lites_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = crate::get_data_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("create dir: {e}"))?;
     Ok(dir.join("sparkles.json"))
 }
 
-fn load_sparkles_encrypted(app: &AppHandle) -> Result<Vec<SparkleEntry>, String> {
-    let path = sparkles_path(app)?;
+fn load_skills_lites_encrypted(app: &AppHandle) -> Result<Vec<SkillsLiteEntry>, String> {
+    let path = skills_lites_path(app)?;
     if !path.exists() {
         return Ok(Vec::new());
     }
@@ -36,9 +36,9 @@ fn load_sparkles_encrypted(app: &AppHandle) -> Result<Vec<SparkleEntry>, String>
     serde_json::from_slice(&bytes).map_err(|e| format!("deserialize: {e}"))
 }
 
-fn save_sparkles_encrypted(app: &AppHandle, sparkles: &[SparkleEntry]) -> Result<(), String> {
-    let path = sparkles_path(app)?;
-    let json = serde_json::to_vec(sparkles).map_err(|e| format!("serialize: {e}"))?;
+fn save_skills_lites_encrypted(app: &AppHandle, skills_lites: &[SkillsLiteEntry]) -> Result<(), String> {
+    let path = skills_lites_path(app)?;
+    let json = serde_json::to_vec(skills_lites).map_err(|e| format!("serialize: {e}"))?;
 
     let payload = crypto::encrypt("sparkles", &json)?;
     let out = serde_json::to_string_pretty(&payload).map_err(|e| format!("serialize enc: {e}"))?;
@@ -47,13 +47,13 @@ fn save_sparkles_encrypted(app: &AppHandle, sparkles: &[SparkleEntry]) -> Result
 }
 
 #[tauri::command]
-pub fn read_sparkles(app: AppHandle) -> Result<Vec<SparkleEntry>, String> {
-    load_sparkles_encrypted(&app)
+pub fn read_skills_lites(app: AppHandle) -> Result<Vec<SkillsLiteEntry>, String> {
+    load_skills_lites_encrypted(&app)
 }
 
 #[tauri::command]
-pub fn save_sparkles(app: AppHandle, sparkles: Vec<SparkleEntry>) -> Result<(), String> {
-    save_sparkles_encrypted(&app, &sparkles)
+pub fn save_skills_lites(app: AppHandle, skills_lites: Vec<SkillsLiteEntry>) -> Result<(), String> {
+    save_skills_lites_encrypted(&app, &skills_lites)
 }
 
 #[cfg(test)]
@@ -61,15 +61,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sparkle_entry_serialize_roundtrip() {
-        let entries = vec![SparkleEntry {
+    fn test_skills_lite_entry_serialize_roundtrip() {
+        let entries = vec![SkillsLiteEntry {
             name: "Formal".to_string(),
             prompt: "Translate formally".to_string(),
             description: "Rewrite input formally".to_string(),
             enabled: true,
         }];
         let json = serde_json::to_string(&entries).unwrap();
-        let deserialized: Vec<SparkleEntry> = serde_json::from_str(&json).unwrap();
+        let deserialized: Vec<SkillsLiteEntry> = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.len(), 1);
         assert_eq!(deserialized[0].name, "Formal");
         assert_eq!(deserialized[0].description, "Rewrite input formally");
@@ -77,10 +77,10 @@ mod tests {
     }
 
     #[test]
-    fn test_legacy_sparkle_without_description_defaults_empty() {
+    fn test_legacy_skills_lite_without_description_defaults_empty() {
         // Older files persisted before the `description` field existed.
         let json = r#"[{"name":"Polish","prompt":"Rewrite nicely","enabled":true}]"#;
-        let deserialized: Vec<SparkleEntry> = serde_json::from_str(json).unwrap();
+        let deserialized: Vec<SkillsLiteEntry> = serde_json::from_str(json).unwrap();
         assert_eq!(deserialized.len(), 1);
         assert_eq!(deserialized[0].name, "Polish");
         assert_eq!(deserialized[0].description, "");

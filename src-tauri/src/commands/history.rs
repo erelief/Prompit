@@ -17,8 +17,8 @@ pub struct HistoryEntry {
     pub mode: Option<String>,
     #[serde(default)]
     pub persona: Option<String>,
-    #[serde(default)]
-    pub sparkle: Option<String>,
+    #[serde(default, alias = "sparkle")]
+    pub skills_lite: Option<String>,
     #[serde(default)]
     pub searched: bool,
     #[serde(default)]

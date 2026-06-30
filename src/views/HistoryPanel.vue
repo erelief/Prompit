@@ -72,10 +72,11 @@ function shortModel(model: string): string {
 function modeIcon(mode?: string) {
   return MODES.find(m => m.id === mode)?.icon ?? MODES[0].icon;
 }
-// Persona (translate) / Sparkle (sparkle) name to show as a tag — display only
+// Persona (translate) / Skills Lite (skills_lite) name to show as a tag — display only.
+// Accept the legacy "sparkle" mode value so older history entries still resolve.
 function presetTag(entry: HistoryEntry): string | null {
   if (entry.mode === "translate") return entry.persona || null;
-  if (entry.mode === "sparkle") return entry.sparkle || null;
+  if (entry.mode === "skills_lite" || entry.mode === "sparkle") return entry.skills_lite || null;
   return null;
 }
 

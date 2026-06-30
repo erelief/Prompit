@@ -7,10 +7,10 @@ import { useRouter, useRoute } from "vue-router";
 import {
   appConfig,
   personaStore,
-  sparkleStore,
+  skillsLiteStore,
   flushConfigSave,
   savePersonas as persistPersonas,
-  saveSparkles as persistSparkles,
+  saveSkillsLites as persistSkillsLites,
   getOrderedLanguages,
   loadProviderPresets,
   dictStore,
@@ -557,27 +557,27 @@ function handleTextareaKeydown(e: KeyboardEvent, item: { prompt: string }, index
   }
 }
 
-function validateSparkle(s: { name: string; prompt: string }, index: number): string | null {
+function validateSkillsLite(s: { name: string; prompt: string }, index: number): string | null {
   const missing: string[] = [];
   if (!s.name.trim()) missing.push("Name");
   if (!s.prompt.trim()) missing.push("Prompt");
   if (missing.length) return `Required: ${missing.join(", ")}`;
-  const dup = sparkleStore.sparkles.findIndex(
+  const dup = skillsLiteStore.skillsLites.findIndex(
     (o, i) => i !== index && o.name.trim().toLowerCase() === s.name.trim().toLowerCase()
   );
   if (dup !== -1) return t("settings.duplicateName");
   return null;
 }
 
-function toggleSparkle(index: number, e: MouseEvent) {
-  const wasOn = sparkleStore.sparkles[index].enabled;
-  if (wasOn && sparkleStore.sparkles.length <= 1) return;
-  for (const s of sparkleStore.sparkles) s.enabled = false;
+function toggleSkillsLite(index: number, e: MouseEvent) {
+  const wasOn = skillsLiteStore.skillsLites[index].enabled;
+  if (wasOn && skillsLiteStore.skillsLites.length <= 1) return;
+  for (const s of skillsLiteStore.skillsLites) s.enabled = false;
   if (!wasOn) {
-    sparkleStore.sparkles[index].enabled = true;
+    skillsLiteStore.skillsLites[index].enabled = true;
     burstParticles(e.currentTarget as HTMLElement);
   }
-  persistSparkles();
+  persistSkillsLites();
 }
 
 // ── Web search engine management ──
@@ -728,12 +728,12 @@ function applyWebPreset(item: WebEngineConfig, presetId: string) {
   webPresetMenuIndex.value = null;
 }
 
-async function handleSparkleOptimizePrompt(item: { prompt: string }, index: number) {
+async function handleSkillsLiteOptimizePrompt(item: { prompt: string }, index: number) {
   if (!item.prompt.trim() || optimizingIndex.value !== null) return;
   promptUndoStack.set(index, item.prompt);
   optimizingIndex.value = index;
   try {
-    item.prompt = await optimizePrompt(item.prompt, "sparkle");
+    item.prompt = await optimizePrompt(item.prompt, "skills_lite");
   } catch (err) {
     console.error("Organize failed:", err);
     promptUndoStack.delete(index);
@@ -751,7 +751,7 @@ function handleDescKeydown(e: KeyboardEvent, item: { description: string }, inde
   }
 }
 
-async function handleSparkleSummarize(item: { prompt: string; description: string }, index: number) {
+async function handleSkillsLiteSummarize(item: { prompt: string; description: string }, index: number) {
   if (!item.prompt.trim() || summarizingIndex.value !== null) return;
   descUndoStack.set(index, item.description);
   summarizingIndex.value = index;
@@ -950,8 +950,8 @@ function onModelDragEnd(providerIndex: number, evt: { oldIndex: number; newIndex
   if (appConfig.translate_active_provider_index === providerIndex) {
     appConfig.translate_active_model_index = remap(appConfig.translate_active_model_index);
   }
-  if (appConfig.sparkle_active_provider_index === providerIndex) {
-    appConfig.sparkle_active_model_index = remap(appConfig.sparkle_active_model_index);
+  if (appConfig.skills_lite_active_provider_index === providerIndex) {
+    appConfig.skills_lite_active_model_index = remap(appConfig.skills_lite_active_model_index);
   }
 }
 
@@ -995,15 +995,15 @@ async function load() {
 
 // ── Auto-save (instant) ──
 // Config auto-save is centralized in stores/config.ts (enabled at startup).
-// Personas/sparkles still auto-persist here.
+// Personas/skills-lites still auto-persist here.
 watch(
   () => JSON.stringify(personaStore.personas),
   () => { persistPersonas(); },
 );
 
 watch(
-  () => JSON.stringify(sparkleStore.sparkles),
-  () => { persistSparkles(); },
+  () => JSON.stringify(skillsLiteStore.skillsLites),
+  () => { persistSkillsLites(); },
 );
 
 function onProviderAdd(draft: ProviderConfig) {
@@ -1188,32 +1188,32 @@ function isTranslationModelActive(pIndex: number, mIndex: number): boolean {
   return pIndex === appConfig.translate_active_provider_index && mIndex === appConfig.translate_active_model_index;
 }
 
-function isSparkleModelActive(pIndex: number, mIndex: number): boolean {
-  return pIndex === appConfig.sparkle_active_provider_index && mIndex === appConfig.sparkle_active_model_index;
+function isSkillsLiteModelActive(pIndex: number, mIndex: number): boolean {
+  return pIndex === appConfig.skills_lite_active_provider_index && mIndex === appConfig.skills_lite_active_model_index;
 }
 
-const sparkleActiveLabel = computed(() => {
+const skillsLiteActiveLabel = computed(() => {
   const { providers } = appConfig;
-  const pi = appConfig.sparkle_active_provider_index;
-  const mi = appConfig.sparkle_active_model_index;
+  const pi = appConfig.skills_lite_active_provider_index;
+  const mi = appConfig.skills_lite_active_model_index;
   if (pi >= providers.length) return "None";
   const p = providers[pi];
   if (!p || mi >= p.models.length) return "None";
   return p.models[mi].id;
 });
 
-// Icon of the currently-selected sparkle model
-const sparkleActiveIcon = computed(() => {
+// Icon of the currently-selected skills-lite model
+const skillsLiteActiveIcon = computed(() => {
   const { providers } = appConfig;
-  const pi = appConfig.sparkle_active_provider_index;
+  const pi = appConfig.skills_lite_active_provider_index;
   if (pi >= providers.length) return "";
   const p = providers[pi];
   return p ? getProviderIcon(p, providerPresets.value) : "";
 });
 
-function pickSparkleModel(e: FlatEntry) {
-  appConfig.sparkle_active_provider_index = e.pIndex;
-  appConfig.sparkle_active_model_index = e.mIndex;
+function pickSkillsLiteModel(e: FlatEntry) {
+  appConfig.skills_lite_active_provider_index = e.pIndex;
+  appConfig.skills_lite_active_model_index = e.mIndex;
   showModelSelector.value = false;
   flushConfigSave();
 }
@@ -2251,11 +2251,11 @@ onUnmounted(() => {
         </EditableCardList>
       </template>
 
-      <!-- ─── Sparkle tab ─── -->
-      <template v-if="activeTab === 'sparkle'">
+      <!-- ─── Skills Lite tab ─── -->
+      <template v-if="activeTab === 'skills_lite'">
         <!-- Model selector -->
         <div class="section-head">
-          <span class="section-title"><Cpu :size="13" />{{ t('settings.sparkleModel') }}</span>
+          <span class="section-title"><Cpu :size="13" />{{ t('settings.skillsLiteModel') }}</span>
         </div>
         <div class="sel-wrap">
           <button
@@ -2264,8 +2264,8 @@ onUnmounted(() => {
             :class="{ dead: allFlat.length === 0 }"
             @click="toggleSelMenu()"
           >
-            <ProviderIcon v-if="allFlat.length > 0 && sparkleActiveIcon" :icon="sparkleActiveIcon" :size="14" class="sel-icon" />
-            <span class="sel-text">{{ allFlat.length === 0 ? t('settings.noModelsAvailable') : sparkleActiveLabel }}</span>
+            <ProviderIcon v-if="allFlat.length > 0 && skillsLiteActiveIcon" :icon="skillsLiteActiveIcon" :size="14" class="sel-icon" />
+            <span class="sel-text">{{ allFlat.length === 0 ? t('settings.noModelsAvailable') : skillsLiteActiveLabel }}</span>
             <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showModelSelector }" />
           </button>
 
@@ -2277,8 +2277,8 @@ onUnmounted(() => {
                   <button
                     v-for="e in allFlat" :key="e.pIndex + '-' + e.mIndex"
                     class="sel-opt"
-                    :class="{ hit: isSparkleModelActive(e.pIndex, e.mIndex) }"
-                    @click="pickSparkleModel(e)"
+                    :class="{ hit: isSkillsLiteModelActive(e.pIndex, e.mIndex) }"
+                    @click="pickSkillsLiteModel(e)"
                   >
                     <div class="opt-left"><ProviderIcon :icon="e.icon" :size="14" />
                     <div class="opt-info">
@@ -2289,7 +2289,7 @@ onUnmounted(() => {
                       <span class="opt-src">{{ e.providerName }}</span>
                     </div></div>
                     <Check
-                      v-if="isSparkleModelActive(e.pIndex, e.mIndex)"
+                      v-if="isSkillsLiteModelActive(e.pIndex, e.mIndex)"
                       :size="13" :stroke-width="2.5"
                     />
                   </button>
@@ -2300,46 +2300,46 @@ onUnmounted(() => {
           </Teleport>
         </div>
 
-        <!-- Sparkle card list -->
+        <!-- Skills Lite card list -->
         <EditableCardList
           class="mt"
-          :items="sparkleStore.sparkles"
-          :title="t('settings.sparkleTitle')"
+          :items="skillsLiteStore.skillsLites"
+          :title="t('settings.skillsLiteTitle')"
           :icon="Sparkles"
-          :empty-message="t('settings.noSparklesYet')"
-          :empty-sub-message="t('settings.addOneToSparkle')"
-          :validate="validateSparkle"
-          :allow-remove="sparkleStore.sparkles.length > 1"
+          :empty-message="t('settings.noSkillsLitesYet')"
+          :empty-sub-message="t('settings.addOneToSkillsLite')"
+          :validate="validateSkillsLite"
+          :allow-remove="skillsLiteStore.skillsLites.length > 1"
           :max-collapsed="5"
           :builtin-drag-handle="false"
           @add="Object.assign($event, { name: '', prompt: '', description: '', enabled: false })"
-          @confirm="() => persistSparkles()"
-          @remove="() => persistSparkles()"
+          @confirm="() => persistSkillsLites()"
+          @remove="() => persistSkillsLites()"
         >
           <template #collapsed="{ item, index }">
             <span class="card-drag-handle prov-drag-logo" @click.stop>
               <GripVertical :size="13" :stroke-width="1.8" />
             </span>
-            <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="toggleSparkle(index, $event)">
+            <button class="about-auto-btn" :class="{ 'toggle-on': item.enabled }" @click.stop="toggleSkillsLite(index, $event)">
               <ToggleRight v-if="item.enabled" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
             </button>
-            <span class="sparkle-title-block">
+            <span class="skills-lite-title-block">
               <span class="persona-name">{{ item.name }}</span>
-              <span v-if="item.description?.trim()" class="sparkle-desc">{{ item.description }}</span>
+              <span v-if="item.description?.trim()" class="skills-lite-desc">{{ item.description }}</span>
             </span>
           </template>
 
           <template #name-input="{ item }">
-            <input v-model="item.name" :placeholder="t('settings.sparkleName')" class="fi name-fi" @click.stop />
+            <input v-model="item.name" :placeholder="t('settings.skillsLiteName')" class="fi name-fi" @click.stop />
           </template>
 
           <template #content="{ item, index }">
-            <div class="persona-textarea-wrap sparkle-desc-wrap">
+            <div class="persona-textarea-wrap skills-lite-desc-wrap">
               <input
                 v-model="item.description"
-                :placeholder="t('settings.sparkleDescription')"
-                class="fi sparkle-desc-fi"
+                :placeholder="t('settings.skillsLiteDescription')"
+                class="fi skills-lite-desc-fi"
                 @click.stop
                 @keydown="handleDescKeydown($event, item, index)"
               />
@@ -2348,7 +2348,7 @@ onUnmounted(() => {
                 class="persona-wand-btn"
                 :class="{ active: summarizingIndex === index }"
                 :title="t('settings.summarizePrompt')"
-                @click.stop="handleSparkleSummarize(item, index)"
+                @click.stop="handleSkillsLiteSummarize(item, index)"
               >
                 <Loader2
                   v-if="summarizingIndex === index"
@@ -2362,7 +2362,7 @@ onUnmounted(() => {
             <div class="persona-textarea-wrap">
               <textarea
                 v-model="item.prompt"
-                :placeholder="t('settings.sparklePrompt')"
+                :placeholder="t('settings.skillsLitePrompt')"
                 class="persona-textarea"
                 rows="5"
                 @click.stop
@@ -2373,7 +2373,7 @@ onUnmounted(() => {
                 class="persona-wand-btn"
                 :class="{ active: optimizingIndex === index }"
                 :title="t('settings.organizePrompt')"
-                @click.stop="handleSparkleOptimizePrompt(item, index)"
+                @click.stop="handleSkillsLiteOptimizePrompt(item, index)"
               >
                 <Loader2
                   v-if="optimizingIndex === index"
@@ -2825,17 +2825,17 @@ label {
   color: var(--color-text);
 }
 
-/* ── Sparkle title + description (collapsed two-line hierarchy) ── */
-.sparkle-title-block {
+/* ── Skills Lite title + description (collapsed two-line hierarchy) ── */
+.skills-lite-title-block {
   display: flex; flex-direction: column; gap: 1px;
   min-width: 0; flex: 1;
 }
-.sparkle-desc {
+.skills-lite-desc {
   font-size: 11px; font-weight: 450; letter-spacing: 0;
   color: var(--color-text-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.sparkle-desc-fi {
+.skills-lite-desc-fi {
   margin-bottom: 10px;
 }
 

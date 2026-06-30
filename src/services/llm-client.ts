@@ -1,4 +1,4 @@
-import { getActiveModel, appConfig, personaStore, sparkleStore, loadDictionary } from "../stores/config";
+import { getActiveModel, appConfig, personaStore, skillsLiteStore, loadDictionary } from "../stores/config";
 import type { ApiFormat, ProviderConfig, ModelInputCapabilities } from "../stores/config";
 import { invoke } from "@tauri-apps/api/core";
 import { detectInputCapabilitiesAsync } from "./model-capabilities";
@@ -186,8 +186,8 @@ export async function translate(text: string, signal?: AbortSignal): Promise<Tra
   const fmt = resolveFormat(model.api_format);
 
   const mode = appConfig.active_mode || "translate";
-  const systemPrompt = mode === "sparkle"
-    ? buildSparkleSystemPrompt()
+  const systemPrompt = mode === "skills_lite"
+    ? buildSkillsLiteSystemPrompt()
     : buildSystemPrompt();
 
   const messages: ChatMessage[] = [
@@ -213,10 +213,10 @@ export async function translate(text: string, signal?: AbortSignal): Promise<Tra
     }
   }
 
-  // ── Web search (Sparkle mode only) ──
+  // ── Web search (Skills Lite mode only) ──
   let searched = false;
   let sources: SearchHit[] | undefined;
-  if (mode === "sparkle" && appConfig.web_search_enabled_in_sparkle) {
+  if (mode === "skills_lite" && appConfig.web_search_enabled_in_skills_lite) {
     try {
       const hits = await webSearch(text, signal);
       if (hits.length > 0) {
@@ -279,7 +279,7 @@ export async function translate(text: string, signal?: AbortSignal): Promise<Tra
   return { status: "ok", content: String(content).trim(), searched, sources };
 }
 
-export async function optimizePrompt(rawPrompt: string, mode: "translate" | "sparkle" | "summarize" = "translate"): Promise<string> {
+export async function optimizePrompt(rawPrompt: string, mode: "translate" | "skills_lite" | "summarize" = "translate"): Promise<string> {
   const model = getActiveModel();
   if (!model) {
     throw new Error("No model configured. Please add a model in Settings.");
@@ -290,7 +290,7 @@ export async function optimizePrompt(rawPrompt: string, mode: "translate" | "spa
   const messages: ChatMessage[] = [
     {
       role: "system",
-      content: mode === "sparkle"
+      content: mode === "skills_lite"
         ? "You organize and structure user-written prompts. Reorganize the prompt to be clear, well-structured, and unambiguous. Do not change the original intent or add new instructions. Output ONLY the reorganized prompt, nothing else."
         : mode === "summarize"
         ? "Detect the language of the following prompt and reply in THAT same language. Be extremely concise: under 20 characters for Chinese (under 12 words for English). Start directly with the action in the form \"<verb> the input into <result>\" (e.g. 将输入内容润色得更自然 / Rewrite the input more formally / Turn the input into a bulleted summary). Pick the verb that best fits the prompt. No filler, no subject (no \"This tool\"/\"Acts as\"/\"本工具\"/\"该助手\"). Output ONLY that single line, nothing else."
@@ -367,8 +367,8 @@ function buildSystemPrompt(): string {
   return `You are a translation engine. Translate the user's input text to the target language.\nRules:${rules}\nTarget language: ${appConfig.target_lang}.`;
 }
 
-function buildSparkleSystemPrompt(): string {
-  const enabled = sparkleStore.sparkles.find((s) => s.enabled);
+function buildSkillsLiteSystemPrompt(): string {
+  const enabled = skillsLiteStore.skillsLites.find((s) => s.enabled);
   if (!enabled) {
     return "You are a helpful assistant. Output ONLY the result, nothing else.";
   }

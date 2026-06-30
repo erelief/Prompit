@@ -8,7 +8,7 @@ import { eventMatchesShortcut } from "../utils/shortcut";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
-import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, sparkleStore } from "../stores/config";
+import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore } from "../stores/config";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
@@ -118,10 +118,10 @@ const floatingAlpha = computed(() => (appConfig.floating_opacity ?? 90) / 100);
 
 const fontScale = computed(() => (appConfig.font_size ?? 100) / 100);
 
-// When a sparkle with a description is active, surface it as the input placeholder.
+// When a skills-lite with a description is active, surface it as the input placeholder.
 const inputPlaceholder = computed(() => {
-  if (appConfig.active_mode === "sparkle") {
-    const s = sparkleStore.sparkles.find((sp) => sp.enabled);
+  if (appConfig.active_mode === "skills_lite") {
+    const s = skillsLiteStore.skillsLites.find((sp) => sp.enabled);
     const desc = s?.description?.trim();
     if (desc) return desc;
   }
@@ -243,7 +243,7 @@ function selectMode(modeId: string) {
   }
 }
 
-// Cycle to the next mode (translate → sparkle → … → back to first).
+// Cycle to the next mode (translate → skills_lite → … → back to first).
 // Reuses selectMode so the same burst/pop animation plays as a click.
 function cycleMode() {
   if (MODES.length < 2) return;
@@ -410,7 +410,7 @@ async function handleTranslate() {
   const controller = new AbortController();
   abortController.value = controller;
   // Reflect search intent up front so the toolbar dot can pulse
-  if (appConfig.active_mode === "sparkle" && appConfig.web_search_enabled_in_sparkle) {
+  if (appConfig.active_mode === "skills_lite" && appConfig.web_search_enabled_in_skills_lite) {
     webSearchStatus.value = "searching";
   } else {
     webSearchStatus.value = "idle";
