@@ -58,15 +58,8 @@ export class SearchFailureError extends Error {
   }
 }
 
-/** Thrown by translate/optimizePrompt on HTTP errors; carries status code. */
-export class ModelHttpError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = "ModelHttpError";
-    this.status = status;
-  }
-}
+import { ModelHttpError } from "./errors";
+export { ModelHttpError } from "./errors";
 
 export interface FetchModelEntry {
   id: string;

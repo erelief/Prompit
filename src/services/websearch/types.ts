@@ -24,12 +24,4 @@ export interface ClassifiedSearchError {
   rawMessage?: string; // Raw error text from the server
 }
 
-/** Thrown by preset modules; carries the HTTP status for classification. */
-export class SearchHttpError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = "SearchHttpError";
-    this.status = status;
-  }
-}
+export { SearchHttpError } from "../errors";
