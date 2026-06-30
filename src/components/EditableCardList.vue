@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, watch, nextTick, triggerRef, type Component } from "vue";
+import { ref, shallowRef, reactive, computed, watch, nextTick, triggerRef, type Component } from "vue";
 import { useI18n } from "vue-i18n";
 import draggable from "vuedraggable";
 import {
@@ -43,8 +43,8 @@ defineOptions({ inheritAttrs: false });
 // ── Internal state ──
 const adding = ref(false);
 const addDraft = ref<any>(null);
-const editing = ref<Set<number>>(new Set());
-const isEditingAny = computed(() => editing.value.size > 0);
+const editing = reactive(new Set<number>());
+const isEditingAny = computed(() => editing.size > 0);
 const order = shallowRef<number[]>([]);
 const pendingRemove = ref<number | null>(null);
 const validationError = ref<string | null>(null);
@@ -56,16 +56,14 @@ watch(() => props.items.length, (len) => {
 
 // ── Editing ──
 function isEditing(index: number): boolean {
-  return editing.value.has(index);
+  return editing.has(index);
 }
 
 function toggleEdit(index: number) {
-  if (editing.value.has(index)) return;
+  if (editing.has(index)) return;
   drafts.value.set(index, structuredClone(props.items[index]));
   validationError.value = null;
-  const s = new Set(editing.value);
-  s.add(index);
-  editing.value = s;
+  editing.add(index);
 }
 
 function confirmEdit(index: number) {
@@ -78,18 +76,14 @@ function confirmEdit(index: number) {
   validationError.value = null;
   Object.assign(props.items[index], draft);
   drafts.value.delete(index);
-  const s = new Set(editing.value);
-  s.delete(index);
-  editing.value = s;
+  editing.delete(index);
   emit("confirm", { index });
 }
 
 function cancelEdit(index: number) {
   validationError.value = null;
   drafts.value.delete(index);
-  const s = new Set(editing.value);
-  s.delete(index);
-  editing.value = s;
+  editing.delete(index);
 }
 
 // ── Add / Confirm / Cancel ──
@@ -136,12 +130,13 @@ function cancelRemove() {
 function handleRemove(index: number) {
   props.items.splice(index, 1);
   drafts.value.delete(index);
-  const re = new Set<number>();
-  for (const i of editing.value) {
+  const remapped: number[] = [];
+  for (const i of editing) {
     if (i === index) continue;
-    re.add(i > index ? i - 1 : i);
+    remapped.push(i > index ? i - 1 : i);
   }
-  editing.value = re;
+  editing.clear();
+  for (const i of remapped) editing.add(i);
   order.value = order.value.filter(i => i !== index).map(i => i > index ? i - 1 : i);
   emit("remove", { index, indexMap: buildIndexMap(props.items.length + 1, index) });
 }
@@ -166,10 +161,11 @@ function onDragEnd() {
   // Reorder the data array to match the visual order
   const reordered = newOrder.map(i => props.items[i]);
   for (let i = 0; i < reordered.length; i++) props.items[i] = reordered[i];
-  // Remap editing set
-  const re = new Set<number>();
-  for (const i of editing.value) { const m = indexMap.get(i); if (m !== undefined) re.add(m); }
-  editing.value = re;
+  // Remap editing set in place
+  const remapped: number[] = [];
+  for (const i of editing) { const m = indexMap.get(i); if (m !== undefined) remapped.push(m); }
+  editing.clear();
+  for (const i of remapped) editing.add(i);
   // Reset order to identity so rendering matches the now-reordered data
   order.value = props.items.map((_, i) => i);
   triggerRef(order);

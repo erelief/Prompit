@@ -400,7 +400,7 @@ interface WebEngineEditState {
   ok: boolean;           // true = last test succeeded (drives status-pill color)
 }
 const webEngineEditStates = ref<Map<number, WebEngineEditState>>(new Map());
-const webEngineShowKey = ref<Set<number>>(new Set());
+const webEngineShowKey = reactive(new Set<number>());
 
 function getWebEngineEditState(index: number): WebEngineEditState {
   let s = webEngineEditStates.value.get(index);
@@ -481,10 +481,8 @@ function toggleWebEngineExclusive(index: number, e: MouseEvent) {
 }
 
 function toggleWebEngineKeyVisible(index: number) {
-  const s = new Set(webEngineShowKey.value);
-  if (s.has(index)) s.delete(index);
-  else s.add(index);
-  webEngineShowKey.value = s;
+  if (webEngineShowKey.has(index)) webEngineShowKey.delete(index);
+  else webEngineShowKey.add(index);
 }
 
 async function testWebEngineConnection(eng: WebEngineConfig, index: number) {
