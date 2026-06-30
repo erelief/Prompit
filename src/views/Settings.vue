@@ -21,6 +21,7 @@ import {
 import { burstParticles } from "../utils/burstParticles";
 import { shortcutsEqual } from "../utils/shortcut";
 import { useShortcutRecorder } from "../composables/useShortcutRecorder";
+import { useModeModelSelector, validateNamedItem, type FlatEntry } from "../composables/useModeModelSelector";
 import type { ProviderConfig, ProviderPreset, PresetVariantEndpoint, PresetVariantRegion } from "../stores/config";
 import {
   getProviderIcon,
@@ -44,7 +45,6 @@ import { testProviderConnection, fetchProviderModels, optimizePrompt } from "../
 import type { FetchModelEntry } from "../services/llm-client";
 import { SEARCH_PRESETS, presetMeta, testWebEngine } from "../services/websearch";
 import type { WebEngineConfig } from "../stores/config";
-import type { ModelInputCapabilities } from "../stores/config";
 import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
 import EditableCardList from "../components/EditableCardList.vue";
@@ -334,15 +334,7 @@ function validateProvider(p: ProviderConfig): string | null {
 }
 
 function validateTranslationPersona(p: { name: string; prompt: string }, index: number): string | null {
-  const missing: string[] = [];
-  if (!p.name.trim()) missing.push("Name");
-  if (!p.prompt.trim()) missing.push("Prompt");
-  if (missing.length) return `Required: ${missing.join(", ")}`;
-  const dup = personaStore.personas.findIndex(
-    (o, i) => i !== index && o.name.trim().toLowerCase() === p.name.trim().toLowerCase()
-  );
-  if (dup !== -1) return t("settings.duplicateName");
-  return null;
+  return validateNamedItem(personaStore.personas, p, index, t("settings.duplicateName"));
 }
 
 function toggleTranslationPersona(index: number, e: MouseEvent) {
@@ -378,15 +370,7 @@ function handleTextareaKeydown(e: KeyboardEvent, item: { prompt: string }, index
 }
 
 function validateSkillsLite(s: { name: string; prompt: string }, index: number): string | null {
-  const missing: string[] = [];
-  if (!s.name.trim()) missing.push("Name");
-  if (!s.prompt.trim()) missing.push("Prompt");
-  if (missing.length) return `Required: ${missing.join(", ")}`;
-  const dup = skillsLiteStore.skillsLites.findIndex(
-    (o, i) => i !== index && o.name.trim().toLowerCase() === s.name.trim().toLowerCase()
-  );
-  if (dup !== -1) return t("settings.duplicateName");
-  return null;
+  return validateNamedItem(skillsLiteStore.skillsLites, s, index, t("settings.duplicateName"));
 }
 
 function toggleSkillsLite(index: number, e: MouseEvent) {
@@ -950,16 +934,9 @@ function getFetchedModels(pi: number): FetchModelEntry[] {
   return editStates.value.get(pi)?.fetched || [];
 }
 
-// ── Translation model selector ──
-
-interface FlatEntry {
-  pIndex: number;
-  mIndex: number;
-  id: string;
-  providerName: string;
-  icon: string;
-  input_capabilities?: ModelInputCapabilities;
-}
+// ── Translation / skills-lite model selectors ──
+// Both modes share the same label/icon/pick/isActive logic via dynamic keys
+// (mirroring FloatingInput.vue and config.ts). allFlat feeds both menus.
 
 const allFlat = computed<FlatEntry[]>(() => {
   const out: FlatEntry[] = [];
@@ -978,65 +955,16 @@ const allFlat = computed<FlatEntry[]>(() => {
   return out;
 });
 
-const translationActiveLabel = computed(() => {
-  const { providers } = appConfig;
-  const pi = appConfig.translate_active_provider_index;
-  const mi = appConfig.translate_active_model_index;
-  if (pi >= providers.length) return "None";
-  const p = providers[pi];
-  if (!p || mi >= p.models.length) return "None";
-  return p.models[mi].id;
-});
+const {
+  label: translationActiveLabel, icon: translationActiveIcon,
+  pick: pickTranslationModel, isActive: isTranslationModelActive,
+} = useModeModelSelector("translate", showModelSelector, providerPresets);
 
-// Icon of the currently-selected translation model
-const translationActiveIcon = computed(() => {
-  const { providers } = appConfig;
-  const pi = appConfig.translate_active_provider_index;
-  if (pi >= providers.length) return "";
-  const p = providers[pi];
-  return p ? getProviderIcon(p, providerPresets.value) : "";
-});
+const {
+  label: skillsLiteActiveLabel, icon: skillsLiteActiveIcon,
+  pick: pickSkillsLiteModel, isActive: isSkillsLiteModelActive,
+} = useModeModelSelector("skills_lite", showModelSelector, providerPresets);
 
-function pickTranslationModel(e: FlatEntry) {
-  appConfig.translate_active_provider_index = e.pIndex;
-  appConfig.translate_active_model_index = e.mIndex;
-  showModelSelector.value = false;
-  flushConfigSave();
-}
-
-function isTranslationModelActive(pIndex: number, mIndex: number): boolean {
-  return pIndex === appConfig.translate_active_provider_index && mIndex === appConfig.translate_active_model_index;
-}
-
-function isSkillsLiteModelActive(pIndex: number, mIndex: number): boolean {
-  return pIndex === appConfig.skills_lite_active_provider_index && mIndex === appConfig.skills_lite_active_model_index;
-}
-
-const skillsLiteActiveLabel = computed(() => {
-  const { providers } = appConfig;
-  const pi = appConfig.skills_lite_active_provider_index;
-  const mi = appConfig.skills_lite_active_model_index;
-  if (pi >= providers.length) return "None";
-  const p = providers[pi];
-  if (!p || mi >= p.models.length) return "None";
-  return p.models[mi].id;
-});
-
-// Icon of the currently-selected skills-lite model
-const skillsLiteActiveIcon = computed(() => {
-  const { providers } = appConfig;
-  const pi = appConfig.skills_lite_active_provider_index;
-  if (pi >= providers.length) return "";
-  const p = providers[pi];
-  return p ? getProviderIcon(p, providerPresets.value) : "";
-});
-
-function pickSkillsLiteModel(e: FlatEntry) {
-  appConfig.skills_lite_active_provider_index = e.pIndex;
-  appConfig.skills_lite_active_model_index = e.mIndex;
-  showModelSelector.value = false;
-  flushConfigSave();
-}
 
 // ── Click outside panels ──
 
