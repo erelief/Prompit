@@ -18,11 +18,6 @@ async function ensureMaintainedList(): Promise<ModelCapabilityItem[]> {
   return _maintainedList;
 }
 
-/** Force a re-load of the maintained list (e.g. for testing). */
-export function resetCapabilityCache(): void {
-  _maintainedList = null;
-}
-
 // ── Modality keyword registry ──
 // Each modality has three sets of heuristic rules. Layer ① is provider-agnostic
 // (reads raw objects) so it's shared and only needs the keyword to look for in
