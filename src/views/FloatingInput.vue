@@ -472,22 +472,24 @@ async function handleOpenSettings() {
   router.push("/settings");
 }
 
+/** Reset the result-display fields shared by clearAll and closeResult. */
+function resetResultBlock() {
+  hasResult.value = false;
+  translatedText.value = "";
+  lastResultSources.value = [];
+  sourcesView.value = false;
+}
+
 function clearAll() {
   inputText.value = "";
-  translatedText.value = "";
   errorMessage.value = "";
   webSearchErrorText.value = "";
   webSearchStatus.value = "idle";
-  lastResultSources.value = [];
-  sourcesView.value = false;
-  hasResult.value = false;
+  resetResultBlock();
 }
 
 function closeResult() {
-  hasResult.value = false;
-  translatedText.value = "";
-  lastResultSources.value = [];
-  sourcesView.value = false;
+  resetResultBlock();
 }
 
 function startEditing() {
