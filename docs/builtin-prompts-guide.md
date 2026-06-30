@@ -42,21 +42,15 @@ The three layers, at a glance:
 │ Layer 1/2 — SEED constants  (src/stores/config.ts)                  │
 │   DEFAULT_CODING_PERSONA     (persona seed)                         │
 │   DEFAULT_POLISH_SKILLS_LITE (skills-lite seed)                     │
-│   → Written ONCE into encrypted personas.json / sparkles.json       │
+│   → Written ONCE into encrypted personas.json / skills_lites.json   │
 │     on first run. After that, the user owns & can edit/delete them. │
 └─────────────────────────────────────────────────────────────────────┘
                               ▲ persisted to
 ┌─────────────────────────────────────────────────────────────────────┐
-│ Runtime storage — <data_dir>/personas.json, sparkles.json           │
+│ Runtime storage — <data_dir>/personas.json, skills_lites.json       │
 │   AES-256-GCM encrypted via Rust crate::crypto.                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
-
-> **Naming note.** The mode's internal id is `skills_lite` (its UI label is
-> "Skills Lite" / "轻技能"), but the encrypted data file and crypto tag are still
-> literally `sparkles` / `sparkles.json` — kept unchanged for backward
-> compatibility with existing users' data. Don't be fooled by the filename: it
-> stores Skills Lite entries.
 
 ### The four things most people get wrong
 
@@ -67,7 +61,7 @@ The three layers, at a glance:
    the user can rename, edit, or delete it freely.
 
 2. **Seed changes do NOT reach existing installs.** Seeding only happens when
-   `personas.json` / `sparkles.json` is missing or empty (`config.ts:485`,
+   `personas.json` / `skills_lites.json` is missing or empty (`config.ts:485`,
    `config.ts:733`). Editing a seed constant only affects **fresh installs**.
    To update an existing user you must either bump the schema with a migration
    or have them reset (see [§7.5](#75-reset-a-users-builtins-to-defaults)).
@@ -268,8 +262,8 @@ pub struct SkillsLiteEntry {
 }
 ```
 
-Persisted (encrypted) to `<data_dir>/sparkles.json` via
-`crypto::encrypt("sparkles", …)` (`skills_lite.rs:39-47`). Registered as Tauri
+Persisted (encrypted) to `<data_dir>/skills_lites.json` via
+`crypto::encrypt("skills_lites", …)` (`skills_lite.rs:39-47`). Registered as Tauri
 commands `read_skills_lites` / `save_skills_lites` in `src-tauri/src/lib.rs:146-147`.
 
 > The `#[serde(default)]` on `description` and `enabled` is **intentional
@@ -301,7 +295,7 @@ function buildSkillsLiteSystemPrompt(): string {
 1. Edit `name` / `prompt` / `description` of `DEFAULT_POLISH_SKILLS_LITE` in
    `src/stores/config.ts:722-728`.
 2. For a text-only change, nothing else is needed. Verify on a clean profile
-   (delete `<data_dir>/sparkles.json`).
+   (delete `<data_dir>/skills_lites.json`).
 
 ### 4.5 Ship more than one built-in
 
@@ -420,7 +414,7 @@ Full checklist (skills-lite shown; persona is analogous):
    `src/stores/config.ts:115-120`.
 2. **Rust struct** — add the field to `SkillsLiteEntry` in
    `src-tauri/src/commands/skills_lite.rs:10-17` **with `#[serde(default)]`** (so
-   old `sparkles.json` files still load).
+   old `skills_lites.json` files still load).
 3. **Seed constant** — set the field on `DEFAULT_POLISH_SKILLS_LITE`
    (`config.ts:722`) and in the seed array (`loadSkillsLites`, `config.ts:734`).
 4. **Load normalization** — if needed, default-fill the field in the
@@ -443,7 +437,7 @@ encrypted data file(s) in the app data dir (resolved by `get_data_dir` at
 `src-tauri/src/lib.rs:82` → Tauri `app_config_dir()`):
 
 - `personas.json` — personas
-- `sparkles.json` — skills-lites
+- `skills_lites.json` — skills-lites
 
 On next launch, `loadPersonas()` / `loadSkillsLites()` see an empty/missing file
 and re-seed from `DEFAULT_CODING_PERSONA` / `DEFAULT_POLISH_SKILLS_LITE`.
