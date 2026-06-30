@@ -253,6 +253,12 @@ function toggleTranslationDict(e: MouseEvent) {
   if (turning) burstParticles(e.currentTarget as HTMLElement);
 }
 
+function toggleHistoryEnabled(e: MouseEvent) {
+  const turning = !appConfig.history_enabled;
+  appConfig.history_enabled = turning;
+  if (turning) burstParticles(e.currentTarget as HTMLElement);
+}
+
 async function checkForUpdate(silent = false) {
   if (!isTauri) return;
   updateStatus.value = "checking";
@@ -1651,7 +1657,7 @@ onUnmounted(() => {
         <div class="card-section" :class="{ 'remove-pending': showHistoryClearConfirm }">
           <div class="card-row">
             <span class="card-label">{{ t('history.historyEnabled') }}</span>
-            <button class="about-auto-btn" :class="{ 'toggle-on': appConfig.history_enabled }" @click="appConfig.history_enabled = !appConfig.history_enabled">
+            <button class="about-auto-btn" :class="{ 'toggle-on': appConfig.history_enabled }" @click="toggleHistoryEnabled($event)">
               <ToggleRight v-if="appConfig.history_enabled" :size="15" :stroke-width="1.7" />
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
             </button>
