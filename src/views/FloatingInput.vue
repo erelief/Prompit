@@ -8,6 +8,7 @@ import { eventMatchesShortcut } from "../utils/shortcut";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
+import { useGlassBg, domainOf } from "../composables/useGlass";
 import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore } from "../stores/config";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
@@ -18,7 +19,6 @@ import { SearchFailureError, ModelHttpError } from "../services/llm-client";
 import { classifySearchError } from "../services/websearch";
 import type { SearchHit } from "../services/websearch/types";
 import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink, Pencil, Check, Copy } from "@lucide/vue";
-import { isDark } from "../composables/useTheme";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
 const { t } = useI18n();
@@ -102,17 +102,7 @@ const activeModelCapabilities = computed<ModelInputCapabilities | undefined>(() 
   return prov?.models?.[mi]?.input_capabilities;
 });
 
-const glassBg = computed(() => {
-  const o = (appConfig.floating_opacity ?? 90) / 100;
-  if (o >= 1) {
-    return isDark()
-      ? "linear-gradient(135deg, rgb(15,15,20) 0%, rgb(20,20,30) 100%)"
-      : "linear-gradient(135deg, rgb(255,255,255) 0%, rgb(245,245,250) 100%)";
-  }
-  return isDark()
-    ? `linear-gradient(135deg, rgba(15,15,20,${o}) 0%, rgba(20,20,30,${o * 0.94}) 100%)`
-    : `linear-gradient(135deg, rgba(255,255,255,${o}) 0%, rgba(245,245,250,${o * 0.94}) 100%)`;
-});
+const glassBg = useGlassBg();
 
 const floatingAlpha = computed(() => (appConfig.floating_opacity ?? 90) / 100);
 
@@ -127,16 +117,6 @@ const inputPlaceholder = computed(() => {
   }
   return hasResult.value ? t("floating.pressEnterToPaste") : t("floating.typeToSend");
 });
-
-/** Extract a display hostname from a URL, stripping the leading "www.".
- *  Falls back to the raw string on parse failure. */
-function domainOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
 
 const showModelDropdown = ref(false);
 const floatingPresets = ref<ProviderPreset[]>([]);
