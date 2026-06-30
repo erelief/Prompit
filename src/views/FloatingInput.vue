@@ -9,6 +9,7 @@ import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
 import { useGlassBg, domainOf } from "../composables/useGlass";
+import { useEventListener } from "@vueuse/core";
 import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore } from "../stores/config";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
@@ -519,26 +520,21 @@ function handleEditKeydown(e: KeyboardEvent) {
 function startResize(e: MouseEvent) {
   e.preventDefault();
   e.stopPropagation();
-  
+
   const textarea = (e.target as HTMLElement).closest('.result-edit-textarea-wrapper')?.querySelector('textarea') as HTMLTextAreaElement | null;
   if (!textarea) return;
-  
+
   const startY = e.clientY;
   const startHeight = textarea.offsetHeight;
-  
-  function onMouseMove(e: MouseEvent) {
-    const deltaY = e.clientY - startY;
+
+  // useEventListener auto-cleans on mouseup (its returned cleanup) and on
+  // component unmount, removing the leak risk of a bare addEventListener.
+  const stopMove = useEventListener(document, 'mousemove', (ev: MouseEvent) => {
+    const deltaY = ev.clientY - startY;
     const newHeight = Math.max(60, Math.min(200, startHeight + deltaY));
-    textarea!.style.height = `${newHeight}px`;
-  }
-  
-  function onMouseUp() {
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
-  }
-  
-  document.addEventListener('mousemove', onMouseMove);
-  document.addEventListener('mouseup', onMouseUp);
+    textarea.style.height = `${newHeight}px`;
+  });
+  useEventListener(document, 'mouseup', () => stopMove(), { once: true });
 }
 
 function cancelRequest() {
