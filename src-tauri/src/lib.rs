@@ -4,6 +4,7 @@ use tauri::{AppHandle, Manager};
 pub mod commands;
 pub mod config;
 pub mod crypto;
+pub mod kek;
 #[cfg(target_os = "windows")]
 mod power_watcher;
 pub mod shortcut;

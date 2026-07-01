@@ -22,6 +22,9 @@ const deps = [
   { name: "Lobe Icons", version: "1.91.0", url: "https://www.npmjs.com/package/@lobehub/icons" },
   { name: "Tailwind CSS", version: "4.3.0", url: "https://tailwindcss.com" },
   { name: "VueDraggable", version: "4.1.0", url: "https://sortablejs.github.io/vue.draggable.next/" },
+  // Rust crate: binds the vault's local KEK to the OS credential store
+  // (Windows Credential Manager / macOS Keychain / Linux Secret Service).
+  { name: "Keyring", version: "3.6.3", url: "https://crates.io/crates/keyring" },
   // AnySearch powers the built-in web search (no npm version — it's a hosted API service).
   { name: "AnySearch", url: "https://anysearch.com" },
 ];

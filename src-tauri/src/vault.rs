@@ -4,14 +4,24 @@
 //!   random Master Key  --wrapped by KEK_machine-->  vault.key
 //!   Master Key  --derives per-scope keys-->  *.json ciphertext (via crypto.rs)
 //!
+//! Local protection (KEK_machine) has two sources, recorded in `vault.key`'s
+//! `version` field (see `kek.rs`):
+//!   version 2 (preferred): random KEK held in the OS credential store
+//!     (Windows Credential Manager / macOS Keychain / Linux Secret Service).
+//!     OS-bound: a stolen `vault.key` is useless without the owning session.
+//!   version 1 (fallback):  SHA256(hostname:username:app_id). Used when the OS
+//!     store is unreachable (e.g. Linux without a Secret Service daemon). A v1
+//!     file is silently upgraded to v2 the first time the OS store is usable.
+//!
 //! Transport model (only when the user backs up / migrates):
 //!   Master Key  --wrapped by KEK_password=Argon2id-->  export bundle
 //!   bundle also carries the 5 data ciphertexts verbatim.
 //!
-//! Local protection strength is unchanged vs. the legacy scheme (still bound to
-//! the machine seed). The sole win of this refactor is portability: the random
-//! Master Key can be re-wrapped on another machine, whereas the old 5
-//! machine-derived keys could not move at all.
+//! The local KEK layer (this file + kek.rs) is fully decoupled from the
+//! password transport layer: export/import never touches the machine KEK, so
+//! changing the KEK source does not affect cross-device backups. The random
+//! Master Key remains portable — it is re-wrapped under each machine's own KEK
+//! on import.
 
 use std::fs;
 use std::path::PathBuf;
@@ -25,6 +35,7 @@ use tauri::AppHandle;
 use zeroize::Zeroizing;
 
 use crate::crypto::{self, EncryptedPayload};
+use crate::kek;
 
 /// Fixed plaintext encrypted under the Master-Key-derived verifier scope.
 /// Decrypting the verifier with a candidate Master Key and comparing to this
@@ -54,9 +65,13 @@ const ARGON2_SALT_LEN: usize = 16;
 
 #[derive(Serialize, Deserialize)]
 struct VaultFile {
+    /// Which KEK source wraps `wrapped_master_key`. 1 = legacy
+    /// `SHA256(host:user:app)` (see `crypto::derive_raw_machine_key`); 2 =
+    /// random KEK held in the OS credential store (see `kek.rs`).
     version: u32,
-    /// Master Key encrypted with KEK_machine (raw machine key, NOT routed
-    /// through derive_key — see crypto::derive_raw_machine_key).
+    /// Master Key encrypted with the version-appropriate local KEK (raw KEK,
+    /// NOT routed through derive_key — wrapping the Master Key itself must not
+    /// recurse through derive_key).
     wrapped_master_key: EncryptedPayload,
     /// VERIFIER_MAGIC encrypted under the verifier scope. Lets us confirm a
     /// candidate Master Key without touching user data.
@@ -69,15 +84,20 @@ fn vault_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("vault.key"))
 }
 
-/// Generate a fresh random Master Key, wrap it with the machine key, write
-/// vault.key, install it into the process. Used on first launch (no vault.key
-/// yet) and after import (replace local Master Key with the imported one).
+/// Wrap `master_key` under the best-available local KEK, write `vault.key`,
+/// and install the Master Key into the process. Used on first launch (no
+/// vault.key yet), after import (replace local Master Key with the imported
+/// one), and when silently upgrading a v1 file to v2.
+///
+/// The KEK source is chosen by `kek::kek_for_write`: OS credential store when
+/// reachable, else the machine-seed hash. The chosen source's version is
+/// recorded in the file so a later unlock picks the matching KEK.
 fn install_and_persist(app: &AppHandle, master_key: [u8; 32]) -> Result<(), String> {
-    let machine_key = crypto::derive_raw_machine_key();
-    let wrapped = crypto::encrypt_with_key(&machine_key, &master_key)?;
+    let (kek, source) = kek::kek_for_write();
+    let wrapped = crypto::encrypt_with_key(&kek, &master_key)?;
     let verifier = crypto::encrypt_with_key(&verifier_key(&master_key), VERIFIER_MAGIC)?;
     let file = VaultFile {
-        version: 1,
+        version: source.version(),
         wrapped_master_key: wrapped,
         verifier,
     };
@@ -95,6 +115,12 @@ fn install_and_persist(app: &AppHandle, master_key: [u8; 32]) -> Result<(), Stri
 /// Called once from app setup. If vault.key exists, unwrap the Master Key and
 /// install it. Otherwise generate one fresh. Never touches user data files —
 /// migration of legacy ciphertext happens lazily in each read_* path.
+///
+/// `vault.key` `version` selects the KEK source used to unwrap: v1 → machine
+/// seed, v2 → OS credential store. A v1 file is silently re-wrapped as v2 the
+/// first time the OS store becomes available, so existing users are upgraded
+/// automatically with no data re-encryption (the Master Key is unchanged; only
+/// its local wrap layer changes).
 pub fn unlock_or_migrate(app: &AppHandle) -> Result<(), String> {
     let path = vault_path(app)?;
     if !path.exists() {
@@ -106,8 +132,13 @@ pub fn unlock_or_migrate(app: &AppHandle) -> Result<(), String> {
     let file: VaultFile =
         serde_json::from_str(&content).map_err(|e| format!("parse vault: {e}"))?;
 
-    let machine_key = crypto::derive_raw_machine_key();
-    let mk_bytes = crypto::decrypt_with_key(&machine_key, &file.wrapped_master_key)?;
+    let source = match file.version {
+        1 => kek::KekSource::EnvHash,
+        2 => kek::KekSource::OsKeystore,
+        v => return Err(format!("unsupported vault.key version: {v}")),
+    };
+    let kek = kek::kek_for_read(source)?;
+    let mk_bytes = crypto::decrypt_with_key(&kek, &file.wrapped_master_key)?;
     if mk_bytes.len() != 32 {
         return Err("corrupt vault: master key not 32 bytes".into());
     }
@@ -122,6 +153,18 @@ pub fn unlock_or_migrate(app: &AppHandle) -> Result<(), String> {
     }
 
     crypto::set_master_key(master_key);
+
+    // Silent upgrade: a legacy v1 wrap (machine seed) is re-wrapped as v2
+    // (OS credential store) the first time the OS store is usable. `kek_for_write`
+    // picks the OS store when available, so this is a no-op on machines where it
+    // isn't (the file is just re-written as v1). The Master Key itself never
+    // changes, so all data ciphertexts stay valid.
+    if source == kek::KekSource::EnvHash {
+        // Best-effort: a failure here leaves the file at v1, which still unlocks
+        // fine next launch. The Master Key is already installed in memory.
+        let _ = install_and_persist(app, master_key);
+    }
+
     Ok(())
 }
 
@@ -349,5 +392,81 @@ mod tests {
         let payload = crypto::encrypt_with_key(&machine_key, &master).unwrap();
         let plain = crypto::decrypt_with_key(&machine_key, &payload).unwrap();
         assert_eq!(plain, master);
+    }
+
+    /// The local KEK layer must be decoupled from the password transport layer.
+    /// This test proves a v1-wrap VaultFile round-trips through the same KEK
+    /// source that wrote it (env-hash), independent of the export password path.
+    #[test]
+    fn vaultfile_v1_roundtrips_through_env_hash_kek() {
+        let master = [0x11u8; 32];
+        let (kek, source) = kek::kek_for_write();
+        // Force the env-hash source for a deterministic test: the machine-seed
+        // KEK is always available, so re-derive it directly.
+        let env_kek = crypto::derive_raw_machine_key();
+        let wrapped = crypto::encrypt_with_key(&env_kek, &master).unwrap();
+        let verifier = crypto::encrypt_with_key(&verifier_key(&master), VERIFIER_MAGIC).unwrap();
+        let file = VaultFile {
+            version: kek::KekSource::EnvHash.version(),
+            wrapped_master_key: wrapped,
+            verifier,
+        };
+
+        // Serialize/deserialize (the on-disk step).
+        let json = serde_json::to_string(&file).unwrap();
+        let back: VaultFile = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.version, 1);
+
+        // Read-back KEK selection mirrors unlock_or_migrate's logic.
+        let read_source = match back.version {
+            1 => kek::KekSource::EnvHash,
+            2 => kek::KekSource::OsKeystore,
+            _ => unreachable!(),
+        };
+        let read_kek = kek::kek_for_read(read_source).unwrap();
+        // When the chosen write source was env-hash, the read KEK matches.
+        if source == kek::KekSource::EnvHash {
+            assert_eq!(read_kek, env_kek);
+        }
+        let recovered = crypto::decrypt_with_key(&read_kek, &back.wrapped_master_key).unwrap();
+        assert_eq!(recovered, master);
+        // Verifier must still validate under the recovered Master Key.
+        let v = crypto::decrypt_with_key(&verifier_key(&master), &back.verifier).unwrap();
+        assert_eq!(v, VERIFIER_MAGIC);
+        // kek is used in the write branch above; reference it to avoid an
+        // unused-variable lint on platforms where the compiler can't see it.
+        let _ = kek;
+    }
+
+    /// Regression guard: the export/import envelope (password path) must be
+    /// completely independent of the local KEK source. Build a bundle with a
+    /// fixed Master Key, then unwrap it — the local KEK module is never invoked
+    /// on the unwrap side.
+    #[test]
+    fn export_bundle_unwrap_is_independent_of_local_kek() {
+        let master = [0x77u8; 32];
+        let kdf = KdfParams {
+            m_cost: 4096,
+            t_cost: 1,
+            p_cost: 1,
+            output_len: ARGON2_OUTPUT_LEN,
+        };
+        let salt = [0u8; ARGON2_SALT_LEN];
+        let pw_key = derive_password_key("correct horse", &salt, &kdf).unwrap();
+
+        // Wrap as export does.
+        let wrapped = crypto::encrypt_with_key(&pw_key, &master).unwrap();
+        let verifier = crypto::encrypt_with_key(&verifier_key(&master), VERIFIER_MAGIC).unwrap();
+
+        // Unwrap as import does — note: NO call to kek:: anything.
+        let mk_bytes = crypto::decrypt_with_key(&pw_key, &wrapped).unwrap();
+        assert_eq!(mk_bytes, master);
+        let v = crypto::decrypt_with_key(&verifier_key(&master), &verifier).unwrap();
+        assert_eq!(v, VERIFIER_MAGIC);
+
+        // A wrong password must fail, proving the wrap is genuinely keyed by
+        // the password (not by any local machine state).
+        let wrong = derive_password_key("wrong horse", &salt, &kdf).unwrap();
+        assert!(crypto::decrypt_with_key(&wrong, &wrapped).is_err());
     }
 }

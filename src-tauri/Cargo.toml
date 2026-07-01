@@ -51,9 +51,22 @@ windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
     "Win32_System_LibraryLoader",
 ] }
+# OS credential store (Windows Credential Manager / DPAPI) for the local vault
+# KEK. See kek.rs. v3 ships no default features, so the platform backend must
+# be enabled explicitly.
+keyring = { version = "3", features = ["windows-native"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # NSWindow setFrame:display: sets origin+size atomically in one message.
 objc2 = "0.6"
 objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSView", "NSGraphics"] }
+# OS credential store (Keychain) for the local vault KEK. See kek.rs.
+keyring = { version = "3", features = ["apple-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# OS credential store (Secret Service via D-Bus) for the local vault KEK.
+# Requires GNOME Keyring / KWallet at runtime; kek.rs falls back to the
+# machine-seed KEK when no daemon is reachable. crypto-rust avoids pulling in
+# OpenSSL for the Secret Service session encryption.
+keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
 

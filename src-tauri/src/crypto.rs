@@ -14,10 +14,11 @@ pub struct EncryptedPayload {
     pub nonce: String,
 }
 
-/// In-memory Master Key. Set once at startup by the vault module. When present,
-/// all per-scope data keys are derived from it (portable, random). When absent
-/// (e.g. mid-migration, or unit tests), derive_key falls back to the legacy
-/// machine-seed path so old encrypted files keep working.
+/// In-memory Master Key. Set once at startup by the vault module (after
+/// unwrapping it from `vault.key` via the local KEK — see `kek.rs`). When
+/// present, all per-scope data keys are derived from it (portable, random).
+/// When absent (unit tests that never call `set_master_key`), `derive_key`
+/// panics rather than silently deriving wrong keys.
 static MASTER_KEY: OnceLock<Zeroizing<[u8; 32]>> = OnceLock::new();
 
 /// Install the Master Key into the process. Called exactly once from the vault
@@ -61,8 +62,9 @@ pub fn derive_raw_machine_key() -> [u8; 32] {
     key
 }
 
-/// Per-scope data key. Prefers the Master Key when installed (portable path);
-/// falls back to the machine-seed path otherwise (legacy/migration path).
+/// Per-scope data key derived from the installed Master Key (domain-separated
+/// by `scope`). Panics if the Master Key is not installed — at runtime setup
+/// always installs it before any data is read, so this never fires in prod.
 fn derive_key(scope: &str) -> [u8; 32] {
     // Domain-separated derivation: distinct 32-byte key per scope, all rooted
     // at the random Master Key. SHA256 is a fine KDF here because the input is
