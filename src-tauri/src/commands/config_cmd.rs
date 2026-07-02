@@ -3,6 +3,9 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
+/// Fallback shortcut used when the saved config can't be read.
+const DEFAULT_SHORTCUT: &str = "Alt+Y";
+
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = crate::get_data_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("create dir: {e}"))?;
@@ -74,7 +77,7 @@ pub fn get_config_dir(app: AppHandle) -> Result<String, String> {
 pub fn get_shortcut_label(app: AppHandle) -> String {
     read_config(app)
         .map(|c| c.shortcut)
-        .unwrap_or_else(|_| "Alt+Y".to_string())
+        .unwrap_or_else(|_| DEFAULT_SHORTCUT.to_string())
 }
 
 #[cfg(test)]

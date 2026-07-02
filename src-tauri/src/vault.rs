@@ -84,6 +84,17 @@ fn vault_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("vault.key"))
 }
 
+/// Coerce a byte slice into a 32-byte array, tagging the error with `what` so
+/// the caller's context (vault vs bundle) shows up in the message.
+fn to_array32(bytes: &[u8], what: &str) -> Result<[u8; 32], String> {
+    if bytes.len() != 32 {
+        return Err(format!("{what}: master key not 32 bytes"));
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(bytes);
+    Ok(arr)
+}
+
 /// Wrap `master_key` under the best-available local KEK, write `vault.key`,
 /// and install the Master Key into the process. Used on first launch (no
 /// vault.key yet), after import (replace local Master Key with the imported
@@ -139,11 +150,7 @@ pub fn unlock_or_migrate(app: &AppHandle) -> Result<(), String> {
     };
     let kek = kek::kek_for_read(source)?;
     let mk_bytes = crypto::decrypt_with_key(&kek, &file.wrapped_master_key)?;
-    if mk_bytes.len() != 32 {
-        return Err("corrupt vault: master key not 32 bytes".into());
-    }
-    let mut master_key = [0u8; 32];
-    master_key.copy_from_slice(&mk_bytes);
+    let master_key = to_array32(&mk_bytes, "corrupt vault")?;
 
     // Verify before installing: a mismatch (e.g. vault.key copied from another
     // machine) must fail loudly here, not silently produce wrong data keys.
@@ -239,17 +246,10 @@ fn collect_data_payloads(
     Ok(map)
 }
 
-/// Get the in-memory Master Key, or error if the vault was never unlocked
-/// (should not happen at runtime since setup always unlocks first).
-fn current_master_key() -> Result<[u8; 32], String> {
-    // crypto::MASTER_KEY is private; expose via a getter there.
-    crypto::get_master_key()
-}
-
 /// Build an export bundle for the current machine's data, keyed by `password`.
 /// Writes it to `path`. Intended to be invoked from the export_data command.
 pub fn export_bundle(app: &AppHandle, password: &str, path: &str) -> Result<(), String> {
-    let master_key = current_master_key()?;
+    let master_key = crypto::get_master_key()?;
 
     let mut salt = [0u8; ARGON2_SALT_LEN];
     rand::rngs::OsRng.fill_bytes(&mut salt);
@@ -296,11 +296,7 @@ pub fn import_bundle(app: &AppHandle, password: &str, path: &str) -> Result<(), 
     let pw_key = derive_password_key(password, &salt, &bundle.kdf)?;
     let mk_bytes = crypto::decrypt_with_key(&pw_key, &bundle.wrapped_master_key)
         .map_err(|_| "wrong password or corrupt bundle".to_string())?;
-    if mk_bytes.len() != 32 {
-        return Err("corrupt bundle: master key not 32 bytes".into());
-    }
-    let mut master_key = [0u8; 32];
-    master_key.copy_from_slice(&mk_bytes);
+    let master_key = to_array32(&mk_bytes, "corrupt bundle")?;
 
     // Verify before committing anything to disk.
     let verifier_plain = crypto::decrypt_with_key(&verifier_key(&master_key), &bundle.verifier)

@@ -24,4 +24,13 @@ export interface ClassifiedSearchError {
   rawMessage?: string; // Raw error text from the server
 }
 
-export { SearchHttpError } from "../errors";
+import { SearchHttpError } from "../errors";
+export { SearchHttpError };
+
+/** Assert a fetch Response is ok; otherwise throw a SearchHttpError carrying
+ *  the status and (best-effort) body text. Shared by every preset module. */
+export async function assertOk(response: Response): Promise<void> {
+  if (response.ok) return;
+  const errorText = await response.text().catch(() => "");
+  throw new SearchHttpError(response.status, errorText || `HTTP ${response.status}`);
+}

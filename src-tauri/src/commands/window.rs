@@ -2,30 +2,60 @@ use tauri::{AppHandle, Manager};
 
 use crate::state::WindowConfig;
 
-#[tauri::command]
-pub fn hide_main_window(app: AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or("Main window not found")?;
-    window.hide().map_err(|e| e.to_string())?;
-    Ok(())
+/// Fetch the main webview window or return a consistent error string.
+fn main_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
+    app.get_webview_window("main").ok_or("Main window not found".to_string())
 }
 
-#[tauri::command]
-pub fn show_main_window(app: AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or("Main window not found")?;
+/// Make the window visible and give it keyboard focus. Shared by the show /
+/// settings / onboarding / startup-reminder commands.
+fn show_and_focus(window: &tauri::WebviewWindow) -> Result<(), String> {
     window.show().map_err(|e| e.to_string())?;
     window.set_focus().map_err(|e| e.to_string())?;
     Ok(())
 }
 
+/// Effective DPI scale factor of the window's current monitor, defaulting to
+/// 1.0 when no monitor can be resolved.
+fn monitor_scale(window: &tauri::WebviewWindow) -> f64 {
+    window
+        .current_monitor()
+        .ok()
+        .flatten()
+        .map(|m| m.scale_factor())
+        .unwrap_or(1.0)
+}
+
+/// Resize the main window to the given logical dimensions, center it on
+/// screen, then show + focus it. Shared by the onboarding and startup-reminder
+/// windows, which differ only in their target size.
+fn resize_center_show(app: &AppHandle, logical_w: f64, logical_h: f64) -> Result<(), String> {
+    let window = main_window(app)?;
+    let scale = monitor_scale(&window);
+    window
+        .set_size(tauri::PhysicalSize {
+            width: (logical_w * scale) as u32,
+            height: (logical_h * scale) as u32,
+        })
+        .map_err(|e| e.to_string())?;
+    window.center().map_err(|e| e.to_string())?;
+    show_and_focus(&window)
+}
+
+#[tauri::command]
+pub fn hide_main_window(app: AppHandle) -> Result<(), String> {
+    main_window(&app)?.hide().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn show_main_window(app: AppHandle) -> Result<(), String> {
+    show_and_focus(&main_window(&app)?)
+}
+
 #[tauri::command]
 pub fn resize_main_window(app: AppHandle, width: f64, height: f64) -> Result<(), String> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or("Main window not found")?;
+    let window = main_window(&app)?;
     window
         .set_size(tauri::Size::Physical(tauri::PhysicalSize {
             width: width as u32,
@@ -52,16 +82,9 @@ pub fn resize_and_reposition(
     height: f64,
     width: Option<f64>,
 ) -> Result<(), String> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or("Main window not found")?;
+    let window = main_window(&app)?;
 
-    let scale = window
-        .current_monitor()
-        .ok()
-        .flatten()
-        .map(|m| m.scale_factor())
-        .unwrap_or(1.0);
+    let scale = monitor_scale(&window);
 
     let physical_h = (height * scale) as u32;
     let physical_w = ((width.unwrap_or(500.0)) * scale) as u32;
@@ -220,68 +243,17 @@ pub fn resize_and_reposition(
 
 #[tauri::command]
 pub fn open_settings_window(app: AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or("Main window not found")?;
-    window.show().map_err(|e| e.to_string())?;
-    window.set_focus().map_err(|e| e.to_string())?;
-    Ok(())
+    show_and_focus(&main_window(&app)?)
 }
 
 #[tauri::command]
 pub fn show_onboarding_window(app: AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or("Main window not found")?;
-
-    let scale = window
-        .current_monitor()
-        .ok()
-        .flatten()
-        .map(|m| m.scale_factor())
-        .unwrap_or(1.0);
-
-    let w = (380.0 * scale) as u32;
-    let h = (560.0 * scale) as u32;
-
-    window
-        .set_size(tauri::PhysicalSize {
-            width: w,
-            height: h,
-        })
-        .map_err(|e| e.to_string())?;
-    window.center().map_err(|e| e.to_string())?;
-    window.show().map_err(|e| e.to_string())?;
-    window.set_focus().map_err(|e| e.to_string())?;
-    Ok(())
+    resize_center_show(&app, 380.0, 560.0)
 }
 
 #[tauri::command]
 pub fn show_startup_reminder_window(app: AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("main")
-        .ok_or("Main window not found")?;
-
-    let scale = window
-        .current_monitor()
-        .ok()
-        .flatten()
-        .map(|m| m.scale_factor())
-        .unwrap_or(1.0);
-
-    let w = (380.0 * scale) as u32;
-    let h = (280.0 * scale) as u32;
-
-    window
-        .set_size(tauri::PhysicalSize {
-            width: w,
-            height: h,
-        })
-        .map_err(|e| e.to_string())?;
-    window.center().map_err(|e| e.to_string())?;
-    window.show().map_err(|e| e.to_string())?;
-    window.set_focus().map_err(|e| e.to_string())?;
-    Ok(())
+    resize_center_show(&app, 380.0, 280.0)
 }
 
 #[tauri::command]

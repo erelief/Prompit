@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, type Ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -62,13 +62,6 @@ function selectPersona(rowIdx: number, persona: string | null) {
   }
   openPersonaRow.value = null;
   dirty.value = true;
-}
-
-function closePersonaDropdown(e: MouseEvent) {
-  const t = e.target as HTMLElement;
-  if (!t.closest(".persona-dropdown") && !t.closest(".persona-btn")) {
-    openPersonaRow.value = null;
-  }
 }
 
 /* ── Sorting ── */
@@ -154,21 +147,12 @@ function applyBatchPersona(persona: string | null) {
   dirty.value = true;
 }
 
-function closeBatchDropdown(e: MouseEvent) {
-  const t = e.target as HTMLElement;
-  if (!t.closest(".batch-persona-dropdown") && !t.closest(".batch-persona-btn")) {
-    showBatchPersona.value = false;
-  }
-}
-
 /* ── View-local target language ── */
 const viewLang = ref(appConfig.target_lang);
 const showLangMenu = ref(false);
 const langMenuPos = ref({ top: 0, left: 0 });
 const langBtnRef = ref<HTMLButtonElement | null>(null);
-const langItems = computed(() =>
-  getOrderedLanguages().map(name => ({ id: name, name }))
-);
+const orderedLangs = computed(() => getOrderedLanguages());
 
 async function pickViewLang(lang: string) {
   if (lang === viewLang.value) { showLangMenu.value = false; return; }
@@ -191,12 +175,19 @@ function toggleLangMenu() {
   }
 }
 
-function closeLangMenu(e: MouseEvent) {
-  const t = e.target as HTMLElement;
-  if (!t.closest(".sel-menu") && !t.closest(".sel-btn")) {
-    showLangMenu.value = false;
-  }
+// Generic outside-click guard: closes `ref` when the click lands outside all
+// `insideSelectors`. Each dropdown registers its own listener with this helper
+// instead of repeating the same closest() boilerplate.
+function closeOnOutsideClick(refToClose: Ref<boolean | number | null>, ...insideSelectors: string[]) {
+  return (e: MouseEvent) => {
+    const t = e.target as HTMLElement;
+    if (!insideSelectors.some((sel) => t.closest(sel))) refToClose.value = null;
+  };
 }
+
+const closeLangMenu = closeOnOutsideClick(showLangMenu, ".sel-menu", ".sel-btn");
+const closePersonaDropdown = closeOnOutsideClick(openPersonaRow, ".persona-dropdown", ".persona-btn");
+const closeBatchDropdown = closeOnOutsideClick(showBatchPersona, ".batch-persona-dropdown", ".batch-persona-btn");
 
 /* ── Window drag ── */
 async function handleDrag(e: MouseEvent) {
@@ -525,13 +516,13 @@ onUnmounted(() => {
         <div v-if="showLangMenu" class="sel-menu lang-menu" :style="{ top: langMenuPos.top + 'px', left: langMenuPos.left + 'px' }">
           <div class="sel-clip settings-scrollbar">
             <div
-              v-for="item in langItems" :key="item.id"
+              v-for="name in orderedLangs" :key="name"
               class="sel-opt lang-opt"
-              :class="{ hit: item.name === viewLang }"
-              @click="pickViewLang(item.name)"
+              :class="{ hit: name === viewLang }"
+              @click="pickViewLang(name)"
             >
-              <span class="opt-label">{{ getLangName(item.name) }}</span>
-              <Check v-if="item.name === viewLang" :size="13" :stroke-width="2.5" class="lang-item-check" />
+              <span class="opt-label">{{ getLangName(name) }}</span>
+              <Check v-if="name === viewLang" :size="13" :stroke-width="2.5" class="lang-item-check" />
             </div>
           </div>
         </div>

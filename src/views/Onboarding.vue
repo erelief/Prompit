@@ -155,25 +155,20 @@ const searchCanNext = computed(() => !!searchSelectedPreset.value && !!searchApi
 // ── Computed ──
 const canProceed = computed(() => {
   switch (currentStep.value) {
-    case 0: return true;
-    case 1: return true;
     case 2:
+      // Provider must have a name + base URL, and either a key or be a local preset.
       return (
         providerForm.value.name.trim() !== "" &&
-        (isLocalProvider(providerForm.value, providerPresets.value) || providerForm.value.api_key.trim() !== "") &&
-        providerForm.value.base_url.trim() !== ""
+        providerForm.value.base_url.trim() !== "" &&
+        (isLocalProvider(providerForm.value, providerPresets.value) || providerForm.value.api_key.trim() !== "")
       );
-    case 3:
-      return true;
     case 4:
       return selectedModels.value.size > 0;
-    case 5:
+    case 0: case 1: case 3: case 5: case 6: case 7:
+      // Info/optional steps are always reachable.
       return true;
-    case 6:
-      return true;
-    case 7:
-      return true;
-    default: return false;
+    default:
+      return false;
   }
 });
 
@@ -313,36 +308,32 @@ async function confirmProviderAndAdvance() {
   }
 
   isConnecting.value = false;
-  isFetching.value = true;
+  const ok = await fetchAndApplyModels();
+  if (ok) {
+    direction.value = "forward";
+    currentStep.value = 3;
+  }
+}
 
+// Shared by the initial connect and the step-3 retry: fetch the model list and
+// populate availableModels, reporting any error. Returns whether it succeeded.
+async function fetchAndApplyModels(): Promise<boolean> {
+  isFetching.value = true;
+  fetchError.value = "";
   const modelsResult = await fetchProviderModels(providerForm.value);
   if (!modelsResult.ok || !modelsResult.models || modelsResult.models.length === 0) {
     fetchError.value = modelsResult.error || t('onboarding.noModelsFound');
     isFetching.value = false;
-    return;
+    return false;
   }
-
   availableModels.value = modelsResult.models;
   isFetching.value = false;
-
-  direction.value = "forward";
-  currentStep.value = 3;
+  return true;
 }
 
 // ── Step 3 retry ──
 async function retryFetchModels() {
-  fetchError.value = "";
-  isFetching.value = true;
-
-  const modelsResult = await fetchProviderModels(providerForm.value);
-  if (!modelsResult.ok || !modelsResult.models || modelsResult.models.length === 0) {
-    fetchError.value = modelsResult.error || t('onboarding.noModelsFound');
-    isFetching.value = false;
-    return;
-  }
-
-  availableModels.value = modelsResult.models;
-  isFetching.value = false;
+  await fetchAndApplyModels();
 }
 
 // ── Step 4 logic ──

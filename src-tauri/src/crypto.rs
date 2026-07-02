@@ -85,36 +85,11 @@ fn derive_key(scope: &str) -> [u8; 32] {
 }
 
 pub fn encrypt(scope: &str, plaintext: &[u8]) -> Result<EncryptedPayload, String> {
-    let key = derive_key(scope);
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|e| format!("cipher init: {e}"))?;
-    let mut nonce_bytes = [0u8; 12];
-    rand::rngs::OsRng.fill_bytes(&mut nonce_bytes);
-    let nonce = Nonce::from_slice(&nonce_bytes);
-    let ciphertext = cipher
-        .encrypt(nonce, plaintext)
-        .map_err(|e| format!("encrypt: {e}"))?;
-    Ok(EncryptedPayload {
-        ciphertext: BASE64.encode(&ciphertext),
-        nonce: BASE64.encode(nonce_bytes),
-    })
+    encrypt_with_key(&derive_key(scope), plaintext)
 }
 
 pub fn decrypt(scope: &str, payload: &EncryptedPayload) -> Result<Vec<u8>, String> {
-    let key = derive_key(scope);
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|e| format!("cipher init: {e}"))?;
-    let nonce_bytes = BASE64
-        .decode(&payload.nonce)
-        .map_err(|e| format!("decode nonce: {e}"))?;
-    if nonce_bytes.len() != 12 {
-        return Err("invalid nonce length".into());
-    }
-    let nonce = Nonce::from_slice(&nonce_bytes);
-    let ciphertext = BASE64
-        .decode(&payload.ciphertext)
-        .map_err(|e| format!("decode ct: {e}"))?;
-    cipher
-        .decrypt(nonce, ciphertext.as_ref())
-        .map_err(|e| format!("decrypt: {e}"))
+    decrypt_with_key(&derive_key(scope), payload)
 }
 
 /// Encrypt with an explicit raw key (bypasses scope derivation). Used by the

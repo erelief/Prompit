@@ -7,7 +7,7 @@
 // Response: { success, data: { web: [{ title, description, url }] } }
 
 import type { SearchFn, SearchHit, SearchOptions } from "./types";
-import { SearchHttpError } from "./types";
+import { assertOk } from "./types";
 
 const ENDPOINT = "https://api.firecrawl.dev/v2/search";
 const DEFAULT_MAX_RESULTS = 5;
@@ -33,13 +33,7 @@ export const search: SearchFn = async (
     signal: opts.signal,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
-    throw new SearchHttpError(
-      response.status,
-      errorText || `HTTP ${response.status}`
-    );
-  }
+  await assertOk(response);
 
   const data = await response.json();
 

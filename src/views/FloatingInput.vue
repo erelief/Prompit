@@ -87,27 +87,50 @@ const activeModelName = computed(() => {
   return m.model || null;
 });
 
+// Active provider/model indices are namespaced per mode via dynamic keys
+// (e.g. `translate_active_provider_index`). These helpers keep the dynamic-key
+// casting in one place instead of repeating it at every call site.
+function activeProviderIdx(): number {
+  const mode = appConfig.active_mode || "translate";
+  return (appConfig as any)[`${mode}_active_provider_index`] ?? 0;
+}
+function activeModelIdx(): number {
+  const mode = appConfig.active_mode || "translate";
+  return (appConfig as any)[`${mode}_active_model_index`] ?? 0;
+}
+function setActiveModel(pIndex: number, mIndex: number) {
+  const mode = appConfig.active_mode || "translate";
+  (appConfig as any)[`${mode}_active_provider_index`] = pIndex;
+  (appConfig as any)[`${mode}_active_model_index`] = mIndex;
+}
+
 // Resolve the active provider's brand icon (same source as dropdown items)
 const activeModelIcon = computed(() => {
-  const mode = appConfig.active_mode || "translate";
-  const pi = (appConfig as any)[`${mode}_active_provider_index`] ?? 0;
-  const prov = appConfig.providers[pi];
+  const prov = appConfig.providers[activeProviderIdx()];
   return prov ? getProviderIcon(prov, floatingPresets.value) : "";
 });
 
-const activeModelCapabilities = computed<ModelInputCapabilities | undefined>(() => {
-  const mode = appConfig.active_mode || "translate";
-  const pi = (appConfig as any)[`${mode}_active_provider_index`] ?? 0;
-  const mi = (appConfig as any)[`${mode}_active_model_index`] ?? 0;
-  const prov = appConfig.providers[pi];
-  return prov?.models?.[mi]?.input_capabilities;
-});
+const activeModelCapabilities = computed<ModelInputCapabilities | undefined>(() =>
+  appConfig.providers[activeProviderIdx()]?.models?.[activeModelIdx()]?.input_capabilities
+);
 
 const glassBg = useGlassBg();
 
 const floatingAlpha = computed(() => (appConfig.floating_opacity ?? 90) / 100);
 
 const fontScale = computed(() => (appConfig.font_size ?? 100) / 100);
+
+// Ask the backend to resize/reposition the window for the current content.
+// Invalidates lastSentHeight when `force` so the next bodyHeight watch still fires.
+function applyWindowResize(force = false) {
+  if (force) lastSentHeight = -1;
+  nextTick(() => {
+    invoke("resize_and_reposition", {
+      height: bodyHeight.value * fontScale.value,
+      width: MAIN_WIDTH * fontScale.value,
+    });
+  });
+}
 
 // When a skills-lite with a description is active, surface it as the input placeholder.
 const inputPlaceholder = computed(() => {
@@ -133,24 +156,33 @@ function toggleModelDropdown() {
     dropdownPos.value = { top: rect.bottom + 4, left: rect.left };
     showModelDropdown.value = true;
     nextTick(() => {
-      if (modelMenuRef.value) {
-        const menuH = modelMenuRef.value.offsetHeight;
-        const spaceBelow = window.innerHeight - rect.bottom - 4;
-        const spaceAbove = rect.top - 4;
-        if (menuH > spaceBelow && menuH <= spaceAbove) {
-          dropdownPos.value = { top: rect.top - menuH - 4, left: rect.left };
-        }
-      }
+      dropdownPos.value = positionDropdownBelowOrAbove(rect, modelMenuRef.value);
     });
   } else {
     showModelDropdown.value = false;
   }
 }
 
+/**
+ * Position a dropdown below `rect`; if there isn't enough vertical room below,
+ * flip it above the anchor instead. The measured menu height decides which
+ * side has more room.
+ */
+function positionDropdownBelowOrAbove(
+  rect: DOMRect,
+  menu: HTMLElement | null,
+): { top: number; left: number } {
+  const menuH = menu?.offsetHeight ?? 0;
+  const spaceBelow = window.innerHeight - rect.bottom - 4;
+  const spaceAbove = rect.top - 4;
+  if (menuH > spaceBelow && menuH <= spaceAbove) {
+    return { top: rect.top - menuH - 4, left: rect.left };
+  }
+  return { top: rect.bottom + 4, left: rect.left };
+}
+
 function selectModel(pIndex: number, mIndex: number) {
-  const mode = appConfig.active_mode || "translate";
-  (appConfig as any)[`${mode}_active_provider_index`] = pIndex;
-  (appConfig as any)[`${mode}_active_model_index`] = mIndex;
+  setActiveModel(pIndex, mIndex);
   showModelDropdown.value = false;
   handleResultStale();
   flushConfigSave();
@@ -169,11 +201,8 @@ const allModels = computed(() =>
   )
 );
 
-const isActiveModelEntry = (pIndex: number, mIndex: number) => {
-  const mode = appConfig.active_mode || "translate";
-  const config = appConfig as any;
-  return pIndex === (config[`${mode}_active_provider_index`] ?? 0) && mIndex === (config[`${mode}_active_model_index`] ?? 0);
-};
+const isActiveModelEntry = (pIndex: number, mIndex: number) =>
+  pIndex === activeProviderIdx() && mIndex === activeModelIdx();
 
 // ── Dropdown max-height (2 items visible, scroll beyond) ──
 const ITEM_H = 28;
@@ -196,14 +225,7 @@ function toggleModeDropdown() {
     modeDropdownPos.value = { top: rect.bottom + 4, left: rect.left };
     showModeDropdown.value = true;
     nextTick(() => {
-      if (modeMenuRef.value) {
-        const menuH = modeMenuRef.value.offsetHeight;
-        const spaceBelow = window.innerHeight - rect.bottom - 4;
-        const spaceAbove = rect.top - 4;
-        if (menuH > spaceBelow && menuH <= spaceAbove) {
-          modeDropdownPos.value = { top: rect.top - menuH - 4, left: rect.left };
-        }
-      }
+      modeDropdownPos.value = positionDropdownBelowOrAbove(rect, modeMenuRef.value);
     });
   } else {
     showModeDropdown.value = false;
@@ -610,12 +632,7 @@ onMounted(async () => {
   // by the backend can land before this listener is wired up and get lost.
   // Poll the backend's process-level wake flag on mount as a race-free fallback:
   // if the system woke at all this session, force a geometry recompute.
-  const recomputeGeometry = () => {
-    lastSentHeight = -1;
-    nextTick(() => {
-      invoke("resize_and_reposition", { height: bodyHeight.value * fontScale.value, width: MAIN_WIDTH * fontScale.value });
-    });
-  };
+  const recomputeGeometry = () => applyWindowResize(true);
   invoke<boolean>("woke_since_process_start")
     .then((woke) => { if (woke) recomputeGeometry(); })
     .catch(() => { /* non-Windows: command absent */ });
@@ -639,16 +656,14 @@ onUnmounted(() => {
 watch(bodyHeight, (h) => {
   if (h !== lastSentHeight) {
     lastSentHeight = h;
-    invoke("resize_and_reposition", { height: h * fontScale.value, width: MAIN_WIDTH * fontScale.value });
+    invoke("resize_and_reposition", {
+      height: h * fontScale.value,
+      width: MAIN_WIDTH * fontScale.value,
+    });
   }
 });
 
-watch(fontScale, () => {
-  lastSentHeight = -1;
-  nextTick(() => {
-    invoke("resize_and_reposition", { height: bodyHeight.value * fontScale.value, width: MAIN_WIDTH * fontScale.value });
-  });
-});
+watch(fontScale, () => applyWindowResize(true));
 
 defineExpose({ clearAll });
 

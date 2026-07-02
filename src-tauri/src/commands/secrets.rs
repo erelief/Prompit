@@ -51,13 +51,10 @@ pub fn read_secret(app: AppHandle, key_id: String) -> Result<String, String> {
     }
 
     let store = load_store(&app)?;
-    let entry = match store.get(&key_id) {
-        Some(e) => e,
+    let bytes = match store.get(&key_id) {
+        Some(entry) => crypto::decrypt("secrets", entry)?,
         None => return Ok(String::new()),
     };
-
-    let bytes = crypto::decrypt("secrets", entry)?;
-
     String::from_utf8(bytes).map_err(|e| format!("utf8: {e}"))
 }
 

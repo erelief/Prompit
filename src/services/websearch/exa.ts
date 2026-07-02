@@ -7,7 +7,7 @@
 // Response: { results: [{ title, url, text, highlights }] }
 
 import type { SearchFn, SearchHit, SearchOptions } from "./types";
-import { SearchHttpError } from "./types";
+import { assertOk, SearchHttpError } from "./types";
 
 const ENDPOINT = "https://api.exa.ai/search";
 const DEFAULT_MAX_RESULTS = 5;
@@ -41,13 +41,7 @@ export const search: SearchFn = async (
     signal: opts.signal,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
-    throw new SearchHttpError(
-      response.status,
-      errorText || `HTTP ${response.status}`
-    );
-  }
+  await assertOk(response);
 
   const data = await response.json();
   const results = Array.isArray(data?.results) ? data.results : [];

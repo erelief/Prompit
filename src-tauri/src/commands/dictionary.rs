@@ -51,6 +51,34 @@ fn save_dict_store(app: &AppHandle, store: &DictStore) -> Result<(), String> {
     Ok(())
 }
 
+/// Parse one CSV row into `(lang, DictEntry)`. Returns `None` for rows that
+/// have fewer than 3 columns or any empty required field. An optional 4th
+/// column supplies `persona`; an empty persona cell means `None`.
+fn parse_dict_record(record: &csv::StringRecord) -> Option<(String, DictEntry)> {
+    if record.len() < 3 {
+        return None;
+    }
+    let lang = record[0].trim().to_string();
+    let source = record[1].trim().to_string();
+    let target = record[2].trim().to_string();
+    if lang.is_empty() || source.is_empty() || target.is_empty() {
+        return None;
+    }
+    let persona = record
+        .get(3)
+        .map(|c| c.trim())
+        .filter(|c| !c.is_empty())
+        .map(|c| c.to_string());
+    Some((
+        lang,
+        DictEntry {
+            source,
+            target,
+            persona,
+        },
+    ))
+}
+
 #[tauri::command]
 pub fn read_dictionary(app: AppHandle, target_lang: String) -> Result<Vec<DictEntry>, String> {
     let store = load_dict_store(&app)?;
@@ -86,51 +114,24 @@ pub fn import_dictionary_csv(
     let mut parsed: Vec<(String, DictEntry)> = Vec::new();
     for result in rdr.records() {
         let record = result.map_err(|e| format!("csv parse: {e}"))?;
-        if record.len() < 3 {
-            continue;
+        if let Some(entry) = parse_dict_record(&record) {
+            parsed.push(entry);
         }
-        let lang = record[0].trim().to_string();
-        let source = record[1].trim().to_string();
-        let target = record[2].trim().to_string();
-        if lang.is_empty() || source.is_empty() || target.is_empty() {
-            continue;
-        }
-        let persona = if record.len() >= 4 {
-            let val = record[3].trim().to_string();
-            if val.is_empty() {
-                None
-            } else {
-                Some(val)
-            }
-        } else {
-            None
-        };
-        parsed.push((
-            lang,
-            DictEntry {
-                source,
-                target,
-                persona,
-            },
-        ));
     }
 
     let mut store = load_dict_store(&app)?;
-    let mut langs_affected: Vec<String> = Vec::new();
+    let mut langs_affected: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut imported = 0usize;
 
     if mode == "overwrite" {
-        let csv_langs: std::collections::HashSet<String> =
-            parsed.iter().map(|(l, _)| l.clone()).collect();
-        for lang in &csv_langs {
+        // Clear existing entries for every language present in the CSV first.
+        for (lang, _) in &parsed {
+            langs_affected.insert(lang.clone());
             store.remove(lang);
         }
         for (lang, entry) in parsed {
-            store.entry(lang.clone()).or_default().push(entry);
+            store.entry(lang).or_default().push(entry);
             imported += 1;
-            if !langs_affected.contains(&lang) {
-                langs_affected.push(lang);
-            }
         }
     } else {
         // "add" mode — dedup on (lang, source, target)
@@ -142,20 +143,19 @@ pub fn import_dictionary_csv(
             if !exists {
                 existing.push(entry);
                 imported += 1;
-                if !langs_affected.contains(&lang) {
-                    langs_affected.push(lang);
-                }
+                langs_affected.insert(lang);
             }
         }
     }
 
     let total_entries: usize = store.values().map(|v| v.len()).sum();
     save_dict_store(&app, &store)?;
-    langs_affected.sort();
+    let mut languages_affected: Vec<String> = langs_affected.into_iter().collect();
+    languages_affected.sort();
     Ok(ImportResult {
         total_entries,
         imported,
-        languages_affected: langs_affected,
+        languages_affected,
     })
 }
 

@@ -91,6 +91,23 @@ export function resolveFormat(apiFormat?: ApiFormat): Required<ApiFormat> {
   };
 }
 
+/** Build request headers for a resolved format: optional Content-Type, the
+ *  auth header (when both auth_header and a key are present), then any
+ *  extra_headers the preset declares. */
+function buildHeaders(
+  fmt: Required<ApiFormat>,
+  apiKey: string,
+  jsonBody = false,
+): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (jsonBody) headers["Content-Type"] = "application/json";
+  if (fmt.auth_header && apiKey) {
+    headers[fmt.auth_header] = `${fmt.auth_prefix}${apiKey}`;
+  }
+  Object.assign(headers, fmt.extra_headers);
+  return headers;
+}
+
 /** Build request body. Extracts system messages into a top-level field when
  *  `system_key` is set (Anthropic), and forces required fields (Anthropic
  *  requires `max_tokens`). Field-name remapping is intentionally not
@@ -143,13 +160,46 @@ export function resolvePath(obj: any, path: string): any {
   return cur;
 }
 
-export async function translate(text: string, signal?: AbortSignal): Promise<TranslateOutcome> {
-  const model = getActiveModel();
+/** Shared "send a chat request, return the trimmed content string" sequence.
+ *  Used by translate() and optimizePrompt(), which both post to a chat
+ *  endpoint and extract a single content field. Throws ModelHttpError on
+ *  non-2xx, Error on an empty response. */
+async function chatCompletion(
+  model: ReturnType<typeof getActiveModel>,
+  messages: ChatMessage[],
+  fmt: Required<ApiFormat>,
+  signal?: AbortSignal,
+): Promise<string> {
   if (!model) {
     throw new Error("No model configured. Please add a model in Settings.");
   }
+  const body = buildRequestBody(fmt, model.model, messages, model.temperature, model.max_tokens);
+  const headers = buildHeaders(fmt, model.api_key, true);
+  const baseUrl = model.base_url.replace(/\/$/, "");
 
-  const fmt = resolveFormat(model.api_format);
+  signal?.throwIfAborted();
+  const response = await llmFetch(`${baseUrl}${fmt.chat_endpoint}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new ModelHttpError(response.status, response.body || `HTTP ${response.status}`);
+  }
+  signal?.throwIfAborted();
+
+  const data = JSON.parse(response.body);
+  const contentPath = fmt.response["content"] ?? "choices.0.message.content";
+  const content = resolvePath(data, contentPath);
+  if (content == null) {
+    throw new Error("Empty response from LLM API");
+  }
+  return String(content).trim();
+}
+
+export async function translate(text: string, signal?: AbortSignal): Promise<TranslateOutcome> {
+  const model = getActiveModel();
+  const fmt = resolveFormat(model?.api_format);
 
   const mode = appConfig.active_mode || "translate";
   const systemPrompt = mode === "skills_lite"
@@ -199,59 +249,13 @@ export async function translate(text: string, signal?: AbortSignal): Promise<Tra
 
   messages.push({ role: "user", content: text });
 
-  // Build request body using field mappings
-  const body = buildRequestBody(
-    fmt,
-    model.model,
-    messages,
-    model.temperature,
-    model.max_tokens,
-  );
-
-  // Build headers
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (fmt.auth_header && model.api_key) {
-    headers[fmt.auth_header] = `${fmt.auth_prefix}${model.api_key}`;
-  }
-  for (const [k, v] of Object.entries(fmt.extra_headers)) {
-    headers[k] = v;
-  }
-
-  const baseUrl = model.base_url.replace(/\/$/, "");
-  signal?.throwIfAborted();
-
-  const response = await llmFetch(`${baseUrl}${fmt.chat_endpoint}`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    throw new ModelHttpError(response.status, response.body || `HTTP ${response.status}`);
-  }
-  signal?.throwIfAborted();
-
-  const data = JSON.parse(response.body);
-
-  const contentPath = fmt.response["content"] ?? "choices.0.message.content";
-  const content = resolvePath(data, contentPath);
-
-  if (content == null) {
-    throw new Error("Empty response from LLM API");
-  }
-
-  return { status: "ok", content: String(content).trim(), searched, sources };
+  const content = await chatCompletion(model, messages, fmt, signal);
+  return { status: "ok", content, searched, sources };
 }
 
 export async function optimizePrompt(rawPrompt: string, mode: "translate" | "skills_lite" | "summarize" = "translate"): Promise<string> {
   const model = getActiveModel();
-  if (!model) {
-    throw new Error("No model configured. Please add a model in Settings.");
-  }
-
-  const fmt = resolveFormat(model.api_format);
+  const fmt = resolveFormat(model?.api_format);
 
   const messages: ChatMessage[] = [
     {
@@ -276,46 +280,7 @@ export async function optimizePrompt(rawPrompt: string, mode: "translate" | "ski
     { role: "user", content: rawPrompt },
   ];
 
-  const body = buildRequestBody(
-    fmt,
-    model.model,
-    messages,
-    model.temperature,
-    model.max_tokens,
-  );
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (fmt.auth_header && model.api_key) {
-    headers[fmt.auth_header] = `${fmt.auth_prefix}${model.api_key}`;
-  }
-  for (const [k, v] of Object.entries(fmt.extra_headers)) {
-    headers[k] = v;
-  }
-
-  const baseUrl = model.base_url.replace(/\/$/, "");
-
-  const response = await llmFetch(`${baseUrl}${fmt.chat_endpoint}`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    throw new ModelHttpError(response.status, response.body || `HTTP ${response.status}`);
-  }
-
-  const data = JSON.parse(response.body);
-
-  const contentPath = fmt.response["content"] ?? "choices.0.message.content";
-  const content = resolvePath(data, contentPath);
-
-  if (content == null) {
-    throw new Error("Empty response from LLM API");
-  }
-
-  return String(content).trim();
+  return chatCompletion(model, messages, fmt);
 }
 
 function buildSystemPrompt(): string {
@@ -353,13 +318,7 @@ export async function testProviderConnection(
   try {
     const fmt = resolveFormat(provider.api_format);
     const url = provider.base_url.replace(/\/$/, "");
-    const headers: Record<string, string> = {};
-    if (fmt.auth_header && provider.api_key) {
-      headers[fmt.auth_header] = `${fmt.auth_prefix}${provider.api_key}`;
-    }
-    for (const [k, v] of Object.entries(fmt.extra_headers)) {
-      headers[k] = v;
-    }
+    const headers = buildHeaders(fmt, provider.api_key);
     const modelsEndpoint = fmt.models_endpoint || "/models";
     const r = await llmFetch(`${url}${modelsEndpoint}`, {
       method: "GET",
@@ -392,13 +351,7 @@ export async function fetchProviderModels(
   try {
     const fmt = resolveFormat(provider.api_format);
     const url = provider.base_url.replace(/\/$/, "");
-    const headers: Record<string, string> = {};
-    if (fmt.auth_header && provider.api_key) {
-      headers[fmt.auth_header] = `${fmt.auth_prefix}${provider.api_key}`;
-    }
-    for (const [k, v] of Object.entries(fmt.extra_headers)) {
-      headers[k] = v;
-    }
+    const headers = buildHeaders(fmt, provider.api_key);
     const modelsEndpoint = fmt.models_endpoint || "/models";
     const r = await llmFetch(`${url}${modelsEndpoint}`, {
       method: "GET",

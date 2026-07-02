@@ -253,6 +253,13 @@ function toggleTranslationDict(e: MouseEvent) {
   if (turning) burstParticles(e.currentTarget as HTMLElement);
 }
 
+/** Status label for the user-dictionary toggle row. Extracted from a nested
+ *  template ternary for readability. */
+const dictStatusLabel = computed(() => {
+  if (!dictStore.hasEntries) return t("settings.dictEmpty");
+  return appConfig.user_dict_enabled ? t("common.enabled") : t("common.disabled");
+});
+
 function toggleHistoryEnabled(e: MouseEvent) {
   const turning = !appConfig.history_enabled;
   appConfig.history_enabled = turning;
@@ -268,11 +275,11 @@ async function checkForUpdate(silent = false) {
     const proxy = await invoke<string | null>("get_proxy_url");
     const update = await check(proxy ? { proxy } : {});
     if (!update) {
-      if (!silent) {
-        updateStatus.value = "up-to-date";
-        setTimeout(() => { updateStatus.value = "idle"; }, 2000);
-      } else {
+      if (silent) {
         updateStatus.value = "idle";
+      } else {
+        updateStatus.value = "up-to-date";
+        scheduleUpdateReset(2000);
       }
       return;
     }
@@ -282,7 +289,7 @@ async function checkForUpdate(silent = false) {
     if (!silent) {
       updateStatus.value = "error";
       updateError.value = e instanceof Error ? e.message : String(e);
-      setTimeout(() => { updateStatus.value = "idle"; updateError.value = ""; }, 3000);
+      scheduleUpdateReset(3000);
     } else {
       updateStatus.value = "idle";
     }
@@ -319,8 +326,41 @@ async function installUpdate() {
   } catch (e) {
     updateStatus.value = "error";
     updateError.value = e instanceof Error ? e.message : String(e);
-    setTimeout(() => { updateStatus.value = "idle"; updateError.value = ""; }, 3000);
+    scheduleUpdateReset(3000);
   }
+}
+
+// Statuses that disable interaction with the update button (busy / in-flight).
+const UPDATE_BUSY_STATUSES = ["checking", "preparing", "downloading", "installing", "restarting"];
+
+const updateDisabled = computed(() => UPDATE_BUSY_STATUSES.includes(updateStatus.value));
+
+const updateProgressPct = computed(() =>
+  updateStatus.value === "downloading" && contentLength.value > 0
+    ? Math.round(downloaded.value / contentLength.value * 100)
+    : null,
+);
+
+/** Human label for the update button, keyed off the current status. Replaces
+ *  a nested ternary chain in the template. */
+const updateLabel = computed(() => {
+  switch (updateStatus.value) {
+    case "checking": return t("about.checking");
+    case "up-to-date": return t("about.upToDate");
+    case "has-update": return t("about.install");
+    case "preparing": return t("about.preparing");
+    case "downloading": return contentLength.value > 0 ? "" : t("about.downloading");
+    case "installing": return t("about.installing");
+    case "restarting": return t("about.restarting");
+    case "error": return updateError.value || t("about.checkFailed");
+    default: return t("about.checkUpdate");
+  }
+});
+
+/** Schedule a temporary status, then reset to idle after `ms`. Used by the
+ *  silent-check error paths. */
+function scheduleUpdateReset(ms: number) {
+  setTimeout(() => { updateStatus.value = "idle"; updateError.value = ""; }, ms);
 }
 
 function handleUpdateClick() {
@@ -513,6 +553,19 @@ const showWebPresetMenu = ref(false);
 const webPresetMenuIndex = ref<number | null>(null);
 const webPresetMenuPos = ref({ top: 0, left: 0, width: 220 });
 
+/** Position a preset dropdown directly below `btn`, aligned to the `.name-fi`
+ *  sibling when present (so the menu matches the input width), clamped to the
+ *  viewport with an 8px margin. Shared by the provider and web-engine preset menus. */
+function anchoredMenuPos(btn: HTMLElement): { top: number; left: number; width: number } {
+  const input = btn.parentElement?.querySelector('.name-fi') as HTMLElement | null;
+  const r = (input ?? btn).getBoundingClientRect();
+  const width = r.width;
+  let left = r.left;
+  if (left + width > window.innerWidth - 8) left = window.innerWidth - 8 - width;
+  if (left < 8) left = 8;
+  return { top: r.bottom + 4, left, width };
+}
+
 function toggleWebPresetMenu(e: MouseEvent, index: number) {
   if (showWebPresetMenu.value && webPresetMenuIndex.value === index) {
     showWebPresetMenu.value = false;
@@ -521,14 +574,7 @@ function toggleWebPresetMenu(e: MouseEvent, index: number) {
   }
   webPresetMenuIndex.value = index;
   showWebPresetMenu.value = true;
-  const btn = e.currentTarget as HTMLElement;
-  const input = btn.parentElement?.querySelector('.name-fi') as HTMLElement | null;
-  const r = (input ?? btn).getBoundingClientRect();
-  const menuW = r.width;
-  let left = r.left;
-  if (left + menuW > window.innerWidth - 8) left = window.innerWidth - 8 - menuW;
-  if (left < 8) left = 8;
-  webPresetMenuPos.value = { top: r.bottom + 4, left, width: menuW };
+  webPresetMenuPos.value = anchoredMenuPos(e.currentTarget as HTMLElement);
 }
 
 function applyWebPreset(item: WebEngineConfig, presetId: string) {
@@ -610,14 +656,7 @@ function togglePresetMenu(e: MouseEvent, _item: ProviderConfig, index: number) {
   }
   presetMenuIndex.value = index;
   showPresetMenu.value = true;
-  const btn = e.currentTarget as HTMLElement;
-  const input = btn.parentElement?.querySelector('.name-fi') as HTMLElement | null;
-  const r = (input ?? btn).getBoundingClientRect();
-  const menuW = r.width;
-  let left = r.left;
-  if (left + menuW > window.innerWidth - 8) left = window.innerWidth - 8 - menuW;
-  if (left < 8) left = 8;
-  presetMenuPos.value = { top: r.bottom + 4, left, width: menuW };
+  presetMenuPos.value = anchoredMenuPos(e.currentTarget as HTMLElement);
 }
 
 function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
@@ -693,7 +732,9 @@ function variantRegions(item: ProviderConfig): PresetVariantRegion[] {
 }
 function variantEndpoints(item: ProviderConfig): PresetVariantEndpoint[] {
   const { preset: family, region } = resolvePreset(item.preset, providerPresets.value);
-  return region ? region.endpoints : (family?.variants ? endpointsOf(family, family.variants.default_region ?? "") : []);
+  if (region) return region.endpoints;
+  if (family?.variants) return endpointsOf(family, family.variants.default_region ?? "");
+  return [];
 }
 function currentRegionKey(item: ProviderConfig): string | undefined {
   return resolvePreset(item.preset, providerPresets.value).region?.key;
@@ -1737,24 +1778,15 @@ onUnmounted(() => {
                 'au-dl': updateStatus === 'preparing' || updateStatus === 'downloading',
                 'au-err': updateStatus === 'error',
               }"
-              :disabled="['checking','preparing','downloading','installing','restarting'].includes(updateStatus)"
+              :disabled="updateDisabled"
               @click.stop="handleUpdateClick"
             >
               <Loader2 v-if="updateStatus === 'checking'" :size="10" class="spin" :stroke-width="2" />
               <Check v-else-if="updateStatus === 'up-to-date'" :size="10" :stroke-width="2.5" />
               <RefreshCw v-else-if="updateStatus === 'idle' || updateStatus === 'error'" :size="10" :stroke-width="2" />
               <span v-if="updateStatus === 'has-update'" class="au-ver">v{{ updateVersion }}</span>
-              <span v-if="updateStatus === 'downloading' && contentLength > 0">{{ Math.round(downloaded / contentLength * 100) }}%</span>
-              <span>{{ updateStatus === 'checking' ? t('about.checking')
-                : updateStatus === 'up-to-date' ? t('about.upToDate')
-                : updateStatus === 'has-update' ? t('about.install')
-                : updateStatus === 'preparing' ? t('about.preparing')
-                : updateStatus === 'downloading' ? (contentLength > 0 ? '' : t('about.downloading'))
-                : updateStatus === 'installing' ? t('about.installing')
-                : updateStatus === 'restarting' ? t('about.restarting')
-                : updateStatus === 'error' ? (updateError || t('about.checkFailed'))
-                : t('about.checkUpdate')
-              }}</span>
+              <span v-if="updateProgressPct !== null">{{ updateProgressPct }}%</span>
+              <span>{{ updateLabel }}</span>
             </button>
           </div>
         </div>
@@ -1916,7 +1948,7 @@ onUnmounted(() => {
         </div>
         <div class="card-section">
           <div class="card-row">
-            <span class="card-label">{{ dictStore.hasEntries ? (appConfig.user_dict_enabled ? t('common.enabled') : t('common.disabled')) : t('settings.dictEmpty') }}</span>
+            <span class="card-label">{{ dictStatusLabel }}</span>
             <button
               class="about-auto-btn"
               :class="{ 'toggle-on': appConfig.user_dict_enabled }"

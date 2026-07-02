@@ -9,6 +9,9 @@ const WINDOW_WIDTH: f64 = 480.0;
 const WINDOW_INIT_HEIGHT: f64 = 120.0;
 const OFFSET: f64 = 12.0;
 
+/// Fallback shortcut string used whenever the saved config is unreadable.
+const DEFAULT_SHORTCUT: &str = "Alt+Y";
+
 /// Returns (logical_position, grow_above).
 fn compute_position(window: &tauri::WebviewWindow) -> Option<(tauri::Position, bool)> {
     // cursor_position returns physical pixels
@@ -97,7 +100,7 @@ pub fn update_shortcut(app: AppHandle, shortcut: String) -> Result<(), String> {
     parse_shortcut(&shortcut)?;
     let previous = crate::commands::config_cmd::read_config(app.clone())
         .map(|c| c.shortcut)
-        .unwrap_or_else(|_| "Alt+Y".to_string());
+        .unwrap_or_else(|_| DEFAULT_SHORTCUT.to_string());
     app.global_shortcut()
         .unregister_all()
         .map_err(|e| format!("unregister: {e}"))?;
@@ -124,7 +127,7 @@ pub fn start_record_shortcut(app: AppHandle) -> Result<(), String> {
 pub fn finish_record_shortcut(app: AppHandle) -> Result<(), String> {
     let saved = crate::commands::config_cmd::read_config(app.clone())
         .map(|c| c.shortcut)
-        .unwrap_or_else(|_| "Alt+Y".to_string());
+        .unwrap_or_else(|_| DEFAULT_SHORTCUT.to_string());
     register(&app, &saved).map_err(|e| format!("register: {e}"))
 }
 

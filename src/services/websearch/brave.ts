@@ -13,7 +13,7 @@
 // No anonymous tier — a key is always required.
 
 import type { SearchFn, SearchHit, SearchOptions } from "./types";
-import { SearchHttpError } from "./types";
+import { assertOk, SearchHttpError } from "./types";
 
 const ENDPOINT = "https://api.search.brave.com/res/v1/llm-context";
 const LONG_QUERY_THRESHOLD = 2000;
@@ -49,13 +49,7 @@ export const search: SearchFn = async (
     });
   }
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
-    throw new SearchHttpError(
-      response.status,
-      errorText || `HTTP ${response.status}`
-    );
-  }
+  await assertOk(response);
 
   const data = await response.json();
   const context: string = String(data?.llm_context ?? "").trim();

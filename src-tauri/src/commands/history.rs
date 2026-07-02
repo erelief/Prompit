@@ -56,7 +56,6 @@ pub fn save_history(
 ) -> Result<(), String> {
     let limit = limit.unwrap_or(50);
     let trimmed: Vec<&HistoryEntry> = entries.iter().take(limit).collect();
-    let trimmed: Vec<HistoryEntry> = trimmed.into_iter().cloned().collect();
     let json = serde_json::to_vec(&trimmed).map_err(|e| format!("serialize: {e}"))?;
 
     let payload = crypto::encrypt("history", &json)?;

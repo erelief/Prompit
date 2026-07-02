@@ -67,22 +67,35 @@ const skillsLiteBtnRef = ref<HTMLButtonElement | null>(null);
 const skillsLiteMenuRef = ref<HTMLDivElement | null>(null);
 const skillsLiteDropdownPos = ref({ top: 0, left: 0 });
 
+// ── Dropdown positioning (shared by persona / skills-lite / language) ──
+// Places the menu at the trigger button's bottom-left, then flips it above
+// the button when there isn't enough room below. `anchorLeft` is the wrapper
+// left (persona/skills-lite align to the wrapper edge) or the button left
+// (language aligns to the button itself).
+function openDropdown(
+  btn: HTMLButtonElement,
+  menu: HTMLDivElement | null,
+  pos: typeof personaDropdownPos,
+  anchorLeft: number,
+) {
+  const rect = btn.getBoundingClientRect();
+  pos.value = { top: rect.bottom + 4, left: anchorLeft };
+  nextTick(() => {
+    if (!menu) return;
+    const menuH = menu.offsetHeight;
+    const spaceBelow = window.innerHeight - rect.bottom - 4;
+    const spaceAbove = rect.top - 4;
+    if (menuH > spaceBelow && menuH <= spaceAbove) {
+      pos.value = { top: rect.top - menuH - 4, left: anchorLeft };
+    }
+  });
+}
+
 function toggleSkillsLiteDropdown() {
   if (!showSkillsLiteDropdown.value && skillsLiteBtnRef.value) {
-    const rect = skillsLiteBtnRef.value.getBoundingClientRect();
-    const wrapLeft = skillsLiteDropdownRef.value?.getBoundingClientRect().left ?? rect.left;
-    skillsLiteDropdownPos.value = { top: rect.bottom + 4, left: wrapLeft };
+    const anchorLeft = skillsLiteDropdownRef.value?.getBoundingClientRect().left ?? skillsLiteBtnRef.value.getBoundingClientRect().left;
     showSkillsLiteDropdown.value = true;
-    nextTick(() => {
-      if (skillsLiteMenuRef.value) {
-        const menuH = skillsLiteMenuRef.value.offsetHeight;
-        const spaceBelow = window.innerHeight - rect.bottom - 4;
-        const spaceAbove = rect.top - 4;
-        if (menuH > spaceBelow && menuH <= spaceAbove) {
-          skillsLiteDropdownPos.value = { top: rect.top - menuH - 4, left: wrapLeft };
-        }
-      }
-    });
+    nextTick(() => openDropdown(skillsLiteBtnRef.value!, skillsLiteMenuRef.value, skillsLiteDropdownPos, anchorLeft));
   } else {
     showSkillsLiteDropdown.value = false;
   }
@@ -133,20 +146,9 @@ function toggleWebSearch(e: MouseEvent) {
 
 function togglePersonaDropdown() {
   if (!showPersonaDropdown.value && personaBtnRef.value) {
-    const rect = personaBtnRef.value.getBoundingClientRect();
-    const wrapLeft = personaDropdownRef.value?.getBoundingClientRect().left ?? rect.left;
-    personaDropdownPos.value = { top: rect.bottom + 4, left: wrapLeft };
+    const anchorLeft = personaDropdownRef.value?.getBoundingClientRect().left ?? personaBtnRef.value.getBoundingClientRect().left;
     showPersonaDropdown.value = true;
-    nextTick(() => {
-      if (personaMenuRef.value) {
-        const menuH = personaMenuRef.value.offsetHeight;
-        const spaceBelow = window.innerHeight - rect.bottom - 4;
-        const spaceAbove = rect.top - 4;
-        if (menuH > spaceBelow && menuH <= spaceAbove) {
-          personaDropdownPos.value = { top: rect.top - menuH - 4, left: wrapLeft };
-        }
-      }
-    });
+    nextTick(() => openDropdown(personaBtnRef.value!, personaMenuRef.value, personaDropdownPos, anchorLeft));
   } else {
     showPersonaDropdown.value = false;
   }
@@ -172,19 +174,9 @@ const targetLanguages = computed(() => getOrderedLanguages());
 
 function toggleLangDropdown() {
   if (!showLangDropdown.value && langBtnRef.value) {
-    const rect = langBtnRef.value.getBoundingClientRect();
-    langDropdownPos.value = { top: rect.bottom + 4, left: rect.left };
+    const anchorLeft = langBtnRef.value.getBoundingClientRect().left;
     showLangDropdown.value = true;
-    nextTick(() => {
-      if (langMenuRef.value) {
-        const menuH = langMenuRef.value.offsetHeight;
-        const spaceBelow = window.innerHeight - rect.bottom - 4;
-        const spaceAbove = rect.top - 4;
-        if (menuH > spaceBelow && menuH <= spaceAbove) {
-          langDropdownPos.value = { top: rect.top - menuH - 4, left: rect.left };
-        }
-      }
-    });
+    nextTick(() => openDropdown(langBtnRef.value!, langMenuRef.value, langDropdownPos, anchorLeft));
   } else {
     showLangDropdown.value = false;
   }

@@ -31,14 +31,22 @@ fn read_windows_system_proxy() -> Option<String> {
         return None;
     }
 
+    // Per-protocol form: "https=host:port;http=host:port;...".
     if server.contains('=') {
-        for prefix in ["https=", "http="] {
-            for part in server.split(';') {
-                if let Some(addr) = part.strip_prefix(prefix) {
-                    return Some(prefix_url(addr));
+        let mut http_fallback = None;
+        for part in server.split(';') {
+            if let Some(addr) = part.strip_prefix("https=") {
+                return Some(prefix_url(addr));
+            }
+            if http_fallback.is_none() {
+                if let Some(addr) = part.strip_prefix("http=") {
+                    http_fallback = Some(prefix_url(addr));
                 }
             }
         }
+        // Fall back to the whole ProxyServer string when no https/http part
+        // matched (mirrors the original fall-through below the `=` branch).
+        return http_fallback.or_else(|| Some(prefix_url(&server)));
     }
 
     Some(prefix_url(&server))

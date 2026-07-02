@@ -279,26 +279,22 @@ export function rebuildLanguageOrder(appLang: string): void {
 
   const appLangDisplay = BCP_TO_DISPLAY[appLang] || "English";
 
-  // Find which group contains the app language
-  let appGroupKey: string | null = null;
-  for (const [key, members] of Object.entries(LANGUAGE_GROUPS)) {
-    if (members.includes(appLangDisplay)) {
-      appGroupKey = key;
-      break;
+  // Find which group contains a language, or null for none.
+  const groupKeyOf = (lang: string): string | null => {
+    for (const [key, members] of Object.entries(LANGUAGE_GROUPS)) {
+      if (members.includes(lang)) return key;
     }
-  }
-  if (!appGroupKey) appGroupKey = "English";
+    return null;
+  };
 
+  const appGroupKey = groupKeyOf(appLangDisplay) ?? "English";
   const isEnglish = appGroupKey === "English";
 
   // Build ordered groups from BUILTIN_LANGUAGES, preserving original order
   const seen = new Set<string>();
   const groups: string[][] = [];
   for (const lang of BUILTIN_LANGUAGES) {
-    let groupKey: string | null = null;
-    for (const [key, members] of Object.entries(LANGUAGE_GROUPS)) {
-      if (members.includes(lang)) { groupKey = key; break; }
-    }
+    const groupKey = groupKeyOf(lang);
     if (groupKey && seen.has(groupKey)) continue;
     if (groupKey) {
       seen.add(groupKey);
@@ -342,6 +338,11 @@ export const skillsLiteStore = reactive<{ skillsLites: SkillsLiteEntry[] }>({
   skillsLites: [],
 });
 
+/** Upper bound for stale-secret cleanup in saveSecrets(). Old slots beyond
+ *  the current provider/websearch count up to this index are deleted so
+ *  removed entries don't leak keys into the keychain. */
+const MAX_SECRET_SLOTS = 50;
+
 function secretKeyId(namespace: "provider" | "websearch", index: number): string {
   return `${namespace}_${index}`;
 }
@@ -374,7 +375,7 @@ async function loadSecrets(): Promise<void> {
 }
 
 async function saveSecrets(): Promise<void> {
-  for (let i = appConfig.providers.length; i < 50; i++) {
+  for (let i = appConfig.providers.length; i < MAX_SECRET_SLOTS; i++) {
     try {
       await invoke("delete_secret", { keyId: secretKeyId("provider", i) });
     } catch {
@@ -390,7 +391,7 @@ async function saveSecrets(): Promise<void> {
       });
     }
   }
-  for (let i = appConfig.web_engines.length; i < 50; i++) {
+  for (let i = appConfig.web_engines.length; i < MAX_SECRET_SLOTS; i++) {
     try {
       await invoke("delete_secret", { keyId: secretKeyId("websearch", i) });
     } catch {
