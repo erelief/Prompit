@@ -220,12 +220,13 @@ async function toggleLaunchOnStartup(e: MouseEvent) {
   }
 }
 
-// ── Shortcut recorders (wake-up + mode-switch) ──
-// Both share the same UI/validate/conflict logic via useShortcutRecorder.
+// ── Shortcut recorders (wake-up + mode-switch + forward-to-input) ──
+// All three share the same UI/validate/conflict logic via useShortcutRecorder.
 // The wake shortcut is an OS-global hotkey re-registered through Tauri; the
-// mode shortcut is webview-scoped and just writes the config field.
+// mode and forward shortcuts are webview-scoped and just write the config field.
 const wakeField = computed({ get: () => appConfig.shortcut, set: (v) => { appConfig.shortcut = v; } });
 const modeField = computed({ get: () => appConfig.mode_shortcut, set: (v) => { appConfig.mode_shortcut = v; } });
+const forwardField = computed({ get: () => appConfig.forward_shortcut, set: (v) => { appConfig.forward_shortcut = v; } });
 
 const {
   recording: shortcutRecording, error: shortcutError, recBtn: shortcutRecBtn,
@@ -243,8 +244,18 @@ const {
   tokens: modeShortcutTokens, start: startModeShortcutRecord, cancel: cancelModeShortcutRecord,
   onKeydown: onModeShortcutKeydown, reset: resetModeShortcut,
 } = useShortcutRecorder(t, {
-  field: modeField, otherField: wakeField,
+  field: modeField, otherField: forwardField,
   defaultBinding: "Alt+M",
+  invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
+});
+
+const {
+  recording: forwardShortcutRecording, error: forwardShortcutError, recBtn: forwardShortcutRecBtn,
+  tokens: forwardShortcutTokens, start: startForwardShortcutRecord, cancel: cancelForwardShortcutRecord,
+  onKeydown: onForwardShortcutKeydown, reset: resetForwardShortcut,
+} = useShortcutRecorder(t, {
+  field: forwardField, otherField: modeField,
+  defaultBinding: "Alt+F",
   invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
 });
 
@@ -1684,6 +1695,42 @@ onUnmounted(() => {
                 :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+M', appConfig.mode_shortcut) }"
                 :disabled="shortcutsEqual('Alt+M', appConfig.mode_shortcut)"
                 @click="resetModeShortcut"
+                :title="t('settings.resetToDefault')"
+              >
+                <RotateCcw :size="11" :stroke-width="2" />
+              </button>
+            </div>
+          </div>
+          <!-- Send-to-input shortcut (webview-scoped, active only in FloatingInput) -->
+          <div class="card-row shortcut-row">
+            <span class="card-label">{{ t('settings.forwardShortcut') }}</span>
+            <div class="shortcut-controls">
+              <button
+                ref="forwardShortcutRecBtn"
+                class="shortcut-btn"
+                :class="{ recording: forwardShortcutRecording, 'has-error': !!forwardShortcutError }"
+                :title="t('settings.forwardShortcutHint')"
+                tabindex="0"
+                @click="forwardShortcutRecording ? cancelForwardShortcutRecord() : startForwardShortcutRecord()"
+                @keydown="onForwardShortcutKeydown"
+                @blur="cancelForwardShortcutRecord"
+              >
+                <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
+                <template v-if="forwardShortcutRecording">
+                  <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
+                </template>
+                <template v-else-if="forwardShortcutError">
+                  <span class="shortcut-err-text">{{ forwardShortcutError }}</span>
+                </template>
+                <template v-else>
+                  <kbd v-for="(tok, i) in forwardShortcutTokens" :key="i" class="kbd-badge">{{ tok }}</kbd>
+                </template>
+              </button>
+              <button
+                class="shortcut-reset"
+                :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+F', appConfig.forward_shortcut) }"
+                :disabled="shortcutsEqual('Alt+F', appConfig.forward_shortcut)"
+                @click="resetForwardShortcut"
                 :title="t('settings.resetToDefault')"
               >
                 <RotateCcw :size="11" :stroke-width="2" />

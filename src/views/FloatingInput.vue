@@ -19,7 +19,7 @@ import type { TranslateOutcome } from "../services/llm-client";
 import { SearchFailureError, ModelHttpError } from "../services/llm-client";
 import { classifySearchError } from "../services/websearch";
 import type { SearchHit } from "../services/websearch/types";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink, Pencil, Check, Copy } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink, Pencil, Check, Copy, Forward } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
 const { t } = useI18n();
@@ -63,6 +63,15 @@ async function copyResult() {
     await invoke("copy_text", { text });
     showCopiedFlash();
   } catch { /* ignore clipboard errors */ }
+}
+function sendToInput() {
+  const text = translatedText.value;
+  if (!text) return;
+  inputText.value = text;
+  resetResultBlock();
+  nextTick(() => {
+    textareaRef.value?.focus();
+  });
 }
 function togglePin() {
   pinned.value = !pinned.value;
@@ -259,8 +268,17 @@ function onModeShortcutKeydown(e: KeyboardEvent) {
     cycleMode();
   }
 }
+// Alt+F sends the result to the input box and returns to editing mode.
+// Disabled while editing so the textarea's native text entry keeps working.
+function onForwardShortcutKeydown(e: KeyboardEvent) {
+  if (isEditing.value) return;
+  if (!translatedText.value) return;
+  if (eventMatchesShortcut(e, appConfig.forward_shortcut)) {
+    e.preventDefault();
+    sendToInput();
+  }
+}
 
-// Ctrl/Cmd+C copies the full result when not editing and nothing is selected.
 // Disabled while editing (requirement: "在编辑返回结果的时候，不启用") so the
 // textarea's native copy keeps working. A non-empty selection is left to the
 // browser so users can still copy just a highlighted snippet.
@@ -598,6 +616,7 @@ onMounted(async () => {
   }
   document.addEventListener("mousedown", onDocumentClick);
   window.addEventListener("keydown", onModeShortcutKeydown);
+  window.addEventListener("keydown", onForwardShortcutKeydown);
   window.addEventListener("keydown", onCopyShortcutKeydown);
   nextTick(() => {
     textareaRef.value?.focus();
@@ -646,6 +665,7 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener("mousedown", onDocumentClick);
   window.removeEventListener("keydown", onModeShortcutKeydown);
+  window.removeEventListener("keydown", onForwardShortcutKeydown);
   window.removeEventListener("keydown", onCopyShortcutKeydown);
   unlistenConfig?.();
   unlistenResume?.();
@@ -710,6 +730,16 @@ useShortcutTriggered(() => {
             >
               <Check v-if="copiedFlash" :size="12" />
               <Copy v-else :size="12" />
+            </button>
+
+            <!-- Forward-to-input button (top-left, beside Copy) -->
+            <button
+              v-if="!isEditing"
+              @click="sendToInput"
+              class="forward-result-btn"
+              :title="t('floating.forwardToInput')"
+            >
+              <Forward :size="12" />
             </button>
 
             <!-- Copy success hint -->
@@ -1198,6 +1228,16 @@ useShortcutTriggered(() => {
               <Copy v-else :size="12" />
             </button>
 
+            <!-- Forward-to-input button (top-left, beside Copy) -->
+            <button
+              v-if="!isEditing"
+              @click="sendToInput"
+              class="forward-result-btn"
+              :title="t('floating.forwardToInput')"
+            >
+              <Forward :size="12" />
+            </button>
+
             <!-- Copy success hint -->
             <Transition name="fade">
               <div v-if="copiedFlash && !isEditing" class="copy-hint">
@@ -1596,6 +1636,37 @@ useShortcutTriggered(() => {
 }
 
 .copy-result-btn:hover {
+  color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
+}
+
+/* Forward-to-input button - sits beside the Copy button (top-left) */
+.forward-result-btn {
+  position: absolute !important;
+  top: -11px !important;
+  left: 39px !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 0 !important;
+  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s !important;
+  z-index: 9999 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
+  background: var(--color-bg) !important;
+}
+
+.result-block:hover .forward-result-btn {
+  opacity: 1 !important;
+}
+
+.forward-result-btn:hover {
   color: var(--color-accent) !important;
   border-color: var(--color-accent) !important;
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
