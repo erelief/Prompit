@@ -1942,6 +1942,11 @@ onUnmounted(() => {
           </Teleport>
         </div>
 
+        <div class="api-disclaimer" style="margin-top:8px;">
+          <Info :size="11" :stroke-width="1.8" />
+          <span>{{ t('settings.translationLangDisclaimer') }}</span>
+        </div>
+
         <!-- User Dictionary -->
         <div class="section-head mt">
           <span class="section-title"><BookText :size="13" />{{ t('settings.userDictionary') }}</span>

@@ -97,6 +97,7 @@
     "addLanguage": "添加语言…",
     "restoreDefaultOrder": "恢复默认排序",
     "removeLanguage": "移除语言",
+    "translationLangDisclaimer": "请确认您选择的翻译模型是否支持此语言。",
     "userDictionary": "用户词典",
     "dictEmpty": "词典为空",
     "translationPersona": "翻译角色",

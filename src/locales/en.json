@@ -97,6 +97,7 @@
     "addLanguage": "Add language…",
     "restoreDefaultOrder": "Restore default order",
     "removeLanguage": "Remove language",
+    "translationLangDisclaimer": "Please confirm that your selected translation model supports this language.",
     "userDictionary": "User Dictionary",
     "dictEmpty": "Dictionary is empty",
     "translationPersona": "Translation Persona",
