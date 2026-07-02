@@ -12,6 +12,7 @@ import {
   savePersonas as persistPersonas,
   saveSkillsLites as persistSkillsLites,
   getOrderedLanguages,
+  rebuildLanguageOrder,
   loadProviderPresets,
   dictStore,
   refreshDictStatus,
@@ -830,8 +831,8 @@ function addTranslationCustomLang() {
 }
 
 function restoreTranslationDefaultOrder() {
-  appConfig.language_order = [];
-}
+  rebuildLanguageOrder(appConfig.app_lang);
+  }
 
 function toggleKeyVisibility(index: number) {
   const s = getEditState(index);
@@ -1877,7 +1878,7 @@ onUnmounted(() => {
           <Teleport to="body">
             <Transition name="drop">
               <div v-if="translationShowLangSelector" class="sel-menu lang-menu" :style="{ top: translationLangMenuPos.top + 'px', left: translationLangMenuPos.left + 'px' }">
-                <div class="sel-clip settings-scrollbar">
+                <div class="sel-clip settings-scrollbar lang-list-scroll">
                 <draggable
                   :list="translationLangItems"
                   item-key="id"
@@ -1909,7 +1910,9 @@ onUnmounted(() => {
                     </div>
                   </template>
                 </draggable>
+                </div>
 
+                <div class="lang-actions">
                 <!-- Add language -->
                 <div class="lang-sep"></div>
                 <div v-if="translationShowAddLang" class="lang-add-row">
@@ -1934,7 +1937,7 @@ onUnmounted(() => {
 
                 <!-- Restore default order -->
                 <button class="lang-restore-btn" @click="restoreTranslationDefaultOrder">
-                  <RotateCcw :size="10" :stroke-width="1.8" />{{ t('settings.restoreTranslationDefaultOrder') }}
+                  <RotateCcw :size="10" :stroke-width="1.8" />{{ t('settings.restoreDefaultOrder') }}
                 </button>
                 </div>
               </div>
@@ -2597,7 +2600,12 @@ label {
 .opt-src{ font-size: 9px; color: var(--color-text-muted); letter-spacing: .02em; }
 .lang-menu .opt-label{ font-size:12px; }
 .lang-menu .sel-opt{ font-size:12px; }
-.lang-menu { max-height: 340px; }
+.lang-menu {
+  max-height: 280px;
+  display:flex; flex-direction:column;
+}
+.lang-list-scroll { flex:1; min-height:0; overflow-y:auto; }
+.lang-actions { flex-shrink:0; }
 .lang-opt { gap: 4px; padding: 4px 8px; justify-content: flex-start; user-select: none; -webkit-user-select: none; }
 .lang-opt .lang-drag-handle { opacity: 0; transition: opacity .12s; }
 .lang-opt:hover .lang-drag-handle { opacity: 1; }
