@@ -144,6 +144,7 @@
         "cancelled": "已取消导入"
       },
       "passwordTooShort": "密码至少需要 6 位字符",
+      "passwordRequired": "请输入密码",
       "error": "失败：{message}"
     },
     "reset": {

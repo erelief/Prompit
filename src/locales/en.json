@@ -144,6 +144,7 @@
         "cancelled": "Import cancelled"
       },
       "passwordTooShort": "Password must be at least 6 characters",
+      "passwordRequired": "Password is required",
       "error": "Failed: {message}"
     },
     "reset": {

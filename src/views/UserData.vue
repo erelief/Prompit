@@ -63,7 +63,7 @@ async function handleExport() {
 
 async function handleImport() {
   if (importPassword.value.length === 0) {
-    importStatus.value = { kind: "error", msg: t("settings.userData.import.passwordPlaceholder") };
+    importStatus.value = { kind: "error", msg: t("settings.userData.passwordRequired") };
     return;
   }
   const selected = await open({
