@@ -15,13 +15,13 @@ const { growAbove } = useSettingsWindow();
 // ── Export state ──
 const exportPassword = ref("");
 const exportShowPw = ref(false);
-const exportStatus = ref<{ kind: "idle" | "success" | "error"; msg: string }>({ kind: "idle", msg: "" });
+const exportStatus = ref<{ kind: "idle" | "info" | "success" | "error"; msg: string }>({ kind: "idle", msg: "" });
 const exportBusy = ref(false);
 
 // ── Import state ──
 const importPassword = ref("");
 const importShowPw = ref(false);
-const importStatus = ref<{ kind: "idle" | "success" | "error"; msg: string }>({ kind: "idle", msg: "" });
+const importStatus = ref<{ kind: "idle" | "info" | "success" | "error"; msg: string }>({ kind: "idle", msg: "" });
 const importBusy = ref(false);
 
 async function handleDrag(e: MouseEvent) {
@@ -47,13 +47,14 @@ async function handleExport() {
     filters: [{ name: "JSON", extensions: ["json"] }],
   });
   if (!path) {
-    exportStatus.value = { kind: "idle", msg: t("settings.userData.export.cancelled") };
+    exportStatus.value = { kind: "info", msg: t("settings.userData.export.cancelled") };
     return;
   }
   exportBusy.value = true;
   try {
     await invoke("export_data", { path, password: exportPassword.value });
     exportStatus.value = { kind: "success", msg: t("settings.userData.export.success", { path }) };
+    exportPassword.value = "";
   } catch (err) {
     exportStatus.value = { kind: "error", msg: t("settings.userData.error", { message: String(err) }) };
   } finally {
@@ -72,13 +73,14 @@ async function handleImport() {
   });
   const path = typeof selected === "string" ? selected : null;
   if (!path) {
-    importStatus.value = { kind: "idle", msg: t("settings.userData.import.cancelled") };
+    importStatus.value = { kind: "info", msg: t("settings.userData.import.cancelled") };
     return;
   }
   importBusy.value = true;
   try {
     await invoke("import_data", { path, password: importPassword.value });
     importStatus.value = { kind: "success", msg: t("settings.userData.import.success") };
+    importPassword.value = "";
   } catch (err) {
     importStatus.value = { kind: "error", msg: t("settings.userData.error", { message: String(err) }) };
   } finally {
