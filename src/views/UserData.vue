@@ -16,12 +16,15 @@ const { t } = useI18n();
 const router = useRouter();
 const { growAbove } = useSettingsWindow();
 
+type Status = { kind: "idle" | "info" | "success" | "error"; msg: string };
+const JSON_FILTER = [{ name: "JSON", extensions: ["json"] }];
+
 // ── Export state ──
 const exportPassword = ref("");
 const exportConfirmPassword = ref("");
 const exportShowPw = ref(false);
 const exportConfirmShowPw = ref(false);
-const exportStatus = ref<{ kind: "idle" | "info" | "success" | "error"; msg: string }>({ kind: "idle", msg: "" });
+const exportStatus = ref<Status>({ kind: "idle", msg: "" });
 const exportBusy = ref(false);
 
 const exportReady = computed(
@@ -39,7 +42,7 @@ async function handleExport() {
   if (!exportReady.value) return;
   const path = await save({
     defaultPath: `prompit-backup-${todayStamp()}.json`,
-    filters: [{ name: "JSON", extensions: ["json"] }],
+    filters: JSON_FILTER,
   });
   if (!path) {
     exportStatus.value = { kind: "info", msg: t("settings.userData.export.cancelled") };
@@ -63,7 +66,7 @@ const importPassword = ref("");
 const importShowPw = ref(false);
 const importConfirming = ref(false);
 const importCountdown = ref(5);
-const importStatus = ref<{ kind: "idle" | "info" | "success" | "error"; msg: string }>({ kind: "idle", msg: "" });
+const importStatus = ref<Status>({ kind: "idle", msg: "" });
 const importBusy = ref(false);
 
 const importTimer = useIntervalFn(() => {
@@ -79,10 +82,16 @@ const importFileName = computed(() => {
 
 const importCanConfirm = computed(() => !!importPath.value && importPassword.value.length > 0 && !importConfirming.value);
 
+function stopCountdown() {
+  importConfirming.value = false;
+  importCountdown.value = 5;
+  importTimer.pause();
+}
+
 async function selectImportFile() {
   const selected = await open({
     multiple: false,
-    filters: [{ name: "JSON", extensions: ["json"] }],
+    filters: JSON_FILTER,
   });
   const path = typeof selected === "string" ? selected : null;
   if (!path) {
@@ -91,9 +100,7 @@ async function selectImportFile() {
   }
   importPath.value = path;
   importPassword.value = "";
-  importConfirming.value = false;
-  importCountdown.value = 5;
-  importTimer.pause();
+  stopCountdown();
   importStatus.value = { kind: "idle", msg: "" };
 }
 
@@ -101,9 +108,7 @@ function resetImport() {
   importPath.value = null;
   importPassword.value = "";
   importShowPw.value = false;
-  importConfirming.value = false;
-  importCountdown.value = 5;
-  importTimer.pause();
+  stopCountdown();
 }
 
 function requestImport() {
@@ -111,12 +116,6 @@ function requestImport() {
   importConfirming.value = true;
   importCountdown.value = 5;
   importTimer.resume();
-}
-
-function cancelImportConfirm() {
-  importConfirming.value = false;
-  importCountdown.value = 5;
-  importTimer.pause();
 }
 
 async function confirmImport() {
@@ -128,7 +127,7 @@ async function confirmImport() {
     resetImport();
   } catch (err) {
     importStatus.value = { kind: "error", msg: t("settings.userData.error", { message: String(err) }) };
-    cancelImportConfirm();
+    stopCountdown();
   } finally {
     importBusy.value = false;
   }
@@ -278,7 +277,7 @@ function todayStamp(): string {
               <span>{{ t('settings.userData.import.confirmWarning') }}</span>
             </div>
             <div class="confirm-actions">
-              <button class="mini-btn" :title="t('common.cancel')" :disabled="importBusy" @click="cancelImportConfirm">
+              <button class="mini-btn" :title="t('common.cancel')" :disabled="importBusy" @click="stopCountdown">
                 <X :size="12" :stroke-width="2.5" />
               </button>
               <div class="confirm-with-countdown">
