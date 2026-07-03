@@ -3,11 +3,20 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useIntervalFn } from "@vueuse/core";
+import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { ArrowLeft, ShieldAlert, Check, X } from "@lucide/vue";
 
 const { t } = useI18n();
 const router = useRouter();
+const { growAbove } = useSettingsWindow();
+
+async function handleDrag(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (target.closest("button, input, textarea, a, select, .reset-footer")) return;
+  await getCurrentWindow().startDragging();
+}
 
 const countdown = ref(5);
 const ready = ref(false);
@@ -39,7 +48,7 @@ async function handleConfirm() {
 </script>
 
 <template>
-  <div class="reset-root">
+  <div class="reset-root" :class="{ 'grow-above': growAbove }" @mousedown="handleDrag">
     <!-- Header -->
     <div class="reset-header">
       <button class="back-btn" @click="router.push('/settings?tab=general')">
