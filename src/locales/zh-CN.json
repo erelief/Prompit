@@ -3,6 +3,7 @@
     "save": "保存",
     "cancel": "取消",
     "confirm": "确认",
+    "or": "或",
     "delete": "删除",
     "edit": "编辑",
     "copy": "复制",
@@ -131,6 +132,9 @@
         "description": "将你的密钥、历史记录、词典、人格和技能打包为一个加密备份文件。此处设置的密码用于加密备份 —— 一旦丢失无法恢复。",
         "passwordPlaceholder": "至少 6 位字符",
         "button": "导出",
+        "confirm": "确认",
+        "confirmed": "已确认",
+        "hint": "输入密码（≥6 位），确认后再导出。",
         "success": "已导出至 {path}",
         "cancelled": "已取消导出"
       },
@@ -140,6 +144,9 @@
         "warning": "将覆盖当前所有用户数据，此操作不可撤销。",
         "passwordPlaceholder": "备份密码",
         "button": "导入",
+        "selectFile": "选择备份文件",
+        "changeFile": "更换",
+        "confirmWarning": "此操作将覆盖当前所有数据，且不可撤销。",
         "success": "导入成功。请重启应用以生效。",
         "cancelled": "已取消导入"
       },

@@ -3,6 +3,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "or": "or",
     "delete": "Delete",
     "edit": "Edit",
     "copy": "Copy",
@@ -131,6 +132,9 @@
         "description": "Pack your secrets, history, dictionaries, personas, and skills into an encrypted backup file. The password you set here is used to encrypt the backup — there is no way to recover it if lost.",
         "passwordPlaceholder": "At least 6 characters",
         "button": "Export",
+        "confirm": "Confirm",
+        "confirmed": "Confirmed",
+        "hint": "Enter a password (≥6 chars), confirm it, then Export.",
         "success": "Exported to {path}",
         "cancelled": "Export cancelled"
       },
@@ -140,6 +144,9 @@
         "warning": "Overwrites all current user data. This cannot be undone.",
         "passwordPlaceholder": "Backup password",
         "button": "Import",
+        "selectFile": "Select Backup File",
+        "changeFile": "Change",
+        "confirmWarning": "This will overwrite all current data and cannot be undone.",
         "success": "Imported successfully. Restart the app to apply.",
         "cancelled": "Import cancelled"
       },
