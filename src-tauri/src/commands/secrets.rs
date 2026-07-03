@@ -40,8 +40,10 @@ pub fn save_secret(app: AppHandle, key_id: String, plaintext: String) -> Result<
 
 #[tauri::command]
 pub fn read_secret(app: AppHandle, key_id: String) -> Result<String, String> {
-    // Env var override for development isolation
-    if let Some(index_str) = key_id.strip_prefix("model_") {
+    // Env var override for development isolation. The frontend stores provider
+    // keys under the `provider_<i>` id (see secretKeyId in config.ts), so the
+    // override must match that prefix — not the legacy `model_` one.
+    if let Some(index_str) = key_id.strip_prefix("provider_") {
         let env_name = format!("PROMPIT_API_KEY_{}", index_str);
         if let Ok(val) = std::env::var(&env_name) {
             if !val.is_empty() {
