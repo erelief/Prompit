@@ -1851,17 +1851,27 @@ onUnmounted(() => {
         <div class="section-head mt">
           <span class="section-title"><Database :size="13" />{{ t('settings.userData.label') }}</span>
         </div>
-        <div class="reset-row">
-          <span class="reset-desc">{{ t('settings.userData.manageDescription') }}</span>
-          <button class="reset-btn neutral" @click="router.push('/settings/data')">
-            <Database :size="11" :stroke-width="1.9" />{{ t('settings.userData.manageButton') }}
-          </button>
-        </div>
-        <div class="reset-row">
-          <span class="reset-desc">{{ t('settings.reset.description') }}</span>
-          <button class="reset-btn" @click="router.push('/settings/reset')">
-            <Trash2 :size="11" :stroke-width="1.9" />{{ t('settings.reset.button') }}
-          </button>
+        <div class="card-section">
+          <div class="card-row">
+            <div class="ecl-lhs">
+              <span class="card-label">{{ t('settings.userData.manageDescription') }}</span>
+            </div>
+            <div class="ecl-rhs" @click.stop>
+              <button class="reset-btn neutral" @click="router.push('/settings/data')">
+                <Database :size="11" :stroke-width="1.9" />{{ t('settings.userData.manageButton') }}
+              </button>
+            </div>
+          </div>
+          <div class="card-row">
+            <div class="ecl-lhs">
+              <span class="card-label">{{ t('settings.reset.description') }}</span>
+            </div>
+            <div class="ecl-rhs" @click.stop>
+              <button class="reset-btn" @click="router.push('/settings/reset')">
+                <Trash2 :size="11" :stroke-width="1.9" />{{ t('settings.reset.button') }}
+              </button>
+            </div>
+          </div>
         </div>
       </template>
 
