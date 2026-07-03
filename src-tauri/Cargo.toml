@@ -40,7 +40,10 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-autostart = "2"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+# URL parsing for http_proxy scheme validation (VULN-4 SSRF mitigation). Already
+# in the dep tree via reqwest; declared explicitly so we can `use url::Url`.
+url = "2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
