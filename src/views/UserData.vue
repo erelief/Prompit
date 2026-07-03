@@ -9,7 +9,7 @@ import { useIntervalFn } from "@vueuse/core";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import {
   ArrowLeft, Download, Upload, Eye, EyeOff, Check, X,
-  ShieldAlert, FileText, FolderOpen, Lock,
+  ShieldAlert, FileText, FolderOpen,
 } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -18,26 +18,25 @@ const { growAbove } = useSettingsWindow();
 
 // ── Export state ──
 const exportPassword = ref("");
+const exportConfirmPassword = ref("");
 const exportShowPw = ref(false);
-const exportConfirmed = ref(false);
+const exportConfirmShowPw = ref(false);
 const exportStatus = ref<{ kind: "idle" | "info" | "success" | "error"; msg: string }>({ kind: "idle", msg: "" });
 const exportBusy = ref(false);
 
-const exportCanConfirm = computed(() => exportPassword.value.length >= 6 && !exportConfirmed.value);
-
-function confirmExportPassword() {
-  if (!exportCanConfirm.value) return;
-  exportConfirmed.value = true;
-}
+const exportReady = computed(
+  () => exportPassword.value.length >= 6 && exportPassword.value === exportConfirmPassword.value,
+);
 
 function resetExport() {
   exportPassword.value = "";
-  exportConfirmed.value = false;
+  exportConfirmPassword.value = "";
   exportShowPw.value = false;
+  exportConfirmShowPw.value = false;
 }
 
 async function handleExport() {
-  if (!exportConfirmed.value) return;
+  if (!exportReady.value) return;
   const path = await save({
     defaultPath: `prompit-backup-${todayStamp()}.json`,
     filters: [{ name: "JSON", extensions: ["json"] }],
@@ -170,53 +169,44 @@ function todayStamp(): string {
         </div>
         <p class="ud-desc">{{ t('settings.userData.export.description') }}</p>
 
-        <!-- password + confirm + export -->
-        <div class="pw-row" :class="{ locked: exportConfirmed }">
-          <Lock v-if="exportConfirmed" :size="12" class="pw-lock-icon" />
+        <!-- password -->
+        <div class="pw-row">
           <input
             :type="exportShowPw ? 'text' : 'password'"
             class="pw-input"
             v-model="exportPassword"
             :placeholder="t('settings.userData.export.passwordPlaceholder')"
-            :readonly="exportConfirmed"
             autocomplete="new-password"
-            @input="exportConfirmed = false"
           />
-          <button v-if="!exportConfirmed" class="pw-toggle" @click="exportShowPw = !exportShowPw" type="button">
+          <button class="pw-toggle" @click="exportShowPw = !exportShowPw" type="button">
             <Eye v-if="!exportShowPw" :size="13" />
             <EyeOff v-else :size="13" />
           </button>
         </div>
 
-        <div class="action-row">
-          <!-- Confirm button: gates the Export -->
-          <button
-            v-if="!exportConfirmed"
-            class="ud-btn confirm-btn"
-            :class="{ active: exportCanConfirm }"
-            :disabled="!exportCanConfirm"
-            @click="confirmExportPassword"
-          >
-            <Check :size="12" :stroke-width="2" />{{ t('settings.userData.export.confirm') }}
-          </button>
-          <button
-            v-else
-            class="ud-btn confirmed-btn"
-            disabled
-          >
-            <Check :size="12" :stroke-width="2.5" />{{ t('settings.userData.export.confirmed') }}
-          </button>
-
-          <!-- Export button: enabled only after confirm -->
-          <button
-            class="ud-btn primary-btn"
-            :disabled="!exportConfirmed || exportBusy"
-            @click="handleExport"
-          >
-            <Download :size="12" :stroke-width="1.9" />{{ t('settings.userData.export.button') }}
+        <!-- confirm password -->
+        <div class="pw-row" :class="{ mismatch: exportConfirmPassword.length > 0 && exportConfirmPassword !== exportPassword }">
+          <input
+            :type="exportConfirmShowPw ? 'text' : 'password'"
+            class="pw-input"
+            v-model="exportConfirmPassword"
+            :placeholder="t('settings.userData.export.confirmPasswordPlaceholder')"
+            autocomplete="new-password"
+          />
+          <button class="pw-toggle" @click="exportConfirmShowPw = !exportConfirmShowPw" type="button">
+            <Eye v-if="!exportConfirmShowPw" :size="13" />
+            <EyeOff v-else :size="13" />
           </button>
         </div>
-        <p v-if="!exportConfirmed" class="ud-hint">{{ t('settings.userData.export.hint') }}</p>
+
+        <button
+          class="ud-btn primary-btn"
+          :disabled="!exportReady || exportBusy"
+          @click="handleExport"
+        >
+          <Download :size="12" :stroke-width="1.9" />{{ t('settings.userData.export.button') }}
+        </button>
+        <p v-if="!exportReady" class="ud-hint">{{ t('settings.userData.export.hint') }}</p>
       </section>
 
       <!-- ═══ Divider ═══ -->
@@ -335,6 +325,10 @@ function todayStamp(): string {
   overflow: hidden;
   border-radius: 11px;
 }
+/* growAbove: header anchors to the bottom, body grows upward (mirrors Settings) */
+.ud-root.grow-above .ud-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
+.ud-root.grow-above .ud-footer { order: 1; border-top: none; border-bottom: 1px solid var(--color-surface); }
+.ud-root.grow-above .ud-body { order: 0; }
 
 /* ── Header ── */
 .ud-header {
@@ -456,9 +450,8 @@ function todayStamp(): string {
   border-color: var(--color-accent-border);
   box-shadow: 0 0 0 2px var(--color-accent-bg);
 }
-.pw-row.locked {
-  background: var(--color-surface-hover);
-  border-color: var(--color-scrollbar);
+.pw-row.mismatch {
+  border-color: var(--color-danger);
 }
 .pw-input {
   flex: 1;
@@ -471,11 +464,6 @@ function todayStamp(): string {
   min-width: 0;
 }
 .pw-input::placeholder { color: var(--color-text-placeholder); }
-.pw-input:read-only { cursor: default; }
-.pw-lock-icon {
-  color: var(--color-success);
-  flex-shrink: 0;
-}
 .pw-toggle {
   display: flex;
   align-items: center;
@@ -497,10 +485,6 @@ function todayStamp(): string {
 .pw-toggle:disabled { opacity: 0.4; cursor: default; }
 
 /* ── Action buttons ── */
-.action-row {
-  display: flex;
-  gap: 8px;
-}
 .ud-btn {
   display: inline-flex;
   align-items: center;
@@ -519,30 +503,6 @@ function todayStamp(): string {
 .ud-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-/* Confirm button: muted → accent when active */
-.confirm-btn {
-  color: var(--color-text-muted);
-  border-color: var(--color-border);
-  background: var(--color-bg);
-}
-.confirm-btn.active {
-  color: var(--color-accent-text);
-  border-color: var(--color-accent-border);
-  background: var(--color-accent-bg);
-}
-.confirm-btn.active:hover:not(:disabled) {
-  background: var(--color-accent);
-  color: var(--color-bg);
-}
-
-/* Confirmed state: green */
-.confirmed-btn {
-  color: var(--color-success);
-  border-color: var(--color-success);
-  background: var(--color-success-bg);
-  cursor: default;
 }
 
 /* Primary (Export/Import) button */

@@ -106,6 +106,10 @@ async function handleConfirm() {
   overflow: hidden;
   border-radius: 11px;
 }
+/* growAbove: header anchors to the bottom, body grows upward (mirrors Settings) */
+.reset-root.grow-above .reset-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
+.reset-root.grow-above .reset-footer { order: 1; border-top: none; border-bottom: 1px solid var(--color-surface); }
+.reset-root.grow-above .reset-body { order: 0; }
 
 /* ── Header ── */
 .reset-header {

@@ -131,10 +131,9 @@
         "title": "Export",
         "description": "Pack your secrets, history, dictionaries, personas, and skills into an encrypted backup file. The password you set here is used to encrypt the backup — there is no way to recover it if lost.",
         "passwordPlaceholder": "At least 6 characters",
+        "confirmPasswordPlaceholder": "Confirm password",
         "button": "Export",
-        "confirm": "Confirm",
-        "confirmed": "Confirmed",
-        "hint": "Enter a password (≥6 chars), confirm it, then Export.",
+        "hint": "Enter the same password twice to enable Export.",
         "success": "Exported to {path}",
         "cancelled": "Export cancelled"
       },
