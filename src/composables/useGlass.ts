@@ -24,7 +24,6 @@ function darken(r: number, g: number, b: number, dr = 8, dg = 8, db = 4) {
 }
 
 const LIGHT_BG = "#F8F7F4";
-const DARK_BG = "#0b0b0f";
 
 /** Glass background gradient that tracks floating_opacity and the theme. */
 export function useGlassBg() {
