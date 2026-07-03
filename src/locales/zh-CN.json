@@ -121,7 +121,31 @@
     "skillsLiteModel": "轻技能模型",
     "close": "关闭",
     "about": "关于",
-    "userData": "用户数据",
+    "userData": {
+      "label": "用户数据",
+      "manageButton": "管理",
+      "manageDescription": "备份或恢复加密的用户数据",
+      "pageTitle": "用户数据",
+      "export": {
+        "title": "导出",
+        "description": "将你的密钥、历史记录、词典、人格和技能打包为一个加密备份文件。此处设置的密码用于加密备份 —— 一旦丢失无法恢复。",
+        "passwordPlaceholder": "至少 6 位字符",
+        "button": "导出",
+        "success": "已导出至 {path}",
+        "cancelled": "已取消导出"
+      },
+      "import": {
+        "title": "导入",
+        "description": "从备份文件恢复用户数据。这将覆盖当前所有密钥、历史记录、词典、人格和技能。服务商、模型、主题和快捷键 (config.json) 不受影响。",
+        "warning": "将覆盖当前所有用户数据，此操作不可撤销。",
+        "passwordPlaceholder": "备份密码",
+        "button": "导入",
+        "success": "导入成功。请重启应用以生效。",
+        "cancelled": "已取消导入"
+      },
+      "passwordTooShort": "密码至少需要 6 位字符",
+      "error": "失败：{message}"
+    },
     "reset": {
       "description": "删除所有用户数据和设置",
       "button": "重置软件",
