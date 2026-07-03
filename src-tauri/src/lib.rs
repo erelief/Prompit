@@ -116,6 +116,7 @@ pub fn run() {
         .manage(state::WindowConfig::default())
         .manage(state::OnboardingState::default())
         .manage(state::StartupReminderState::default())
+        .manage(commands::http_proxy::InflightRegistry::default())
         .invoke_handler(tauri::generate_handler![
             commands::window::hide_main_window,
             commands::window::show_main_window,
@@ -160,6 +161,7 @@ pub fn run() {
             commands::presets::read_provider_presets,
             commands::presets::read_model_capabilities,
             commands::http_proxy::llm_http,
+            commands::http_proxy::llm_http_abort,
             vault::export_data,
             vault::import_data,
             get_proxy_url,

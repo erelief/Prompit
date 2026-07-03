@@ -7,7 +7,7 @@
 // Response: { success, data: { web: [{ title, description, url }] } }
 
 import type { SearchFn, SearchHit, SearchOptions } from "./types";
-import { assertOk } from "./types";
+import { assertOk, proxyFetch } from "./types";
 
 const ENDPOINT = "https://api.firecrawl.dev/v2/search";
 const DEFAULT_MAX_RESULTS = 5;
@@ -26,16 +26,16 @@ export const search: SearchFn = async (
   const maxResults = opts.maxResults ?? DEFAULT_MAX_RESULTS;
   const body = JSON.stringify({ query, limit: maxResults });
 
-  const response = await fetch(ENDPOINT, {
+  const response = await proxyFetch(ENDPOINT, {
     method: "POST",
     headers,
     body,
     signal: opts.signal,
   });
 
-  await assertOk(response);
+  assertOk(response);
 
-  const data = await response.json();
+  const data = JSON.parse(response.body);
 
   const results = data?.data?.web ?? [];
   return (results as any[])

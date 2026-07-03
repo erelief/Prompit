@@ -13,7 +13,7 @@
 // No anonymous tier — a key is always required.
 
 import type { SearchFn, SearchHit, SearchOptions } from "./types";
-import { assertOk, SearchHttpError } from "./types";
+import { assertOk, SearchHttpError, proxyFetch } from "./types";
 
 const ENDPOINT = "https://api.search.brave.com/res/v1/llm-context";
 const LONG_QUERY_THRESHOLD = 2000;
@@ -33,15 +33,15 @@ export const search: SearchFn = async (
     "X-Subscription-Token": opts.apiKey,
   };
 
-  let response: Response;
+  let response;
   if (query.length < LONG_QUERY_THRESHOLD) {
     // GET with query param for short queries.
     const url = `${ENDPOINT}?q=${encodeURIComponent(query)}`;
-    response = await fetch(url, { method: "GET", headers, signal: opts.signal });
+    response = await proxyFetch(url, { method: "GET", headers, signal: opts.signal });
   } else {
     // POST with JSON body for long queries.
     headers["Content-Type"] = "application/json";
-    response = await fetch(ENDPOINT, {
+    response = await proxyFetch(ENDPOINT, {
       method: "POST",
       headers,
       body: JSON.stringify({ q: query }),
@@ -49,9 +49,9 @@ export const search: SearchFn = async (
     });
   }
 
-  await assertOk(response);
+  assertOk(response);
 
-  const data = await response.json();
+  const data = JSON.parse(response.body);
   const context: string = String(data?.llm_context ?? "").trim();
   if (!context) return [];
 

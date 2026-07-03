@@ -1,20 +1,13 @@
 import { getActiveModel, appConfig, personaStore, skillsLiteStore, loadDictionary } from "../stores/config";
 import type { ApiFormat, ProviderConfig, ModelInputCapabilities } from "../stores/config";
-import { invoke } from "@tauri-apps/api/core";
 import { detectInputCapabilitiesAsync } from "./model-capabilities";
 import { webSearch, formatSearchContext } from "./websearch";
 import type { ClassifiedSearchError, SearchHit } from "./websearch/types";
+import { proxyFetch, type ProxyResponse } from "./proxy";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
-}
-
-/** Raw HTTP response from the Rust backend proxy. */
-interface LlmProxyResponse {
-  status: number;
-  body: string;
-  ok: boolean;
 }
 
 /**
@@ -24,24 +17,15 @@ interface LlmProxyResponse {
  *
  * Transport failures throw an `Error`; HTTP error responses (4xx/5xx) resolve
  * normally with `ok: false` so callers can reuse their status-based handling.
+ *
+ * Thin wrapper over the shared `proxyFetch` (see `proxy.ts`) so both the LLM
+ * client and the web-search presets share one network chokepoint.
  */
 async function llmFetch(
   url: string,
   opts: { method: "GET" | "POST"; headers: Record<string, string>; body?: string },
-): Promise<LlmProxyResponse> {
-  try {
-    return await invoke<LlmProxyResponse>("llm_http", {
-      req: {
-        method: opts.method,
-        url,
-        headers: opts.headers,
-        body: opts.body,
-      },
-    });
-  } catch (err) {
-    // invoke() rejects on transport-level failures (network, timeout, etc.)
-    throw new Error(`Connection failed: ${err instanceof Error ? err.message : String(err)}`);
-  }
+): Promise<ProxyResponse> {
+  return proxyFetch(url, opts);
 }
 
 export type TranslateOutcome =

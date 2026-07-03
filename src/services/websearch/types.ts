@@ -26,11 +26,19 @@ export interface ClassifiedSearchError {
 
 import { SearchHttpError } from "../errors";
 export { SearchHttpError };
+import { proxyFetch } from "../proxy";
+import type { ProxyResponse } from "../proxy";
+// Re-export the shared proxy fetch so each preset module can route its HTTP
+// calls through the Rust backend (CORS bypass + VULN-4 scheme allow-list).
+export { proxyFetch, type ProxyResponse };
 
-/** Assert a fetch Response is ok; otherwise throw a SearchHttpError carrying
- *  the status and (best-effort) body text. Shared by every preset module. */
-export async function assertOk(response: Response): Promise<void> {
-  if (response.ok) return;
-  const errorText = await response.text().catch(() => "");
-  throw new SearchHttpError(response.status, errorText || `HTTP ${response.status}`);
+/** Assert a proxy response is ok; otherwise throw a SearchHttpError carrying
+ *  the status and (best-effort) body text. Shared by every preset module.
+ *
+ *  Takes the `ProxyResponse` shape (from the Rust `llm_http` command) rather
+ *  than a browser `Response`, since all search calls now route through the
+ *  backend proxy (VULN-5). */
+export function assertOk(resp: ProxyResponse): void {
+  if (resp.ok) return;
+  throw new SearchHttpError(resp.status, resp.body || `HTTP ${resp.status}`);
 }
