@@ -121,7 +121,31 @@
     "skillsLiteModel": "Skills Lite Model",
     "close": "Close",
     "about": "About",
-    "userData": "User Data",
+    "userData": {
+      "label": "User Data",
+      "manageButton": "Manage",
+      "manageDescription": "Back up or restore encrypted user data",
+      "pageTitle": "User Data",
+      "export": {
+        "title": "Export",
+        "description": "Pack your secrets, history, dictionaries, personas, and skills into an encrypted backup file. The password you set here is used to encrypt the backup — there is no way to recover it if lost.",
+        "passwordPlaceholder": "At least 6 characters",
+        "button": "Export",
+        "success": "Exported to {path}",
+        "cancelled": "Export cancelled"
+      },
+      "import": {
+        "title": "Import",
+        "description": "Restore user data from a backup file. This overwrites all current secrets, history, dictionaries, personas, and skills. Providers, models, theme, and shortcuts (config.json) are not affected.",
+        "warning": "Overwrites all current user data. This cannot be undone.",
+        "passwordPlaceholder": "Backup password",
+        "button": "Import",
+        "success": "Imported successfully. Restart the app to apply.",
+        "cancelled": "Import cancelled"
+      },
+      "passwordTooShort": "Password must be at least 6 characters",
+      "error": "Failed: {message}"
+    },
     "reset": {
       "description": "Delete all user data and settings",
       "button": "Reset Software",
