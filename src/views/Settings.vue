@@ -1849,7 +1849,13 @@ onUnmounted(() => {
 
         <!-- User Data -->
         <div class="section-head mt">
-          <span class="section-title"><Database :size="13" />{{ t('settings.userData') }}</span>
+          <span class="section-title"><Database :size="13" />{{ t('settings.userData.label') }}</span>
+        </div>
+        <div class="reset-row">
+          <span class="reset-desc">{{ t('settings.userData.manageDescription') }}</span>
+          <button class="reset-btn neutral" @click="router.push('/settings/data')">
+            <Database :size="11" :stroke-width="1.9" />{{ t('settings.userData.manageButton') }}
+          </button>
         </div>
         <div class="reset-row">
           <span class="reset-desc">{{ t('settings.reset.description') }}</span>
@@ -3096,6 +3102,10 @@ label {
 .reset-btn:hover {
   color: var(--color-danger);
   background: var(--color-danger-bg);
+}
+.reset-btn.neutral:hover {
+  color: var(--color-text);
+  background: var(--color-border);
 }
 .card-section.remove-pending { background: var(--color-danger-bg); }
 .ecl-lhs { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
