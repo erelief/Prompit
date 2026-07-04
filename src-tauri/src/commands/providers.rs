@@ -58,65 +58,13 @@ fn save_encrypted(app: &AppHandle, bundle: &ProvidersBundle) -> Result<(), Strin
     Ok(())
 }
 
-/// One-way migration of provider data out of legacy plaintext `config.json`.
-///
-/// Historically `providers[]` and the four per-mode active indices lived in
-/// plaintext `config.json` (with `api_key` blanked there and the real key held
-/// positionally in `secrets.json` as `provider_<i>`). They have been promoted
-/// into this encrypted file so the whole provider configuration — structure
-/// AND keys AND selection state — travels together and stays protected at rest.
-///
-/// This runs once at startup. If `providers.json` already exists it wins and
-/// nothing is migrated; otherwise we lift the fields out of `config.json` and
-/// persist them here. Best-effort: any failure is logged and swallowed — the
-/// frontend also has a read-side fallback.
-pub fn migrate_legacy_from_config(app: &AppHandle) {
-    let path = match providers_path(app) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("providers migration skipped: {e}");
-            return;
-        }
-    };
-    if path.exists() {
-        return; // already migrated
-    }
-
-    let result = (|| -> Result<(), String> {
-        let cfg = crate::commands::config_cmd::read_config(app.clone())?;
-        let bundle = ProvidersBundle {
-            providers: cfg.providers.clone(),
-            translate_active_provider_index: cfg.translate_active_provider_index,
-            translate_active_model_index: cfg.translate_active_model_index,
-            skills_lite_active_provider_index: cfg.skills_lite_active_provider_index,
-            skills_lite_active_model_index: cfg.skills_lite_active_model_index,
-        };
-        save_encrypted(app, &bundle)?;
-
-        // Best-effort: blank the migrated fields out of config.json so no
-        // plaintext provider data lingers. The frontend re-reads config.json
-        // fresh on next launch; rewriting it with empty arrays here keeps the
-        // two stores from disagreeing.
-        let mut stripped = cfg.clone();
-        stripped.providers = vec![];
-        let _ = crate::commands::config_cmd::save_config(app.clone(), stripped);
-        Ok(())
-    })();
-
-    if let Err(e) = result {
-        eprintln!("providers migration skipped: {e}");
-    }
-}
-
 #[tauri::command]
 pub fn read_providers(app: AppHandle) -> Result<ProvidersBundle, String> {
     load_encrypted(&app)
 }
 
 /// Read providers, applying the `PROMPIT_API_KEY_<i>` environment-variable
-/// override per provider index (dev isolation workflow, ported from the old
-/// positional-secrets path). If the env var is set and non-empty, it takes
-/// precedence over the on-disk api_key for that provider.
+/// override per provider index (dev isolation workflow).
 #[tauri::command]
 pub fn read_providers_resolved(app: AppHandle) -> Result<ProvidersBundle, String> {
     let mut bundle = load_encrypted(&app)?;

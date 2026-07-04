@@ -314,7 +314,12 @@
     "importExistingSettings": "导入现有设置",
     "importExistingHint": "从你之前导出的备份文件中恢复。",
     "importCardTitle": "从备份恢复",
-    "importCardBody": "选择一个 Prompit 备份文件并输入密码。你的服务商、搜索引擎、API 密钥、历史记录、人格、词典和技能都将被恢复。"
+    "importCardBody": "选择一个 Prompit 备份文件并输入密码。你的服务商、搜索引擎、API 密钥、历史记录、人格、词典和技能都将被恢复。",
+    "importNoProviders": "备份文件不包含任何 AI 服务商。软件至少需要一个服务商才能使用。",
+    "importNoApiKey": "导入的服务商没有 API 密钥。请改为手动添加服务商。",
+    "importSuccessTitle": "导入成功",
+    "importSuccessBody": "你的设置已恢复。已就绪 {count} 个服务商。",
+    "importRetry": "重新导入"
   },
   "startupReminder": {
     "hint": "按 {shortcut} 调出输入框"

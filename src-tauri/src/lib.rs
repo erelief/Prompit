@@ -202,15 +202,6 @@ pub fn run() {
             // (load_skills_lites_encrypted also has a read-side fallback).
             commands::skills_lite::migrate_legacy_file(app.handle());
 
-            // Migrate provider / web-search engine data out of legacy plaintext
-            // `config.json` into their own encrypted files (`providers.json`,
-            // `websearch.json`), so the whole provider configuration — structure
-            // AND api keys AND selection state — travels with the export/import
-            // bundle. Best-effort, one-way, idempotent (no-op if the target
-            // file already exists). Must run after the vault is unlocked.
-            commands::providers::migrate_legacy_from_config(app.handle());
-            commands::websearch::migrate_legacy_from_config(app.handle());
-
             let handle = app.handle().clone();
             let saved_shortcut = commands::config_cmd::read_config(app.handle().clone())
                 .map(|c| c.shortcut)

@@ -314,7 +314,12 @@
     "importExistingSettings": "Import existing settings",
     "importExistingHint": "Restore from a backup file you exported earlier.",
     "importCardTitle": "Restore from backup",
-    "importCardBody": "Select a Prompit backup file and enter its password. Your providers, search engines, API keys, history, personas, dictionaries, and skills will be restored."
+    "importCardBody": "Select a Prompit backup file and enter its password. Your providers, search engines, API keys, history, personas, dictionaries, and skills will be restored.",
+    "importNoProviders": "Backup contains no AI providers. The app needs at least one provider to function.",
+    "importNoApiKey": "Imported providers have no API key. Add a provider manually instead.",
+    "importSuccessTitle": "Import successful",
+    "importSuccessBody": "Your settings have been restored. {count} provider(s) ready to use.",
+    "importRetry": "Re-import"
   },
   "startupReminder": {
     "hint": "Press {shortcut} to open the input"

@@ -5,7 +5,7 @@ use base64::Engine;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::sync::OnceLock;
+use std::sync::RwLock;
 use zeroize::Zeroizing;
 
 #[derive(Serialize, Deserialize)]
@@ -14,18 +14,18 @@ pub struct EncryptedPayload {
     pub nonce: String,
 }
 
-/// In-memory Master Key. Set once at startup by the vault module (after
-/// unwrapping it from `vault.key` via the local KEK — see `kek.rs`). When
-/// present, all per-scope data keys are derived from it (portable, random).
-/// When absent (unit tests that never call `set_master_key`), `derive_key`
-/// panics rather than silently deriving wrong keys.
-static MASTER_KEY: OnceLock<Zeroizing<[u8; 32]>> = OnceLock::new();
+/// In-memory Master Key. Installed by the vault module at startup (after
+/// unwrapping it from `vault.key` via the local KEK — see `kek.rs`), and
+/// replaced after `import_data` so freshly-imported encrypted files can be
+/// read without a restart. When absent, `derive_key` panics rather than
+/// silently deriving wrong keys.
+static MASTER_KEY: RwLock<Option<Zeroizing<[u8; 32]>>> = RwLock::new(None);
 
-/// Install the Master Key into the process. Called exactly once from the vault
-/// module during app setup. Subsequent calls are no-ops (the first wins), which
-/// keeps tests that re-initialize from corrupting a running process.
+/// Install (or replace) the Master Key in the process. Called from the vault
+/// during startup and again after import_data so the imported key is used for
+/// all subsequent encrypt/decrypt operations.
 pub fn set_master_key(key: [u8; 32]) {
-    let _ = MASTER_KEY.set(Zeroizing::new(key));
+    *MASTER_KEY.write().unwrap() = Some(Zeroizing::new(key));
 }
 
 /// Copy out the installed Master Key, or error if none is set (should not
@@ -33,7 +33,9 @@ pub fn set_master_key(key: [u8; 32]) {
 /// vault's export path to wrap the key under a password.
 pub fn get_master_key() -> Result<[u8; 32], String> {
     MASTER_KEY
-        .get()
+        .read()
+        .unwrap()
+        .as_ref()
         .map(|mk| **mk)
         .ok_or_else(|| "master key not initialized".to_string())
 }
@@ -66,13 +68,9 @@ pub fn derive_raw_machine_key() -> [u8; 32] {
 /// by `scope`). Panics if the Master Key is not installed — at runtime setup
 /// always installs it before any data is read, so this never fires in prod.
 fn derive_key(scope: &str) -> [u8; 32] {
-    // Domain-separated derivation: distinct 32-byte key per scope, all rooted
-    // at the random Master Key. SHA256 is a fine KDF here because the input is
-    // already a full-entropy 256-bit key, not a password. The Master Key is
-    // always installed by the time any data is read (vault::unlock_or_migrate
-    // runs in setup, before commands are served), so there is no fallback.
-    let mk = MASTER_KEY
-        .get()
+    let guard = MASTER_KEY.read().unwrap();
+    let mk = guard
+        .as_ref()
         .expect("derive_key called before Master Key was installed");
     let mut hasher = Sha256::new();
     hasher.update(mk.as_slice());

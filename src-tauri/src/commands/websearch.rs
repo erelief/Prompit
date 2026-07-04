@@ -69,45 +69,6 @@ fn save_encrypted(app: &AppHandle, bundle: &WebSearchBundle) -> Result<(), Strin
     Ok(())
 }
 
-/// One-way migration of web-search data out of legacy plaintext `config.json`.
-/// Mirrors `providers::migrate_legacy_from_config`. Runs once at startup after
-/// the vault is unlocked. Best-effort: failures are logged and swallowed.
-pub fn migrate_legacy_from_config(app: &AppHandle) {
-    let path = match websearch_path(app) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("websearch migration skipped: {e}");
-            return;
-        }
-    };
-    if path.exists() {
-        return; // already migrated
-    }
-
-    let result = (|| -> Result<(), String> {
-        let cfg = crate::commands::config_cmd::read_config(app.clone())?;
-        let bundle = WebSearchBundle {
-            web_engines: cfg.web_engines.clone(),
-            web_search_active_index: cfg.web_search_active_index,
-        };
-        save_encrypted(app, &bundle)?;
-
-        // Best-effort: blank the migrated fields out of config.json so no
-        // plaintext engine data lingers.
-        let mut stripped = cfg.clone();
-        stripped.web_engines = vec![];
-        // web_search_active_index is left in config.json — it is a cheap scalar
-        // that the frontend still reads as a fallback, and harmless there. Only
-        // the engine structures (with api_key presence) are sensitive.
-        let _ = crate::commands::config_cmd::save_config(app.clone(), stripped);
-        Ok(())
-    })();
-
-    if let Err(e) = result {
-        eprintln!("websearch migration skipped: {e}");
-    }
-}
-
 #[tauri::command]
 pub fn read_websearch(app: AppHandle) -> Result<WebSearchBundle, String> {
     load_encrypted(&app)

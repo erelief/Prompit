@@ -174,7 +174,7 @@ const {
   importPath, importPassword, importShowPw, importConfirming,
   importCountdown, importStatus, importBusy,
   importFileName, importCanConfirm,
-  selectImportFile, requestImport, confirmImport, stopCountdown,
+  selectImportFile, requestImport, confirmImport, stopCountdown, resetImport,
 } = useDataImport({
   messages: {
     cancelled: t("settings.userData.import.cancelled"),
@@ -187,8 +187,12 @@ const {
   async onSuccess() {
     try {
       await loadConfig();
-      direction.value = "forward";
-      currentStep.value = 7;
+      const v = validateImportedProviders();
+      if (!v.ok) {
+        importStatus.value = { kind: "error", msg: v.reason || t("onboarding.importInvalid") };
+        return;
+      }
+      importSucceeded.value = true;
     } catch (err) {
       importStatus.value = {
         kind: "error",
@@ -198,10 +202,34 @@ const {
   },
 });
 
+// Whether the import has completed with usable data (at least one provider
+// with an api key). Gates the Next button and switches the step-8 view from
+// the import form to a success state.
+const importSucceeded = ref(false);
+
+// Validate that the imported backup actually carried a usable AI provider
+// configuration. Without a provider+key the app is non-functional, so an
+// otherwise-successful import is rejected here and the user is told why.
+function validateImportedProviders(): { ok: true } | { ok: false; reason?: string } {
+  if (appConfig.providers.length === 0) {
+    return { ok: false, reason: t("onboarding.importNoProviders") };
+  }
+  const hasUsableProvider = appConfig.providers.some(p => p.api_key.trim() !== "");
+  if (!hasUsableProvider) {
+    return { ok: false, reason: t("onboarding.importNoApiKey") };
+  }
+  return { ok: true };
+}
+
 function enterImportBranch() {
   importMode.value = true;
   direction.value = "forward";
   currentStep.value = 8;
+}
+
+function resetImportBranch() {
+  importSucceeded.value = false;
+  resetImport();
 }
 
 const canProceed = computed(() => {
@@ -214,9 +242,10 @@ const canProceed = computed(() => {
         (isLocalProvider(providerForm.value, providerPresets.value) || providerForm.value.api_key.trim() !== "")
       );
     case 8:
-      // Import step: Next is only meaningful once a backup is selected. The
-      // actual import runs from the in-card countdown-confirm button.
-      return !!importPath.value;
+      // Import step: Next is only enabled after a successful, validated import
+      // (at least one provider with an api key). The in-card countdown-confirm
+      // drives the actual import; Next advances to the done step.
+      return importSucceeded.value;
     case 4:
       return selectedModels.value.size > 0;
     case 0: case 1: case 3: case 5: case 6: case 7:
@@ -252,7 +281,9 @@ function goNext() {
     return;
   }
   if (currentStep.value === 8) {
-    // Import is driven by the in-card countdown-confirm button, not Next.
+    // Import succeeded & validated → advance to the done step.
+    direction.value = "forward";
+    currentStep.value = 7;
     return;
   }
   // Step 6: save search config if user filled it in
@@ -1053,92 +1084,118 @@ onMounted(async () => {
 
           <!-- Step 8: Import (branch) -->
           <div v-else-if="currentStep === 8" key="step8" class="flex flex-col py-6">
-            <h2 class="text-lg font-medium mb-2" style="color: var(--color-text)">
-              {{ t('onboarding.importCardTitle') }}
-            </h2>
-            <p class="text-sm mb-1 leading-relaxed" style="color: var(--color-text-secondary)">
-              {{ t('onboarding.importCardBody') }}
-            </p>
-            <p class="text-xs mb-4" style="color: var(--color-danger)">
-              {{ t('settings.userData.import.warning') }}
-            </p>
-
-            <button
-              v-if="!importPath"
-              class="import-file-pick"
-              @click="selectImportFile"
-            >
-              <FolderOpen :size="14" :stroke-width="1.8" />{{ t('settings.userData.import.selectFile') }}
-            </button>
-
-            <template v-else>
-              <div class="import-file-row">
-                <FileText :size="14" class="import-file-icon" />
-                <span class="import-file-name" :title="importPath || ''">{{ importFileName }}</span>
+            <!-- Success state: import done + validated, stay here until Next -->
+            <template v-if="importSucceeded">
+              <div class="flex flex-col items-center justify-center h-full py-10 text-center">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
+                  <Check :size="22" style="color: var(--color-accent)" />
+                </div>
+                <h2 class="text-xl font-medium mb-2" style="color: var(--color-text)">
+                  {{ t('onboarding.importSuccessTitle') }}
+                </h2>
+                <p class="text-sm leading-relaxed max-w-xs" style="color: var(--color-text-secondary)">
+                  {{ t('onboarding.importSuccessBody', { count: appConfig.providers.length }) }}
+                </p>
                 <button
-                  class="import-change-btn"
-                  :disabled="importConfirming || importBusy"
-                  @click="selectImportFile"
-                  type="button"
+                  @click="resetImportBranch"
+                  class="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium transition-colors mt-6"
+                  style="background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-secondary)"
                 >
-                  <FolderOpen :size="13" />
+                  {{ t('onboarding.importRetry') }}
                 </button>
-              </div>
-
-              <div v-if="!importConfirming" class="import-pw-row mt-3">
-                <input
-                  :type="importShowPw ? 'text' : 'password'"
-                  class="import-pw-input"
-                  v-model="importPassword"
-                  :placeholder="t('settings.userData.import.passwordPlaceholder')"
-                  autocomplete="off"
-                />
-                <button class="import-pw-toggle" @click="importShowPw = !importShowPw" type="button">
-                  <Eye v-if="!importShowPw" :size="13" />
-                  <EyeOff v-else :size="13" />
-                </button>
-              </div>
-
-              <button
-                v-if="!importConfirming"
-                class="import-btn danger mt-3"
-                :disabled="!importCanConfirm"
-                @click="requestImport"
-              >
-                <Upload :size="12" :stroke-width="1.9" />{{ t('settings.userData.import.button') }}
-              </button>
-
-              <div v-else class="import-confirm-row mt-3">
-                <div class="import-confirm-text">
-                  <ShieldAlert :size="14" :stroke-width="1.6" />
-                  <span>{{ t('settings.userData.import.confirmWarning') }}</span>
-                </div>
-                <div class="import-confirm-actions">
-                  <button class="mini-btn" :title="t('common.cancel')" :disabled="importBusy" @click="stopCountdown">
-                    <X :size="12" :stroke-width="2.5" />
-                  </button>
-                  <div class="import-confirm-cd">
-                    <button
-                      class="mini-btn danger-active"
-                      :class="{ 'confirm-counting': importCountdown > 0 }"
-                      :title="importCountdown > 0 ? t('settings.reset.confirmCountdown', { n: importCountdown }) : t('common.confirm')"
-                      :disabled="importCountdown > 0 || importBusy"
-                      @click="confirmImport"
-                    >
-                      <Loader2 v-if="importBusy" :size="12" class="spin" />
-                      <Check v-else :size="12" :stroke-width="2.5" />
-                    </button>
-                    <span v-if="importCountdown > 0" class="import-cd-label">{{ importCountdown }}s</span>
-                  </div>
-                </div>
               </div>
             </template>
 
-            <p
-              v-if="importStatus.kind !== 'idle'"
-              class="mt-3 text-xs"
-              :style="{ color: importStatus.kind === 'error' ? 'var(--color-danger)' : importStatus.kind === 'success' ? 'var(--color-accent)' : 'var(--color-text-muted)' }"
-            >{{ importStatus.msg }}</p>
+            <!-- Import form (not yet succeeded) -->
+            <template v-else>
+              <h2 class="text-lg font-medium mb-2" style="color: var(--color-text)">
+                {{ t('onboarding.importCardTitle') }}
+              </h2>
+              <p class="text-sm mb-1 leading-relaxed" style="color: var(--color-text-secondary)">
+                {{ t('onboarding.importCardBody') }}
+              </p>
+              <p class="text-xs mb-4" style="color: var(--color-danger)">
+                {{ t('settings.userData.import.warning') }}
+              </p>
+
+              <button
+                v-if="!importPath"
+                class="import-file-pick"
+                @click="selectImportFile"
+              >
+                <FolderOpen :size="14" :stroke-width="1.8" />{{ t('settings.userData.import.selectFile') }}
+              </button>
+
+              <template v-else>
+                <div class="import-file-row">
+                  <FileText :size="14" class="import-file-icon" />
+                  <span class="import-file-name" :title="importPath || ''">{{ importFileName }}</span>
+                  <button
+                    class="import-change-btn"
+                    :disabled="importConfirming || importBusy"
+                    @click="selectImportFile"
+                    type="button"
+                  >
+                    <FolderOpen :size="13" />
+                  </button>
+                </div>
+
+                <div v-if="!importConfirming" class="import-pw-row mt-3">
+                  <input
+                    :type="importShowPw ? 'text' : 'password'"
+                    class="import-pw-input"
+                    v-model="importPassword"
+                    :placeholder="t('settings.userData.import.passwordPlaceholder')"
+                    autocomplete="off"
+                  />
+                  <button class="import-pw-toggle" @click="importShowPw = !importShowPw" type="button">
+                    <Eye v-if="!importShowPw" :size="13" />
+                    <EyeOff v-else :size="13" />
+                  </button>
+                </div>
+
+                <button
+                  v-if="!importConfirming"
+                  class="import-btn danger mt-3"
+                  :disabled="!importCanConfirm"
+                  @click="requestImport"
+                >
+                  <Loader2 v-if="importBusy" :size="12" class="spin" />
+                  <Upload v-else :size="12" :stroke-width="1.9" />{{ t('settings.userData.import.button') }}
+                </button>
+
+                <div v-else class="import-confirm-row mt-3">
+                  <div class="import-confirm-text">
+                    <ShieldAlert :size="14" :stroke-width="1.6" />
+                    <span>{{ t('settings.userData.import.confirmWarning') }}</span>
+                  </div>
+                  <div class="import-confirm-actions">
+                    <button class="mini-btn" :title="t('common.cancel')" :disabled="importBusy" @click="stopCountdown">
+                      <X :size="12" :stroke-width="2.5" />
+                    </button>
+                    <div class="import-confirm-cd">
+                      <button
+                        class="mini-btn danger-active"
+                        :class="{ 'confirm-counting': importCountdown > 0 }"
+                        :title="importCountdown > 0 ? t('settings.reset.confirmCountdown', { n: importCountdown }) : t('common.confirm')"
+                        :disabled="importCountdown > 0 || importBusy"
+                        @click="confirmImport"
+                      >
+                        <Loader2 v-if="importBusy" :size="12" class="spin" />
+                        <Check v-else :size="12" :stroke-width="2.5" />
+                      </button>
+                      <span v-if="importCountdown > 0" class="import-cd-label">{{ importCountdown }}s</span>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <p
+                v-if="importStatus.kind !== 'idle'"
+                class="mt-3 text-xs"
+                :style="{ color: importStatus.kind === 'error' ? 'var(--color-danger)' : importStatus.kind === 'success' ? 'var(--color-accent)' : 'var(--color-text-muted)' }"
+              >{{ importStatus.msg }}</p>
+            </template>
           </div>
 
         </Transition>
@@ -1189,7 +1246,7 @@ onMounted(async () => {
           <ChevronRight v-if="searchCanNext" :size="16" />
         </button>
         <button
-          v-else-if="currentStep !== 8"
+          v-else-if="currentStep !== 8 || importSucceeded"
           @click="goNext"
           :disabled="!canProceed || isConnecting || isFetching"
           class="flex items-center gap-1.5 h-9 px-5 rounded-lg text-sm font-medium transition-all"
@@ -1205,8 +1262,8 @@ onMounted(async () => {
             <ChevronRight v-if="!isLastStep" :size="16" />
           </template>
         </button>
-        <!-- Step 8 (import): no Next button here — the import card drives the
-             action via its own 5s-countdown confirm button. -->
+        <!-- Step 8 (import) before success: no Next button — the in-card
+             5s-countdown confirm button drives the actual import. -->
         <div v-else />
       </div>
 
