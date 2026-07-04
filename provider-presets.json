@@ -371,7 +371,7 @@
       "icon": "sensenova",
       "model_series": "SenseNova",
       "base_url": "https://token.sensenova.cn/v1",
-      "api_url": "https://console.sensenova.cn/",
+      "api_url": "https://platform.sensenova.cn/console/keys",
       "api_format": "openai"
     },
     {
