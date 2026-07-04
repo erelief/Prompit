@@ -42,12 +42,16 @@ pub fn save_secret(app: AppHandle, key_id: String, plaintext: String) -> Result<
 pub fn read_secret(app: AppHandle, key_id: String) -> Result<String, String> {
     // Env var override for development isolation. The frontend stores provider
     // keys under the `provider_<i>` id (see secretKeyId in config.ts), so the
-    // override must match that prefix — not the legacy `model_` one.
+    // override must match that prefix — not the legacy `model_` one. Restrict
+    // the index to ASCII digits so a malformed key_id can't construct an
+    // arbitrary environment variable name.
     if let Some(index_str) = key_id.strip_prefix("provider_") {
-        let env_name = format!("PROMPIT_API_KEY_{}", index_str);
-        if let Ok(val) = std::env::var(&env_name) {
-            if !val.is_empty() {
-                return Ok(val);
+        if index_str.chars().all(|c| c.is_ascii_digit()) {
+            let env_name = format!("PROMPIT_API_KEY_{}", index_str);
+            if let Ok(val) = std::env::var(&env_name) {
+                if !val.is_empty() {
+                    return Ok(val);
+                }
             }
         }
     }
