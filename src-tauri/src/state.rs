@@ -94,3 +94,33 @@ impl StartupReminderState {
         self.shown.load(Ordering::Relaxed)
     }
 }
+
+/// Whether the frontend (Vue app) has finished mounting and is ready to render
+/// window content. Until this flips to true, the system tray icon is kept
+/// hidden and tray-click / global-shortcut show-paths are suppressed, so the
+/// user can never interact with a half-initialized window (transparent border
+/// only, no rendered content).
+///
+/// The flag is process-scoped: it is set from the frontend right after
+/// `app.mount("#app")` (see `src/main.ts`). On a sleep/wake-triggered WebView
+/// reload the frontend re-runs its startup sequence and re-sets this; in the
+/// meantime the tray stays interactive because only the webview reloaded, not
+/// the process — but the show-paths still consult this flag, so a click that
+/// races the remount is dropped instead of showing an empty window.
+pub struct FrontendReady(pub AtomicBool);
+
+impl Default for FrontendReady {
+    fn default() -> Self {
+        Self(AtomicBool::new(false))
+    }
+}
+
+impl FrontendReady {
+    pub fn set(&self, value: bool) {
+        self.0.store(value, Ordering::Relaxed);
+    }
+
+    pub fn is(&self) -> bool {
+        self.0.load(Ordering::Relaxed)
+    }
+}

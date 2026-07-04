@@ -146,6 +146,19 @@ pub fn register(app: &AppHandle, shortcut_str: &str) -> Result<(), Box<dyn std::
                     }
                 }
 
+                // Don't surface the window before the frontend has mounted:
+                // the startup sequence (Vite cold start in dev + sequential
+                // vault reads) leaves the transparent undecorated window empty
+                // for a few seconds, and showing it then would render only a
+                // border. Mirrors the tray-click guard in lib.rs.
+                let ready = app_handle
+                    .try_state::<crate::state::FrontendReady>()
+                    .map(|s| s.is())
+                    .unwrap_or(false);
+                if !ready {
+                    return;
+                }
+
                 let main_window = app_handle
                     .get_webview_window("main")
                     .expect("main window not found");

@@ -116,6 +116,7 @@ pub fn run() {
         .manage(state::WindowConfig::default())
         .manage(state::OnboardingState::default())
         .manage(state::StartupReminderState::default())
+        .manage(state::FrontendReady::default())
         .manage(commands::http_proxy::InflightRegistry::default())
         .invoke_handler(tauri::generate_handler![
             commands::window::hide_main_window,
@@ -125,6 +126,7 @@ pub fn run() {
             commands::window::resize_and_reposition,
             commands::window::show_onboarding_window,
             commands::window::show_startup_reminder_window,
+            commands::window::set_tray_visible,
             commands::window::get_grow_above,
             commands::window::set_main_pinned,
             commands::window::set_main_resizable,
@@ -218,7 +220,7 @@ pub fn run() {
                 .items(&[&settings_item, &exit_item])
                 .build()?;
 
-            TrayIconBuilder::new()
+            let tray = TrayIconBuilder::with_id("main-tray")
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id().as_ref() {
@@ -242,6 +244,18 @@ pub fn run() {
                     } = event
                     {
                         let app = tray.app_handle();
+                        // Belt-and-suspenders: the tray is also kept hidden
+                        // until the frontend is ready, but in case a click
+                        // races the visibility flip (or a sleep/wake WebView
+                        // reload resets readiness), never show an unmounted
+                        // window.
+                        let ready = app
+                            .try_state::<state::FrontendReady>()
+                            .map(|s| s.is())
+                            .unwrap_or(false);
+                        if !ready {
+                            return;
+                        }
                         if let Some(w) = app.get_webview_window("main") {
                             if w.is_visible().unwrap_or(false) {
                                 let _ = w.hide();
@@ -254,6 +268,11 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+            // Start hidden: the frontend flips this to visible via
+            // `set_tray_visible(true)` once Vue has mounted, so the user can
+            // never interact with a half-initialized window. See
+            // `FrontendReady` in state.rs.
+            let _ = tray.set_visible(false);
 
             // Watch for system sleep/wake to fix transparent window surface loss
             #[cfg(target_os = "windows")]

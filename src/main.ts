@@ -63,6 +63,11 @@ router.isReady().then(async () => {
   applyRouteTheme(router.currentRoute.value.path);
   app.mount("#app");
 
+  // The window content is now mounted and can render. Reveal the tray icon
+  // (kept hidden during the IPC-heavy startup above) so any user interaction
+  // lands on a fully-initialized window instead of an empty bordered one.
+  invoke("set_tray_visible", { visible: true });
+
   // Show window immediately for onboarding
   if (appConfig.providers.length === 0) {
     invoke("show_onboarding_window");

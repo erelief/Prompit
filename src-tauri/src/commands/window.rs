@@ -291,6 +291,23 @@ pub fn show_startup_reminder_window(app: AppHandle) -> Result<(), String> {
     resize_center_show(&app, 380.0, 280.0)
 }
 
+/// Reveal the system tray icon and mark the frontend as ready to render window
+/// content. Called from the frontend right after `app.mount("#app")` completes
+/// (see `src/main.ts`). Before this fires, the tray is hidden and tray-click /
+/// global-shortcut show-paths are suppressed, so the user never sees a
+/// half-initialized transparent-border-only window during the IPC-heavy startup
+/// sequence (Vite cold start + sequential vault reads).
+#[tauri::command]
+pub fn set_tray_visible(app: AppHandle, visible: bool) -> Result<(), String> {
+    if let Some(s) = app.try_state::<crate::state::FrontendReady>() {
+        s.set(visible);
+    }
+    if let Some(tray) = app.tray_by_id("main-tray") {
+        tray.set_visible(visible).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn reset_app_data(app: AppHandle) -> Result<(), String> {
     let dir = crate::get_data_dir(&app)?;
