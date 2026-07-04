@@ -35,7 +35,7 @@
       "endpoints": [
         "https://github.com/erelief/Prompit/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI0QTg3RjAyRjY3NTFCRDMKUldUVEczWDJBbitvdEhNVGxFNC80V0NNd3dZbjdwRC9tcFNsSncxUllwYzdJRStZeFpJVm9sbTMK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE0RTY0MTRBRTlGNjNDNjUKUldSbFBQYnBTa0htRkVIdFNBNDlOcndoUGtHbjd4ZnFsSDNlUGFwSFpJZkxrSUE1UkRnNVN1SlIK"
     }
   },
   "bundle": {
