@@ -17,13 +17,15 @@ interface ChatMessage {
  *
  * Transport failures throw an `Error`; HTTP error responses (4xx/5xx) resolve
  * normally with `ok: false` so callers can reuse their status-based handling.
+ * Pass an `AbortSignal` to cancel an in-flight request (e.g. a slow LLM
+ * translation) — it triggers `llm_http_abort` on the Rust side.
  *
  * Thin wrapper over the shared `proxyFetch` (see `proxy.ts`) so both the LLM
  * client and the web-search presets share one network chokepoint.
  */
 async function llmFetch(
   url: string,
-  opts: { method: "GET" | "POST"; headers: Record<string, string>; body?: string },
+  opts: { method: "GET" | "POST"; headers: Record<string, string>; body?: string; signal?: AbortSignal },
 ): Promise<ProxyResponse> {
   return proxyFetch(url, opts);
 }
@@ -166,6 +168,7 @@ async function chatCompletion(
     method: "POST",
     headers,
     body: JSON.stringify(body),
+    signal,
   });
   if (!response.ok) {
     throw new ModelHttpError(response.status, response.body || `HTTP ${response.status}`);
@@ -294,7 +297,8 @@ function buildSkillsLiteSystemPrompt(): string {
 }
 
 export async function testProviderConnection(
-  provider: Pick<ProviderConfig, "api_key" | "base_url" | "api_format">
+  provider: Pick<ProviderConfig, "api_key" | "base_url" | "api_format">,
+  signal?: AbortSignal,
 ): Promise<{ ok: boolean; status?: number; error?: string }> {
   if (!provider.api_key || !provider.base_url) {
     return { ok: false, error: "Missing API key or base URL" };
@@ -307,6 +311,7 @@ export async function testProviderConnection(
     const r = await llmFetch(`${url}${modelsEndpoint}`, {
       method: "GET",
       headers,
+      signal,
     });
     if (r.ok) {
       return { ok: true };
@@ -327,7 +332,8 @@ export async function testProviderConnection(
 }
 
 export async function fetchProviderModels(
-  provider: Pick<ProviderConfig, "api_key" | "base_url" | "api_format">
+  provider: Pick<ProviderConfig, "api_key" | "base_url" | "api_format">,
+  signal?: AbortSignal,
 ): Promise<{ ok: boolean; models?: FetchModelEntry[]; error?: string }> {
   if (!provider.api_key || !provider.base_url) {
     return { ok: false, error: "Missing API key or base URL" };
@@ -340,6 +346,7 @@ export async function fetchProviderModels(
     const r = await llmFetch(`${url}${modelsEndpoint}`, {
       method: "GET",
       headers,
+      signal,
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = JSON.parse(r.body);

@@ -46,17 +46,19 @@ export async function proxyFetch(url: string, opts: ProxyFetchOptions): Promise<
   // Wire the AbortSignal (if any) to the backend abort command. On abort we
   // also reject the promise locally so the caller sees the error immediately.
   let abortPromise: Promise<never> | undefined;
+  let onAbort: (() => void) | undefined;
   if (opts.signal) {
     if (opts.signal.aborted) {
       throw new DOMException("The operation was aborted.", "AbortError");
     }
     abortPromise = new Promise<never>((_, reject) => {
-      opts.signal!.addEventListener("abort", () => {
+      onAbort = () => {
         invoke("llm_http_abort", { requestId }).catch(() => {
           // Best-effort: the server may have already completed the request.
         });
         reject(new DOMException("The operation was aborted.", "AbortError"));
-      }, { once: true });
+      };
+      opts.signal!.addEventListener("abort", onAbort, { once: true });
     });
   }
 
@@ -75,6 +77,12 @@ export async function proxyFetch(url: string, opts: ProxyFetchOptions): Promise<
       throw new DOMException("The operation was aborted.", "AbortError");
     }
     throw new Error(`Connection failed: ${err instanceof Error ? err.message : String(err)}`);
+  }).finally(() => {
+    // Remove the abort listener once the request settles, so a reused
+    // AbortController doesn't accumulate stale listeners across requests.
+    if (onAbort && opts.signal) {
+      opts.signal.removeEventListener("abort", onAbort);
+    }
   });
 
   // If we have an abort signal, race the invoke against local abort rejection.
