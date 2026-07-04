@@ -160,7 +160,10 @@ async function handleConfirm() {
   align-items: center;
   justify-content: center;
   padding: 24px 28px;
+  overflow-y: auto;
 }
+.reset-body::-webkit-scrollbar { width: 3px; }
+.reset-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
 .warn-card {
   display: flex;
   align-items: flex-start;

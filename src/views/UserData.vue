@@ -159,7 +159,7 @@ function todayStamp(): string {
     </div>
 
     <!-- Body -->
-    <div class="ud-body settings-scrollbar">
+    <div class="ud-body">
       <!-- ═══ Export ═══ -->
       <section class="ud-card export-card">
         <div class="ud-card-head">
@@ -373,6 +373,8 @@ function todayStamp(): string {
   flex-direction: column;
   gap: 14px;
 }
+.ud-body::-webkit-scrollbar { width: 3px; }
+.ud-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
 
 /* ── Section card ── */
 .ud-card {
