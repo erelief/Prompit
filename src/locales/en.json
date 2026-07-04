@@ -129,7 +129,7 @@
       "pageTitle": "User Data",
       "export": {
         "title": "Export",
-        "description": "Pack your secrets, history, dictionaries, personas, and skills into an encrypted backup file. The password you set here is used to encrypt the backup — there is no way to recover it if lost.",
+        "description": "Pack your providers, search engines, API keys, history, dictionaries, personas, and skills into an encrypted backup file. The password you set here is used to encrypt the backup — there is no way to recover it if lost.",
         "passwordPlaceholder": "At least 6 characters",
         "confirmPasswordPlaceholder": "Confirm password",
         "button": "Export",
@@ -139,7 +139,7 @@
       },
       "import": {
         "title": "Import",
-        "description": "Restore user data from a backup file. This overwrites all current secrets, history, dictionaries, personas, and skills. Providers, models, theme, and shortcuts (config.json) are not affected.",
+        "description": "Restore providers, search engines, API keys, history, dictionaries, personas, and skills from a backup file. This overwrites all current service configuration and user data. Theme and shortcuts are not affected.",
         "warning": "Overwrites all current user data. This cannot be undone.",
         "passwordPlaceholder": "Backup password",
         "button": "Import",
@@ -310,7 +310,11 @@
     "addSearchTitle": "Add search API",
     "searchPreset": "Search provider",
     "selectSearchPreset": "Select a provider…",
-    "skip": "Skip"
+    "skip": "Skip",
+    "importExistingSettings": "Import existing settings",
+    "importExistingHint": "Restore from a backup file you exported earlier.",
+    "importCardTitle": "Restore from backup",
+    "importCardBody": "Select a Prompit backup file and enter its password. Your providers, search engines, API keys, history, personas, dictionaries, and skills will be restored."
   },
   "startupReminder": {
     "hint": "Press {shortcut} to open the input"

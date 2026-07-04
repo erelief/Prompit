@@ -42,6 +42,23 @@ fn resize_center_show(app: &AppHandle, logical_w: f64, logical_h: f64) -> Result
     show_and_focus(&window)
 }
 
+/// Onboarding window default size and the minimum size the user can drag it
+/// down to. The card historically was fixed at 380×560 which squeezed the
+/// API-key disclaimer off-screen; 460×680 gives the disclaimer room and the
+/// user can freely grow the window beyond this.
+const ONBOARDING_DEFAULT_W: f64 = 460.0;
+const ONBOARDING_DEFAULT_H: f64 = 680.0;
+
+/// Set whether the main window is user-resizable (drag an edge/corner). The
+/// floating input bar locks resizing (its 480×120 strip must stay precise),
+/// while onboarding / sub-pages enable it.
+#[tauri::command]
+pub fn set_main_resizable(app: AppHandle, resizable: bool) -> Result<(), String> {
+    let window = main_window(&app)?;
+    window.set_resizable(resizable).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn hide_main_window(app: AppHandle) -> Result<(), String> {
     main_window(&app)?.hide().map_err(|e| e.to_string())?;
@@ -90,6 +107,13 @@ pub fn resize_and_reposition(
     let physical_w = ((width.unwrap_or(500.0)) * scale) as u32;
 
     let grow_above = app.state::<WindowConfig>().get_grow_above();
+
+    // This command drives the floating input bar sizing, which must stay a
+    // precise strip (not user-resizable) and may be smaller than the onboarding
+    // min size — so clear both the min size and the resizable flag here. If the
+    // user later returns to onboarding, show_onboarding_window re-applies them.
+    let _ = window.set_min_size::<tauri::Size>(None);
+    let _ = window.set_resizable(false);
 
     #[cfg(target_os = "windows")]
     {
@@ -248,7 +272,18 @@ pub fn open_settings_window(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub fn show_onboarding_window(app: AppHandle) -> Result<(), String> {
-    resize_center_show(&app, 380.0, 560.0)
+    let window = main_window(&app)?;
+    // Onboarding is the one mode where the user may freely resize the window.
+    // Set the minimum (and default) size, enable resizing, then size/center.
+    let scale = monitor_scale(&window);
+    window
+        .set_min_size(Some(tauri::PhysicalSize {
+            width: (ONBOARDING_DEFAULT_W * scale) as u32,
+            height: (ONBOARDING_DEFAULT_H * scale) as u32,
+        }))
+        .map_err(|e| e.to_string())?;
+    window.set_resizable(true).map_err(|e| e.to_string())?;
+    resize_center_show(&app, ONBOARDING_DEFAULT_W, ONBOARDING_DEFAULT_H)
 }
 
 #[tauri::command]

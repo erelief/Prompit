@@ -3,10 +3,12 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   appConfig,
   loadProviderPresets,
   saveConfig as persistConfig,
+  loadConfig,
 } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
 import type { ProviderConfig, ProviderPreset, PresetVariantEndpoint, PresetVariantRegion, WebEngineConfig } from "../stores/config";
@@ -49,13 +51,24 @@ import {
   Plus,
   Globe,
   Info,
+  Upload,
+  FolderOpen,
+  FileText,
+  ShieldAlert,
 } from "@lucide/vue";
 import { SEARCH_PRESETS, testWebEngine } from "../services/websearch";
+import { useDataImport } from "../composables/useDataImport";
 
 const { t } = useI18n();
 const router = useRouter();
 
 // ── Step management ──
+// Step IDs: 0=welcome, 1=info, 2=add-provider, 3=lightweight, 4=select-models,
+// 5=websearch-info, 6=add-search, 7=done, 8=import (branch step).
+// `importMode` switches the linear step sequence to the shortened import path:
+//   welcome(0) → info(1) → import(8) → done(7)
+// Otherwise the full add-provider path runs: 0→1→2→3→4→5→6→7.
+const importMode = ref(false);
 const currentStep = ref(0);
 const direction = ref<"forward" | "backward">("forward");
 
@@ -153,6 +166,44 @@ const searchIsTesting = ref(false);
 const searchCanNext = computed(() => !!searchSelectedPreset.value && !!searchApiKey.value.trim());
 
 // ── Computed ──
+// ── Import branch ──
+// Entered from step 1 (info) when the user picks "import existing settings"
+// instead of adding a provider manually. Uses the shared useDataImport
+// composable so the import logic is identical to the Settings page.
+const {
+  importPath, importPassword, importShowPw, importConfirming,
+  importCountdown, importStatus, importBusy,
+  importFileName, importCanConfirm,
+  selectImportFile, requestImport, confirmImport, stopCountdown,
+} = useDataImport({
+  messages: {
+    cancelled: t("settings.userData.import.cancelled"),
+    success: t("settings.userData.import.success"),
+    error: (message: string) => t("settings.userData.error", { message }),
+  },
+  // On success: reload config from the just-imported encrypted files (no
+  // restart — the Master Key is already installed in-process), then jump to
+  // the "done" step. finishOnboarding runs when the user clicks Finish there.
+  async onSuccess() {
+    try {
+      await loadConfig();
+      direction.value = "forward";
+      currentStep.value = 7;
+    } catch (err) {
+      importStatus.value = {
+        kind: "error",
+        msg: t("settings.userData.error", { message: String(err) }),
+      };
+    }
+  },
+});
+
+function enterImportBranch() {
+  importMode.value = true;
+  direction.value = "forward";
+  currentStep.value = 8;
+}
+
 const canProceed = computed(() => {
   switch (currentStep.value) {
     case 2:
@@ -162,6 +213,10 @@ const canProceed = computed(() => {
         providerForm.value.base_url.trim() !== "" &&
         (isLocalProvider(providerForm.value, providerPresets.value) || providerForm.value.api_key.trim() !== "")
       );
+    case 8:
+      // Import step: Next is only meaningful once a backup is selected. The
+      // actual import runs from the in-card countdown-confirm button.
+      return !!importPath.value;
     case 4:
       return selectedModels.value.size > 0;
     case 0: case 1: case 3: case 5: case 6: case 7:
@@ -174,6 +229,15 @@ const canProceed = computed(() => {
 
 const isLastStep = computed(() => currentStep.value === 7);
 
+// Step-dot indicator sequence. The import branch is a shorter path
+// (welcome → info → import → done); the add-provider path runs all 8 steps.
+const dotSteps = computed(() =>
+  importMode.value ? [0, 1, 8, 7] : [0, 1, 2, 3, 4, 5, 6, 7],
+);
+const currentDotIndex = computed(() =>
+  dotSteps.value.indexOf(currentStep.value),
+);
+
 const shortcutKey = ref("...");
 
 // ── Navigation ──
@@ -185,6 +249,10 @@ function goNext() {
   }
   if (currentStep.value === 7) {
     finishOnboarding();
+    return;
+  }
+  if (currentStep.value === 8) {
+    // Import is driven by the in-card countdown-confirm button, not Next.
     return;
   }
   // Step 6: save search config if user filled it in
@@ -237,6 +305,17 @@ async function testSearchConnection() {
 function goPrev() {
   if (currentStep.value === 0) return;
   direction.value = "backward";
+  // Import branch: step 8 goes back to step 1 (info/choose).
+  if (currentStep.value === 8) {
+    importMode.value = false;
+    currentStep.value = 1;
+    return;
+  }
+  // Done step in import branch goes back to the import step, not step 6.
+  if (currentStep.value === 7 && importMode.value) {
+    currentStep.value = 8;
+    return;
+  }
   currentStep.value--;
 }
 
@@ -370,13 +449,18 @@ function addManualModel() {
 }
 
 async function finishOnboarding() {
-  providerForm.value.models = [...selectedModels.value].map(([id, caps]) => ({
-    id,
-    input_capabilities: Object.keys(caps).length > 0 ? caps : undefined,
-  }));
-  appConfig.providers.push({ ...providerForm.value });
-  appConfig.translate_active_provider_index = 0;
-  appConfig.translate_active_model_index = 0;
+  if (!importMode.value) {
+    // Add-provider branch: commit the just-configured provider.
+    providerForm.value.models = [...selectedModels.value].map(([id, caps]) => ({
+      id,
+      input_capabilities: Object.keys(caps).length > 0 ? caps : undefined,
+    }));
+    appConfig.providers.push({ ...providerForm.value });
+    appConfig.translate_active_provider_index = 0;
+    appConfig.translate_active_model_index = 0;
+  }
+  // Import branch: providers were already loaded by the import onSuccess
+  // callback — nothing to push here.
 
   await persistConfig();
   await invoke("set_onboarding_complete");
@@ -410,6 +494,18 @@ function confirmClose() {
   invoke("hide_main_window");
 }
 
+// ── Window move ──
+// Frameless window: dragging the background (not interactive controls) moves
+// the window. Matches the pattern used by Settings/UserData/etc. The exclusion
+// list must cover EVERY interactive element — including <label> rows used for
+// model selection (step 4) — otherwise mousedown→startDragging swallows the
+// click and the user can't toggle individual models.
+async function handleDrag(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (target.closest("button, input, textarea, a, select, label, .sel-wrap, .import-file-pick, .import-pw-toggle, .import-change-btn, .mini-btn, .import-btn, .manual-model-row")) return;
+  await getCurrentWindow().startDragging();
+}
+
 // ── Init ──
 onMounted(async () => {
   invoke<string>("get_shortcut_label").then(s => { shortcutKey.value = s; }).catch(() => {});
@@ -424,8 +520,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-dvh px-6 select-none" style="background: var(--color-bg)" data-tauri-drag-region @click="onRootClick">
-    <div class="w-full max-w-[520px] flex flex-col relative" style="height: 500px">
+  <div class="flex items-center justify-center h-dvh px-6 select-none" style="background: var(--color-bg)" @mousedown="handleDrag" @click="onRootClick">
+    <div class="w-full max-w-[520px] flex flex-col relative" style="height: 100%; max-height: 100dvh; min-height: 0">
 
       <!-- Close button -->
       <button
@@ -535,6 +631,17 @@ onMounted(async () => {
             </h2>
             <p class="text-sm leading-relaxed text-center max-w-sm" style="color: var(--color-text-secondary)">
               {{ t('onboarding.infoBody') }}
+            </p>
+            <button
+              @click="enterImportBranch"
+              class="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium transition-colors mt-6"
+              style="background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-secondary)"
+            >
+              <Upload :size="14" :stroke-width="1.9" />
+              {{ t('onboarding.importExistingSettings') }}
+            </button>
+            <p class="text-xs mt-2 text-center max-w-xs" style="color: var(--color-text-muted)">
+              {{ t('onboarding.importExistingHint') }}
             </p>
           </div>
 
@@ -944,6 +1051,96 @@ onMounted(async () => {
             </p>
           </div>
 
+          <!-- Step 8: Import (branch) -->
+          <div v-else-if="currentStep === 8" key="step8" class="flex flex-col py-6">
+            <h2 class="text-lg font-medium mb-2" style="color: var(--color-text)">
+              {{ t('onboarding.importCardTitle') }}
+            </h2>
+            <p class="text-sm mb-1 leading-relaxed" style="color: var(--color-text-secondary)">
+              {{ t('onboarding.importCardBody') }}
+            </p>
+            <p class="text-xs mb-4" style="color: var(--color-danger)">
+              {{ t('settings.userData.import.warning') }}
+            </p>
+
+            <button
+              v-if="!importPath"
+              class="import-file-pick"
+              @click="selectImportFile"
+            >
+              <FolderOpen :size="14" :stroke-width="1.8" />{{ t('settings.userData.import.selectFile') }}
+            </button>
+
+            <template v-else>
+              <div class="import-file-row">
+                <FileText :size="14" class="import-file-icon" />
+                <span class="import-file-name" :title="importPath || ''">{{ importFileName }}</span>
+                <button
+                  class="import-change-btn"
+                  :disabled="importConfirming || importBusy"
+                  @click="selectImportFile"
+                  type="button"
+                >
+                  <FolderOpen :size="13" />
+                </button>
+              </div>
+
+              <div v-if="!importConfirming" class="import-pw-row mt-3">
+                <input
+                  :type="importShowPw ? 'text' : 'password'"
+                  class="import-pw-input"
+                  v-model="importPassword"
+                  :placeholder="t('settings.userData.import.passwordPlaceholder')"
+                  autocomplete="off"
+                />
+                <button class="import-pw-toggle" @click="importShowPw = !importShowPw" type="button">
+                  <Eye v-if="!importShowPw" :size="13" />
+                  <EyeOff v-else :size="13" />
+                </button>
+              </div>
+
+              <button
+                v-if="!importConfirming"
+                class="import-btn danger mt-3"
+                :disabled="!importCanConfirm"
+                @click="requestImport"
+              >
+                <Upload :size="12" :stroke-width="1.9" />{{ t('settings.userData.import.button') }}
+              </button>
+
+              <div v-else class="import-confirm-row mt-3">
+                <div class="import-confirm-text">
+                  <ShieldAlert :size="14" :stroke-width="1.6" />
+                  <span>{{ t('settings.userData.import.confirmWarning') }}</span>
+                </div>
+                <div class="import-confirm-actions">
+                  <button class="mini-btn" :title="t('common.cancel')" :disabled="importBusy" @click="stopCountdown">
+                    <X :size="12" :stroke-width="2.5" />
+                  </button>
+                  <div class="import-confirm-cd">
+                    <button
+                      class="mini-btn danger-active"
+                      :class="{ 'confirm-counting': importCountdown > 0 }"
+                      :title="importCountdown > 0 ? t('settings.reset.confirmCountdown', { n: importCountdown }) : t('common.confirm')"
+                      :disabled="importCountdown > 0 || importBusy"
+                      @click="confirmImport"
+                    >
+                      <Loader2 v-if="importBusy" :size="12" class="spin" />
+                      <Check v-else :size="12" :stroke-width="2.5" />
+                    </button>
+                    <span v-if="importCountdown > 0" class="import-cd-label">{{ importCountdown }}s</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <p
+              v-if="importStatus.kind !== 'idle'"
+              class="mt-3 text-xs"
+              :style="{ color: importStatus.kind === 'error' ? 'var(--color-danger)' : importStatus.kind === 'success' ? 'var(--color-accent)' : 'var(--color-text-muted)' }"
+            >{{ importStatus.msg }}</p>
+          </div>
+
         </Transition>
       </div>
 
@@ -961,18 +1158,18 @@ onMounted(async () => {
         </button>
         <div v-else />
 
-        <!-- Step dots -->
+        <!-- Step dots (sequence depends on branch: 4 for import, 8 for add) -->
         <div class="flex items-center gap-2">
           <span
-            v-for="i in 8"
-            :key="i"
+            v-for="(stepId, idx) in dotSteps"
+            :key="stepId"
             class="w-1.5 h-1.5 rounded-full transition-all duration-300"
             :style="{
-              background: currentStep >= i - 1
+              background: idx <= currentDotIndex
                 ? 'var(--color-accent)'
                 : 'var(--color-border)',
-              opacity: currentStep === i - 1 ? 1 : 0.5,
-              transform: currentStep === i - 1 ? 'scale(1.4)' : 'scale(1)',
+              opacity: idx === currentDotIndex ? 1 : 0.5,
+              transform: idx === currentDotIndex ? 'scale(1.4)' : 'scale(1)',
             }"
           />
         </div>
@@ -992,7 +1189,7 @@ onMounted(async () => {
           <ChevronRight v-if="searchCanNext" :size="16" />
         </button>
         <button
-          v-else
+          v-else-if="currentStep !== 8"
           @click="goNext"
           :disabled="!canProceed || isConnecting || isFetching"
           class="flex items-center gap-1.5 h-9 px-5 rounded-lg text-sm font-medium transition-all"
@@ -1008,6 +1205,9 @@ onMounted(async () => {
             <ChevronRight v-if="!isLastStep" :size="16" />
           </template>
         </button>
+        <!-- Step 8 (import): no Next button here — the import card drives the
+             action via its own 5s-countdown confirm button. -->
+        <div v-else />
       </div>
 
     </div>
@@ -1229,4 +1429,72 @@ div::-webkit-scrollbar-thumb {
   font-size: 10px; line-height: 1.45; color: var(--color-text-muted);
 }
 .api-disclaimer svg { flex-shrink: 0; margin-top: 1px; opacity: .65; }
+
+/* ── Import step (branch) — reuses the onboarding visual language ── */
+.import-file-pick {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; border-radius: 10px;
+  border: 1px dashed var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 13px; cursor: pointer; transition: .15s;
+}
+.import-file-pick:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.import-file-row {
+  display: flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 10px; border-radius: 10px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+}
+.import-file-icon { color: var(--color-text-muted); flex-shrink: 0; }
+.import-file-name {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--color-text); font-size: 12.5px;
+}
+.import-change-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  background: transparent; border: none;
+  color: var(--color-text-muted); cursor: pointer; transition: .12s;
+}
+.import-change-btn:hover:not(:disabled) { color: var(--color-text); background: var(--color-border); }
+.import-change-btn:disabled { opacity: 0.4; cursor: default; }
+.import-pw-row { display: flex; align-items: center; gap: 8px; height: 36px; }
+.import-pw-input {
+  flex: 1; height: 36px; padding: 0 10px; border-radius: 10px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  color: var(--color-text); font-size: 13px; outline: none;
+  transition: border-color 0.15s ease;
+}
+.import-pw-input:focus { border-color: var(--color-accent); }
+.import-pw-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  color: var(--color-text-muted); cursor: pointer; transition: .12s;
+}
+.import-pw-toggle:hover { color: var(--color-text); }
+.import-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  height: 36px; border-radius: 10px; border: none;
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: .12s;
+  color: white; background: var(--color-danger);
+}
+.import-btn:hover:not(:disabled) { filter: brightness(1.05); }
+.import-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.import-confirm-row {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px; border-radius: 10px;
+  background: var(--color-danger-bg); border: 1px solid var(--color-danger);
+}
+.import-confirm-text {
+  display: flex; align-items: flex-start; gap: 8px;
+  color: var(--color-danger); font-size: 12px; line-height: 1.4;
+}
+.import-confirm-actions {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+}
+.import-confirm-cd { display: flex; align-items: center; gap: 6px; }
+.import-cd-label { font-size: 11px; color: var(--color-danger); }
+.mini-btn.confirm-counting { opacity: 0.6; cursor: not-allowed; }
 </style>

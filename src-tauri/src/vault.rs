@@ -47,11 +47,22 @@ const VERIFIER_MAGIC: &[u8] = b"prompit-vault-v1";
 /// downstream data-deserialize step.
 const VERIFIER_SCOPE: &str = "__vault_verifier__";
 
-/// The 5 encrypted data files carried in an export bundle. Each entry is the
-/// raw on-disk ciphertext; it is already wrapped under the Master Key, so it
-/// travels untouched and lands verbatim on import. The skills-lite file stem
-/// is `skills_lite` (renamed from the legacy `sparkles`).
-const DATA_FILES: &[&str] = &["secrets", "history", "dictionaries", "personas", "skills_lite"];
+/// The encrypted data files carried in an export bundle. Each entry is the raw
+/// on-disk ciphertext; it is already wrapped under the Master Key, so it
+/// travels untouched and lands verbatim on import. The skills-lite file stem is
+/// `skills_lite` (renamed from the legacy `sparkles`). `providers` and
+/// `websearch` carry the AI-provider / web-search-engine configurations (with
+/// their api keys and active indices) so a backup restores the full service
+/// configuration, not just the user content.
+const DATA_FILES: &[&str] = &[
+    "secrets",
+    "history",
+    "dictionaries",
+    "personas",
+    "skills_lite",
+    "providers",
+    "websearch",
+];
 
 // ── Argon2id parameters for the transport envelope ─────────────────────────
 // 64 MiB / 3 iterations / 1 lane. Deliberately heavier than "default" because

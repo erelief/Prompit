@@ -127,6 +127,7 @@ pub fn run() {
             commands::window::show_startup_reminder_window,
             commands::window::get_grow_above,
             commands::window::set_main_pinned,
+            commands::window::set_main_resizable,
             commands::window::reset_app_data,
             commands::clipboard::simulate_paste,
             commands::clipboard::paste_pinned,
@@ -146,6 +147,11 @@ pub fn run() {
             commands::secrets::save_secret,
             commands::secrets::read_secret,
             commands::secrets::delete_secret,
+            commands::providers::read_providers,
+            commands::providers::read_providers_resolved,
+            commands::providers::save_providers,
+            commands::websearch::read_websearch,
+            commands::websearch::save_websearch,
             commands::dictionary::read_dictionary,
             commands::dictionary::save_dictionary,
             commands::dictionary::import_dictionary_csv,
@@ -195,6 +201,15 @@ pub fn run() {
             // "skills_lite". Best-effort: failures are logged and swallowed
             // (load_skills_lites_encrypted also has a read-side fallback).
             commands::skills_lite::migrate_legacy_file(app.handle());
+
+            // Migrate provider / web-search engine data out of legacy plaintext
+            // `config.json` into their own encrypted files (`providers.json`,
+            // `websearch.json`), so the whole provider configuration — structure
+            // AND api keys AND selection state — travels with the export/import
+            // bundle. Best-effort, one-way, idempotent (no-op if the target
+            // file already exists). Must run after the vault is unlocked.
+            commands::providers::migrate_legacy_from_config(app.handle());
+            commands::websearch::migrate_legacy_from_config(app.handle());
 
             let handle = app.handle().clone();
             let saved_shortcut = commands::config_cmd::read_config(app.handle().clone())

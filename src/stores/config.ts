@@ -340,76 +340,74 @@ export const skillsLiteStore = reactive<{ skillsLites: SkillsLiteEntry[] }>({
   skillsLites: [],
 });
 
-/** Upper bound for stale-secret cleanup in saveSecrets(). Old slots beyond
- *  the current provider/websearch count up to this index are deleted so
- *  removed entries don't leak keys into the keychain. */
-const MAX_SECRET_SLOTS = 50;
+// ── Provider & web-search engine persistence ──────────────────────────────
+// Providers and web engines (with their api_key and active indices) live in
+// their own encrypted files (providers.json / websearch.json), NOT in the
+// plaintext config.json. The in-memory appConfig still exposes them so the rest
+// of the app reads `appConfig.providers` etc. unchanged; this layer hydrates
+// them after config.json loads and persists them on save.
 
-function secretKeyId(namespace: "provider" | "websearch", index: number): string {
-  return `${namespace}_${index}`;
+interface ProvidersBundle {
+  providers: ProviderConfig[];
+  translate_active_provider_index: number;
+  translate_active_model_index: number;
+  skills_lite_active_provider_index: number;
+  skills_lite_active_model_index: number;
 }
 
-async function loadSecrets(): Promise<void> {
-  for (let i = 0; i < appConfig.providers.length; i++) {
-    try {
-      const key = await invoke<string>("read_secret", {
-        keyId: secretKeyId("provider", i),
-      });
-      if (key) {
-        appConfig.providers[i].api_key = key;
-      }
-    } catch (err) {
-      console.error(`Failed to load secret for provider ${i}:`, err);
-    }
-  }
-  for (let i = 0; i < appConfig.web_engines.length; i++) {
-    try {
-      const key = await invoke<string>("read_secret", {
-        keyId: secretKeyId("websearch", i),
-      });
-      if (key) {
-        appConfig.web_engines[i].api_key = key;
-      }
-    } catch (err) {
-      console.error(`Failed to load secret for websearch ${i}:`, err);
-    }
+interface WebSearchBundle {
+  web_engines: WebEngineConfig[];
+  web_search_active_index: number;
+}
+
+async function loadProviders(): Promise<void> {
+  try {
+    const bundle = await invoke<ProvidersBundle>("read_providers_resolved");
+    appConfig.providers = bundle.providers;
+    appConfig.translate_active_provider_index = bundle.translate_active_provider_index;
+    appConfig.translate_active_model_index = bundle.translate_active_model_index;
+    appConfig.skills_lite_active_provider_index = bundle.skills_lite_active_provider_index;
+    appConfig.skills_lite_active_model_index = bundle.skills_lite_active_model_index;
+  } catch (err) {
+    console.error("Failed to load providers bundle:", err);
   }
 }
 
-async function saveSecrets(): Promise<void> {
-  for (let i = appConfig.providers.length; i < MAX_SECRET_SLOTS; i++) {
-    try {
-      await invoke("delete_secret", { keyId: secretKeyId("provider", i) });
-    } catch {
-      // Secret may not exist
-    }
-  }
-  for (let i = 0; i < appConfig.providers.length; i++) {
-    const apiKey = appConfig.providers[i].api_key;
-    if (apiKey) {
-      await invoke("save_secret", {
-        keyId: secretKeyId("provider", i),
-        plaintext: apiKey,
-      });
-    }
-  }
-  for (let i = appConfig.web_engines.length; i < MAX_SECRET_SLOTS; i++) {
-    try {
-      await invoke("delete_secret", { keyId: secretKeyId("websearch", i) });
-    } catch {
-      // Secret may not exist
-    }
-  }
-  for (let i = 0; i < appConfig.web_engines.length; i++) {
-    const apiKey = appConfig.web_engines[i].api_key;
-    if (apiKey) {
-      await invoke("save_secret", {
-        keyId: secretKeyId("websearch", i),
-        plaintext: apiKey,
-      });
-    }
+async function loadWebSearch(): Promise<void> {
+  try {
+    const bundle = await invoke<WebSearchBundle>("read_websearch");
+    appConfig.web_engines = bundle.web_engines;
+    appConfig.web_search_active_index = bundle.web_search_active_index;
+  } catch (err) {
+    console.error("Failed to load websearch bundle:", err);
   }
 }
+
+async function saveProviders(): Promise<void> {
+  const bundle: ProvidersBundle = {
+    providers: JSON.parse(JSON.stringify(toRaw(appConfig.providers))),
+    translate_active_provider_index: appConfig.translate_active_provider_index,
+    translate_active_model_index: appConfig.translate_active_model_index,
+    skills_lite_active_provider_index: appConfig.skills_lite_active_provider_index,
+    skills_lite_active_model_index: appConfig.skills_lite_active_model_index,
+  };
+  await invoke("save_providers", { bundle });
+}
+
+async function saveWebSearch(): Promise<void> {
+  const bundle: WebSearchBundle = {
+    web_engines: JSON.parse(JSON.stringify(toRaw(appConfig.web_engines))),
+    web_search_active_index: appConfig.web_search_active_index,
+  };
+  await invoke("save_websearch", { bundle });
+}
+
+// Note: before the encrypted providers.json/websearch.json files existed, api
+// keys were stored positionally in secrets.json as `provider_<i>` /
+// `websearch_<i>`. After migration those entries are orphaned. They are
+// encrypted at rest and nothing reads them anymore, so they are left in place
+// (deleting 50×2 keys per launch via IPC isn't worth it). A future vault
+// re-key or reset clears them.
 
 export async function loadConfig(): Promise<void> {
   try {
@@ -445,7 +443,12 @@ export async function loadConfig(): Promise<void> {
     }
     normalizeActiveModelIndices();
     i18n.global.locale.value = appConfig.app_lang as any;
-    await loadSecrets();
+    // Providers and web engines live in their own encrypted files; hydrate them
+    // AFTER Object.assign so they override any stale arrays left in config.json
+    // by a partial/legacy migration.
+    await loadProviders();
+    await loadWebSearch();
+    normalizeActiveModelIndices();
     await loadPersonas();
   } catch {
     Object.assign(appConfig, { ...defaultConfig });
@@ -462,18 +465,19 @@ watch(
 );
 
 export async function saveConfig(): Promise<void> {
-  await saveSecrets();
+  // Persist providers / web engines (with api_key) into their encrypted files.
+  await saveProviders();
+  await saveWebSearch();
 
+  // Persist the slimmed config.json (theme, shortcuts, languages, etc.).
   // JSON round-trip, not structuredClone: appConfig's nested objects stay
   // reactive proxies after toRaw (which only unwraps the top level), and the
   // structured-clone algorithm throws on proxies. JSON reads through them.
   const raw = JSON.parse(JSON.stringify(toRaw(appConfig)));
-  for (const provider of raw.providers) {
-    provider.api_key = "";
-  }
-  for (const engine of raw.web_engines) {
-    engine.api_key = "";
-  }
+  // providers[] and web_engines[] live in their own encrypted files now —
+  // blank them in config.json so no provider/engine data lands in plaintext.
+  raw.providers = [];
+  raw.web_engines = [];
   await invoke("save_config", { config: raw });
 }
 
@@ -499,8 +503,12 @@ export async function loadPersonas(): Promise<void> {
       if (parsed.personas && parsed.personas.length > 0) {
         personaStore.personas = parsed.personas;
         await savePersonas();
-        // Strip personas from config.json by re-saving without them
+        // Strip personas from config.json by re-saving without them. Also blank
+        // providers/web_engines — they live in encrypted files now.
         const sanitized = JSON.parse(JSON.stringify(toRaw(appConfig)));
+        sanitized.personas = undefined;
+        sanitized.providers = [];
+        sanitized.web_engines = [];
         await invoke("save_config", { config: sanitized });
         return;
       }

@@ -4,9 +4,9 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { open, save } from "@tauri-apps/plugin-dialog";
-import { useIntervalFn } from "@vueuse/core";
+import { save } from "@tauri-apps/plugin-dialog";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
+import { useDataImport } from "../composables/useDataImport";
 import {
   ArrowLeft, Download, Upload, Eye, EyeOff, Check, X,
   ShieldAlert, FileText, FolderOpen,
@@ -60,78 +60,21 @@ async function handleExport() {
   }
 }
 
-// ── Import state ──
-const importPath = ref<string | null>(null);
-const importPassword = ref("");
-const importShowPw = ref(false);
-const importConfirming = ref(false);
-const importCountdown = ref(5);
-const importStatus = ref<Status>({ kind: "idle", msg: "" });
-const importBusy = ref(false);
-
-const importTimer = useIntervalFn(() => {
-  if (importCountdown.value > 0) importCountdown.value--;
-  else importTimer.pause();
-}, 1000, { immediate: false });
-
-const importFileName = computed(() => {
-  if (!importPath.value) return "";
-  const parts = importPath.value.replace(/\\/g, "/").split("/");
-  return parts[parts.length - 1] || importPath.value;
+// ── Import state ── (core logic shared via useDataImport composable)
+const {
+  importPath, importPassword, importShowPw, importConfirming,
+  importCountdown, importStatus, importBusy,
+  importFileName, importCanConfirm,
+  selectImportFile, requestImport, confirmImport, stopCountdown,
+} = useDataImport({
+  messages: {
+    cancelled: t("settings.userData.import.cancelled"),
+    success: t("settings.userData.import.success"),
+    error: (message: string) => t("settings.userData.error", { message }),
+  },
+  // Settings page keeps the legacy behavior: show a "restart to apply" hint.
+  // onSuccess is left unset so the composable defaults to setting importStatus.
 });
-
-const importCanConfirm = computed(() => !!importPath.value && importPassword.value.length > 0 && !importConfirming.value);
-
-function stopCountdown() {
-  importConfirming.value = false;
-  importCountdown.value = 5;
-  importTimer.pause();
-}
-
-async function selectImportFile() {
-  const selected = await open({
-    multiple: false,
-    filters: JSON_FILTER,
-  });
-  const path = typeof selected === "string" ? selected : null;
-  if (!path) {
-    importStatus.value = { kind: "info", msg: t("settings.userData.import.cancelled") };
-    return;
-  }
-  importPath.value = path;
-  importPassword.value = "";
-  stopCountdown();
-  importStatus.value = { kind: "idle", msg: "" };
-}
-
-function resetImport() {
-  importPath.value = null;
-  importPassword.value = "";
-  importShowPw.value = false;
-  stopCountdown();
-}
-
-function requestImport() {
-  if (!importCanConfirm.value) return;
-  importConfirming.value = true;
-  importCountdown.value = 5;
-  importTimer.resume();
-}
-
-async function confirmImport() {
-  if (importCountdown.value > 0 || !importPath.value) return;
-  importBusy.value = true;
-  try {
-    await invoke("import_data", { path: importPath.value, password: importPassword.value });
-    importStatus.value = { kind: "success", msg: t("settings.userData.import.success") };
-    resetImport();
-  } catch (err) {
-    importStatus.value = { kind: "error", msg: t("settings.userData.error", { message: String(err) }) };
-    stopCountdown();
-  } finally {
-    importBusy.value = false;
-  }
-}
 
 // ── Shared ──
 async function handleDrag(e: MouseEvent) {
