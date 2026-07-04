@@ -190,6 +190,12 @@ pub fn run() {
             // Key, no encrypted file can be decrypted.
             vault::unlock_or_migrate(app.handle()).expect("fatal: failed to initialize vault");
 
+            // Migrate the legacy skills-lite file (`sparkles.json` under scope
+            // "sparkles") to the renamed `skills_lite.json` / scope
+            // "skills_lite". Best-effort: failures are logged and swallowed
+            // (load_skills_lites_encrypted also has a read-side fallback).
+            commands::skills_lite::migrate_legacy_file(app.handle());
+
             let handle = app.handle().clone();
             let saved_shortcut = commands::config_cmd::read_config(app.handle().clone())
                 .map(|c| c.shortcut)

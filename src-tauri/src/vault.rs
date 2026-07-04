@@ -49,8 +49,9 @@ const VERIFIER_SCOPE: &str = "__vault_verifier__";
 
 /// The 5 encrypted data files carried in an export bundle. Each entry is the
 /// raw on-disk ciphertext; it is already wrapped under the Master Key, so it
-/// travels untouched and lands verbatim on import.
-const DATA_FILES: &[&str] = &["secrets", "history", "dictionaries", "personas", "sparkles"];
+/// travels untouched and lands verbatim on import. The skills-lite file stem
+/// is `skills_lite` (renamed from the legacy `sparkles`).
+const DATA_FILES: &[&str] = &["secrets", "history", "dictionaries", "personas", "skills_lite"];
 
 // ── Argon2id parameters for the transport envelope ─────────────────────────
 // 64 MiB / 3 iterations / 1 lane. Deliberately heavier than "default" because
