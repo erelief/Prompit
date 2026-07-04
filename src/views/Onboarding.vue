@@ -653,7 +653,7 @@ onMounted(async () => {
           </div>
 
           <!-- Step 1: Info -->
-          <div v-else-if="currentStep === 1" key="step1" class="flex flex-col items-center justify-center h-full py-10">
+          <div v-else-if="currentStep === 1" key="step1" class="flex flex-col items-center justify-center h-full py-10 relative">
             <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
               <Zap :size="22" style="color: var(--color-accent)" />
             </div>
@@ -665,15 +665,11 @@ onMounted(async () => {
             </p>
             <button
               @click="enterImportBranch"
-              class="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium transition-colors mt-6"
-              style="background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-secondary)"
+              class="absolute bottom-0 text-xs pb-2 transition-colors hover:underline"
+              style="color: var(--color-text-muted); background: none; border: none; cursor: pointer;"
             >
-              <Upload :size="14" :stroke-width="1.9" />
               {{ t('onboarding.importExistingSettings') }}
             </button>
-            <p class="text-xs mt-2 text-center max-w-xs" style="color: var(--color-text-muted)">
-              {{ t('onboarding.importExistingHint') }}
-            </p>
           </div>
 
           <!-- Step 2: Add Provider -->
@@ -1094,7 +1090,7 @@ onMounted(async () => {
                   {{ t('onboarding.importSuccessTitle') }}
                 </h2>
                 <p class="text-sm leading-relaxed max-w-xs" style="color: var(--color-text-secondary)">
-                  {{ t('onboarding.importSuccessBody', { count: appConfig.providers.length }) }}
+                  {{ t('onboarding.importSuccessBody') }}
                 </p>
                 <button
                   @click="resetImportBranch"

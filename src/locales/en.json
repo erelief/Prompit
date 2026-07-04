@@ -129,7 +129,7 @@
       "pageTitle": "User Data",
       "export": {
         "title": "Export",
-        "description": "Pack your providers, search engines, API keys, history, dictionaries, personas, and skills into an encrypted backup file. The password you set here is used to encrypt the backup — there is no way to recover it if lost.",
+        "description": "Pack your app data and configuration into an encrypted backup file. The password you set here encrypts the backup — there is no way to recover it if lost.",
         "passwordPlaceholder": "At least 6 characters",
         "confirmPasswordPlaceholder": "Confirm password",
         "button": "Export",
@@ -139,13 +139,13 @@
       },
       "import": {
         "title": "Import",
-        "description": "Restore providers, search engines, API keys, history, dictionaries, personas, and skills from a backup file. This overwrites all current service configuration and user data. Theme and shortcuts are not affected.",
-        "warning": "Overwrites all current user data. This cannot be undone.",
+        "description": "Restore app data and configuration from a backup file. This overwrites existing service configuration and user data. Theme and shortcuts are not affected.",
+        "warning": "Overwrites existing user data. This cannot be undone.",
         "passwordPlaceholder": "Backup password",
         "button": "Import",
         "selectFile": "Select Backup File",
         "changeFile": "Change",
-        "confirmWarning": "This will overwrite all current data and cannot be undone.",
+        "confirmWarning": "This will overwrite existing data and cannot be undone.",
         "success": "Imported successfully. Restart the app to apply.",
         "cancelled": "Import cancelled"
       },
@@ -311,14 +311,13 @@
     "searchPreset": "Search provider",
     "selectSearchPreset": "Select a provider…",
     "skip": "Skip",
-    "importExistingSettings": "Import existing settings",
-    "importExistingHint": "Restore from a backup file you exported earlier.",
+    "importExistingSettings": "Or, import existing settings →",
     "importCardTitle": "Restore from backup",
-    "importCardBody": "Select a Prompit backup file and enter its password. Your providers, search engines, API keys, history, personas, dictionaries, and skills will be restored.",
+    "importCardBody": "Select a Prompit backup file and enter its password. Your app data and configuration will be restored.",
     "importNoProviders": "Backup contains no AI providers. The app needs at least one provider to function.",
     "importNoApiKey": "Imported providers have no API key. Add a provider manually instead.",
     "importSuccessTitle": "Import successful",
-    "importSuccessBody": "Your settings have been restored. {count} provider(s) ready to use.",
+    "importSuccessBody": "Your settings have been restored.",
     "importRetry": "Re-import"
   },
   "startupReminder": {
