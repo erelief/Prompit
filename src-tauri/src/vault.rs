@@ -209,14 +209,11 @@ pub struct ExportBundle {
     wrapped_master_key: EncryptedPayload,
     /// VERIFIER_MAGIC encrypted under the verifier scope of the Master Key.
     verifier: EncryptedPayload,
-    /// Raw on-disk JSON of each data file, keyed by data-file stem. Stored as
-    /// `serde_json::Value` (not `EncryptedPayload`) because files differ in
-    /// top-level shape: most are a single EncryptedPayload, but `secrets.json`
-    /// is a `HashMap<String, EncryptedPayload>` (keyed payloads). Capturing the
-    /// raw Value lets any shape travel and land verbatim without per-file
-    /// structural knowledge here. All values are already wrapped under the
-    /// Master Key, so no re-encryption is needed on import.
-    data: std::collections::BTreeMap<String, serde_json::Value>,
+    /// Raw on-disk ciphertexts, keyed by data-file stem. All 5 data files now
+    /// share a single on-disk shape — a single `EncryptedPayload` wrapping the
+    /// serialized structure (secrets.json was unified to match the other 4).
+    /// Already wrapped under the Master Key, so values travel and land verbatim.
+    data: std::collections::BTreeMap<String, EncryptedPayload>,
 }
 
 fn derive_password_key(password: &str, salt: &[u8], kdf: &KdfParams) -> Result<[u8; 32], String> {
@@ -230,15 +227,13 @@ fn derive_password_key(password: &str, salt: &[u8], kdf: &KdfParams) -> Result<[
     Ok(*out)
 }
 
-/// Read the 5 data files as raw JSON values. Missing files are simply
+/// Read the 5 data files as raw ciphertext payloads. Missing files are simply
 /// omitted from the map (import will then not write them, leaving the target
-/// machine's existing state — or none — for that file). Each file's top-level
-/// JSON shape is preserved as-is — most are a single `EncryptedPayload`, but
-/// `secrets.json` is a `HashMap<String, EncryptedPayload>`. Reading as
-/// `serde_json::Value` avoids assuming a single shape.
+/// machine's existing state — or none — for that file). All 5 files share the
+/// single-`EncryptedPayload` on-disk shape.
 fn collect_data_payloads(
     app: &AppHandle,
-) -> Result<std::collections::BTreeMap<String, serde_json::Value>, String> {
+) -> Result<std::collections::BTreeMap<String, EncryptedPayload>, String> {
     let dir = crate::get_data_dir(app)?;
     let mut map = std::collections::BTreeMap::new();
     for stem in DATA_FILES {
@@ -247,9 +242,9 @@ fn collect_data_payloads(
             continue;
         }
         let content = fs::read_to_string(&path).map_err(|e| format!("read {}: {e}", stem))?;
-        let value: serde_json::Value =
+        let payload: EncryptedPayload =
             serde_json::from_str(&content).map_err(|e| format!("parse {}: {e}", stem))?;
-        map.insert((*stem).to_string(), value);
+        map.insert((*stem).to_string(), payload);
     }
     Ok(map)
 }
@@ -313,12 +308,17 @@ pub fn import_bundle(app: &AppHandle, password: &str, path: &str) -> Result<(), 
         return Err("bundle verifier mismatch".into());
     }
 
-    // 1) Write the data files verbatim. Their JSON is already wrapped under
-    //    the (now-known) Master Key, so no re-encryption needed.
+    // 1) Write the data ciphertexts verbatim. They are already wrapped under
+    //    the (now-known) Master Key, so no re-encryption needed. Only the 5
+    //    known data-file stems are written — a malicious bundle with other
+    //    keys (e.g. "../../config") must NOT reach the filesystem.
     let dir = crate::get_data_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("create dir: {e}"))?;
-    for (stem, value) in &bundle.data {
-        let out = serde_json::to_string_pretty(value)
+    for (stem, payload) in &bundle.data {
+        if !DATA_FILES.contains(&stem.as_str()) {
+            continue;
+        }
+        let out = serde_json::to_string_pretty(payload)
             .map_err(|e| format!("serialize {}: {e}", stem))?;
         let p = dir.join(format!("{}.json", stem));
         fs::write(&p, out).map_err(|e| format!("write {}: {e}", stem))?;
