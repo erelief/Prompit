@@ -10,7 +10,7 @@ import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
 import { useGlassBg, domainOf } from "../composables/useGlass";
 import { useEventListener } from "@vueuse/core";
-import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore } from "../stores/config";
+import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
@@ -299,6 +299,35 @@ function onDocumentClick(e: MouseEvent) {
   showModelDropdown.value = false;
   if (modeBtnRef.value?.contains(target) || modeMenuRef.value?.contains(target)) return;
   showModeDropdown.value = false;
+}
+
+// Alt + Scroll to cycle font-size levels in the floating window.
+function onAltWheel(e: WheelEvent) {
+  if (!e.altKey) return;
+  e.preventDefault();
+  const levels = FONT_SIZE_LEVELS;
+  const cur = appConfig.font_size;
+  const idx = levels.indexOf(cur as (typeof levels)[number]);
+  if (idx === -1) {
+    // Current value not in levels — snap to the nearest.
+    appConfig.font_size = e.deltaY > 0 ? levels[0] : levels[levels.length - 1];
+    return;
+  }
+  if (e.deltaY > 0 && idx > 0) appConfig.font_size = levels[idx - 1];
+  else if (e.deltaY < 0 && idx < levels.length - 1) appConfig.font_size = levels[idx + 1];
+}
+
+// Ctrl/Cmd + Scroll to adjust window opacity in the floating window.
+function onCtrlWheel(e: WheelEvent) {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  const step = 5;
+  const cur = appConfig.floating_opacity ?? 90;
+  if (e.deltaY > 0) {
+    appConfig.floating_opacity = Math.max(10, cur - step);
+  } else {
+    appConfig.floating_opacity = Math.min(100, cur + step);
+  }
 }
 
 watch(inputText, () => {
@@ -618,6 +647,8 @@ onMounted(async () => {
   window.addEventListener("keydown", onModeShortcutKeydown);
   window.addEventListener("keydown", onForwardShortcutKeydown);
   window.addEventListener("keydown", onCopyShortcutKeydown);
+  window.addEventListener("wheel", onAltWheel, { passive: false });
+  window.addEventListener("wheel", onCtrlWheel, { passive: false });
   nextTick(() => {
     textareaRef.value?.focus();
   });
@@ -667,6 +698,8 @@ onUnmounted(() => {
   window.removeEventListener("keydown", onModeShortcutKeydown);
   window.removeEventListener("keydown", onForwardShortcutKeydown);
   window.removeEventListener("keydown", onCopyShortcutKeydown);
+  window.removeEventListener("wheel", onAltWheel);
+  window.removeEventListener("wheel", onCtrlWheel);
   unlistenConfig?.();
   unlistenResume?.();
   resizeObserver?.disconnect();

@@ -14,7 +14,7 @@
       {
         "label": "main",
         "title": "Translator",
-        "width": 520,
+        "width": 540,
         "height": 120,
         "decorations": false,
         "transparent": true,
@@ -30,7 +30,9 @@
     }
   },
   "plugins": {
-    "shell": { "open": true },
+    "shell": {
+      "open": true
+    },
     "updater": {
       "endpoints": [
         "https://github.com/erelief/Prompit/releases/latest/download/latest.json"
@@ -40,7 +42,9 @@
   },
   "bundle": {
     "active": true,
-    "icon": ["icons/icon.png"],
+    "icon": [
+      "icons/icon.png"
+    ],
     "createUpdaterArtifacts": true
   }
 }

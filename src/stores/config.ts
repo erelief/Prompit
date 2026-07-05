@@ -234,6 +234,9 @@ export async function flushConfigSave(): Promise<void> {
   await saveConfig();
 }
 
+/** Font-size levels the user can cycle through (S / M / L / XL). */
+export const FONT_SIZE_LEVELS = [85, 100, 115, 130] as const;
+
 /** Enables debounced auto-save. Called once after initial load completes. */
 export function enableConfigAutosave(): void {
   if (_saveEnabled) return;

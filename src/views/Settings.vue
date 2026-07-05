@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useRouter, useRoute } from "vue-router";
+import { altKey, ctrlKey } from "../utils/platform";
 import {
   appConfig,
   personaStore,
@@ -18,6 +19,7 @@ import {
   refreshDictStatus,
   clearAllHistory,
   MODES,
+  FONT_SIZE_LEVELS,
 } from "../stores/config";
 import { burstParticles } from "../utils/burstParticles";
 import { shortcutsEqual } from "../utils/shortcut";
@@ -172,10 +174,10 @@ const currentAppLangLabel = computed(() => {
 });
 
 const fontSizeOptions = computed(() => [
-  { value: 85, label: t('settings.fontSizeSmall') },
-  { value: 100, label: t('settings.fontSizeStandard') },
-  { value: 115, label: t('settings.fontSizeLarge') },
-  { value: 130, label: t('settings.fontSizeXLarge') },
+  { value: FONT_SIZE_LEVELS[0], label: t('settings.fontSizeSmall') },
+  { value: FONT_SIZE_LEVELS[1], label: t('settings.fontSizeStandard') },
+  { value: FONT_SIZE_LEVELS[2], label: t('settings.fontSizeLarge') },
+  { value: FONT_SIZE_LEVELS[3], label: t('settings.fontSizeXLarge') },
 ]);
 
 // ── Auto-update ──
@@ -1561,50 +1563,56 @@ onUnmounted(() => {
             </div>
           </div>
           <!-- Floating Window Opacity -->
-          <div class="card-row">
-            <span class="card-label">{{ t('settings.floatingOpacity') }}</span>
-            <div class="opacity-row compact">
-              <Droplet :size="13" class="opacity-row-icon" />
-              <input
-                type="range" min="10" max="100" step="1"
-                :value="appConfig.floating_opacity"
-                @input="appConfig.floating_opacity = +($event.target as HTMLInputElement).value"
-                class="opacity-slider"
-              />
-              <div class="opacity-value-wrap">
+          <div class="card-row" style="flex-wrap: wrap; gap: 0;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%">
+              <span class="card-label">{{ t('settings.floatingOpacity') }}</span>
+              <div class="opacity-row compact">
+                <Droplet :size="13" class="opacity-row-icon" />
                 <input
-                  type="number" min="10" max="100"
+                  type="range" min="10" max="100" step="1"
                   :value="appConfig.floating_opacity"
-                  @change="appConfig.floating_opacity = Math.min(100, Math.max(10, +($event.target as HTMLInputElement).value || 90))"
-                  class="opacity-value-input"
+                  @input="appConfig.floating_opacity = +($event.target as HTMLInputElement).value"
+                  class="opacity-slider"
                 />
-                <span class="opacity-pct">%</span>
+                <div class="opacity-value-wrap">
+                  <input
+                    type="number" min="10" max="100"
+                    :value="appConfig.floating_opacity"
+                    @change="appConfig.floating_opacity = Math.min(100, Math.max(10, +($event.target as HTMLInputElement).value || 90))"
+                    class="opacity-value-input"
+                  />
+                  <span class="opacity-pct">%</span>
+                  <button
+                    class="opacity-reset"
+                    :class="{ 'opacity-reset-off': appConfig.floating_opacity === 90 }"
+                    :disabled="appConfig.floating_opacity === 90"
+                    @click="appConfig.floating_opacity = 90"
+                    :title="t('settings.resetToDefault')"
+                  >
+                    <RotateCcw :size="10" :stroke-width="2" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="hint" style="width:100%; text-align:right; margin-top:6px">{{ t('settings.opacityScrollHint', { modifier: ctrlKey() }) }}</div>
+          </div>
+          <!-- Floating Window Font Size -->
+          <div class="card-row" style="flex-wrap: wrap; gap: 0;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%">
+              <span class="card-label">{{ t('settings.fontSize') }}</span>
+              <div class="theme-toggle compact">
                 <button
-                  class="opacity-reset"
-                  :class="{ 'opacity-reset-off': appConfig.floating_opacity === 90 }"
-                  :disabled="appConfig.floating_opacity === 90"
-                  @click="appConfig.floating_opacity = 90"
-                  :title="t('settings.resetToDefault')"
+                  v-for="opt in fontSizeOptions"
+                  :key="opt.value"
+                  class="theme-btn"
+                  :class="{ on: appConfig.font_size === opt.value }"
+                  @click="appConfig.font_size = opt.value"
                 >
-                  <RotateCcw :size="10" :stroke-width="2" />
+                  {{ opt.label }}
                 </button>
               </div>
             </div>
-          </div>
-          <!-- Floating Window Font Size -->
-          <div class="card-row">
-            <span class="card-label">{{ t('settings.fontSize') }}</span>
-            <div class="theme-toggle compact">
-              <button
-                v-for="opt in fontSizeOptions"
-                :key="opt.value"
-                class="theme-btn"
-                :class="{ on: appConfig.font_size === opt.value }"
-                @click="appConfig.font_size = opt.value"
-              >
-                {{ opt.label }}
-              </button>
-            </div>
+            <div class="hint" style="width:100%; text-align:right; margin-top:6px">{{ t('settings.fontSizeScrollHint', { modifier: altKey() }) }}</div>
           </div>
           <!-- Language -->
           <div class="card-row">
