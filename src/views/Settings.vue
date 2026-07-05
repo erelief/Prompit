@@ -1639,7 +1639,7 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
-            <div class="hint" style="width:100%; text-align:right; margin-top:6px">{{ t('settings.opacityScrollHint', { modifier: ctrlKey() }) }}</div>
+            <div class="hint" style="width:100%; text-align:right; margin-top:6px; text-transform:none">{{ t('settings.opacityScrollHint', { modifier: ctrlKey() }) }}</div>
           </div>
           <!-- Floating Window Font Size -->
           <div class="card-row" style="flex-wrap: wrap; gap: 0;">
@@ -1657,7 +1657,7 @@ onUnmounted(() => {
                 </button>
               </div>
             </div>
-            <div class="hint" style="width:100%; text-align:right; margin-top:6px">{{ t('settings.fontSizeScrollHint', { modifier: altKey() }) }}</div>
+            <div class="hint" style="width:100%; text-align:right; margin-top:6px; text-transform:none">{{ t('settings.fontSizeScrollHint', { modifier: altKey() }) }}</div>
           </div>
           <!-- Language -->
           <div class="card-row">
