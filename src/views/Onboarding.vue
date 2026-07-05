@@ -255,24 +255,35 @@ const hasWebSearch = computed(() => appConfig.web_search_providers.length > 0);
 // search but no AI provider still skips the web-search steps).
 const skipWebSearchSteps = computed(() => appConfig.web_search_providers.length > 0);
 
+// Tracks where the user was routed after the import-summary step. Null when
+// the user never completed an import (normal add-provider onboarding). Used by
+// dotSteps to show only the remaining post-import path rather than the full
+// linear sequence from step 0.
+const postImportTarget = ref<number | null>(null);
+
 // Route the user out of the import-summary step based on what landed.
 function routeAfterImport() {
+  importMode.value = false;
   direction.value = "forward";
   if (hasUsableProviders.value) {
-    currentStep.value = hasWebSearch.value ? 7 : 5;
+    postImportTarget.value = hasWebSearch.value ? 7 : 5;
+    currentStep.value = postImportTarget.value;
   } else {
+    postImportTarget.value = 2;
     currentStep.value = 2;
   }
 }
 
 function enterImportBranch() {
   importMode.value = true;
+  postImportTarget.value = null;
   direction.value = "forward";
   currentStep.value = 8;
 }
 
 function resetImportBranch() {
   importSucceeded.value = false;
+  postImportTarget.value = null;
   resetImport();
 }
 
@@ -307,14 +318,24 @@ const canProceed = computed(() => {
 const isLastStep = computed(() => currentStep.value === 7);
 
 // Step-dot indicator sequence.
-// - Import branch: welcome → info → import → summary → (done/websearch/provider).
-//   The post-summary destination is decided at click-time, so the dots stop at
-//   the summary step; whichever branch follows uses its own dot set.
-// - Linear (add-provider) branch: 0..7, but steps 5 and 6 are dropped when a
-//   web-search provider is already configured (skipWebSearchSteps) so a user
-//   who imported web search — or had it pre-existing — is not re-asked.
+// - Import branch: welcome→info→import→summary (4 dots).
+// - Post-import (routed to step 2/5/7): only the remaining steps, so the
+//   user sees how many steps are left rather than the already-completed 0..1..8..9.
+// - Linear (add-provider) branch: 0..7, but 5 and 6 are dropped when a
+//   web-search provider is already configured (skipWebSearchSteps).
 const dotSteps = computed(() => {
   if (importMode.value) return [0, 1, 8, 9];
+
+  const tgt = postImportTarget.value;
+  if (tgt !== null) {
+    // Post-import landing: show only what's left.
+    if (tgt === 7) return [7];
+    if (tgt === 5) return [5, 6, 7];
+    // tgt === 2: add-provider path, with or without web-search.
+    return skipWebSearchSteps.value ? [2, 3, 4, 7] : [2, 3, 4, 5, 6, 7];
+  }
+
+  // Normal add-provider onboarding from scratch.
   return skipWebSearchSteps.value ? [0, 1, 2, 3, 4, 7] : [0, 1, 2, 3, 4, 5, 6, 7];
 });
 const currentDotIndex = computed(() =>
