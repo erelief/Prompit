@@ -1198,8 +1198,10 @@ onUnmounted(() => {
 
           <template #name-input="{ item, index }">
             <div class="name-row-wrap">
-              <ProviderIcon :icon="getProviderIcon(item, providerPresets)" :size="16" />
-              <input v-model="item.name" :placeholder="t('settings.providerName')" class="fi name-fi" @click.stop />
+              <div class="name-input-icon-wrap">
+                <ProviderIcon :icon="getProviderIcon(item, providerPresets)" :size="14" class="name-input-icon" />
+                <input v-model="item.name" :placeholder="t('settings.providerName')" class="fi name-fi" @click.stop />
+              </div>
               <button
                 class="preset-mini-btn"
                 :class="{ active: item.preset }"
@@ -1452,12 +1454,14 @@ onUnmounted(() => {
 
           <template #name-input="{ item, index }">
             <div class="name-row-wrap">
-              <component :is="safePresetMeta(item.preset).icon" :size="16" :stroke-width="1.8" class="we-name-logo" />
-              <input
-                v-model="item.custom_name"
-                :placeholder="item.preset ? safePresetMeta(item.preset).label : t('settings.providerName')"
-                class="fi name-fi" @click.stop
-              />
+              <div class="name-input-icon-wrap">
+                <component :is="safePresetMeta(item.preset).icon" :size="14" :stroke-width="1.8" class="name-input-icon" />
+                <input
+                  v-model="item.custom_name"
+                  :placeholder="item.preset ? safePresetMeta(item.preset).label : t('settings.providerName')"
+                  class="fi name-fi" @click.stop
+                />
+              </div>
               <button
                 class="preset-mini-btn"
                 :class="{ active: item.preset }"
@@ -2421,12 +2425,29 @@ onUnmounted(() => {
   display:flex; align-items:center; gap:7px; margin-bottom:13px;
 }
 .name-row-wrap {
-  display:flex; align-items:center; gap:4px; flex:1; min-width:0;
-}
+	  display:flex; align-items:center; gap:4px; flex:1; min-width:0;
+	}
+	.name-input-icon-wrap {
+	  position: relative;
+	  flex: 1;
+	  min-width: 0;
+	  display: flex;
+	  align-items: center;
+	}
+	.name-input-icon {
+	  position: absolute;
+	  left: 8px;
+	  top: 50%;
+	  transform: translateY(-50%);
+	  color: var(--color-text-muted);
+	  pointer-events: none;
+	  z-index: 1;
+	}
 .name-fi {
-  flex:1; min-width:0;
-  font-size:14px; font-weight:700; letter-spacing: -.02em;
-}
+		  flex:1; min-width:0;
+		  font-size:14px; font-weight:700; letter-spacing: -.02em;
+		  padding-left: 28px !important;
+		}
 
 .fields { display:grid; grid-template-columns:1fr; gap:10px; }
 .field { display:flex; flex-direction:column; gap:4px; }
@@ -3378,9 +3399,6 @@ label {
 }
 .we-toggle.on { color: var(--color-accent); }
 .we-toggle:disabled { opacity:.32; cursor:not-allowed; }
-
-/* Brand logo in the name row (edit/add) — mirrors the provider name-row logo. */
-.we-name-logo { color: var(--color-text-muted); flex-shrink:0; }
 
 .we-hint {
   font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
