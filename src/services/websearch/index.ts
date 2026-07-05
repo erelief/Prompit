@@ -1,53 +1,57 @@
-// Public API: resolve engine, search, format context for the LLM, classify errors.
+// Public API: resolve provider, search, format context for the LLM, classify errors.
 
 import { appConfig } from "../../stores/config";
-import { ANONYMOUS_FALLBACK, getSearchFn, presetMeta } from "./registry";
+import { getSearchFn, presetMeta } from "./registry";
 import type { SearchHit, ClassifiedSearchError } from "./types";
 import { SearchHttpError } from "./types";
 
-// Re-export for convenience (getSearchFn / ANONYMOUS_FALLBACK stay internal —
-// no consumer outside this module imports them).
-export { SEARCH_PRESETS, presetMeta } from "./registry";
+// Re-export for convenience (getSearchFn stays internal — no consumer outside
+// this module imports it).
+export { WEB_SEARCH_PRESETS, presetMeta } from "./registry";
 export type { SearchHit, SearchFn, ClassifiedSearchError } from "./types";
 
-interface ResolvedEngine {
+interface ResolvedProvider {
   preset: string;
   apiKey: string | undefined;
-  isAnonymous: boolean;
 }
 
 /**
- * Resolve the engine to use. Priority: the active user instance if it's
- * enabled and has a key; otherwise the built-in anonymous fallback. A usable
- * engine always resolves.
+ * Resolve the active web search provider. Returns the enabled, active provider
+ * when one is usable (has a key, or is a keyless preset); otherwise null. There
+ * is no built-in fallback — callers must handle null (e.g. block the search and
+ * prompt the user to add a provider).
  */
-export function resolveActiveEngine(): ResolvedEngine {
+export function resolveActiveProvider(): ResolvedProvider | null {
   const idx = appConfig.web_search_active_index;
-  const engines = appConfig.web_engines;
-  if (idx >= 0 && idx < engines.length) {
-    const engine = engines[idx];
-    if (engine.enabled) {
-      const meta = presetMeta(engine.preset);
-      if (engine.api_key) {
-        return { preset: engine.preset, apiKey: engine.api_key, isAnonymous: false };
-      }
-      if (!meta.keyRequired) {
-        return { preset: engine.preset, apiKey: undefined, isAnonymous: true };
+  const providers = appConfig.web_search_providers;
+  if (idx >= 0 && idx < providers.length) {
+    const provider = providers[idx];
+    if (provider.enabled) {
+      const meta = presetMeta(provider.preset);
+      // Keyed provider → needs a key; keyless preset (e.g. Firecrawl/AnySearch
+      // anonymous tier) → usable without one.
+      if (provider.api_key || !meta.keyRequired) {
+        return { preset: provider.preset, apiKey: provider.api_key || undefined };
       }
     }
   }
-  return { preset: ANONYMOUS_FALLBACK.preset, apiKey: undefined, isAnonymous: true };
+  return null;
 }
 
-/** Run a search using the resolved engine. Throws on failure (see classifySearchError). */
+/** Run a search using the resolved provider. Throws on failure (see classifySearchError). */
 export async function webSearch(
   query: string,
   signal?: AbortSignal,
   maxResults?: number
 ): Promise<SearchHit[]> {
-  const engine = resolveActiveEngine();
-  const fn = getSearchFn(engine.preset);
-  return fn(query, { apiKey: engine.apiKey, signal, maxResults });
+  const provider = resolveActiveProvider();
+  if (!provider) {
+    // No usable provider configured. Surface as an HTTP-style error so the
+    // existing SearchFailureError → UI path renders a clear failure.
+    throw new SearchHttpError(0, "No web search provider configured");
+  }
+  const fn = getSearchFn(provider.preset);
+  return fn(query, { apiKey: provider.apiKey, signal, maxResults });
 }
 
 const MAX_HITS = 5;
@@ -111,14 +115,16 @@ function extractErrorMessage(raw: string): string | undefined {
 }
 
 /**
- * Test a web engine's connection. Used by Settings. Runs a trivial query.
- * Returns { ok, status?, error? } mirroring testProviderConnection's shape.
+ * Test a web search provider's connection. Used by Settings/Onboarding. Runs a
+ * trivial query. Returns { ok, status?, error? } mirroring testProviderConnection's
+ * shape. Keyless presets (Firecrawl/AnySearch anonymous tier) can be tested
+ * without an API key.
  */
-export async function testWebEngine(
+export async function testWebSearchProvider(
   preset: string,
   apiKey: string
 ): Promise<{ ok: boolean; status?: number; error?: string }> {
-  if (!apiKey) {
+  if (presetMeta(preset).keyRequired && !apiKey) {
     return { ok: false, error: "Missing API key" };
   }
   try {

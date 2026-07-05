@@ -44,7 +44,7 @@ export interface ProviderConfig {
   api_format?: ApiFormat;
 }
 
-export interface WebEngineConfig {
+export interface WebSearchProviderConfig {
   preset: string;
   api_key: string;
   enabled: boolean;
@@ -155,7 +155,7 @@ export interface AppConfig {
   show_capability_icons: boolean;
   skills_lite_active_provider_index: number;
   skills_lite_active_model_index: number;
-  web_engines: WebEngineConfig[];
+  web_search_providers: WebSearchProviderConfig[];
   web_search_active_index: number;
   web_search_enabled_in_skills_lite: boolean;
 }
@@ -183,7 +183,7 @@ const defaultConfig: AppConfig = {
   show_capability_icons: false,
   skills_lite_active_provider_index: 0,
   skills_lite_active_model_index: 0,
-  web_engines: [],
+  web_search_providers: [],
   web_search_active_index: -1,
   web_search_enabled_in_skills_lite: false,
 };
@@ -356,7 +356,7 @@ interface ProvidersBundle {
 }
 
 interface WebSearchBundle {
-  web_engines: WebEngineConfig[];
+  web_search_providers: WebSearchProviderConfig[];
   web_search_active_index: number;
 }
 
@@ -376,7 +376,7 @@ async function loadProviders(): Promise<void> {
 async function loadWebSearch(): Promise<void> {
   try {
     const bundle = await invoke<WebSearchBundle>("read_websearch");
-    appConfig.web_engines = bundle.web_engines;
+    appConfig.web_search_providers = bundle.web_search_providers;
     appConfig.web_search_active_index = bundle.web_search_active_index;
   } catch (err) {
     console.error("Failed to load websearch bundle:", err);
@@ -396,7 +396,7 @@ async function saveProviders(): Promise<void> {
 
 async function saveWebSearch(): Promise<void> {
   const bundle: WebSearchBundle = {
-    web_engines: JSON.parse(JSON.stringify(toRaw(appConfig.web_engines))),
+    web_search_providers: JSON.parse(JSON.stringify(toRaw(appConfig.web_search_providers))),
     web_search_active_index: appConfig.web_search_active_index,
   };
   await invoke("save_websearch", { bundle });
@@ -474,10 +474,10 @@ export async function saveConfig(): Promise<void> {
   // reactive proxies after toRaw (which only unwraps the top level), and the
   // structured-clone algorithm throws on proxies. JSON reads through them.
   const raw = JSON.parse(JSON.stringify(toRaw(appConfig)));
-  // providers[] and web_engines[] live in their own encrypted files now —
-  // blank them in config.json so no provider/engine data lands in plaintext.
+  // providers[] and web_search_providers[] live in their own encrypted files now —
+  // blank them in config.json so no provider data lands in plaintext.
   raw.providers = [];
-  raw.web_engines = [];
+  raw.web_search_providers = [];
   await invoke("save_config", { config: raw });
 }
 
@@ -504,11 +504,11 @@ export async function loadPersonas(): Promise<void> {
         personaStore.personas = parsed.personas;
         await savePersonas();
         // Strip personas from config.json by re-saving without them. Also blank
-        // providers/web_engines — they live in encrypted files now.
+        // providers/web_search_providers — they live in encrypted files now.
         const sanitized = JSON.parse(JSON.stringify(toRaw(appConfig)));
         sanitized.personas = undefined;
         sanitized.providers = [];
-        sanitized.web_engines = [];
+        sanitized.web_search_providers = [];
         await invoke("save_config", { config: sanitized });
         return;
       }

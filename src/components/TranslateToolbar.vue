@@ -112,7 +112,20 @@ function selectSkillsLite(index: number) {
 const skillsLiteDropdownStyle = computed(() => capHeight(skillsLiteStore.skillsLites.length));
 
 // ── Empty-state hint modal ──
-const emptyHintTarget = ref<'persona' | 'dict' | null>(null);
+const emptyHintTarget = ref<'persona' | 'dict' | 'websearch' | null>(null);
+
+// i18n keys for the empty-state overlay title/body, keyed by target.
+const emptyHintKeys: Record<'persona' | 'dict' | 'websearch', { title: string; body: string }> = {
+  persona: { title: 'floating.emptyPersonaTitle', body: 'floating.emptyPersonaBody' },
+  dict: { title: 'floating.emptyDictTitle', body: 'floating.emptyDictBody' },
+  websearch: { title: 'floating.emptyWebSearchTitle', body: 'floating.emptyWebSearchBody' },
+};
+
+// True when at least one web search provider is enabled — the toggle is only
+// interactive then. With no provider, a dashed ghost opens the empty-state hint.
+const hasEnabledWebSearchProvider = computed(() =>
+  appConfig.web_search_providers.some((p) => p.enabled),
+);
 
 function togglePersona(e: MouseEvent) {
   const wasOn = personaStore.personas.some((p) => p.enabled);
@@ -241,6 +254,9 @@ async function handleEmptyHintGo() {
   } else if (target === 'persona') {
     await invoke("open_settings_window");
     router.push('/settings?tab=translation&scrollTo=persona');
+  } else if (target === 'websearch') {
+    await invoke("open_settings_window");
+    router.push('/settings?tab=translation&scrollTo=websearch');
   }
 }
 
@@ -296,8 +312,10 @@ defineExpose({ closeAllDropdowns });
     </div>
 
     <!-- Web search toggle (skills_lite mode only) — globe on / globe-off, mirrors the
-         send-mode (pin) button's two-icon toggle form. -->
+         send-mode (pin) button's two-icon toggle form. When no provider is enabled,
+         shows a dashed ghost that opens the empty-state hint instead. -->
     <button
+      v-if="hasEnabledWebSearchProvider"
       @click="toggleWebSearch($event)"
       class="search-toggle"
       :class="{ on: appConfig.web_search_enabled_in_skills_lite }"
@@ -305,6 +323,14 @@ defineExpose({ closeAllDropdowns });
     >
       <Globe v-if="appConfig.web_search_enabled_in_skills_lite" :size="11" :stroke-width="1.8" />
       <GlobeOff v-else :size="11" :stroke-width="1.8" />
+    </button>
+    <button
+      v-else
+      class="ghost-btn"
+      @click="emptyHintTarget = 'websearch'"
+      :title="t('floating.noWebSearchProvider')"
+    >
+      <GlobeOff :size="11" :stroke-width="1.8" />
     </button>
   </template>
 
@@ -435,10 +461,10 @@ defineExpose({ closeAllDropdowns });
         class="empty-hint-overlay"
       >
         <p class="empty-hint-title">
-          {{ emptyHintTarget === 'persona' ? t('floating.emptyPersonaTitle') : t('floating.emptyDictTitle') }}
+          {{ emptyHintTarget ? t(emptyHintKeys[emptyHintTarget].title) : '' }}
         </p>
         <p class="empty-hint-body">
-          {{ emptyHintTarget === 'persona' ? t('floating.emptyPersonaBody') : t('floating.emptyDictBody') }}
+          {{ emptyHintTarget ? t(emptyHintKeys[emptyHintTarget].body) : '' }}
         </p>
         <div class="empty-hint-actions">
           <button

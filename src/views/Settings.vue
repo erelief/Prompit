@@ -44,8 +44,8 @@ import { getTheme, setTheme } from "../composables/useTheme";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { testProviderConnection, fetchProviderModels, optimizePrompt } from "../services/llm-client";
 import type { FetchModelEntry } from "../services/llm-client";
-import { SEARCH_PRESETS, presetMeta, testWebEngine } from "../services/websearch";
-import type { WebEngineConfig } from "../stores/config";
+import { WEB_SEARCH_PRESETS, presetMeta, testWebSearchProvider } from "../services/websearch";
+import type { WebSearchProviderConfig } from "../stores/config";
 import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
 import EditableCardList from "../components/EditableCardList.vue";
@@ -451,74 +451,74 @@ function toggleSkillsLite(index: number, e: MouseEvent) {
   activateExclusive(skillsLiteStore.skillsLites, index, e, () => persistSkillsLites());
 }
 
-// ── Web search engine management ──
-interface WebEngineEditState {
+// ── Web search provider management ──
+interface WebSearchProviderEditState {
   testing: boolean;
   status: string;        // "" | success text | error text
   ok: boolean;           // true = last test succeeded (drives status-pill color)
 }
-const webEngineEditStates = ref<Map<number, WebEngineEditState>>(new Map());
-const webEngineShowKey = reactive(new Set<number>());
+const webSearchProviderEditStates = ref<Map<number, WebSearchProviderEditState>>(new Map());
+const webSearchProviderShowKey = reactive(new Set<number>());
 
-function getWebEngineEditState(index: number): WebEngineEditState {
-  let s = webEngineEditStates.value.get(index);
+function getWebSearchProviderEditState(index: number): WebSearchProviderEditState {
+  let s = webSearchProviderEditStates.value.get(index);
   if (!s) {
     s = { testing: false, status: "", ok: false };
-    webEngineEditStates.value.set(index, s);
-    webEngineEditStates.value = new Map(webEngineEditStates.value);
+    webSearchProviderEditStates.value.set(index, s);
+    webSearchProviderEditStates.value = new Map(webSearchProviderEditStates.value);
   }
   return s;
 }
 
-function onWebEngineAdd(draft: WebEngineConfig) {
+function onWebSearchProviderAdd(draft: WebSearchProviderConfig) {
   Object.assign(draft, {
-    preset: SEARCH_PRESETS[0].id,
+    preset: WEB_SEARCH_PRESETS[0].id,
     api_key: "",
     enabled: false,
     custom_name: undefined,
   });
 }
 
-function onWebEngineConfirm({ index }: { index: number }) {
+function onWebSearchProviderConfirm({ index }: { index: number }) {
   // Draft → real index migration (mirrors provider confirm handling)
-  const draftState = webEngineEditStates.value.get(-1);
+  const draftState = webSearchProviderEditStates.value.get(-1);
   if (draftState) {
-    webEngineEditStates.value.delete(-1);
-    webEngineEditStates.value.set(index, draftState);
-    webEngineEditStates.value = new Map(webEngineEditStates.value);
+    webSearchProviderEditStates.value.delete(-1);
+    webSearchProviderEditStates.value.set(index, draftState);
+    webSearchProviderEditStates.value = new Map(webSearchProviderEditStates.value);
   }
-  // Default the active index to the first confirmed engine so it can be used
-  // once the user toggles it on. Stays -1 (anonymous fallback) until enabled.
+  // Default the active index to the first confirmed provider so it can be used
+  // once the user toggles it on. Stays -1 (no provider selected) until enabled.
   if (appConfig.web_search_active_index < 0) {
     appConfig.web_search_active_index = 0;
   }
   flushConfigSave();
 }
 
-function onWebEngineCancel() {
-  webEngineEditStates.value.delete(-1);
-  webEngineEditStates.value = new Map(webEngineEditStates.value);
+function onWebSearchProviderCancel() {
+  webSearchProviderEditStates.value.delete(-1);
+  webSearchProviderEditStates.value = new Map(webSearchProviderEditStates.value);
 }
 
-function onWebEngineRemove({ index, indexMap }: { index: number; indexMap: Map<number, number> }) {
-  webEngineEditStates.value.delete(index);
-  const re = new Map<number, WebEngineEditState>();
-  for (const [k, v] of webEngineEditStates.value) {
+function onWebSearchProviderRemove({ index, indexMap }: { index: number; indexMap: Map<number, number> }) {
+  webSearchProviderEditStates.value.delete(index);
+  const re = new Map<number, WebSearchProviderEditState>();
+  for (const [k, v] of webSearchProviderEditStates.value) {
     const m = indexMap.get(k);
     if (m !== undefined) re.set(m, v);
   }
-  webEngineEditStates.value = re;
-  // Re-point active index; clamp to range, fall back to anonymous if none enabled
-  const anyEnabled = appConfig.web_engines.some((e) => e.enabled);
+  webSearchProviderEditStates.value = re;
+  // Re-point active index; clamp to range, fall back to no selection if none enabled
+  const anyEnabled = appConfig.web_search_providers.some((p) => p.enabled);
   if (!anyEnabled) {
     appConfig.web_search_active_index = -1;
-  } else if (appConfig.web_search_active_index >= appConfig.web_engines.length) {
-    appConfig.web_search_active_index = appConfig.web_engines.findIndex((e) => e.enabled);
+  } else if (appConfig.web_search_active_index >= appConfig.web_search_providers.length) {
+    appConfig.web_search_active_index = appConfig.web_search_providers.findIndex((p) => p.enabled);
   }
   flushConfigSave();
 }
 
-function validateWebEngine(eng: WebEngineConfig): string | null {
+function validateWebSearchProvider(eng: WebSearchProviderConfig): string | null {
   const meta = presetMeta(eng.preset);
   if (meta.keyRequired && !eng.api_key.trim()) {
     return t("settings.apiKeyRequired");
@@ -526,29 +526,30 @@ function validateWebEngine(eng: WebEngineConfig): string | null {
   return null;
 }
 
-/** Exclusive toggle: only one engine may be enabled at a time. Mirrors
- *  toggleTranslationPersona. Key-empty engines can't be enabled (validated). */
-function toggleWebEngineExclusive(index: number, e: MouseEvent) {
-  const eng = appConfig.web_engines[index];
+/** Exclusive toggle: only one provider may be enabled at a time. Mirrors
+ *  toggleTranslationPersona. Key-required providers without a key can't be
+ *  enabled (keyless presets like Firecrawl/AnySearch can). */
+function toggleWebSearchProviderExclusive(index: number, e: MouseEvent) {
+  const eng = appConfig.web_search_providers[index];
   const meta = presetMeta(eng.preset);
   if (meta.keyRequired && !eng.api_key) return; // safety: validation should have blocked this
-  activateExclusive(appConfig.web_engines, index, e, (turningOn) => {
-    appConfig.web_search_active_index = turningOn ? index : -1; // -1 = anonymous fallback
+  activateExclusive(appConfig.web_search_providers, index, e, (turningOn) => {
+    appConfig.web_search_active_index = turningOn ? index : -1; // -1 = no active provider
     flushConfigSave();
   });
 }
 
-function toggleWebEngineKeyVisible(index: number) {
-  if (webEngineShowKey.has(index)) webEngineShowKey.delete(index);
-  else webEngineShowKey.add(index);
+function toggleWebSearchProviderKeyVisible(index: number) {
+  if (webSearchProviderShowKey.has(index)) webSearchProviderShowKey.delete(index);
+  else webSearchProviderShowKey.add(index);
 }
 
-async function testWebEngineConnection(eng: WebEngineConfig, index: number) {
-  if (!eng.api_key.trim()) return;
-  const s = getWebEngineEditState(index);
+async function testWebSearchProviderConnection(eng: WebSearchProviderConfig, index: number) {
+  if (presetMeta(eng.preset).keyRequired && !eng.api_key.trim()) return;
+  const s = getWebSearchProviderEditState(index);
   s.testing = true;
   s.status = "";
-  const r = await testWebEngine(eng.preset, eng.api_key);
+  const r = await testWebSearchProvider(eng.preset, eng.api_key);
   s.testing = false;
   s.ok = r.ok;
   if (r.ok) {
@@ -589,7 +590,7 @@ function toggleWebPresetMenu(e: MouseEvent, index: number) {
   webPresetMenuPos.value = anchoredMenuPos(e.currentTarget as HTMLElement);
 }
 
-function applyWebPreset(item: WebEngineConfig, presetId: string) {
+function applyWebPreset(item: WebSearchProviderConfig, presetId: string) {
   item.preset = presetId;
   item.api_key = "";
   item.custom_name = presetMeta(presetId).label;
@@ -1074,6 +1075,11 @@ onMounted(async () => {
       document.getElementById("persona-section")?.scrollIntoView({ behavior: "smooth" });
     });
   }
+  if (route.query.scrollTo === "websearch") {
+    nextTick(() => {
+      document.getElementById("websearch-section")?.scrollIntoView({ behavior: "smooth" });
+    });
+  }
   document.addEventListener("mousedown", onDocClick);
   load();
   loadProviderPresets().then(p => { providerPresets.value = p; }).catch(console.error);
@@ -1382,19 +1388,20 @@ onUnmounted(() => {
 
         <!-- Web Search -->
         <EditableCardList
+          id="websearch-section"
           class="mt"
-          :items="appConfig.web_engines"
+          :items="appConfig.web_search_providers"
           :title="t('settings.webSearch')"
           :icon="Globe"
           :empty-message="t('settings.webSearchEmpty')"
           :empty-sub-message="t('settings.addOneToGetStarted')"
           :empty-icon="Globe"
-          :validate="validateWebEngine"
+          :validate="validateWebSearchProvider"
           :builtin-drag-handle="false"
-          @add="onWebEngineAdd"
-          @confirm="onWebEngineConfirm"
-          @cancel="onWebEngineCancel"
-          @remove="onWebEngineRemove"
+          @add="onWebSearchProviderAdd"
+          @confirm="onWebSearchProviderConfirm"
+          @cancel="onWebSearchProviderCancel"
+          @remove="onWebSearchProviderRemove"
         >
           <template #collapsed="{ item, index }">
             <div class="prov-lhs">
@@ -1409,7 +1416,7 @@ onUnmounted(() => {
                   :class="{ on: item.enabled }"
                   :disabled="presetMeta(item.preset).keyRequired && !item.api_key"
                   :title="item.enabled ? t('common.enabled') : t('common.disabled')"
-                  @click.stop="toggleWebEngineExclusive(index, $event)"
+                  @click.stop="toggleWebSearchProviderExclusive(index, $event)"
                 >
                   <component :is="item.enabled ? ToggleRight : ToggleLeft" :size="16" :stroke-width="1.8" />
                 </button>
@@ -1442,7 +1449,7 @@ onUnmounted(() => {
                 <div v-if="showWebPresetMenu && webPresetMenuIndex === index" class="sel-menu web-preset-menu" :style="{ top: webPresetMenuPos.top + 'px', left: webPresetMenuPos.left + 'px', width: webPresetMenuPos.width + 'px' }">
                   <div class="sel-clip settings-scrollbar">
                     <button
-                      v-for="p in SEARCH_PRESETS" :key="p.id"
+                      v-for="p in WEB_SEARCH_PRESETS" :key="p.id"
                       class="sel-opt"
                       :class="{ hit: item.preset === p.id }"
                       @click="applyWebPreset(item, p.id)"
@@ -1471,30 +1478,30 @@ onUnmounted(() => {
                 <div class="key-wrap">
                   <input
                     v-model="item.api_key"
-                    :type="webEngineShowKey.has(index) ? 'text' : 'password'"
+                    :type="webSearchProviderShowKey.has(index) ? 'text' : 'password'"
                     class="fi key-fi" @click.stop
                   />
-                  <button class="icon-btn-sm" @click.stop="toggleWebEngineKeyVisible(index)" :title="t('settings.apiKey')">
-                    <component :is="webEngineShowKey.has(index) ? EyeOff : Eye" :size="12" :stroke-width="1.9" />
+                  <button class="icon-btn-sm" @click.stop="toggleWebSearchProviderKeyVisible(index)" :title="t('settings.apiKey')">
+                    <component :is="webSearchProviderShowKey.has(index) ? EyeOff : Eye" :size="12" :stroke-width="1.9" />
                   </button>
                   <button
                     class="icon-btn-sm linkish"
-                    @click.stop="testWebEngineConnection(item, index)"
-                    :disabled="!item.api_key.trim() || getWebEngineEditState(index).testing"
+                    @click.stop="testWebSearchProviderConnection(item, index)"
+                    :disabled="(presetMeta(item.preset).keyRequired && !item.api_key.trim()) || getWebSearchProviderEditState(index).testing"
                     :title="t('settings.testConnection')"
                   >
-                    <Loader2 v-if="getWebEngineEditState(index).testing" :size="12" class="spin" :stroke-width="1.9" />
+                    <Loader2 v-if="getWebSearchProviderEditState(index).testing" :size="12" class="spin" :stroke-width="1.9" />
                     <Link2 v-else :size="12" :stroke-width="1.9" />
                   </button>
                 </div>
                 <Transition name="fade">
                   <span
-                    v-if="getWebEngineEditState(index).status"
+                    v-if="getWebSearchProviderEditState(index).status"
                     class="status-pill"
-                    :class="{ ok: getWebEngineEditState(index).ok, err: !getWebEngineEditState(index).ok }"
+                    :class="{ ok: getWebSearchProviderEditState(index).ok, err: !getWebSearchProviderEditState(index).ok }"
                   >
                     <span class="status-dot" />
-                    {{ getWebEngineEditState(index).status }}
+                    {{ getWebSearchProviderEditState(index).status }}
                   </span>
                 </Transition>
               </div>

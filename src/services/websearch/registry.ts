@@ -14,36 +14,35 @@ import { search as tavilySearch } from "./tavily";
 import { search as exaSearch } from "./exa";
 import { search as firecrawlSearch } from "./firecrawl";
 
-export interface SearchPresetMeta {
+export interface WebSearchPresetMeta {
   id: string;
   label: string;
   icon: Component;
-  supportsAnonymous: boolean;
+  /** When false, the provider can be used without an API key (anonymous tier).
+   *  The user still opts in by adding it explicitly — there is no built-in
+   *  fallback anymore. */
   keyRequired: boolean;
   /** i18n key for an explanatory hint, or empty when none is needed.
-   *  Only presets with special key semantics (e.g. AnySearch) carry a hint. */
+   *  Only presets with special key semantics (e.g. anonymous tiers) carry one. */
   keyHelpKey?: string;
   /** URL to the provider's API-key dashboard, shown as a "Get your API key" link. */
   apiUrl?: string;
 }
 
-export const SEARCH_PRESETS: SearchPresetMeta[] = [
+export const WEB_SEARCH_PRESETS: WebSearchPresetMeta[] = [
   {
     id: "anysearch",
     label: "AnySearch",
     icon: AnySearch,
-    supportsAnonymous: true,
-    keyRequired: true,
-    // AnySearch is special: anonymous mode is the built-in fallback, so a
-    // user-added instance only makes sense with a key (higher quota).
-    keyHelpKey: "settings.webSearchKeyHint",
+    // Anonymous tier available — a key is optional (higher quota with one).
+    keyRequired: false,
+    keyHelpKey: "settings.anonymousKeyHint",
     apiUrl: "https://www.anysearch.com/console/api-keys",
   },
   {
     id: "brave",
     label: "Brave Search",
     icon: Brave,
-    supportsAnonymous: false,
     keyRequired: true,
     apiUrl: "https://brave.com/search/api/",
   },
@@ -51,7 +50,6 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     id: "exa",
     label: "Exa",
     icon: Exa,
-    supportsAnonymous: false,
     keyRequired: true,
     apiUrl: "https://dashboard.exa.ai/api-keys",
   },
@@ -59,7 +57,6 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     id: "firecrawl",
     label: "Firecrawl",
     icon: Firecrawl,
-    supportsAnonymous: true,
     keyRequired: false,
     keyHelpKey: "settings.anonymousKeyHint",
     apiUrl: "https://www.firecrawl.dev/app",
@@ -68,7 +65,6 @@ export const SEARCH_PRESETS: SearchPresetMeta[] = [
     id: "tavily",
     label: "Tavily",
     icon: Tavily,
-    supportsAnonymous: false,
     keyRequired: true,
     apiUrl: "https://app.tavily.com/",
   },
@@ -83,12 +79,6 @@ const REGISTRY: Record<string, SearchFn> = {
   firecrawl: firecrawlSearch,
 };
 
-/** Built-in anonymous fallback. Always available so a usable engine exists. */
-export const ANONYMOUS_FALLBACK = {
-  preset: "anysearch",
-  apiKey: undefined,
-} as const;
-
 /** Resolve the search implementation for a preset id. */
 export function getSearchFn(presetId: string): SearchFn {
   const fn = REGISTRY[presetId];
@@ -98,8 +88,8 @@ export function getSearchFn(presetId: string): SearchFn {
   return fn;
 }
 
-export function presetMeta(presetId: string): SearchPresetMeta {
-  const meta = SEARCH_PRESETS.find((p) => p.id === presetId);
+export function presetMeta(presetId: string): WebSearchPresetMeta {
+  const meta = WEB_SEARCH_PRESETS.find((p) => p.id === presetId);
   if (!meta) {
     throw new Error(`Unknown search preset: ${presetId}`);
   }

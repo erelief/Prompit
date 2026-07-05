@@ -11,7 +11,7 @@ import {
   loadConfig,
 } from "../stores/config";
 import { getTheme, setTheme } from "../composables/useTheme";
-import type { ProviderConfig, ProviderPreset, PresetVariantEndpoint, PresetVariantRegion, WebEngineConfig } from "../stores/config";
+import type { ProviderConfig, ProviderPreset, PresetVariantEndpoint, PresetVariantRegion, WebSearchProviderConfig } from "../stores/config";
 import {
   resolvePreset,
   presetBelongsToFamily,
@@ -56,7 +56,7 @@ import {
   FileText,
   ShieldAlert,
 } from "@lucide/vue";
-import { SEARCH_PRESETS, testWebEngine, presetMeta } from "../services/websearch";
+import { WEB_SEARCH_PRESETS, testWebSearchProvider, presetMeta } from "../services/websearch";
 import { useDataImport } from "../composables/useDataImport";
 
 const { t } = useI18n();
@@ -164,7 +164,15 @@ const searchTestStatus = ref<"ok" | "fail" | "">("");
 const searchTestError = ref("");
 const searchIsTesting = ref(false);
 
-const searchCanNext = computed(() => !!searchSelectedPreset.value && !!searchApiKey.value.trim());
+// True when the selected preset needs a key the user hasn't supplied. Keyless
+// presets (Firecrawl / AnySearch anonymous tier) never need a key. Shared by
+// the next-button gate, the save/test guards, and the test-button binding.
+const searchKeyMissing = computed(() => {
+  if (!searchSelectedPreset.value) return true;
+  return presetMeta(searchSelectedPreset.value).keyRequired && !searchApiKey.value.trim();
+});
+
+const searchCanNext = computed(() => !!searchSelectedPreset.value && !searchKeyMissing.value);
 
 // ── Computed ──
 // ── Import branch ──
@@ -296,26 +304,26 @@ function goNext() {
 }
 
 function saveSearchConfig() {
-  if (!searchSelectedPreset.value || !searchApiKey.value.trim()) return;
-  const engine: WebEngineConfig = {
+  if (!searchSelectedPreset.value || searchKeyMissing.value) return;
+  const provider: WebSearchProviderConfig = {
     preset: searchSelectedPreset.value,
     api_key: searchApiKey.value.trim(),
     enabled: true,
     custom_name: searchCustomName.value.trim() || currentSearchPresetLabel.value,
   };
-  appConfig.web_engines.push(engine);
-  appConfig.web_search_active_index = appConfig.web_engines.length - 1;
+  appConfig.web_search_providers.push(provider);
+  appConfig.web_search_active_index = appConfig.web_search_providers.length - 1;
   appConfig.web_search_enabled_in_skills_lite = true;
 }
 
 const currentSearchPresetLabel = computed(() => {
   if (!searchSelectedPreset.value) return t('onboarding.selectSearchPreset');
-  return SEARCH_PRESETS.find(p => p.id === searchSelectedPreset.value)?.label || searchSelectedPreset.value;
+  return WEB_SEARCH_PRESETS.find(p => p.id === searchSelectedPreset.value)?.label || searchSelectedPreset.value;
 });
 
 const currentSearchPresetObj = computed(() => {
   if (!searchSelectedPreset.value) return null;
-  return SEARCH_PRESETS.find(p => p.id === searchSelectedPreset.value) || null;
+  return WEB_SEARCH_PRESETS.find(p => p.id === searchSelectedPreset.value) || null;
 });
 
 function applySearchPreset(id: string) {
@@ -329,11 +337,11 @@ function applySearchPreset(id: string) {
 }
 
 async function testSearchConnection() {
-  if (!searchSelectedPreset.value || !searchApiKey.value.trim()) return;
+  if (!searchSelectedPreset.value || searchKeyMissing.value) return;
   searchIsTesting.value = true;
   searchTestStatus.value = "";
   searchTestError.value = "";
-  const r = await testWebEngine(searchSelectedPreset.value, searchApiKey.value.trim());
+  const r = await testWebSearchProvider(searchSelectedPreset.value, searchApiKey.value.trim());
   searchTestStatus.value = r.ok ? "ok" : "fail";
   if (!r.ok) searchTestError.value = r.error || "";
   searchIsTesting.value = false;
@@ -990,7 +998,7 @@ onMounted(async () => {
                   <div v-if="searchShowPresetMenu" class="sel-menu" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 10">
                     <div class="sel-clip">
                       <button
-                        v-for="p in SEARCH_PRESETS" :key="p.id"
+                        v-for="p in WEB_SEARCH_PRESETS" :key="p.id"
                         class="sel-opt"
                         :class="{ hit: searchSelectedPreset === p.id }"
                         @click="applySearchPreset(p.id)"
@@ -1051,10 +1059,10 @@ onMounted(async () => {
                   :style="{
                     background: searchTestStatus === 'ok' ? 'var(--color-accent-bg)' : searchTestStatus === 'fail' ? 'rgba(239,68,68,0.1)' : 'var(--color-surface)',
                     border: '1px solid var(--color-border)',
-                    cursor: (!searchSelectedPreset || !searchApiKey.trim() || searchIsTesting) ? 'not-allowed' : 'pointer',
-                    opacity: (!searchSelectedPreset || !searchApiKey.trim()) ? 0.4 : 1,
+                    cursor: (!searchSelectedPreset || searchKeyMissing || searchIsTesting) ? 'not-allowed' : 'pointer',
+                    opacity: (!searchSelectedPreset || searchKeyMissing) ? 0.4 : 1,
                   }"
-                  :disabled="!searchSelectedPreset || !searchApiKey.trim() || searchIsTesting"
+                  :disabled="!searchSelectedPreset || searchKeyMissing || searchIsTesting"
                   @click="testSearchConnection"
                   :title="t('settings.testConnection')"
                 >

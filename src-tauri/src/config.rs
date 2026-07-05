@@ -206,7 +206,7 @@ pub struct ProviderConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WebEngineConfig {
+pub struct WebSearchProviderConfig {
     pub preset: String,
     #[serde(default)]
     pub api_key: String,
@@ -256,7 +256,7 @@ pub struct AppConfig {
     #[serde(default, skip_serializing)]
     pub show_capability_icons: bool,
     #[serde(default)]
-    pub web_engines: Vec<WebEngineConfig>,
+    pub web_search_providers: Vec<WebSearchProviderConfig>,
     #[serde(default = "default_web_search_active_index")]
     pub web_search_active_index: i64,
     #[serde(default, alias = "web_search_enabled_in_sparkle")]
@@ -287,6 +287,7 @@ fn default_shortcut() -> String {
 fn default_mode_shortcut() -> String {
     "Alt+M".to_string()
 }
+/// `-1` means "no provider selected" (no built-in fallback anymore).
 fn default_web_search_active_index() -> i64 {
     -1
 }
@@ -313,7 +314,7 @@ impl Default for AppConfig {
             mode_shortcut: "Alt+M".to_string(),
             launch_on_startup: false,
             show_capability_icons: false,
-            web_engines: vec![],
+            web_search_providers: vec![],
             web_search_active_index: -1,
             web_search_enabled_in_skills_lite: false,
         }
@@ -370,7 +371,7 @@ mod tests {
             mode_shortcut: "Alt+M".to_string(),
             launch_on_startup: false,
             show_capability_icons: false,
-            web_engines: vec![],
+            web_search_providers: vec![],
             web_search_active_index: -1,
             web_search_enabled_in_skills_lite: false,
         };

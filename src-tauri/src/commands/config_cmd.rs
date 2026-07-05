@@ -120,7 +120,7 @@ mod tests {
             mode_shortcut: "Alt+M".to_string(),
             launch_on_startup: false,
             show_capability_icons: true,
-            web_engines: vec![],
+            web_search_providers: vec![],
             web_search_active_index: -1,
             web_search_enabled_in_skills_lite: false,
         };

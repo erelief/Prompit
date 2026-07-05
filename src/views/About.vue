@@ -25,8 +25,6 @@ const deps = [
   // Rust crate: binds the vault's local KEK to the OS credential store
   // (Windows Credential Manager / macOS Keychain / Linux Secret Service).
   { name: "Keyring", version: "3.6.3", url: "https://crates.io/crates/keyring" },
-  // AnySearch powers the built-in web search (no npm version — it's a hosted API service).
-  { name: "AnySearch", url: "https://anysearch.com" },
 ];
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;

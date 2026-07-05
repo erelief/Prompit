@@ -4,35 +4,35 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-use crate::config::WebEngineConfig;
+use crate::config::WebSearchProviderConfig;
 use crate::crypto::{self, EncryptedPayload};
 
-/// Crypto scope for the web-search-engine bundle. The engine `api_key` fields
-/// are encrypted at rest here, so they travel with the bundle and never land
-/// in plaintext `config.json`.
+/// Crypto scope for the web-search-provider bundle. The provider `api_key`
+/// fields are encrypted at rest here, so they travel with the bundle and never
+/// land in plaintext `config.json`.
 const SCOPE: &str = "websearch";
 
-/// The encrypted, on-disk web-search-engine bundle. Self-contained: the engine
-/// array plus the single active index that references it. The API keys live
-/// inline on each `WebEngineConfig.api_key` and are encrypted together with the
-/// rest of this struct (no separate secrets store).
+/// The encrypted, on-disk web-search-provider bundle. Self-contained: the
+/// provider array plus the single active index that references it. The API keys
+/// live inline on each `WebSearchProviderConfig.api_key` and are encrypted
+/// together with the rest of this struct (no separate secrets store).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebSearchBundle {
     #[serde(default)]
-    pub web_engines: Vec<WebEngineConfig>,
+    pub web_search_providers: Vec<WebSearchProviderConfig>,
     #[serde(default = "default_web_search_active_index")]
     pub web_search_active_index: i64,
 }
 
-/// Manual `Default` so the `-1` sentinel (anonymous fallback) is used when the
-/// bundle is constructed in memory — not just when deserialized. The derived
+/// Manual `Default` so the `-1` sentinel ("no provider selected") is used when
+/// the bundle is constructed in memory — not just when deserialized. The derived
 /// `Default` would give `web_search_active_index: 0`, pointing at a (likely
-/// nonexistent) engine. This matters for fresh installs where `load_encrypted`
+/// nonexistent) provider. This matters for fresh installs where `load_encrypted`
 /// returns `WebSearchBundle::default()` because no file exists yet.
 impl Default for WebSearchBundle {
     fn default() -> Self {
         Self {
-            web_engines: Vec::new(),
+            web_search_providers: Vec::new(),
             web_search_active_index: default_web_search_active_index(),
         }
     }
@@ -82,13 +82,12 @@ pub fn save_websearch(app: AppHandle, bundle: WebSearchBundle) -> Result<(), Str
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::AppConfig;
 
     #[test]
     fn test_websearch_bundle_roundtrip() {
         crate::crypto::set_master_key([0x42u8; 32]);
         let bundle = WebSearchBundle {
-            web_engines: vec![WebEngineConfig {
+            web_search_providers: vec![WebSearchProviderConfig {
                 preset: "brave".to_string(),
                 api_key: "bsk-test".to_string(),
                 enabled: true,
@@ -103,31 +102,17 @@ mod tests {
         let parsed: EncryptedPayload = serde_json::from_str(&out).unwrap();
         let bytes = crypto::decrypt(SCOPE, &parsed).unwrap();
         let back: WebSearchBundle = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(back.web_engines.len(), 1);
-        assert_eq!(back.web_engines[0].api_key, "bsk-test");
+        assert_eq!(back.web_search_providers.len(), 1);
+        assert_eq!(back.web_search_providers[0].api_key, "bsk-test");
         assert_eq!(back.web_search_active_index, 0);
     }
 
     #[test]
-    fn test_default_index_is_minus_one() {
+    fn test_default_index_is_no_selection() {
         crate::crypto::set_master_key([0x42u8; 32]);
         let bundle = WebSearchBundle::default();
+        // -1 means "no provider selected" (no built-in fallback anymore).
         assert_eq!(bundle.web_search_active_index, -1);
-        assert!(bundle.web_engines.is_empty());
-    }
-
-    #[test]
-    fn test_appconfig_still_carries_legacy_fields_for_migration() {
-        // Sanity: AppConfig must still parse the legacy plaintext config.json so
-        // migrate_legacy_from_config can lift web_engines out of it.
-        let json = r#"{
-            "providers": [],
-            "web_engines": [{"preset":"brave","enabled":true,"api_key":""}],
-            "web_search_active_index": 0,
-            "active_mode": "translate"
-        }"#;
-        let cfg: AppConfig = serde_json::from_str(json).unwrap();
-        assert_eq!(cfg.web_engines.len(), 1);
-        assert_eq!(cfg.web_search_active_index, 0);
+        assert!(bundle.web_search_providers.is_empty());
     }
 }
