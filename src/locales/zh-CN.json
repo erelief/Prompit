@@ -364,7 +364,6 @@
     "importSummaryProviders": "AI 服务商：{n}",
     "importSummaryWebSearch": "网络搜索服务商：{n}",
     "importSummaryAllReady": "一切就绪。点击下一步完成。",
-    "importSummaryNeedWebSearch": "未发现网络搜索服务商 —— 下一步可以添加（也可跳过）。",
     "importSummaryNeedProvider": "未发现 AI 服务商。软件至少需要一个才能使用 —— 下一步将引导你添加。",
     "importSummarySkipped": "未导入（保留原数据）"
   },

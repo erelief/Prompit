@@ -67,7 +67,8 @@ const router = useRouter();
 
 // ── Step management ──
 // Step IDs: 0=welcome, 1=info, 2=add-provider, 3=lightweight, 4=select-models,
-// 5=websearch-info, 6=add-search, 7=done, 8=import (branch step).
+// 5-6=websearch (disabled, see [WEBSEARCH-BACKUP] in template),
+// 7=done, 8=import (branch step).
 // `importMode` switches the linear step sequence to the import path:
 //   welcome(0) → info(1) → import(8) → (done(7) | websearch(5) | add-provider(2))
 // On import success step 8 flips from the form to an inline summary that also
@@ -76,6 +77,9 @@ const router = useRouter();
 // When the machine already has a web-search provider configured, steps 5 and 6
 // are skipped on the linear path too (skipWebSearchSteps), so a user who
 // imported web-search but not AI providers is not re-asked about web search.
+//
+// [WEBSEARCH-SIMPLIFY]: steps 5-6 disabled; standard path is 0-1-2-3-4-7.
+// Import success → 7, failure → 1. See [WEBSEARCH-BACKUP] in template.
 const importMode = ref(false);
 const currentStep = ref(0);
 const direction = ref<"forward" | "backward">("forward");
@@ -271,11 +275,8 @@ const hasUsableProviders = computed(() =>
 );
 const hasWebSearch = computed(() => appConfig.web_search_providers.length > 0);
 
-// Steps 5 (websearch-info) and 6 (add-search) are skipped whenever a web-search
-// provider is already configured — including when the user just imported one,
-// or when the machine already had one before onboarding (rule: an app with web
-// search but no AI provider still skips the web-search steps).
-const skipWebSearchSteps = computed(() => appConfig.web_search_providers.length > 0);
+// [WEBSEARCH-SIMPLIFY] hasWebSearch retained for Settings use; no longer
+// gates any onboarding routing.
 
 // Tracks where the user was routed after the import-summary step. Null when
 // the user never completed an import (normal add-provider onboarding). Used by
@@ -283,16 +284,18 @@ const skipWebSearchSteps = computed(() => appConfig.web_search_providers.length 
 // linear sequence from step 0.
 const postImportTarget = ref<number | null>(null);
 
-// Route the user out of the import-summary step based on what landed.
+// Route the user out of the import-summary based on whether usable AI
+// providers came in. Success → done (7); no viable provider → info (1)
+// so the user can try again or add one manually.
 function routeAfterImport() {
   importMode.value = false;
   direction.value = "forward";
   if (hasUsableProviders.value) {
-    postImportTarget.value = hasWebSearch.value ? 7 : 5;
-    currentStep.value = postImportTarget.value;
+    postImportTarget.value = 7;
+    currentStep.value = 7;
   } else {
-    postImportTarget.value = 2;
-    currentStep.value = 2;
+    postImportTarget.value = 1;
+    currentStep.value = 1;
   }
 }
 
@@ -325,8 +328,8 @@ const canProceed = computed(() => {
 	      return importSucceeded.value;
 	    case 4:
       return selectedModels.value.size > 0;
-    case 0: case 1: case 3: case 5: case 6: case 7:
-      // Info/optional steps are always reachable.
+    case 0: case 1: case 3: case 7:
+      // Info/optional steps are always reachable (5-6 disabled, see backup).
       return true;
     default:
       return false;
@@ -336,25 +339,20 @@ const canProceed = computed(() => {
 const isLastStep = computed(() => currentStep.value === 7);
 
 // Step-dot indicator sequence.
-// - Import branch: welcome→info→import→summary (4 dots).
-// - Post-import (routed to step 2/5/7): only the remaining steps, so the
-//   user sees how many steps are left rather than the already-completed 0..1..8..9.
-// - Linear (add-provider) branch: 0..7, but 5 and 6 are dropped when a
-//   web-search provider is already configured (skipWebSearchSteps).
+// - Import branch: welcome→info→import (3 dots).
+// - Post-import: remaining steps from routing target.
+// - Linear (add-provider) branch: 0→1→2→3→4→7 (web search 5/6 disabled).
 const dotSteps = computed(() => {
   if (importMode.value) return [0, 1, 8];
 
   const tgt = postImportTarget.value;
   if (tgt !== null) {
-    // Post-import landing: show only what's left.
     if (tgt === 7) return [7];
-    if (tgt === 5) return [5, 6, 7];
-    // tgt === 2: add-provider path, with or without web-search.
-    return skipWebSearchSteps.value ? [2, 3, 4, 7] : [2, 3, 4, 5, 6, 7];
+    // tgt === 1: back to info, then the standard path.
+    return [1, 2, 3, 4, 7];
   }
 
-  // Normal add-provider onboarding from scratch.
-  return skipWebSearchSteps.value ? [0, 1, 2, 3, 4, 7] : [0, 1, 2, 3, 4, 5, 6, 7];
+  return [0, 1, 2, 3, 4, 7];
 });
 const currentDotIndex = computed(() =>
   dotSteps.value.indexOf(currentStep.value),
@@ -382,16 +380,13 @@ function goNext() {
     // Still in the form; shouldn't be reachable (canProceed guards), but safe.
     return;
   }
-  // Step 6: save search config if user filled it in
-  if (currentStep.value === 6) {
-    saveSearchConfig();
-  }
-  // Skip web-search steps (5, 6) on the linear path when already configured.
-  if (currentStep.value === 4 && skipWebSearchSteps.value) {
+  // Step 4 (select models) → jump to done (7); web-search 5/6 disabled.
+  if (currentStep.value === 4) {
     direction.value = "forward";
     currentStep.value = 7;
     return;
   }
+  // Step 6 was web search config (disabled).
   direction.value = "forward";
   currentStep.value++;
 }
@@ -408,6 +403,8 @@ function saveSearchConfig() {
   appConfig.web_search_active_index = appConfig.web_search_providers.length - 1;
   appConfig.web_search_enabled_in_skills_lite = true;
 }
+// keep TS happy: the function is kept for [WEBSEARCH-BACKUP].
+void saveSearchConfig;
 
 const currentSearchPresetLabel = computed(() => {
   if (!searchSelectedPreset.value) return t('onboarding.selectSearchPreset');
@@ -451,13 +448,12 @@ function goPrev() {
     return;
   }
   // Summary step (9) removed — step 8 now doubles as summary on success.
-  // Done step in import branch goes back to the import/summary step, not 6.
+  // Done step: import branch → back to import (8), standard → models (4).
   if (currentStep.value === 7 && importMode.value) {
     currentStep.value = 8;
     return;
   }
-  // Skip web-search steps (5, 6) backward when already configured.
-  if (currentStep.value === 7 && skipWebSearchSteps.value && !importMode.value) {
+  if (currentStep.value === 7 && !importMode.value) {
     currentStep.value = 4;
     return;
   }
@@ -1062,6 +1058,10 @@ onMounted(async () => {
             </div>
           </div>
 
+          <!-- [WEBSEARCH-BACKUP] Steps 5 (search info) and 6 (add-search) are
+               no longer reached by the flow (dotSteps / goNext / goPrev /
+               canProceed skip them). The template blocks stay so the code
+               is easy to restore later. -->
           <!-- Step 5: Search info -->
           <div v-else-if="currentStep === 5" key="step5" class="flex flex-col items-center justify-center h-full py-10">
             <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
@@ -1078,7 +1078,7 @@ onMounted(async () => {
             </p>
           </div>
 
-          <!-- Step 6: Search API config -->
+          <!-- [WEBSEARCH-BACKUP] Step 6 — add-search form -->
           <div v-else-if="currentStep === 6" key="step6" class="flex flex-col py-6">
             <h2 class="text-lg font-medium mb-6" style="color: var(--color-text)">
               {{ t('onboarding.addSearchTitle') }}
@@ -1234,13 +1234,8 @@ onMounted(async () => {
                   <span v-else style="color: var(--color-text-muted)">{{ t('onboarding.importSummarySkipped') }}</span>
                 </div>
               </div>
-              <p v-if="!(hasUsableProviders && hasWebSearch)" class="text-sm leading-relaxed mb-4" style="color: var(--color-text-secondary)">
-                <template v-if="hasUsableProviders">
-                  {{ t('onboarding.importSummaryNeedWebSearch') }}
-                </template>
-                <template v-else>
-                  {{ t('onboarding.importSummaryNeedProvider') }}
-                </template>
+              <p v-if="!hasUsableProviders" class="text-sm leading-relaxed mb-4" style="color: var(--color-text-secondary)">
+                {{ t('onboarding.importSummaryNeedProvider') }}
               </p>
               <button
                 @click="resetImportBranch"

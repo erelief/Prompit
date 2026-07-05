@@ -364,7 +364,6 @@
     "importSummaryProviders": "AI providers: {n}",
     "importSummaryWebSearch": "Web search providers: {n}",
     "importSummaryAllReady": "You're all set. Click Next to finish.",
-    "importSummaryNeedWebSearch": "No web search provider found — the next step lets you add one (or skip).",
     "importSummaryNeedProvider": "No AI provider found. The app needs at least one to function — the next step will guide you through adding one.",
     "importSummarySkipped": "Skipped (keeping existing data)"
   },
