@@ -131,6 +131,7 @@ pub fn run() {
             commands::window::set_main_pinned,
             commands::window::set_main_resizable,
             commands::window::reset_app_data,
+            commands::window::delete_categories,
             commands::clipboard::simulate_paste,
             commands::clipboard::paste_pinned,
             commands::clipboard::copy_text,
@@ -172,6 +173,7 @@ pub fn run() {
             commands::http_proxy::llm_http_abort,
             vault::export_data,
             vault::import_data,
+            vault::inspect_bundle,
             get_proxy_url,
             is_sandbox,
         ])

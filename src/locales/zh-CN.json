@@ -125,13 +125,38 @@
     "close": "关闭",
     "about": "关于",
     "userData": {
-      "label": "用户数据",
-      "manageButton": "管理",
-      "manageDescription": "备份或恢复加密的用户数据",
-      "pageTitle": "用户数据",
+      "label": "数据管理"
+    },
+    "categories": {
+      "selectAll": "全选",
+      "sensitive": "敏感",
+      "legacy": "旧",
+      "notInBackup": "备份中无",
+      "settings": "软件设置",
+      "settingsDescription": "主题、语言、快捷键、透明度等偏好",
+      "providers": "AI 服务商",
+      "providersDescription": "已配置的 AI 模型服务商及其 API 密钥",
+      "websearch": "网络搜索服务商",
+      "websearchDescription": "已配置的搜索引擎及其 API 密钥",
+      "history": "历史记录",
+      "historyDescription": "过往翻译与 skills-lite 运行记录",
+      "dictionaries": "自定义词典",
+      "dictionariesDescription": "按语言存储的自定义词典条目",
+      "personas": "人格预设",
+      "personasDescription": "翻译人格预设",
+      "skills_lite": "Skills-lite",
+      "skills_liteDescription": "Skills-lite 提示词模板",
+      "secrets": "旧密钥存储",
+      "secretsDescription": "为迁移保留的旧密钥存储"
+    },
+    "exportData": {
+      "pageTitle": "导出数据",
+      "entryButton": "导出",
+      "entryDescription": "将所选数据备份为加密文件",
+      "selectCategories": "选择要包含的内容",
       "export": {
         "title": "导出",
-        "description": "将你的服务配置和用户数据打包为一个加密备份文件。此处设置的密码用于加密备份 —— 一旦丢失无法恢复。",
+        "description": "将所选项目打包为一个加密备份文件。此处设置的密码用于加密备份 —— 一旦丢失无法恢复。",
         "passwordPlaceholder": "至少 6 位字符",
         "confirmPasswordPlaceholder": "确认密码",
         "button": "导出",
@@ -139,20 +164,28 @@
         "success": "已导出至 {path}",
         "cancelled": "已取消导出"
       },
+      "error": "失败：{message}"
+    },
+    "importData": {
+      "pageTitle": "导入数据",
+      "entryButton": "导入",
+      "entryDescription": "从备份文件恢复所选数据",
+      "selectCategories": "选择要恢复的内容",
       "import": {
         "title": "导入",
-        "description": "从备份文件恢复应用数据和配置。这将覆盖当前已有的服务配置和用户数据。",
-        "warning": "将覆盖已有用户数据，不可撤销。",
+        "description": "先分析备份文件，再选择要恢复的部分。所选类别会覆盖当前已有的同类数据。",
+        "warning": "所选类别将覆盖已有数据，不可撤销。",
         "passwordPlaceholder": "备份密码",
         "button": "导入",
         "selectFile": "选择备份文件",
         "changeFile": "更换",
+        "analyze": "分析",
+        "analyzing": "分析中…",
+        "reanalyze": "重新分析",
         "confirmWarning": "此操作将覆盖已有数据，且不可撤销。",
-        "success": "导入成功。请重启应用以生效。",
+        "success": "导入成功。",
         "cancelled": "已取消导入"
       },
-      "passwordTooShort": "密码至少需要 6 位字符",
-      "passwordRequired": "请输入密码",
       "error": "失败：{message}"
     },
     "reset": {
@@ -160,12 +193,16 @@
       "button": "重置软件",
       "pageTitle": "重置软件",
       "warning": "此操作将永久删除你的所有数据和设置。重置完成后应用将自动关闭。",
+      "partialWarning": "此操作将永久删除所选数据，未选择的内容不受影响。",
       "irreversible": "此操作不可撤销。",
       "understood": "我已了解风险",
       "confirmCountdown": "确认 ({n}s)",
       "confirm": "确认",
       "sandboxBadge": "沙盒",
-      "sandboxHint": "沙盒模式 — 仅影响临时数据。"
+      "sandboxHint": "沙盒模式 — 仅影响临时数据。",
+      "selectCategories": "选择要删除的内容",
+      "partialSuccess": "所选数据已删除。",
+      "restartRequired": "设置已删除。请重启应用以生效。"
     }
   },
   "floating": {

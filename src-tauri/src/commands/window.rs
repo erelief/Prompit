@@ -333,6 +333,29 @@ pub fn reset_app_data(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Selective delete: removes only the on-disk files for the given category
+/// stems (`settings` → `config.json`, every other stem → `<stem>.json`). Does
+/// NOT touch `vault.key`, so the remaining encrypted files stay readable and
+/// the Master Key persists. Does NOT exit the process — the caller reloads
+/// config in-place via `loadConfig`. The full-wipe path (`reset_app_data`) is
+/// what the UI reaches for when the user selects every category; this command
+/// handles the partial case. Unknown stems are silently ignored.
+#[tauri::command]
+pub fn delete_categories(app: AppHandle, categories: Vec<String>) -> Result<(), String> {
+    let dir = crate::get_data_dir(&app)?;
+    for stem in &categories {
+        let path = if stem == "settings" {
+            dir.join("config.json")
+        } else {
+            dir.join(format!("{}.json", stem))
+        };
+        if path.exists() {
+            std::fs::remove_file(&path).map_err(|e| format!("delete {}: {e}", stem))?;
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn get_grow_above(app: AppHandle) -> bool {
     app.state::<WindowConfig>().get_grow_above()

@@ -1,26 +1,32 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useIntervalFn } from "@vueuse/core";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
+import DataCategorySelector from "../components/DataCategorySelector.vue";
+import { ALL_CATEGORIES } from "../composables/useDataCategories";
+import {
+  loadConfig, loadHistory, loadPersonas, loadSkillsLites, refreshDictStatus,
+} from "../stores/config";
 import { ArrowLeft, ShieldAlert, Check, X } from "@lucide/vue";
 
 const { t } = useI18n();
 const router = useRouter();
 const { growAbove } = useSettingsWindow();
 
-async function handleDrag(e: MouseEvent) {
-  const target = e.target as HTMLElement;
-  if (target.closest("button, input, textarea, a, select, .reset-footer")) return;
-  await getCurrentWindow().startDragging();
-}
+const selected = ref<string[]>([...ALL_CATEGORIES]);
+const status = ref<{ kind: "idle" | "success" | "error"; msg: string }>({ kind: "idle", msg: "" });
 
 const countdown = ref(5);
 const ready = ref(false);
 const isSandbox = ref(false);
+const busy = ref(false);
+
+const isFullReset = computed(() => selected.value.length >= ALL_CATEGORIES.length);
+const includesSettings = computed(() => selected.value.includes("settings"));
 
 const { pause } = useIntervalFn(() => {
   countdown.value--;
@@ -34,15 +40,52 @@ onMounted(async () => {
   isSandbox.value = await invoke<boolean>("is_sandbox");
 });
 
+async function handleDrag(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (target.closest("button, input, textarea, a, select, .reset-footer, .cat-selector")) return;
+  await getCurrentWindow().startDragging();
+}
+
 function cancel() {
   router.push("/settings?tab=general");
 }
 
 async function handleConfirm() {
+  if (busy.value || !ready.value) return;
+  busy.value = true;
   try {
-    await invoke("reset_app_data");
+    if (isFullReset.value) {
+      // Nuclear path: wipe the whole data dir and exit, same as before.
+      await invoke("reset_app_data");
+      return;
+    }
+    // Partial path: delete only the selected on-disk files, then hot-reload.
+    await invoke("delete_categories", { categories: selected.value });
+    if (includesSettings.value) {
+      // Settings file was deleted — the in-memory config is now stale and the
+      // app will re-create defaults on next launch. Surface a restart hint.
+      status.value = {
+        kind: "success",
+        msg: t("settings.reset.restartRequired"),
+      };
+    } else {
+      await loadConfig();
+      await Promise.all([
+        loadHistory(),
+        loadPersonas(),
+        loadSkillsLites(),
+        refreshDictStatus(),
+      ]).catch(() => {});
+      status.value = {
+        kind: "success",
+        msg: t("settings.reset.partialSuccess"),
+      };
+    }
   } catch (err) {
-    console.error("Failed to reset app data:", err);
+    status.value = { kind: "error", msg: String(err) };
+    console.error("Failed to delete categories:", err);
+  } finally {
+    busy.value = false;
   }
 }
 </script>
@@ -65,26 +108,34 @@ async function handleConfirm() {
           <ShieldAlert :size="22" :stroke-width="1.5" />
         </div>
         <div class="warn-content">
-          <p class="warn-text">{{ t('settings.reset.warning') }}</p>
+          <p class="warn-text">{{ isFullReset ? t('settings.reset.warning') : t('settings.reset.partialWarning') }}</p>
           <p class="warn-irreversible">{{ t('settings.reset.irreversible') }}</p>
         </div>
       </div>
       <p v-if="isSandbox" class="sandbox-hint">{{ t('settings.reset.sandboxHint') }}</p>
+
+      <div class="selector-label">{{ t('settings.reset.selectCategories') }}</div>
+      <DataCategorySelector v-model="selected" :available="ALL_CATEGORIES" :disabled="busy" />
     </div>
 
     <!-- Footer -->
     <div class="reset-footer">
       <span class="understood-label">{{ t('settings.reset.understood') }}</span>
+      <span
+        v-if="status.kind !== 'idle'"
+        class="status-text"
+        :class="{ success: status.kind === 'success', error: status.kind === 'error' }"
+      >{{ status.msg }}</span>
       <div class="footer-actions">
-        <button class="mini-btn" :title="t('common.cancel')" @click="cancel">
+        <button class="mini-btn" :title="t('common.cancel')" :disabled="busy" @click="cancel">
           <X :size="12" :stroke-width="2.5" />
         </button>
         <div class="confirm-with-countdown">
           <button
             class="mini-btn danger-active"
-            :class="{ 'confirm-counting': !ready }"
-            :title="ready ? t('common.confirm') : t('settings.reset.confirmCountdown', { n: countdown })"
-            :disabled="!ready"
+            :class="{ 'confirm-counting': !ready || busy }"
+            :title="ready && !busy ? t('common.confirm') : t('settings.reset.confirmCountdown', { n: countdown })"
+            :disabled="!ready || busy"
             @click="handleConfirm"
           >
             <Check :size="12" :stroke-width="2.5" />
@@ -106,12 +157,10 @@ async function handleConfirm() {
   overflow: hidden;
   border-radius: 11px;
 }
-/* growAbove: header anchors to the bottom, body grows upward (mirrors Settings) */
 .reset-root.grow-above .reset-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
 .reset-root.grow-above .reset-footer { order: 1; border-top: none; border-bottom: 1px solid var(--color-surface); }
 .reset-root.grow-above .reset-body { order: 0; }
 
-/* ── Header ── */
 .reset-header {
   display: flex;
   align-items: center;
@@ -153,14 +202,14 @@ async function handleConfirm() {
   flex-shrink: 0;
 }
 
-/* ── Body ── */
 .reset-body {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 28px;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 18px 24px;
   overflow-y: auto;
+  gap: 12px;
 }
 .reset-body::-webkit-scrollbar { width: 3px; }
 .reset-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
@@ -168,7 +217,6 @@ async function handleConfirm() {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  max-width: 340px;
 }
 .warn-icon-wrap {
   display: flex;
@@ -200,14 +248,17 @@ async function handleConfirm() {
   letter-spacing: 0.01em;
 }
 .sandbox-hint {
-  margin-top: 12px;
   font-size: 11px;
   font-weight: 500;
   color: #16a34a;
-  text-align: center;
+}
+.selector-label {
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
 }
 
-/* ── Footer ── */
 .reset-footer {
   display: flex;
   align-items: center;
@@ -222,6 +273,16 @@ async function handleConfirm() {
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
+.status-text {
+  font-size: 10.5px;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.status-text.success { color: var(--color-success); }
+.status-text.error { color: var(--color-danger); }
 .footer-actions {
   display: flex;
   align-items: center;
@@ -229,14 +290,13 @@ async function handleConfirm() {
   margin-left: auto;
 }
 
-/* ── Action buttons (shared base) ── */
 .mini-btn {
   display: flex; align-items: center; justify-content: center;
   width: 27px; height: 27px; border-radius: 7px;
   color: var(--color-text-muted); cursor: pointer;
   border: none; background: none; transition: .12s;
 }
-.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
+.mini-btn:hover:not(:disabled) { color: var(--color-text); background: var(--color-border); }
 .mini-btn.danger-active {
   color: var(--color-danger); background: var(--color-danger-bg);
   animation: danger-pulse .8s ease-in-out infinite alternate;

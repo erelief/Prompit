@@ -125,13 +125,38 @@
     "close": "Close",
     "about": "About",
     "userData": {
-      "label": "User Data",
-      "manageButton": "Manage",
-      "manageDescription": "Back up or restore encrypted user data",
-      "pageTitle": "User Data",
+      "label": "Data Management"
+    },
+    "categories": {
+      "selectAll": "Select all",
+      "sensitive": "Sensitive",
+      "legacy": "Legacy",
+      "notInBackup": "Not in backup",
+      "settings": "Software settings",
+      "settingsDescription": "Theme, languages, shortcuts, opacity and other preferences",
+      "providers": "AI providers",
+      "providersDescription": "Configured AI model providers and their API keys",
+      "websearch": "Web search providers",
+      "websearchDescription": "Configured web search engines and their API keys",
+      "history": "History",
+      "historyDescription": "Past translations and skills-lite runs",
+      "dictionaries": "Custom dictionary",
+      "dictionariesDescription": "Your custom dictionary entries per language",
+      "personas": "Personas",
+      "personasDescription": "Translation prompt personas",
+      "skills_lite": "Skills-lite",
+      "skills_liteDescription": "Skills-lite prompt templates",
+      "secrets": "Legacy secrets",
+      "secretsDescription": "Older key store kept for migration"
+    },
+    "exportData": {
+      "pageTitle": "Export Data",
+      "entryButton": "Export",
+      "entryDescription": "Back up selected data to an encrypted file",
+      "selectCategories": "Choose what to include",
       "export": {
         "title": "Export",
-        "description": "Pack your service configuration and user data into an encrypted backup file. The password you set here encrypts the backup — there is no way to recover it if lost.",
+        "description": "Pack the selected items into an encrypted backup file. The password you set here encrypts the backup — there is no way to recover it if lost.",
         "passwordPlaceholder": "At least 6 characters",
         "confirmPasswordPlaceholder": "Confirm password",
         "button": "Export",
@@ -139,20 +164,28 @@
         "success": "Exported to {path}",
         "cancelled": "Export cancelled"
       },
+      "error": "Failed: {message}"
+    },
+    "importData": {
+      "pageTitle": "Import Data",
+      "entryButton": "Import",
+      "entryDescription": "Restore selected data from a backup file",
+      "selectCategories": "Choose what to restore",
       "import": {
         "title": "Import",
-        "description": "Restore app data and configuration from a backup file. This overwrites existing service configuration and user data. Theme and shortcuts are not affected.",
-        "warning": "Overwrites existing user data. This cannot be undone.",
+        "description": "Analyze a backup file and pick which parts to restore. Anything you select overwrites the existing data of that kind.",
+        "warning": "Selected categories overwrite existing data. This cannot be undone.",
         "passwordPlaceholder": "Backup password",
         "button": "Import",
         "selectFile": "Select Backup File",
         "changeFile": "Change",
+        "analyze": "Analyze",
+        "analyzing": "Analyzing…",
+        "reanalyze": "Re-analyze",
         "confirmWarning": "This will overwrite existing data and cannot be undone.",
-        "success": "Imported successfully. Restart the app to apply.",
+        "success": "Imported successfully.",
         "cancelled": "Import cancelled"
       },
-      "passwordTooShort": "Password must be at least 6 characters",
-      "passwordRequired": "Password is required",
       "error": "Failed: {message}"
     },
     "reset": {
@@ -160,12 +193,16 @@
       "button": "Reset Software",
       "pageTitle": "Reset Software",
       "warning": "This action will permanently delete all your data and settings. The application will close after the reset is complete.",
+      "partialWarning": "This will permanently delete the selected data. Anything not selected is left untouched.",
       "irreversible": "This action cannot be undone.",
       "understood": "I understand the risk",
       "confirmCountdown": "Confirm ({n}s)",
       "confirm": "Confirm",
       "sandboxBadge": "Sandbox",
-      "sandboxHint": "Sandbox mode — only temporary data will be affected."
+      "sandboxHint": "Sandbox mode — only temporary data will be affected.",
+      "selectCategories": "Choose what to delete",
+      "partialSuccess": "Selected data deleted.",
+      "restartRequired": "Settings deleted. Restart the app to apply."
     }
   },
   "floating": {

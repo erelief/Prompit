@@ -15,7 +15,8 @@
 //!
 //! Transport model (only when the user backs up / migrates):
 //!   Master Key  --wrapped by KEK_password=Argon2id-->  export bundle
-//!   bundle also carries the 5 data ciphertexts verbatim.
+//!   bundle also carries the 7 data ciphertexts verbatim, plus an encrypted
+//!   snapshot of the (otherwise plaintext) `config.json` software settings.
 //!
 //! The local KEK layer (this file + kek.rs) is fully decoupled from the
 //! password transport layer: export/import never touches the machine KEK, so
@@ -62,6 +63,28 @@ const DATA_FILES: &[&str] = &[
     "skills_lite",
     "providers",
     "websearch",
+];
+
+/// Pseudo-stem used in the export bundle for the software-settings payload.
+/// Unlike the entries in `DATA_FILES`, the on-disk source (`config.json`) is
+/// plaintext; export encrypts it under the Master Key's `"settings"` scope and
+/// import writes it back as plaintext. Kept distinct from `DATA_FILES` so the
+/// raw-ciphertext fast path (which lands data files verbatim) is not confused
+/// by the encrypt/decrypt step this category requires.
+const SETTINGS_STEM: &str = "settings";
+
+/// Every stem that may legally appear as a key in `ExportBundle.data`. Used as
+/// the import/inspect allowlist (replaces the path-traversal guard that used to
+/// consult `DATA_FILES` alone).
+const KNOWN_STEMS: &[&str] = &[
+    "secrets",
+    "history",
+    "dictionaries",
+    "personas",
+    "skills_lite",
+    "providers",
+    "websearch",
+    "settings",
 ];
 
 // ── Argon2id parameters for the transport envelope ─────────────────────────
@@ -221,10 +244,12 @@ pub struct ExportBundle {
     wrapped_master_key: EncryptedPayload,
     /// VERIFIER_MAGIC encrypted under the verifier scope of the Master Key.
     verifier: EncryptedPayload,
-    /// Raw on-disk ciphertexts, keyed by data-file stem. All 5 data files now
-    /// share a single on-disk shape — a single `EncryptedPayload` wrapping the
-    /// serialized structure (secrets.json was unified to match the other 4).
-    /// Already wrapped under the Master Key, so values travel and land verbatim.
+    /// Ciphertexts keyed by data-file stem. The 7 user-data files share a
+    /// single on-disk shape (a single `EncryptedPayload` wrapping the
+    /// serialized structure) and travel verbatim. The `"settings"` entry is the
+    /// otherwise-plaintext `config.json` re-encrypted under the Master Key's
+    /// `"settings"` scope at export time (and decrypted back to plaintext on
+    /// import). All values are wrapped under the Master Key.
     data: std::collections::BTreeMap<String, EncryptedPayload>,
 }
 
@@ -239,10 +264,12 @@ fn derive_password_key(password: &str, salt: &[u8], kdf: &KdfParams) -> Result<[
     Ok(*out)
 }
 
-/// Read the 5 data files as raw ciphertext payloads. Missing files are simply
-/// omitted from the map (import will then not write them, leaving the target
-/// machine's existing state — or none — for that file). All 5 files share the
-/// single-`EncryptedPayload` on-disk shape.
+/// Read the 7 data files as raw ciphertext payloads, plus the plaintext
+/// `config.json` re-encrypted under the `"settings"` scope. Missing files are
+/// simply omitted from the map (import will then not write them, leaving the
+/// target machine's existing state — or none — for that file). The 7 data files
+/// share the single-`EncryptedPayload` on-disk shape; `config.json` is read as
+/// plaintext and encrypted here so the bundle never carries plaintext settings.
 fn collect_data_payloads(
     app: &AppHandle,
 ) -> Result<std::collections::BTreeMap<String, EncryptedPayload>, String> {
@@ -258,12 +285,27 @@ fn collect_data_payloads(
             serde_json::from_str(&content).map_err(|e| format!("parse {}: {e}", stem))?;
         map.insert((*stem).to_string(), payload);
     }
+    // config.json is the only plaintext source — encrypt it under the settings
+    // scope so the bundle stays ciphertext end-to-end. Absent on a fresh install.
+    let cfg_path = dir.join("config.json");
+    if cfg_path.exists() {
+        let content = fs::read(&cfg_path).map_err(|e| format!("read config: {e}"))?;
+        let payload = crypto::encrypt(SETTINGS_STEM, &content)?;
+        map.insert(SETTINGS_STEM.to_string(), payload);
+    }
     Ok(map)
 }
 
 /// Build an export bundle for the current machine's data, keyed by `password`.
-/// Writes it to `path`. Intended to be invoked from the export_data command.
-pub fn export_bundle(app: &AppHandle, password: &str, path: &str) -> Result<(), String> {
+/// Writes it to `path`. `categories` filters which entries land in the bundle;
+/// pass an empty slice (or all of `KNOWN_STEMS`) to include everything.
+/// Intended to be invoked from the export_data command.
+pub fn export_bundle(
+    app: &AppHandle,
+    password: &str,
+    path: &str,
+    categories: &[String],
+) -> Result<(), String> {
     let master_key = crypto::get_master_key()?;
 
     let mut salt = [0u8; ARGON2_SALT_LEN];
@@ -277,7 +319,17 @@ pub fn export_bundle(app: &AppHandle, password: &str, path: &str) -> Result<(), 
     let pw_key = derive_password_key(password, &salt, &kdf)?;
     let wrapped = crypto::encrypt_with_key(&pw_key, &master_key)?;
     let verifier = crypto::encrypt_with_key(&verifier_key(&master_key), VERIFIER_MAGIC)?;
-    let data = collect_data_payloads(app)?;
+    let mut data = collect_data_payloads(app)?;
+
+    // Filter to the requested categories. Anything not in the allowlist or not
+    // present on this machine is dropped. An empty request means "all known",
+    // matching the pre-selective behavior.
+    let want: std::collections::HashSet<&str> = if categories.is_empty() {
+        KNOWN_STEMS.iter().copied().collect()
+    } else {
+        categories.iter().map(|s| s.as_str()).collect()
+    };
+    data.retain(|stem, _| want.contains(stem.as_str()) && KNOWN_STEMS.contains(&stem.as_str()));
 
     let bundle = ExportBundle {
         version: 1,
@@ -296,44 +348,46 @@ pub fn export_bundle(app: &AppHandle, password: &str, path: &str) -> Result<(), 
 
 /// Read a bundle from `path`, unwrap its Master Key with `password`, verify,
 /// then land the data ciphertexts on this machine and re-wrap the Master Key
-/// under THIS machine's KEK (so local use stays passwordless).
-pub fn import_bundle(app: &AppHandle, password: &str, path: &str) -> Result<(), String> {
-    let content = fs::read_to_string(path).map_err(|e| format!("read bundle: {e}"))?;
-    let bundle: ExportBundle =
-        serde_json::from_str(&content).map_err(|e| format!("parse bundle: {e}"))?;
-    if bundle.kind != "prompit-vault-export" {
-        return Err("not a prompit export bundle".into());
-    }
+/// under THIS machine's KEK (so local use stays passwordless). `categories`
+/// selects which bundle entries are written; an empty slice means all known
+/// stems present in the bundle.
+pub fn import_bundle(
+    app: &AppHandle,
+    password: &str,
+    path: &str,
+    categories: &[String],
+) -> Result<(), String> {
+    let (bundle, master_key) = open_bundle(path, password)?;
 
-    let salt = BASE64
-        .decode(&bundle.salt)
-        .map_err(|e| format!("decode salt: {e}"))?;
-    let pw_key = derive_password_key(password, &salt, &bundle.kdf)?;
-    let mk_bytes = crypto::decrypt_with_key(&pw_key, &bundle.wrapped_master_key)
-        .map_err(|_| "wrong password or corrupt bundle".to_string())?;
-    let master_key = to_array32(&mk_bytes, "corrupt bundle")?;
+    let want: std::collections::HashSet<&str> = if categories.is_empty() {
+        KNOWN_STEMS.iter().copied().collect()
+    } else {
+        categories.iter().map(|s| s.as_str()).collect()
+    };
 
-    // Verify before committing anything to disk.
-    let verifier_plain = crypto::decrypt_with_key(&verifier_key(&master_key), &bundle.verifier)
-        .map_err(|_| "corrupt bundle: verifier unreadable".to_string())?;
-    if verifier_plain != VERIFIER_MAGIC {
-        return Err("bundle verifier mismatch".into());
-    }
-
-    // 1) Write the data ciphertexts verbatim. They are already wrapped under
-    //    the (now-known) Master Key, so no re-encryption needed. Only the 5
-    //    known data-file stems are written — a malicious bundle with other
-    //    keys (e.g. "../../config") must NOT reach the filesystem.
+    // 1) Write each requested, allowlisted entry. The 7 data files are raw
+    //    ciphertexts and land verbatim (already wrapped under the Master Key).
+    //    The "settings" entry is a Master-Key-encrypted blob of the otherwise
+    //    plaintext config.json — decrypt it back to plaintext on write.
     let dir = crate::get_data_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("create dir: {e}"))?;
     for (stem, payload) in &bundle.data {
-        if !DATA_FILES.contains(&stem.as_str()) {
+        if !KNOWN_STEMS.contains(&stem.as_str()) || !want.contains(stem.as_str()) {
             continue;
         }
-        let out = serde_json::to_string_pretty(payload)
-            .map_err(|e| format!("serialize {}: {e}", stem))?;
-        let p = dir.join(format!("{}.json", stem));
-        fs::write(&p, out).map_err(|e| format!("write {}: {e}", stem))?;
+        if stem == SETTINGS_STEM {
+            let plain =
+                crypto::decrypt_with_key(&settings_key(&master_key), payload).map_err(|e| {
+                    format!("decrypt settings: {e}")
+                })?;
+            fs::write(dir.join("config.json"), plain)
+                .map_err(|e| format!("write config: {e}"))?;
+        } else {
+            let out = serde_json::to_string_pretty(payload)
+                .map_err(|e| format!("serialize {}: {e}", stem))?;
+            let p = dir.join(format!("{}.json", stem));
+            fs::write(&p, out).map_err(|e| format!("write {}: {e}", stem))?;
+        }
     }
 
     // 2) Re-wrap the imported Master Key under this machine's KEK and install.
@@ -342,19 +396,158 @@ pub fn import_bundle(app: &AppHandle, password: &str, path: &str) -> Result<(), 
     Ok(())
 }
 
+/// Read-only inspection of a bundle: returns a per-category summary (which
+/// stems are present and a rough count for the list-shaped ones) without
+/// writing anything to disk. Used by the import UI to let the user pick what to
+/// restore. Wrong password yields the same error string as `import_bundle`.
+#[derive(Serialize)]
+pub struct CategoryPreview {
+    pub id: String,
+    /// `Some(n)` for the list-shaped categories (providers/websearch count),
+    /// `None` for opaque/mapping categories where a count is not meaningful.
+    pub count: Option<usize>,
+}
+
+#[derive(Serialize)]
+pub struct BundlePreview {
+    pub version: u32,
+    pub categories: Vec<CategoryPreview>,
+}
+
+pub fn inspect_bundle_file(
+    path: &str,
+    password: &str,
+) -> Result<BundlePreview, String> {
+    let (bundle, master_key) = open_bundle(path, password)?;
+    let mut cats = Vec::new();
+    for stem in KNOWN_STEMS {
+        if let Some(payload) = bundle.data.get(*stem) {
+            let count = count_for(stem, payload, &master_key)?;
+            cats.push(CategoryPreview {
+                id: (*stem).to_string(),
+                count,
+            });
+        }
+    }
+    Ok(BundlePreview {
+        version: bundle.version,
+        categories: cats,
+    })
+}
+
+/// Open + password-verify a bundle, returning the parsed bundle and the
+/// recovered Master Key. Shared by import and inspect so both reject bad
+/// passwords identically.
+fn open_bundle(path: &str, password: &str) -> Result<(ExportBundle, [u8; 32]), String> {
+    let content = fs::read_to_string(path).map_err(|e| format!("read bundle: {e}"))?;
+    let bundle: ExportBundle =
+        serde_json::from_str(&content).map_err(|e| format!("parse bundle: {e}"))?;
+    if bundle.kind != "prompit-vault-export" {
+        return Err("not a prompit export bundle".into());
+    }
+    let salt = BASE64
+        .decode(&bundle.salt)
+        .map_err(|e| format!("decode salt: {e}"))?;
+    let pw_key = derive_password_key(password, &salt, &bundle.kdf)?;
+    let mk_bytes = crypto::decrypt_with_key(&pw_key, &bundle.wrapped_master_key)
+        .map_err(|_| "wrong password or corrupt bundle".to_string())?;
+    let master_key = to_array32(&mk_bytes, "corrupt bundle")?;
+    let verifier_plain = crypto::decrypt_with_key(&verifier_key(&master_key), &bundle.verifier)
+        .map_err(|_| "corrupt bundle: verifier unreadable".to_string())?;
+    if verifier_plain != VERIFIER_MAGIC {
+        return Err("bundle verifier mismatch".into());
+    }
+    Ok((bundle, master_key))
+}
+
+/// Per-category key for the settings scope, derived the same way as
+/// `crypto::derive_key` (which is private to that module) so import/inspect
+/// here can reuse the Master-Key-derived settings key without exposing a new
+/// public surface.
+fn settings_key(master_key: &[u8; 32]) -> [u8; 32] {
+    use sha2::{Digest, Sha256};
+    let mut h = Sha256::new();
+    h.update(master_key.as_slice());
+    h.update(b":");
+    h.update(SETTINGS_STEM.as_bytes());
+    let out = h.finalize();
+    let mut k = [0u8; 32];
+    k.copy_from_slice(&out);
+    k
+}
+
+/// Decrypt the named stem's payload and report a count for the categories
+/// whose shape is a list. `providers`/`websearch` carry a `Vec`-shaped bundle;
+/// the other categories are mappings or arbitrary JSON and report `None`.
+fn count_for(
+    stem: &str,
+    payload: &EncryptedPayload,
+    master_key: &[u8; 32],
+) -> Result<Option<usize>, String> {
+    match stem {
+        "providers" => {
+            let plain = crypto::decrypt_with_key(&scope_key(master_key, "providers"), payload)?;
+            let v: serde_json::Value =
+                serde_json::from_slice(&plain).map_err(|e| format!("parse providers: {e}"))?;
+            Ok(v.get("providers").and_then(|p| p.as_array()).map(|a| a.len()))
+        }
+        "websearch" => {
+            let plain = crypto::decrypt_with_key(&scope_key(master_key, "websearch"), payload)?;
+            let v: serde_json::Value =
+                serde_json::from_slice(&plain).map_err(|e| format!("parse websearch: {e}"))?;
+            Ok(v
+                .get("web_search_providers")
+                .and_then(|p| p.as_array())
+                .map(|a| a.len()))
+        }
+        _ => Ok(None),
+    }
+}
+
+/// Generic Master-Key-derived per-scope key, mirroring `crypto::derive_key`.
+/// Used by `count_for` so inspection does not need `crypto::derive_key` (which
+/// is private and requires the Master Key to be installed in-process, which it
+/// is not when merely inspecting a bundle on a fresh machine).
+fn scope_key(master_key: &[u8; 32], scope: &str) -> [u8; 32] {
+    use sha2::{Digest, Sha256};
+    let mut h = Sha256::new();
+    h.update(master_key.as_slice());
+    h.update(b":");
+    h.update(scope.as_bytes());
+    let out = h.finalize();
+    let mut k = [0u8; 32];
+    k.copy_from_slice(&out);
+    k
+}
+
 // ── Tauri commands ──────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn export_data(app: AppHandle, path: String, password: String) -> Result<(), String> {
+pub fn export_data(
+    app: AppHandle,
+    path: String,
+    password: String,
+    categories: Option<Vec<String>>,
+) -> Result<(), String> {
     if password.len() < 6 {
         return Err("password must be at least 6 characters".into());
     }
-    export_bundle(&app, &password, &path)
+    export_bundle(&app, &password, &path, &categories.unwrap_or_default())
 }
 
 #[tauri::command]
-pub fn import_data(app: AppHandle, path: String, password: String) -> Result<(), String> {
-    import_bundle(&app, &password, &path)
+pub fn import_data(
+    app: AppHandle,
+    path: String,
+    password: String,
+    categories: Option<Vec<String>>,
+) -> Result<(), String> {
+    import_bundle(&app, &password, &path, &categories.unwrap_or_default())
+}
+
+#[tauri::command]
+pub fn inspect_bundle(path: String, password: String) -> Result<BundlePreview, String> {
+    inspect_bundle_file(&path, &password)
 }
 
 #[cfg(test)]

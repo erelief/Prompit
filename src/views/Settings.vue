@@ -75,6 +75,8 @@ import {
   GripVertical,
   RotateCcw,
   CloudDownload,
+  Download,
+  Upload,
   Sun,
   Moon,
   SunMoon,
@@ -1970,9 +1972,15 @@ onUnmounted(() => {
         </div>
         <div class="card-section">
           <div class="card-row">
-            <span class="card-label">{{ t('settings.userData.manageDescription') }}</span>
-            <button class="reset-btn neutral" @click="router.push('/settings/data')">
-              <Database :size="11" :stroke-width="1.9" />{{ t('settings.userData.manageButton') }}
+            <span class="card-label">{{ t('settings.exportData.entryDescription') }}</span>
+            <button class="reset-btn neutral" @click="router.push('/settings/export')">
+              <Download :size="11" :stroke-width="1.9" />{{ t('settings.exportData.entryButton') }}
+            </button>
+          </div>
+          <div class="card-row">
+            <span class="card-label">{{ t('settings.importData.entryDescription') }}</span>
+            <button class="reset-btn neutral" @click="router.push('/settings/import')">
+              <Upload :size="11" :stroke-width="1.9" />{{ t('settings.importData.entryButton') }}
             </button>
           </div>
           <div class="card-row">

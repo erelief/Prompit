@@ -30,9 +30,14 @@ const router = createRouter({
       component: () => import("../views/ResetSoftware.vue"),
     },
     {
-      path: "/settings/data",
-      name: "user-data",
-      component: () => import("../views/UserData.vue"),
+      path: "/settings/export",
+      name: "export-data",
+      component: () => import("../views/ExportData.vue"),
+    },
+    {
+      path: "/settings/import",
+      name: "import-data",
+      component: () => import("../views/ImportData.vue"),
     },
     {
       path: "/onboarding",
