@@ -354,7 +354,7 @@
     "selectSearchPreset": "Select a web search provider…",
     "searchName": "Provider name",
     "skip": "Skip",
-    "importExistingSettings": "Or, import existing settings →",
+    "importExistingSettings": "Or, import existing settings",
     "importCardTitle": "Restore from backup",
     "importCardBody": "Pick a Prompit backup file, enter its password, choose what to restore, and we'll continue setup based on what came in.",
     "importSuccessTitle": "Import successful",
@@ -365,7 +365,8 @@
     "importSummaryWebSearch": "Web search providers: {n}",
     "importSummaryAllReady": "You're all set. Click Next to finish.",
     "importSummaryNeedWebSearch": "No web search provider found — the next step lets you add one (or skip).",
-    "importSummaryNeedProvider": "No AI provider found. The app needs at least one to function — the next step will guide you through adding one."
+    "importSummaryNeedProvider": "No AI provider found. The app needs at least one to function — the next step will guide you through adding one.",
+    "importSummarySkipped": "Skipped (keeping existing data)"
   },
   "startupReminder": {
     "hint": "Press {shortcut} to open the input"

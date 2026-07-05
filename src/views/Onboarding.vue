@@ -27,7 +27,7 @@ import {
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import DataCategorySelector from "../components/DataCategorySelector.vue";
-import { ALL_CATEGORIES, type DataCategory } from "../composables/useDataCategories";
+import { ALL_CATEGORIES, type DataCategory, type CategoryPreview } from "../composables/useDataCategories";
 import type { ModelInputCapabilities } from "../stores/config";
 import {
   testProviderConnection,
@@ -51,6 +51,7 @@ import {
   Moon,
   SunMoon,
   Plus,
+  Minus,
   Globe,
   Info,
   Upload,
@@ -66,10 +67,11 @@ const router = useRouter();
 
 // ── Step management ──
 // Step IDs: 0=welcome, 1=info, 2=add-provider, 3=lightweight, 4=select-models,
-// 5=websearch-info, 6=add-search, 7=done, 8=import (branch step),
-// 9=import-summary (branch step — analyzes what landed and routes the user).
+// 5=websearch-info, 6=add-search, 7=done, 8=import (branch step).
 // `importMode` switches the linear step sequence to the import path:
-//   welcome(0) → info(1) → import(8) → import-summary(9) → (done(7) | websearch(5) | add-provider(2))
+//   welcome(0) → info(1) → import(8) → (done(7) | websearch(5) | add-provider(2))
+// On import success step 8 flips from the form to an inline summary that also
+// serves as the routing decision point — no separate summary step.
 // Otherwise the full add-provider path runs: 0→1→2→3→4→5→6→7.
 // When the machine already has a web-search provider configured, steps 5 and 6
 // are skipped on the linear path too (skipWebSearchSteps), so a user who
@@ -201,10 +203,18 @@ const {
   // Master Key is already installed in-process), then advance to the
   // import-summary step (9). That step inspects what landed and routes the
   // user to the right next step (done / websearch / add-provider).
+  //
+  // NOTE: confirmImport() calls resetImport() AFTER this callback, which
+  // clears importPreview / importSelected. We snapshot them here so step 9
+  // can still show what was imported vs what the user skipped.
   async onSuccess() {
     try {
+      const snapshotCategories = [...importSelected.value];
+      const snapshotPreview = importPreview.value.map((c) => ({ ...c }));
       await loadConfig();
       importSucceeded.value = true;
+      summaryCategories.value = snapshotCategories;
+      summaryPreview.value = snapshotPreview;
     } catch (err) {
       importStatus.value = {
         kind: "error",
@@ -220,6 +230,11 @@ const {
 // provider — instead the summary step (9) routes the user to add one.
 const importSucceeded = ref(false);
 
+// Snapshots captured in onSuccess so the summary (step 9) can display them
+// after the composable's resetImport has cleared its live state.
+const summaryCategories = ref<string[]>([]);
+const summaryPreview = ref<CategoryPreview[]>([]);
+
 // Bridge the Set-based selection from the composable to the string[] the
 // DataCategorySelector v-model expects.
 const importSelectedArray = computed<string[]>({
@@ -234,12 +249,19 @@ const importAvailableCats = computed<DataCategory[]>(() =>
     ),
 );
 
-// Summary-step derived state: what landed after the import.
+// Summary-step derived state, backed by the snapshot captured in onSuccess
+// (the composable's importPreview was already cleared by resetImport).
 const importedProviderCount = computed(() =>
-  importPreview.value.find((c) => c.id === "providers")?.count ?? 0,
+  summaryPreview.value.find((c) => c.id === "providers")?.count ?? 0,
 );
 const importedWebSearchCount = computed(() =>
-  importPreview.value.find((c) => c.id === "websearch")?.count ?? 0,
+  summaryPreview.value.find((c) => c.id === "websearch")?.count ?? 0,
+);
+const wasProviderImported = computed(() =>
+  summaryCategories.value.includes("providers"),
+);
+const wasWebSearchImported = computed(() =>
+  summaryCategories.value.includes("websearch"),
 );
 // After loadConfig, appConfig reflects the merged result. The summary page
 // reports the live (post-import) provider/websearch presence.
@@ -277,6 +299,7 @@ function routeAfterImport() {
 function enterImportBranch() {
   importMode.value = true;
   postImportTarget.value = null;
+  importStatus.value = { kind: "idle", msg: "" };
   direction.value = "forward";
   currentStep.value = 8;
 }
@@ -296,16 +319,11 @@ const canProceed = computed(() => {
         providerForm.value.base_url.trim() !== "" &&
         (isLocalProvider(providerForm.value, providerPresets.value) || providerForm.value.api_key.trim() !== "")
       );
-    case 8:
-      // Import step: Next is only enabled after a successful import. The actual
-      // category selection + countdown-confirm drives the import; Next advances
-      // to the summary step (9), which decides where to route the user.
-      return importSucceeded.value;
-    case 9:
-      // Import summary: informational, always reachable. The Next button calls
-      // routeAfterImport, not the linear increment.
-      return true;
-    case 4:
+	    case 8:
+	      // Import step: Next is only enabled after a successful import; the
+	      // in-line summary (shown on success) doubles as the routing hub.
+	      return importSucceeded.value;
+	    case 4:
       return selectedModels.value.size > 0;
     case 0: case 1: case 3: case 5: case 6: case 7:
       // Info/optional steps are always reachable.
@@ -324,7 +342,7 @@ const isLastStep = computed(() => currentStep.value === 7);
 // - Linear (add-provider) branch: 0..7, but 5 and 6 are dropped when a
 //   web-search provider is already configured (skipWebSearchSteps).
 const dotSteps = computed(() => {
-  if (importMode.value) return [0, 1, 8, 9];
+  if (importMode.value) return [0, 1, 8];
 
   const tgt = postImportTarget.value;
   if (tgt !== null) {
@@ -356,13 +374,12 @@ function goNext() {
     return;
   }
   if (currentStep.value === 8) {
-    // Import succeeded → advance to the summary step (9), which routes onward.
-    direction.value = "forward";
-    currentStep.value = 9;
-    return;
-  }
-  if (currentStep.value === 9) {
-    routeAfterImport();
+    // Import succeeded & summary shown → route based on what landed.
+    if (importSucceeded.value) {
+      routeAfterImport();
+      return;
+    }
+    // Still in the form; shouldn't be reachable (canProceed guards), but safe.
     return;
   }
   // Step 6: save search config if user filled it in
@@ -433,14 +450,10 @@ function goPrev() {
     currentStep.value = 1;
     return;
   }
-  // Summary step (9) goes back to the import step (8).
-  if (currentStep.value === 9) {
-    currentStep.value = 8;
-    return;
-  }
-  // Done step in import branch goes back to the summary/import step, not 6.
+  // Summary step (9) removed — step 8 now doubles as summary on success.
+  // Done step in import branch goes back to the import/summary step, not 6.
   if (currentStep.value === 7 && importMode.value) {
-    currentStep.value = importSucceeded.value ? 9 : 8;
+    currentStep.value = 8;
     return;
   }
   // Skip web-search steps (5, 6) backward when already configured.
@@ -652,20 +665,22 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center h-dvh px-6 select-none" style="background: var(--color-bg)" @mousedown="handleDrag" @click="onRootClick">
+  <div class="flex items-center justify-center h-dvh px-6 select-none relative" style="background: var(--color-bg)" @mousedown="handleDrag" @click="onRootClick">
+    <!-- Close button: absolute on the outer wrapper so it's pinned to the
+         viewport right edge instead of the inset card. -->
+    <button
+      class="absolute top-4 right-6 z-10 flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+      style="color: var(--color-text-muted)"
+      @click="handleClose"
+      :title="t('common.hide')"
+    >
+      <X :size="18" :stroke-width="1.5" />
+    </button>
+
     <div class="w-full max-w-[520px] flex flex-col relative" style="height: 100%; max-height: 100dvh; min-height: 0">
 
-      <!-- Header: X button only, non-scrollable -->
-      <div class="flex items-center justify-end flex-shrink-0 h-10 pr-1">
-        <button
-          class="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
-          style="color: var(--color-text-muted)"
-          @click="handleClose"
-          :title="t('common.hide')"
-        >
-          <X :size="18" :stroke-width="1.5" />
-        </button>
-      </div>
+      <!-- Header spacer: keeps top-of-card breathing room consistent -->
+      <div class="flex-shrink-0 h-10" />
 
       <!-- Close confirmation modal -->
       <Transition name="drop">
@@ -695,8 +710,7 @@ onMounted(async () => {
       </Transition>
 
       <!-- Content area with transitions -->
-      <div class="onb-content flex-1 relative overflow-y-auto min-h-0">
-        <div class="w-full max-w-[520px] min-h-full">
+      <div class="onb-content flex-1 relative overflow-x-hidden overflow-y-auto min-h-0">
         <Transition :name="direction === 'forward' ? 'slide-left' : 'slide-right'" mode="out-in">
 
           <!-- Step 0: Welcome -->
@@ -769,10 +783,10 @@ onMounted(async () => {
             </p>
             <button
               @click="enterImportBranch"
-              class="absolute bottom-0 text-xs pb-2 transition-colors hover:underline"
+              class="absolute bottom-0 text-xs pb-2 transition-colors hover:underline flex items-center gap-0.5"
               style="color: var(--color-text-muted); background: none; border: none; cursor: pointer;"
             >
-              {{ t('onboarding.importExistingSettings') }}
+              {{ t('onboarding.importExistingSettings') }}<ChevronRight :size="12" :stroke-width="1.8" />
             </button>
           </div>
 
@@ -1199,26 +1213,42 @@ onMounted(async () => {
 
           <!-- Step 8: Import (branch) -->
           <div v-else-if="currentStep === 8" key="step8" class="flex flex-col py-6">
-            <!-- Success state: import done, stay here until Next (→ summary) -->
+            <!-- Success state: import done + inline summary (was step 9, now merged) -->
             <template v-if="importSucceeded">
-              <div class="flex flex-col items-center justify-center h-full py-10 text-center">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
-                  <Check :size="22" style="color: var(--color-accent)" />
+              <h2 class="text-lg font-medium mb-3" style="color: var(--color-text)">
+                {{ t('onboarding.importSummaryTitle') }}
+              </h2>
+              <div class="flex flex-col gap-2 mb-4">
+                <div class="flex items-center gap-2 text-sm" style="color: var(--color-text-secondary)">
+                  <Check v-if="hasUsableProviders" :size="14" style="color: var(--color-accent)" />
+                  <X v-else-if="wasProviderImported" :size="14" style="color: var(--color-danger)" />
+                  <Minus v-else :size="14" style="color: var(--color-text-muted); opacity: 0.5" />
+                  <span v-if="wasProviderImported">{{ t('onboarding.importSummaryProviders', { n: importedProviderCount }) }}</span>
+                  <span v-else style="color: var(--color-text-muted)">{{ t('onboarding.importSummarySkipped') }}</span>
                 </div>
-                <h2 class="text-xl font-medium mb-2" style="color: var(--color-text)">
-                  {{ t('onboarding.importSuccessTitle') }}
-                </h2>
-                <p class="text-sm leading-relaxed max-w-xs" style="color: var(--color-text-secondary)">
-                  {{ t('onboarding.importSuccessBody') }}
-                </p>
-                <button
-                  @click="resetImportBranch"
-                  class="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium transition-colors mt-6"
-                  style="background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-secondary)"
-                >
-                  {{ t('onboarding.importRetry') }}
-                </button>
+                <div class="flex items-center gap-2 text-sm" style="color: var(--color-text-secondary)">
+                  <Check v-if="hasWebSearch" :size="14" style="color: var(--color-accent)" />
+                  <X v-else-if="wasWebSearchImported" :size="14" style="color: var(--color-danger)" />
+                  <Minus v-else :size="14" style="color: var(--color-text-muted); opacity: 0.5" />
+                  <span v-if="wasWebSearchImported">{{ t('onboarding.importSummaryWebSearch', { n: importedWebSearchCount }) }}</span>
+                  <span v-else style="color: var(--color-text-muted)">{{ t('onboarding.importSummarySkipped') }}</span>
+                </div>
               </div>
+              <p v-if="!(hasUsableProviders && hasWebSearch)" class="text-sm leading-relaxed mb-4" style="color: var(--color-text-secondary)">
+                <template v-if="hasUsableProviders">
+                  {{ t('onboarding.importSummaryNeedWebSearch') }}
+                </template>
+                <template v-else>
+                  {{ t('onboarding.importSummaryNeedProvider') }}
+                </template>
+              </p>
+              <button
+                @click="resetImportBranch"
+                class="flex items-center gap-1 text-xs mt-4 transition-colors hover:underline"
+                style="color: var(--color-text-muted); background: none; border: none; cursor: pointer;"
+              >
+                <ChevronLeft :size="12" :stroke-width="1.8" />{{ t('onboarding.importRetry') }}
+              </button>
             </template>
 
             <!-- Import form (not yet succeeded) -->
@@ -1340,38 +1370,7 @@ onMounted(async () => {
             </template>
           </div>
 
-          <!-- Step 9: Import summary (branch) -->
-          <div v-else-if="currentStep === 9" key="step9" class="flex flex-col py-6">
-            <h2 class="text-lg font-medium mb-3" style="color: var(--color-text)">
-              {{ t('onboarding.importSummaryTitle') }}
-            </h2>
-            <div class="flex flex-col gap-2 mb-4">
-              <div class="flex items-center gap-2 text-sm" style="color: var(--color-text-secondary)">
-                <Check v-if="hasUsableProviders" :size="14" style="color: var(--color-accent)" />
-                <X v-else :size="14" style="color: var(--color-danger)" />
-                <span>{{ t('onboarding.importSummaryProviders', { n: importedProviderCount }) }}</span>
-              </div>
-              <div class="flex items-center gap-2 text-sm" style="color: var(--color-text-secondary)">
-                <Check v-if="hasWebSearch" :size="14" style="color: var(--color-accent)" />
-                <X v-else :size="14" style="color: var(--color-danger)" />
-                <span>{{ t('onboarding.importSummaryWebSearch', { n: importedWebSearchCount }) }}</span>
-              </div>
-            </div>
-            <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary)">
-              <template v-if="hasUsableProviders && hasWebSearch">
-                {{ t('onboarding.importSummaryAllReady') }}
-              </template>
-              <template v-else-if="hasUsableProviders && !hasWebSearch">
-                {{ t('onboarding.importSummaryNeedWebSearch') }}
-              </template>
-              <template v-else>
-                {{ t('onboarding.importSummaryNeedProvider') }}
-              </template>
-            </p>
-          </div>
-
         </Transition>
-        </div>
       </div>
 
       <!-- Bottom navigation -->
@@ -1544,10 +1543,8 @@ div::-webkit-scrollbar-thumb {
   border-radius: 2px;
 }
 
-/* Scrollable step content: matches the 3px scrollbar used by the Settings /
- * data-management pages (ExportData / ImportData / ResetSoftware) so onboarding
- * does not look heavier than the rest of the app. The global 4px rule above
- * still applies to nested lists (e.g. model list). */
+/* Scrollable step content: 3px scrollbar matching Settings / data-management
+ * pages. The global 4px rule above still applies to nested lists. */
 .onb-content::-webkit-scrollbar {
   width: 3px;
 }
@@ -1557,12 +1554,6 @@ div::-webkit-scrollbar-thumb {
 .onb-content::-webkit-scrollbar-thumb {
   background: var(--color-scrollbar);
   border-radius: 3px;
-}
-/* The scrollbar must hug the right edge of the card; any right padding would
- * push it inward. */
-.onb-content {
-  width: calc(100% + max(24px, 50vw - 260px));
-  padding-right: 0 !important;
 }
 
 /* ── Dropdown (matching Settings style) ── */
