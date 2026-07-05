@@ -24,6 +24,7 @@ import {
   GlobeOff,
 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
+import { presetMeta } from "../services/websearch";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -121,11 +122,57 @@ const emptyHintKeys: Record<'persona' | 'dict' | 'websearch', { title: string; b
   websearch: { title: 'floating.emptyWebSearchTitle', body: 'floating.emptyWebSearchBody' },
 };
 
-// True when at least one web search provider is enabled — the toggle is only
-// interactive then. With no provider, a dashed ghost opens the empty-state hint.
-const hasEnabledWebSearchProvider = computed(() =>
-  appConfig.web_search_providers.some((p) => p.enabled),
-);
+// ── Web search provider toggle (persona-style: on/off + chevron dropdown) ──
+const webSearchOn = computed(() => appConfig.web_search_providers.some(p => p.enabled));
+const activeWebSearchProviderName = computed(() => {
+  const p = appConfig.web_search_providers.find(p => p.enabled);
+  return p ? (p.custom_name || presetMeta(p.preset).label) : null;
+});
+
+const showWebSearchDropdown = ref(false);
+const webSearchDropdownRef = ref<HTMLDivElement | null>(null);
+const webSearchBtnRef = ref<HTMLButtonElement | null>(null);
+const webSearchMenuRef = ref<HTMLDivElement | null>(null);
+const webSearchDropdownPos = ref({ top: 0, left: 0 });
+const webSearchDropdownStyle = computed(() => capHeight(appConfig.web_search_providers.length));
+
+function toggleWebSearchProvider(e: MouseEvent) {
+  if (webSearchOn.value) {
+    for (const p of appConfig.web_search_providers) p.enabled = false;
+    appConfig.web_search_active_index = -1;
+  } else {
+    for (let i = 0; i < appConfig.web_search_providers.length; i++) {
+      const meta = presetMeta(appConfig.web_search_providers[i].preset);
+      if (!meta.keyRequired || appConfig.web_search_providers[i].api_key) {
+        appConfig.web_search_providers[i].enabled = true;
+        appConfig.web_search_active_index = i;
+        burstParticles(e.currentTarget as HTMLElement);
+        break;
+      }
+    }
+  }
+  appConfig.web_search_enabled_in_skills_lite = webSearchOn.value;
+  emit("result-stale");
+}
+
+function toggleWebSearchDropdown() {
+  if (showWebSearchDropdown.value) {
+    showWebSearchDropdown.value = false;
+    return;
+  }
+  const anchorLeft = webSearchDropdownRef.value?.getBoundingClientRect().left ?? 0;
+  showWebSearchDropdown.value = true;
+  nextTick(() => openDropdown(webSearchBtnRef.value!, webSearchMenuRef.value, webSearchDropdownPos, anchorLeft));
+}
+
+function selectWebSearchProvider(index: number) {
+  for (const p of appConfig.web_search_providers) p.enabled = false;
+  appConfig.web_search_providers[index].enabled = true;
+  appConfig.web_search_active_index = index;
+  appConfig.web_search_enabled_in_skills_lite = true;
+  showWebSearchDropdown.value = false;
+  emit("result-stale");
+}
 
 function togglePersona(e: MouseEvent) {
   const wasOn = personaStore.personas.some((p) => p.enabled);
@@ -146,13 +193,6 @@ function togglePersona(e: MouseEvent) {
 function toggleDict(e: MouseEvent) {
   const turning = !appConfig.user_dict_enabled;
   appConfig.user_dict_enabled = turning;
-  if (turning) burstParticles(e.currentTarget as HTMLElement);
-  emit("result-stale");
-}
-
-function toggleWebSearch(e: MouseEvent) {
-  const turning = !appConfig.web_search_enabled_in_skills_lite;
-  appConfig.web_search_enabled_in_skills_lite = turning;
   if (turning) burstParticles(e.currentTarget as HTMLElement);
   emit("result-stale");
 }
@@ -213,6 +253,7 @@ function closeAllDropdowns() {
   showPersonaDropdown.value = false;
   showLangDropdown.value = false;
   showSkillsLiteDropdown.value = false;
+  showWebSearchDropdown.value = false;
 }
 
 function onDocumentClick(e: MouseEvent) {
@@ -256,7 +297,7 @@ async function handleEmptyHintGo() {
     router.push('/settings?tab=translation&scrollTo=persona');
   } else if (target === 'websearch') {
     await invoke("open_settings_window");
-    router.push('/settings?tab=translation&scrollTo=websearch');
+    router.push('/settings?scrollTo=websearch');
   }
 }
 
@@ -311,19 +352,59 @@ defineExpose({ closeAllDropdowns });
       </Teleport>
     </div>
 
-    <!-- Web search toggle (skills_lite mode only) — globe on / globe-off, mirrors the
-         send-mode (pin) button's two-icon toggle form. When no provider is enabled,
-         shows a dashed ghost that opens the empty-state hint instead. -->
-    <button
-      v-if="hasEnabledWebSearchProvider"
-      @click="toggleWebSearch($event)"
-      class="search-toggle"
-      :class="{ on: appConfig.web_search_enabled_in_skills_lite }"
-      :title="appConfig.web_search_enabled_in_skills_lite ? t('floating.webSearchOn') : t('floating.webSearchOff')"
+    <!-- Web search provider toggle + selector (skills_lite mode only).
+         Mirroring the persona pattern: ghost when empty, on/off toggle
+         with a chevron dropdown to pick the active provider otherwise. -->
+    <div
+      v-if="appConfig.web_search_providers.length > 0"
+      class="persona-wrap"
+      :class="{ on: webSearchOn }"
+      ref="webSearchDropdownRef"
     >
-      <Globe v-if="appConfig.web_search_enabled_in_skills_lite" :size="11" :stroke-width="1.8" />
-      <GlobeOff v-else :size="11" :stroke-width="1.8" />
-    </button>
+      <button
+        @click="toggleWebSearchProvider($event)"
+        class="persona-toggle"
+        :class="{ on: webSearchOn }"
+        :title="webSearchOn ? t('floating.webSearchOff') : t('floating.webSearchOn')"
+      >
+        <Globe v-if="webSearchOn" :size="11" :stroke-width="1.8" />
+        <GlobeOff v-else :size="11" :stroke-width="1.8" />
+        <span v-if="webSearchOn" class="persona-dot on" />
+        <span class="truncate max-w-[3em] min-w-0">{{ webSearchOn ? activeWebSearchProviderName : '' }}</span>
+      </button>
+      <button
+        ref="webSearchBtnRef"
+        @click="toggleWebSearchDropdown"
+        class="persona-chevron"
+        :class="{ on: webSearchOn, active: showWebSearchDropdown }"
+      >
+        <ChevronDown
+          :size="10" :stroke-width="2" class="toolbar-chevron"
+          :style="{ transform: chevronTransform(showWebSearchDropdown) }"
+        />
+      </button>
+      <Teleport to="body">
+        <Transition name="dropdown">
+          <div
+            v-if="showWebSearchDropdown"
+            ref="webSearchMenuRef"
+            class="model-dropdown"
+            :style="{ top: webSearchDropdownPos.top + 'px', left: webSearchDropdownPos.left + 'px', ...webSearchDropdownStyle }"
+          >
+            <button
+              v-for="(provider, pi) in appConfig.web_search_providers"
+              :key="pi"
+              @click="selectWebSearchProvider(pi)"
+              class="model-option"
+              :class="{ selected: provider.enabled }"
+            >
+              <span class="truncate">{{ provider.custom_name || presetMeta(provider.preset).label }}</span>
+              <span v-if="provider.enabled" class="check-mark">&#10003;</span>
+            </button>
+          </div>
+        </Transition>
+      </Teleport>
+    </div>
     <button
       v-else
       class="ghost-btn"
