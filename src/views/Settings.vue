@@ -465,12 +465,41 @@ const webSearchProviderShowKey = reactive(new Set<number>());
 const webSearchAddPresetOpen = ref(false);
 const webSearchAddBtnRef = ref<HTMLElement | null>(null);
 const webSearchAddMenuPos = ref({ top: 0, left: 0, width: 0 });
+const lastPresetTrigger = ref<HTMLElement | null>(null);
+const lastWebPresetTrigger = ref<HTMLElement | null>(null);
+const settingsBodyRef = ref<HTMLElement | null>(null);
 
 function toggleWebSearchAddMenu() {
   webSearchAddPresetOpen.value = !webSearchAddPresetOpen.value;
   if (webSearchAddPresetOpen.value && webSearchAddBtnRef.value) {
     const r = webSearchAddBtnRef.value.getBoundingClientRect();
     webSearchAddMenuPos.value = { top: r.bottom + 5, left: r.left, width: r.width };
+  }
+}
+
+/** Reposition all open Teleported dropdowns on scroll so they follow their trigger. */
+function repositionOpenDropdowns() {
+  if (showAppLangMenu.value && appLangBtnRef.value) {
+    const r = appLangBtnRef.value.getBoundingClientRect();
+    appLangMenuPos.value = { top: r.bottom + 5, left: r.left, width: r.width };
+  }
+  if (showModelSelector.value && selBtnRef.value) {
+    const r = selBtnRef.value.getBoundingClientRect();
+    selMenuPos.value = { top: r.bottom + 5, left: r.left };
+  }
+  if (translationShowLangSelector.value && translationLangBtnRef.value) {
+    const r = translationLangBtnRef.value.getBoundingClientRect();
+    translationLangMenuPos.value = { top: r.bottom + 5, left: r.left };
+  }
+  if (webSearchAddPresetOpen.value && webSearchAddBtnRef.value) {
+    const r = webSearchAddBtnRef.value.getBoundingClientRect();
+    webSearchAddMenuPos.value = { top: r.bottom + 5, left: r.left, width: r.width };
+  }
+  if (showPresetMenu.value && lastPresetTrigger.value) {
+    presetMenuPos.value = anchoredMenuPos(lastPresetTrigger.value);
+  }
+  if (showWebPresetMenu.value && lastWebPresetTrigger.value) {
+    webPresetMenuPos.value = anchoredMenuPos(lastWebPresetTrigger.value);
   }
 }
 
@@ -624,6 +653,7 @@ function toggleWebPresetMenu(e: MouseEvent, index: number) {
   }
   webPresetMenuIndex.value = index;
   showWebPresetMenu.value = true;
+  lastWebPresetTrigger.value = e.currentTarget as HTMLElement;
   webPresetMenuPos.value = anchoredMenuPos(e.currentTarget as HTMLElement);
 }
 
@@ -706,6 +736,7 @@ function togglePresetMenu(e: MouseEvent, _item: ProviderConfig, index: number) {
   }
   presetMenuIndex.value = index;
   showPresetMenu.value = true;
+  lastPresetTrigger.value = e.currentTarget as HTMLElement;
   presetMenuPos.value = anchoredMenuPos(e.currentTarget as HTMLElement);
 }
 
@@ -1119,6 +1150,7 @@ onMounted(async () => {
     });
   }
   document.addEventListener("mousedown", onDocClick);
+  settingsBodyRef.value?.addEventListener("scroll", repositionOpenDropdowns);
   load();
   loadProviderPresets().then(p => { providerPresets.value = p; }).catch(console.error);
   if (autoUpdate.value) checkForUpdate(true);
@@ -1134,6 +1166,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener("mousedown", onDocClick);
+  settingsBodyRef.value?.removeEventListener("scroll", repositionOpenDropdowns);
 });
 </script>
 
@@ -1173,7 +1206,7 @@ onUnmounted(() => {
     </nav>
 
     <!-- ═══ Body ═══ -->
-    <main class="body">
+    <main ref="settingsBodyRef" class="body">
 
       <!-- ─── General: Providers ─── -->
       <template v-if="activeTab === 'general'">
@@ -1503,7 +1536,7 @@ onUnmounted(() => {
                   />
                 </div>
                 <button
-                  class="preset-mini-btn"
+                  class="preset-mini-btn web-preset-btn"
                   :class="{ active: item.preset }"
                   @click.stop="toggleWebPresetMenu($event, index)"
                   :title="item.preset ? `${t('settings.preset')}: ${safePresetMeta(item.preset).label}` : t('settings.applyPreset')"
