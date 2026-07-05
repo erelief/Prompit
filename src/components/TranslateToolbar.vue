@@ -398,7 +398,10 @@ defineExpose({ closeAllDropdowns });
               class="model-option"
               :class="{ selected: provider.enabled }"
             >
-              <span class="truncate">{{ provider.custom_name || presetMeta(provider.preset).label }}</span>
+              <span class="flex items-center gap-2 min-w-0">
+                <component :is="presetMeta(provider.preset).icon" :size="14" :stroke-width="1.8" class="shrink-0" />
+                <span class="truncate">{{ provider.custom_name || presetMeta(provider.preset).label }}</span>
+              </span>
               <span v-if="provider.enabled" class="check-mark">&#10003;</span>
             </button>
           </div>
