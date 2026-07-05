@@ -139,7 +139,7 @@
       "websearch": "Web search providers",
       "websearchDescription": "Configured web search engines and their API keys",
       "history": "History",
-      "historyDescription": "Past translations and skills-lite runs",
+      "historyDescription": "Past communication records",
       "dictionaries": "Custom dictionary",
       "dictionariesDescription": "Your custom dictionary entries per language",
       "personas": "Personas",

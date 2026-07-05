@@ -125,8 +125,13 @@ export function useDataImport(opts: UseDataImportOptions) {
         password: importPassword.value,
       });
       importPreview.value = preview.categories;
-      // Default to importing everything present in the bundle.
-      importSelected.value = new Set(preview.categories.map((c) => c.id));
+      // Default to importing all available categories except settings and
+      // history (those are machine-specific and rarely need restoring).
+      importSelected.value = new Set(
+        preview.categories
+          .map((c) => c.id)
+          .filter((id) => id !== "settings" && id !== "history"),
+      );
       importAnalyzed.value = true;
     } catch (err) {
       importStatus.value = { kind: "error", msg: opts.messages.error(String(err)) };

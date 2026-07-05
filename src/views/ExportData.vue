@@ -7,7 +7,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { save } from "@tauri-apps/plugin-dialog";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import DataCategorySelector from "../components/DataCategorySelector.vue";
-import { ALL_CATEGORIES } from "../composables/useDataCategories";
+import { ALL_CATEGORIES, defaultSelectedCategories } from "../composables/useDataCategories";
 import { Download, Eye, EyeOff, ArrowLeft } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -20,7 +20,7 @@ const JSON_FILTER = [{ name: "JSON", extensions: ["json"] }];
 // Selected categories default to all. The backend filters the bundle to this
 // set; an empty selection is treated as "all known" by the backend, but we keep
 // at least the default-checked UX here.
-const selected = ref<string[]>([...ALL_CATEGORIES]);
+const selected = ref<string[]>([...defaultSelectedCategories("export")]);
 
 const exportPassword = ref("");
 const exportConfirmPassword = ref("");

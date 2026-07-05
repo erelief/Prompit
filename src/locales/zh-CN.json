@@ -139,15 +139,15 @@
       "websearch": "网络搜索服务商",
       "websearchDescription": "已配置的搜索引擎及其 API 密钥",
       "history": "历史记录",
-      "historyDescription": "过往翻译与 skills-lite 运行记录",
+      "historyDescription": "过往通信记录",
       "dictionaries": "自定义词典",
       "dictionariesDescription": "按语言存储的自定义词典条目",
       "personas": "人格预设",
-      "personasDescription": "翻译人格预设",
-      "skills_lite": "Skills-lite",
-      "skills_liteDescription": "Skills-lite 提示词模板",
+      "personasDescription": "翻译人格提示词模板",
+      "skills_lite": "轻技能",
+      "skills_liteDescription": "轻技能提示词模板",
       "secrets": "旧密钥存储",
-      "secretsDescription": "为迁移保留的旧密钥存储"
+      "secretsDescription": "为迁移保留的旧存储"
     },
     "exportData": {
       "pageTitle": "导出数据",

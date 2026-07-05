@@ -30,15 +30,29 @@ export interface CategoryMeta {
 }
 
 export const ALL_CATEGORIES: DataCategory[] = [
-  "settings",
   "providers",
   "websearch",
-  "history",
-  "dictionaries",
   "personas",
+  "dictionaries",
   "skills_lite",
+  "settings",
+  "history",
   "secrets",
 ];
+
+/**
+ * Default selection for export / import: everything except software settings
+ * and history (those are less likely to need backing up and more likely to
+ * differ between machines). Reset always selects every category.
+ */
+export function defaultSelectedCategories(
+  mode: "export" | "import" | "reset",
+): DataCategory[] {
+  if (mode === "reset") return [...ALL_CATEGORIES];
+  return ALL_CATEGORIES.filter(
+    (c) => c !== "settings" && c !== "history",
+  );
+}
 
 export const CATEGORY_META: Record<DataCategory, CategoryMeta> = {
   settings: {
