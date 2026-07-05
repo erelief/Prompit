@@ -53,6 +53,7 @@
     "customName": "自定义名称（可选）",
     "apiKeyRequired": "API Key（必填）",
     "apiKeyOptional": "API Key（可选）",
+    "providerNameRequired": "供应商名称（必填）",
     "anonymousKeyHint": "该服务可能无需 API key 也有一定免费使用额度，请以官方说明为准。",
     "webSearchEmpty": "未配置网页搜索服务供应商。",
     "preset": "预设",

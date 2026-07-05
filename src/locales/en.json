@@ -53,6 +53,7 @@
     "customName": "Custom name (optional)",
     "apiKeyRequired": "API Key (required)",
     "apiKeyOptional": "API Key (optional)",
+    "providerNameRequired": "Provider name (required)",
     "anonymousKeyHint": "This service may offer some free quota without requiring an API key. Please refer to the official documentation for details.",
     "webSearchEmpty": "No web search provider configured.",
     "preset": "Preset",

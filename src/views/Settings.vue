@@ -45,6 +45,7 @@ import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { testProviderConnection, fetchProviderModels, optimizePrompt } from "../services/llm-client";
 import type { FetchModelEntry } from "../services/llm-client";
 import { WEB_SEARCH_PRESETS, presetMeta, testWebSearchProvider } from "../services/websearch";
+import type { WebSearchPresetMeta } from "../services/websearch/registry";
 import type { WebSearchProviderConfig } from "../stores/config";
 import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
@@ -472,7 +473,9 @@ function getWebSearchProviderEditState(index: number): WebSearchProviderEditStat
 
 function onWebSearchProviderAdd(draft: WebSearchProviderConfig) {
   Object.assign(draft, {
-    preset: WEB_SEARCH_PRESETS[0].id,
+    // Leave preset empty so the form opens on a neutral "select a provider"
+    // state — no default that could read as recommending a specific service.
+    preset: "",
     api_key: "",
     enabled: false,
     custom_name: undefined,
@@ -518,7 +521,28 @@ function onWebSearchProviderRemove({ index, indexMap }: { index: number; indexMa
   flushConfigSave();
 }
 
+/**
+ * Resolve a web search preset's metadata, returning a neutral placeholder when
+ * no preset is selected yet (empty `preset`). This lets the add-form render a
+ * neutral "select a provider" state instead of preselecting one. The placeholder
+ * is treated as key-required so the enable toggle / test button stay disabled
+ * until a real preset is chosen.
+ */
+function safePresetMeta(presetId: string): WebSearchPresetMeta {
+  if (!presetId) {
+    return {
+      id: "",
+      label: t("settings.selectSearchService"),
+      icon: Globe,
+      keyRequired: true,
+    };
+  }
+  return presetMeta(presetId);
+}
+
 function validateWebSearchProvider(eng: WebSearchProviderConfig): string | null {
+  if (!eng.preset) return t("settings.selectSearchService");
+  if (!eng.custom_name?.trim()) return t("settings.providerNameRequired");
   const meta = presetMeta(eng.preset);
   if (meta.keyRequired && !eng.api_key.trim()) {
     return t("settings.apiKeyRequired");
@@ -531,7 +555,7 @@ function validateWebSearchProvider(eng: WebSearchProviderConfig): string | null 
  *  enabled (keyless presets like Firecrawl/AnySearch can). */
 function toggleWebSearchProviderExclusive(index: number, e: MouseEvent) {
   const eng = appConfig.web_search_providers[index];
-  const meta = presetMeta(eng.preset);
+  const meta = safePresetMeta(eng.preset);
   if (meta.keyRequired && !eng.api_key) return; // safety: validation should have blocked this
   activateExclusive(appConfig.web_search_providers, index, e, (turningOn) => {
     appConfig.web_search_active_index = turningOn ? index : -1; // -1 = no active provider
@@ -545,7 +569,7 @@ function toggleWebSearchProviderKeyVisible(index: number) {
 }
 
 async function testWebSearchProviderConnection(eng: WebSearchProviderConfig, index: number) {
-  if (presetMeta(eng.preset).keyRequired && !eng.api_key.trim()) return;
+  if (safePresetMeta(eng.preset).keyRequired && !eng.api_key.trim()) return;
   const s = getWebSearchProviderEditState(index);
   s.testing = true;
   s.status = "";
@@ -1406,15 +1430,15 @@ onUnmounted(() => {
           <template #collapsed="{ item, index }">
             <div class="prov-lhs">
               <span class="card-drag-handle prov-drag-logo" @click.stop>
-                <component :is="presetMeta(item.preset).icon" :size="16" />
+                <component :is="safePresetMeta(item.preset).icon" :size="16" />
               </span>
               <div class="prov-accent" />
               <div class="prov-meta">
-                <span class="prov-name" :class="{ dim: !item.custom_name }">{{ item.custom_name || presetMeta(item.preset).label }}</span>
+                <span class="prov-name" :class="{ dim: !item.custom_name }">{{ item.custom_name || safePresetMeta(item.preset).label }}</span>
                 <button
                   class="we-toggle"
                   :class="{ on: item.enabled }"
-                  :disabled="presetMeta(item.preset).keyRequired && !item.api_key"
+                  :disabled="safePresetMeta(item.preset).keyRequired && !item.api_key"
                   :title="item.enabled ? t('common.enabled') : t('common.disabled')"
                   @click.stop="toggleWebSearchProviderExclusive(index, $event)"
                 >
@@ -1426,17 +1450,17 @@ onUnmounted(() => {
 
           <template #name-input="{ item, index }">
             <div class="name-row-wrap">
-              <component :is="presetMeta(item.preset).icon" :size="16" :stroke-width="1.8" class="we-name-logo" />
+              <component :is="safePresetMeta(item.preset).icon" :size="16" :stroke-width="1.8" class="we-name-logo" />
               <input
                 v-model="item.custom_name"
-                :placeholder="presetMeta(item.preset).label"
+                :placeholder="item.preset ? safePresetMeta(item.preset).label : t('settings.providerName')"
                 class="fi name-fi" @click.stop
               />
               <button
                 class="preset-mini-btn"
                 :class="{ active: item.preset }"
                 @click.stop="toggleWebPresetMenu($event, index)"
-                :title="item.preset ? `${t('settings.preset')}: ${presetMeta(item.preset).label}` : t('settings.applyPreset')"
+                :title="item.preset ? `${t('settings.preset')}: ${safePresetMeta(item.preset).label}` : t('settings.applyPreset')"
               >
                 <CloudDownload :size="12" :stroke-width="1.8" />
               </button>
@@ -1466,13 +1490,13 @@ onUnmounted(() => {
                 </div>
               </Transition>
             </Teleport>
-            <p v-if="presetMeta(item.preset).keyHelpKey" class="we-hint">{{ t(presetMeta(item.preset).keyHelpKey!) }}</p>
-            <p v-if="presetMeta(item.preset).apiUrl" class="preset-hint" @click.stop>
-              <a :href="presetMeta(item.preset).apiUrl" target="_blank" rel="noopener noreferrer" @click.prevent="openExternal(presetMeta(item.preset).apiUrl!)" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
-                {{ t('settings.getApiKeyAt', { name: presetMeta(item.preset).label }) }}
+            <p v-if="item.preset && safePresetMeta(item.preset).keyHelpKey" class="we-hint">{{ t(safePresetMeta(item.preset).keyHelpKey!) }}</p>
+            <p v-if="item.preset && safePresetMeta(item.preset).apiUrl" class="preset-hint" @click.stop>
+              <a :href="safePresetMeta(item.preset).apiUrl" target="_blank" rel="noopener noreferrer" @click.prevent="openExternal(safePresetMeta(item.preset).apiUrl!)" style="color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px;">
+                {{ t('settings.getApiKeyAt', { name: safePresetMeta(item.preset).label }) }}
               </a>
             </p>
-            <div class="fields">
+            <div v-if="item.preset" class="fields">
               <div class="field">
                 <label>{{ t('settings.apiKey') }}</label>
                 <div class="key-wrap">
@@ -1487,7 +1511,7 @@ onUnmounted(() => {
                   <button
                     class="icon-btn-sm linkish"
                     @click.stop="testWebSearchProviderConnection(item, index)"
-                    :disabled="(presetMeta(item.preset).keyRequired && !item.api_key.trim()) || getWebSearchProviderEditState(index).testing"
+                    :disabled="(safePresetMeta(item.preset).keyRequired && !item.api_key.trim()) || getWebSearchProviderEditState(index).testing"
                     :title="t('settings.testConnection')"
                   >
                     <Loader2 v-if="getWebSearchProviderEditState(index).testing" :size="12" class="spin" :stroke-width="1.9" />
@@ -1507,8 +1531,8 @@ onUnmounted(() => {
               </div>
             </div>
           </template>
-          <template #disclaimer>
-            <div class="api-disclaimer">
+          <template #disclaimer="{ item }">
+            <div v-if="item.preset" class="api-disclaimer">
               <Info :size="11" :stroke-width="1.8" />
               <span>{{ t('settings.apiKeyDisclaimer') }}</span>
             </div>

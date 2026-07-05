@@ -1027,12 +1027,13 @@ onMounted(async () => {
                 type="text"
                 class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
                 style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
-                :placeholder="currentSearchPresetLabel"
+                :placeholder="searchSelectedPreset ? currentSearchPresetLabel : t('onboarding.providerName')"
               />
             </div>
 
-            <!-- API Key -->
-            <div class="mb-4">
+            <!-- API Key (only after a preset is chosen — future providers may use
+                 headless browsers, MCP, etc. instead of an API key) -->
+            <div v-if="searchSelectedPreset" class="mb-4">
               <label class="block text-xs font-medium mb-1.5 tracking-wide uppercase" style="color: var(--color-text-muted)">
                 {{ t('onboarding.apiKey') }}
               </label>
@@ -1085,7 +1086,7 @@ onMounted(async () => {
                 <template v-else-if="searchTestStatus === 'fail'">{{ t('onboarding.connectionFailed') }}{{ searchTestError ? ` (${searchTestError})` : '' }}</template>
               </p>
             </div>
-            <div class="api-disclaimer">
+            <div v-if="searchSelectedPreset" class="api-disclaimer">
               <Info :size="11" :stroke-width="1.8" />
               <span>{{ t('settings.apiKeyDisclaimer') }}</span>
             </div>
