@@ -462,6 +462,17 @@ interface WebSearchProviderEditState {
 }
 const webSearchProviderEditStates = ref<Map<number, WebSearchProviderEditState>>(new Map());
 const webSearchProviderShowKey = reactive(new Set<number>());
+const webSearchAddPresetOpen = ref(false);
+const webSearchAddBtnRef = ref<HTMLElement | null>(null);
+const webSearchAddMenuPos = ref({ top: 0, left: 0, width: 0 });
+
+function toggleWebSearchAddMenu() {
+  webSearchAddPresetOpen.value = !webSearchAddPresetOpen.value;
+  if (webSearchAddPresetOpen.value && webSearchAddBtnRef.value) {
+    const r = webSearchAddBtnRef.value.getBoundingClientRect();
+    webSearchAddMenuPos.value = { top: r.bottom + 5, left: r.left, width: r.width };
+  }
+}
 
 function getWebSearchProviderEditState(index: number): WebSearchProviderEditState {
   let s = webSearchProviderEditStates.value.get(index);
@@ -1058,6 +1069,7 @@ const clickOutsideMap: Array<{ menu: string; btn: string; close: () => void }> =
   { menu: ".lang-menu", btn: ".lang-btn", close: () => { translationShowLangSelector.value = false; } },
   { menu: ".preset-menu", btn: ".preset-mini-btn", close: () => { showPresetMenu.value = false; presetMenuIndex.value = null; } },
   { menu: ".web-preset-menu", btn: ".web-preset-btn", close: () => { showWebPresetMenu.value = false; webPresetMenuIndex.value = null; } },
+  { menu: ".we-add-preset-menu", btn: ".we-add-preset-btn", close: () => { webSearchAddPresetOpen.value = false; } },
 ];
 
 function onDocClick(e: MouseEvent) {
@@ -1452,24 +1464,53 @@ onUnmounted(() => {
             </div>
           </template>
 
-          <template #name-input="{ item, index }">
+          <template #name-input="{ item, index, isAdding }">
             <div class="name-row-wrap">
-              <div class="name-input-icon-wrap">
-                <component :is="safePresetMeta(item.preset).icon" :size="14" :stroke-width="1.8" class="name-input-icon" />
-                <input
-                  v-model="item.custom_name"
-                  :placeholder="item.preset ? safePresetMeta(item.preset).label : t('settings.providerName')"
-                  class="fi name-fi" @click.stop
-                />
-              </div>
-              <button
-                class="preset-mini-btn"
-                :class="{ active: item.preset }"
-                @click.stop="toggleWebPresetMenu($event, index)"
-                :title="item.preset ? `${t('settings.preset')}: ${safePresetMeta(item.preset).label}` : t('settings.applyPreset')"
-              >
-                <CloudDownload :size="12" :stroke-width="1.8" />
-              </button>
+              <template v-if="isAdding && !item.preset">
+                <button ref="webSearchAddBtnRef" class="sel-btn we-add-preset-btn" @click.stop="toggleWebSearchAddMenu">
+                  <Globe :size="14" :stroke-width="1.8" />
+                  <span class="sel-text" style="opacity:.55">{{ t('settings.selectSearchService') }}</span>
+                  <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: webSearchAddPresetOpen }" />
+                </button>
+                <Teleport to="body">
+                  <Transition name="drop">
+                    <div v-if="webSearchAddPresetOpen" class="sel-menu we-add-preset-menu" :style="{ top: webSearchAddMenuPos.top + 'px', left: webSearchAddMenuPos.left + 'px', width: webSearchAddMenuPos.width + 'px' }">
+                      <div class="sel-clip">
+                        <button
+                          v-for="p in WEB_SEARCH_PRESETS" :key="p.id"
+                          class="sel-opt"
+                          @click.stop="applyWebPreset(item, p.id); webSearchAddPresetOpen = false"
+                        >
+                          <div class="opt-left">
+                            <component :is="p.icon" :size="14" :stroke-width="1.8" />
+                            <div class="opt-info">
+                              <span class="opt-id">{{ p.label }}</span>
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  </Transition>
+                </Teleport>
+              </template>
+              <template v-else>
+                <div class="name-input-icon-wrap">
+                  <component :is="safePresetMeta(item.preset).icon" :size="14" :stroke-width="1.8" class="name-input-icon" />
+                  <input
+                    v-model="item.custom_name"
+                    :placeholder="item.preset ? safePresetMeta(item.preset).label : t('settings.providerName')"
+                    class="fi name-fi" @click.stop
+                  />
+                </div>
+                <button
+                  class="preset-mini-btn"
+                  :class="{ active: item.preset }"
+                  @click.stop="toggleWebPresetMenu($event, index)"
+                  :title="item.preset ? `${t('settings.preset')}: ${safePresetMeta(item.preset).label}` : t('settings.applyPreset')"
+                >
+                  <CloudDownload :size="12" :stroke-width="1.8" />
+                </button>
+              </template>
             </div>
           </template>
 
@@ -3399,6 +3440,12 @@ label {
 }
 .we-toggle.on { color: var(--color-accent); }
 .we-toggle:disabled { opacity:.32; cursor:not-allowed; }
+
+/* Web search add-preset dropdown trigger button fills the name-input slot */
+.we-add-preset-btn {
+  flex: 1;
+  min-width: 0;
+}
 
 .we-hint {
   font-size:10.5px; line-height:1.5; color: var(--color-text-muted);
