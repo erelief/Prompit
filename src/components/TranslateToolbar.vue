@@ -365,7 +365,7 @@ defineExpose({ closeAllDropdowns });
         @click="toggleWebSearchProvider($event)"
         class="persona-toggle"
         :class="{ on: webSearchOn }"
-        :title="webSearchOn ? t('floating.webSearchOff') : t('floating.webSearchOn')"
+        :title="webSearchOn ? t('floating.webSearchOn') : t('floating.webSearchOff')"
       >
         <Globe v-if="webSearchOn" :size="11" :stroke-width="1.8" />
         <GlobeOff v-else :size="11" :stroke-width="1.8" />
