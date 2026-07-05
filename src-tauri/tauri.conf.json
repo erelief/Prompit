@@ -6,15 +6,15 @@
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:14227",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeDevCommand": "node scripts/sync-tauri-config.mjs && npm run dev",
+    "beforeBuildCommand": "node scripts/sync-tauri-config.mjs && npm run build"
   },
   "app": {
     "windows": [
       {
         "label": "main",
         "title": "Translator",
-        "width": 480,
+        "width": 520,
         "height": 120,
         "decorations": false,
         "transparent": true,

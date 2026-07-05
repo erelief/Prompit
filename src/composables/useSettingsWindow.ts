@@ -1,9 +1,10 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import mainWindowConfig from "../shared/main-window.json";
 
 /** Width of the main (FloatingInput-rooted) panel; shared by all main-tier views. */
-export const MAIN_WIDTH = 520;
+export const MAIN_WIDTH = mainWindowConfig.width;
 
 /**
  * Shared setup for Settings-like sub-pages.
