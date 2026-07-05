@@ -56,7 +56,7 @@ import {
   FileText,
   ShieldAlert,
 } from "@lucide/vue";
-import { SEARCH_PRESETS, testWebEngine } from "../services/websearch";
+import { SEARCH_PRESETS, testWebEngine, presetMeta } from "../services/websearch";
 import { useDataImport } from "../composables/useDataImport";
 
 const { t } = useI18n();
@@ -158,6 +158,7 @@ const isFetching = ref(false);
 const searchSelectedPreset = ref("");
 const searchShowPresetMenu = ref(false);
 const searchApiKey = ref("");
+const searchCustomName = ref("");
 const searchShowApiKey = ref(false);
 const searchTestStatus = ref<"ok" | "fail" | "">("");
 const searchTestError = ref("");
@@ -300,6 +301,7 @@ function saveSearchConfig() {
     preset: searchSelectedPreset.value,
     api_key: searchApiKey.value.trim(),
     enabled: true,
+    custom_name: searchCustomName.value.trim() || currentSearchPresetLabel.value,
   };
   appConfig.web_engines.push(engine);
   appConfig.web_search_active_index = appConfig.web_engines.length - 1;
@@ -319,6 +321,11 @@ const currentSearchPresetObj = computed(() => {
 function applySearchPreset(id: string) {
   searchSelectedPreset.value = id;
   searchShowPresetMenu.value = false;
+  // Auto-fill the name with the preset's label (mirrors Settings' applyWebPreset),
+  // unless the user has already typed one.
+  if (!searchCustomName.value.trim()) {
+    searchCustomName.value = presetMeta(id).label;
+  }
 }
 
 async function testSearchConnection() {
@@ -1000,6 +1007,20 @@ onMounted(async () => {
                   </div>
                 </Transition>
               </div>
+            </div>
+
+            <!-- Name -->
+            <div class="mb-4">
+              <label class="block text-xs font-medium mb-1.5 tracking-wide uppercase" style="color: var(--color-text-muted)">
+                {{ t('onboarding.searchName') }}
+              </label>
+              <input
+                v-model="searchCustomName"
+                type="text"
+                class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
+                style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
+                :placeholder="currentSearchPresetLabel"
+              />
             </div>
 
             <!-- API Key -->
