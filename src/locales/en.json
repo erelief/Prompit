@@ -356,12 +356,16 @@
     "skip": "Skip",
     "importExistingSettings": "Or, import existing settings →",
     "importCardTitle": "Restore from backup",
-    "importCardBody": "Select a Prompit backup file and enter its password. Your service configuration and user data will be restored.",
-    "importNoProviders": "Backup contains no AI providers. The app needs at least one provider to function.",
-    "importNoApiKey": "Imported providers have no API key. Add a provider manually instead.",
+    "importCardBody": "Pick a Prompit backup file, enter its password, choose what to restore, and we'll continue setup based on what came in.",
     "importSuccessTitle": "Import successful",
-    "importSuccessBody": "Your settings have been restored.",
-    "importRetry": "Re-import"
+    "importSuccessBody": "Your selected data has been restored.",
+    "importRetry": "Re-import",
+    "importSummaryTitle": "What was restored",
+    "importSummaryProviders": "AI providers: {n}",
+    "importSummaryWebSearch": "Web search providers: {n}",
+    "importSummaryAllReady": "You're all set. Click Next to finish.",
+    "importSummaryNeedWebSearch": "No web search provider found — the next step lets you add one (or skip).",
+    "importSummaryNeedProvider": "No AI provider found. The app needs at least one to function — the next step will guide you through adding one."
   },
   "startupReminder": {
     "hint": "Press {shortcut} to open the input"

@@ -26,6 +26,8 @@ import {
 } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
+import DataCategorySelector from "../components/DataCategorySelector.vue";
+import { ALL_CATEGORIES, type DataCategory } from "../composables/useDataCategories";
 import type { ModelInputCapabilities } from "../stores/config";
 import {
   testProviderConnection,
@@ -64,10 +66,14 @@ const router = useRouter();
 
 // ── Step management ──
 // Step IDs: 0=welcome, 1=info, 2=add-provider, 3=lightweight, 4=select-models,
-// 5=websearch-info, 6=add-search, 7=done, 8=import (branch step).
-// `importMode` switches the linear step sequence to the shortened import path:
-//   welcome(0) → info(1) → import(8) → done(7)
+// 5=websearch-info, 6=add-search, 7=done, 8=import (branch step),
+// 9=import-summary (branch step — analyzes what landed and routes the user).
+// `importMode` switches the linear step sequence to the import path:
+//   welcome(0) → info(1) → import(8) → import-summary(9) → (done(7) | websearch(5) | add-provider(2))
 // Otherwise the full add-provider path runs: 0→1→2→3→4→5→6→7.
+// When the machine already has a web-search provider configured, steps 5 and 6
+// are skipped on the linear path too (skipWebSearchSteps), so a user who
+// imported web-search but not AI providers is not re-asked about web search.
 const importMode = ref(false);
 const currentStep = ref(0);
 const direction = ref<"forward" | "backward">("forward");
@@ -182,52 +188,81 @@ const searchCanNext = computed(() => !!searchSelectedPreset.value && !searchKeyM
 const {
   importPath, importPassword, importShowPw, importConfirming,
   importCountdown, importStatus, importBusy,
-  importFileName, importCanConfirm,
-  selectImportFile, requestImport, confirmImport, stopCountdown, resetImport,
+  importPreview, importSelected, importAnalyzed, importAnalyzing,
+  importFileName, importCanAnalyze, importCanConfirm,
+  selectImportFile, analyzeImport, requestImport, confirmImport, stopCountdown, resetImport,
 } = useDataImport({
   messages: {
-    cancelled: t("settings.userData.import.cancelled"),
-    success: t("settings.userData.import.success"),
-    error: (message: string) => t("settings.userData.error", { message }),
+    cancelled: t("settings.importData.import.cancelled"),
+    success: t("settings.importData.import.success"),
+    error: (message: string) => t("settings.importData.error", { message }),
   },
-  // On success: reload config from the just-imported encrypted files (no
-  // restart — the Master Key is already installed in-process), then jump to
-  // the "done" step. finishOnboarding runs when the user clicks Finish there.
+  // On success: reload config from the just-imported files (no restart — the
+  // Master Key is already installed in-process), then advance to the
+  // import-summary step (9). That step inspects what landed and routes the
+  // user to the right next step (done / websearch / add-provider).
   async onSuccess() {
     try {
       await loadConfig();
-      const v = validateImportedProviders();
-      if (!v.ok) {
-        importStatus.value = { kind: "error", msg: v.reason || t("onboarding.importInvalid") };
-        return;
-      }
       importSucceeded.value = true;
     } catch (err) {
       importStatus.value = {
         kind: "error",
-        msg: t("settings.userData.error", { message: String(err) }),
+        msg: t("settings.importData.error", { message: String(err) }),
       };
     }
   },
 });
 
-// Whether the import has completed with usable data (at least one provider
-// with an api key). Gates the Next button and switches the step-8 view from
-// the import form to a success state.
+// Whether the import has completed with usable data. Gates the Next button on
+// the import step (8) and switches its view from the import form to a success
+// state. Unlike the previous behavior we no longer reject imports that lack a
+// provider — instead the summary step (9) routes the user to add one.
 const importSucceeded = ref(false);
 
-// Validate that the imported backup actually carried a usable AI provider
-// configuration. Without a provider+key the app is non-functional, so an
-// otherwise-successful import is rejected here and the user is told why.
-function validateImportedProviders(): { ok: true } | { ok: false; reason?: string } {
-  if (appConfig.providers.length === 0) {
-    return { ok: false, reason: t("onboarding.importNoProviders") };
+// Bridge the Set-based selection from the composable to the string[] the
+// DataCategorySelector v-model expects.
+const importSelectedArray = computed<string[]>({
+  get: () => [...importSelected.value],
+  set: (v) => { importSelected.value = new Set(v); },
+});
+const importAvailableCats = computed<DataCategory[]>(() =>
+  importPreview.value
+    .map((c) => c.id)
+    .filter((id): id is DataCategory =>
+      (ALL_CATEGORIES as string[]).includes(id),
+    ),
+);
+
+// Summary-step derived state: what landed after the import.
+const importedProviderCount = computed(() =>
+  importPreview.value.find((c) => c.id === "providers")?.count ?? 0,
+);
+const importedWebSearchCount = computed(() =>
+  importPreview.value.find((c) => c.id === "websearch")?.count ?? 0,
+);
+// After loadConfig, appConfig reflects the merged result. The summary page
+// reports the live (post-import) provider/websearch presence.
+const hasUsableProviders = computed(() =>
+  appConfig.providers.length > 0
+  && appConfig.providers.some((p) => p.api_key.trim() !== ""),
+);
+const hasWebSearch = computed(() => appConfig.web_search_providers.length > 0);
+
+// Steps 5 (websearch-info) and 6 (add-search) are skipped whenever a web-search
+// provider is already configured — including when the user just imported one,
+// or when the machine already had one before onboarding (rule: an app with web
+// search but no AI provider still skips the web-search steps).
+const skipWebSearchSteps = computed(() => appConfig.web_search_providers.length > 0);
+
+// Route the user out of the import-summary step based on what landed.
+function routeAfterImport() {
+  direction.value = "forward";
+  if (hasUsableProviders.value) {
+    currentStep.value = hasWebSearch.value ? 7 : 5;
+  } else {
+    currentStep.value = 2;
   }
-  const hasUsableProvider = appConfig.providers.some(p => p.api_key.trim() !== "");
-  if (!hasUsableProvider) {
-    return { ok: false, reason: t("onboarding.importNoApiKey") };
-  }
-  return { ok: true };
 }
 
 function enterImportBranch() {
@@ -251,10 +286,14 @@ const canProceed = computed(() => {
         (isLocalProvider(providerForm.value, providerPresets.value) || providerForm.value.api_key.trim() !== "")
       );
     case 8:
-      // Import step: Next is only enabled after a successful, validated import
-      // (at least one provider with an api key). The in-card countdown-confirm
-      // drives the actual import; Next advances to the done step.
+      // Import step: Next is only enabled after a successful import. The actual
+      // category selection + countdown-confirm drives the import; Next advances
+      // to the summary step (9), which decides where to route the user.
       return importSucceeded.value;
+    case 9:
+      // Import summary: informational, always reachable. The Next button calls
+      // routeAfterImport, not the linear increment.
+      return true;
     case 4:
       return selectedModels.value.size > 0;
     case 0: case 1: case 3: case 5: case 6: case 7:
@@ -267,11 +306,17 @@ const canProceed = computed(() => {
 
 const isLastStep = computed(() => currentStep.value === 7);
 
-// Step-dot indicator sequence. The import branch is a shorter path
-// (welcome → info → import → done); the add-provider path runs all 8 steps.
-const dotSteps = computed(() =>
-  importMode.value ? [0, 1, 8, 7] : [0, 1, 2, 3, 4, 5, 6, 7],
-);
+// Step-dot indicator sequence.
+// - Import branch: welcome → info → import → summary → (done/websearch/provider).
+//   The post-summary destination is decided at click-time, so the dots stop at
+//   the summary step; whichever branch follows uses its own dot set.
+// - Linear (add-provider) branch: 0..7, but steps 5 and 6 are dropped when a
+//   web-search provider is already configured (skipWebSearchSteps) so a user
+//   who imported web search — or had it pre-existing — is not re-asked.
+const dotSteps = computed(() => {
+  if (importMode.value) return [0, 1, 8, 9];
+  return skipWebSearchSteps.value ? [0, 1, 2, 3, 4, 7] : [0, 1, 2, 3, 4, 5, 6, 7];
+});
 const currentDotIndex = computed(() =>
   dotSteps.value.indexOf(currentStep.value),
 );
@@ -290,14 +335,24 @@ function goNext() {
     return;
   }
   if (currentStep.value === 8) {
-    // Import succeeded & validated → advance to the done step.
+    // Import succeeded → advance to the summary step (9), which routes onward.
     direction.value = "forward";
-    currentStep.value = 7;
+    currentStep.value = 9;
+    return;
+  }
+  if (currentStep.value === 9) {
+    routeAfterImport();
     return;
   }
   // Step 6: save search config if user filled it in
   if (currentStep.value === 6) {
     saveSearchConfig();
+  }
+  // Skip web-search steps (5, 6) on the linear path when already configured.
+  if (currentStep.value === 4 && skipWebSearchSteps.value) {
+    direction.value = "forward";
+    currentStep.value = 7;
+    return;
   }
   direction.value = "forward";
   currentStep.value++;
@@ -357,9 +412,19 @@ function goPrev() {
     currentStep.value = 1;
     return;
   }
-  // Done step in import branch goes back to the import step, not step 6.
-  if (currentStep.value === 7 && importMode.value) {
+  // Summary step (9) goes back to the import step (8).
+  if (currentStep.value === 9) {
     currentStep.value = 8;
+    return;
+  }
+  // Done step in import branch goes back to the summary/import step, not 6.
+  if (currentStep.value === 7 && importMode.value) {
+    currentStep.value = importSucceeded.value ? 9 : 8;
+    return;
+  }
+  // Skip web-search steps (5, 6) backward when already configured.
+  if (currentStep.value === 7 && skipWebSearchSteps.value && !importMode.value) {
+    currentStep.value = 4;
     return;
   }
   currentStep.value--;
@@ -1110,7 +1175,7 @@ onMounted(async () => {
 
           <!-- Step 8: Import (branch) -->
           <div v-else-if="currentStep === 8" key="step8" class="flex flex-col py-6">
-            <!-- Success state: import done + validated, stay here until Next -->
+            <!-- Success state: import done, stay here until Next (→ summary) -->
             <template v-if="importSucceeded">
               <div class="flex flex-col items-center justify-center h-full py-10 text-center">
                 <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
@@ -1141,7 +1206,7 @@ onMounted(async () => {
                 {{ t('onboarding.importCardBody') }}
               </p>
               <p class="text-xs mb-4" style="color: var(--color-danger)">
-                {{ t('settings.userData.import.warning') }}
+                {{ t('settings.importData.import.warning') }}
               </p>
 
               <button
@@ -1149,7 +1214,7 @@ onMounted(async () => {
                 class="import-file-pick"
                 @click="selectImportFile"
               >
-                <FolderOpen :size="14" :stroke-width="1.8" />{{ t('settings.userData.import.selectFile') }}
+                <FolderOpen :size="14" :stroke-width="1.8" />{{ t('settings.importData.import.selectFile') }}
               </button>
 
               <template v-else>
@@ -1158,7 +1223,7 @@ onMounted(async () => {
                   <span class="import-file-name" :title="importPath || ''">{{ importFileName }}</span>
                   <button
                     class="import-change-btn"
-                    :disabled="importConfirming || importBusy"
+                    :disabled="importConfirming || importBusy || importAnalyzing"
                     @click="selectImportFile"
                     type="button"
                   >
@@ -1166,34 +1231,61 @@ onMounted(async () => {
                   </button>
                 </div>
 
-                <div v-if="!importConfirming" class="import-pw-row mt-3">
-                  <input
-                    :type="importShowPw ? 'text' : 'password'"
-                    class="import-pw-input"
-                    v-model="importPassword"
-                    :placeholder="t('settings.userData.import.passwordPlaceholder')"
-                    autocomplete="off"
-                  />
-                  <button class="import-pw-toggle" @click="importShowPw = !importShowPw" type="button">
-                    <Eye v-if="!importShowPw" :size="13" />
-                    <EyeOff v-else :size="13" />
-                  </button>
-                </div>
+                <template v-if="!importConfirming">
+                  <div class="import-pw-row mt-3">
+                    <input
+                      :type="importShowPw ? 'text' : 'password'"
+                      class="import-pw-input"
+                      v-model="importPassword"
+                      :placeholder="t('settings.importData.import.passwordPlaceholder')"
+                      autocomplete="off"
+                      @keyup.enter="analyzeImport"
+                    />
+                    <button class="import-pw-toggle" @click="importShowPw = !importShowPw" type="button">
+                      <Eye v-if="!importShowPw" :size="13" />
+                      <EyeOff v-else :size="13" />
+                    </button>
+                  </div>
 
-                <button
-                  v-if="!importConfirming"
-                  class="import-btn danger mt-3"
-                  :disabled="!importCanConfirm"
-                  @click="requestImport"
-                >
-                  <Loader2 v-if="importBusy" :size="12" class="spin" />
-                  <Upload v-else :size="12" :stroke-width="1.9" />{{ t('settings.userData.import.button') }}
-                </button>
+                  <button
+                    class="import-btn mt-3"
+                    :disabled="!importCanAnalyze"
+                    @click="analyzeImport"
+                  >
+                    <Loader2 v-if="importAnalyzing" :size="12" class="spin" />
+                    <Upload v-else :size="12" :stroke-width="1.9" />
+                    {{ importAnalyzing
+                      ? t('settings.importData.import.analyzing')
+                      : importAnalyzed
+                        ? t('settings.importData.import.reanalyze')
+                        : t('settings.importData.import.analyze') }}
+                  </button>
+
+                  <template v-if="importAnalyzed">
+                    <p class="text-xs mt-4 mb-2 font-medium" style="color: var(--color-text-secondary)">
+                      {{ t('settings.importData.selectCategories') }}
+                    </p>
+                    <DataCategorySelector
+                      v-model="importSelectedArray"
+                      :available="importAvailableCats"
+                      :counts="importPreview"
+                    />
+
+                    <button
+                      class="import-btn danger mt-3"
+                      :disabled="!importCanConfirm"
+                      @click="requestImport"
+                    >
+                      <Loader2 v-if="importBusy" :size="12" class="spin" />
+                      <Upload v-else :size="12" :stroke-width="1.9" />{{ t('settings.importData.import.button') }}
+                    </button>
+                  </template>
+                </template>
 
                 <div v-else class="import-confirm-row mt-3">
                   <div class="import-confirm-text">
                     <ShieldAlert :size="14" :stroke-width="1.6" />
-                    <span>{{ t('settings.userData.import.confirmWarning') }}</span>
+                    <span>{{ t('settings.importData.import.confirmWarning') }}</span>
                   </div>
                   <div class="import-confirm-actions">
                     <button class="mini-btn" :title="t('common.cancel')" :disabled="importBusy" @click="stopCountdown">
@@ -1222,6 +1314,36 @@ onMounted(async () => {
                 :style="{ color: importStatus.kind === 'error' ? 'var(--color-danger)' : importStatus.kind === 'success' ? 'var(--color-accent)' : 'var(--color-text-muted)' }"
               >{{ importStatus.msg }}</p>
             </template>
+          </div>
+
+          <!-- Step 9: Import summary (branch) -->
+          <div v-else-if="currentStep === 9" key="step9" class="flex flex-col py-6">
+            <h2 class="text-lg font-medium mb-3" style="color: var(--color-text)">
+              {{ t('onboarding.importSummaryTitle') }}
+            </h2>
+            <div class="flex flex-col gap-2 mb-4">
+              <div class="flex items-center gap-2 text-sm" style="color: var(--color-text-secondary)">
+                <Check v-if="hasUsableProviders" :size="14" style="color: var(--color-accent)" />
+                <X v-else :size="14" style="color: var(--color-danger)" />
+                <span>{{ t('onboarding.importSummaryProviders', { n: importedProviderCount }) }}</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm" style="color: var(--color-text-secondary)">
+                <Check v-if="hasWebSearch" :size="14" style="color: var(--color-accent)" />
+                <X v-else :size="14" style="color: var(--color-danger)" />
+                <span>{{ t('onboarding.importSummaryWebSearch', { n: importedWebSearchCount }) }}</span>
+              </div>
+            </div>
+            <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary)">
+              <template v-if="hasUsableProviders && hasWebSearch">
+                {{ t('onboarding.importSummaryAllReady') }}
+              </template>
+              <template v-else-if="hasUsableProviders && !hasWebSearch">
+                {{ t('onboarding.importSummaryNeedWebSearch') }}
+              </template>
+              <template v-else>
+                {{ t('onboarding.importSummaryNeedProvider') }}
+              </template>
+            </p>
           </div>
 
         </Transition>

@@ -356,12 +356,16 @@
     "skip": "跳过",
     "importExistingSettings": "你也可以选择导入已有设置 →",
     "importCardTitle": "从备份恢复",
-    "importCardBody": "选择一个 Prompit 备份文件并输入密码。你的服务配置和用户数据将被恢复。",
-    "importNoProviders": "备份文件不包含任何 AI 服务商。软件至少需要一个服务商才能使用。",
-    "importNoApiKey": "导入的服务商没有 API 密钥。请改为手动添加服务商。",
+    "importCardBody": "选择一个 Prompit 备份文件，输入密码，勾选要恢复的内容，我们会根据导入结果继续引导。",
     "importSuccessTitle": "导入成功",
-    "importSuccessBody": "你的设置已恢复。",
-    "importRetry": "重新导入"
+    "importSuccessBody": "所选数据已恢复。",
+    "importRetry": "重新导入",
+    "importSummaryTitle": "已恢复的内容",
+    "importSummaryProviders": "AI 服务商：{n}",
+    "importSummaryWebSearch": "网络搜索服务商：{n}",
+    "importSummaryAllReady": "一切就绪。点击下一步完成。",
+    "importSummaryNeedWebSearch": "未发现网络搜索服务商 —— 下一步可以添加（也可跳过）。",
+    "importSummaryNeedProvider": "未发现 AI 服务商。软件至少需要一个才能使用 —— 下一步将引导你添加。"
   },
   "startupReminder": {
     "hint": "按 {shortcut} 调出输入框"
