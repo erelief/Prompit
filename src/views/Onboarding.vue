@@ -1212,7 +1212,9 @@ onMounted(async () => {
           </div>
 
           <!-- Step 8: Import (branch) -->
-          <div v-else-if="currentStep === 8" key="step8" class="flex flex-col py-6">
+          <div v-else-if="currentStep === 8" key="step8"
+            class="flex flex-col py-6"
+            :class="{ 'h-full relative': importSucceeded }">
             <!-- Success state: import done + inline summary (was step 9, now merged) -->
             <template v-if="importSucceeded">
               <h2 class="text-lg font-medium mb-3" style="color: var(--color-text)">
@@ -1239,7 +1241,7 @@ onMounted(async () => {
               </p>
               <button
                 @click="resetImportBranch"
-                class="flex items-center gap-1 text-xs mt-4 transition-colors hover:underline"
+                class="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-1 text-xs pb-2 transition-colors hover:underline"
                 style="color: var(--color-text-muted); background: none; border: none; cursor: pointer;"
               >
                 <ChevronLeft :size="12" :stroke-width="1.8" />{{ t('onboarding.importRetry') }}
