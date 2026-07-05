@@ -73,7 +73,7 @@ async function handleExport() {
 
 async function handleDrag(e: MouseEvent) {
   const target = e.target as HTMLElement;
-  if (target.closest("button, input, textarea, a, select, .ud-card, .ud-footer")) return;
+  if (target.closest("button, input, textarea, a, select, .ud-footer")) return;
   await getCurrentWindow().startDragging();
 }
 
@@ -97,59 +97,53 @@ function todayStamp(): string {
 
     <!-- Body -->
     <div class="ud-body">
-      <section class="ud-card export-card">
-        <div class="ud-card-head">
-          <Download :size="13" />
-          <span class="ud-card-title">{{ t('settings.exportData.export.title') }}</span>
-        </div>
-        <p class="ud-desc">{{ t('settings.exportData.export.description') }}</p>
+      <p class="ud-desc">{{ t('settings.exportData.export.description') }}</p>
 
-        <!-- Category selector -->
-        <div class="selector-label">{{ t('settings.exportData.selectCategories') }}</div>
-        <DataCategorySelector v-model="selected" :available="ALL_CATEGORIES" />
+      <!-- Category selector -->
+      <div class="selector-label">{{ t('settings.exportData.selectCategories') }}</div>
+      <DataCategorySelector v-model="selected" :available="ALL_CATEGORIES" />
 
-        <!-- password -->
-        <div class="pw-row">
-          <input
-            :type="exportShowPw ? 'text' : 'password'"
-            class="pw-input"
-            v-model="exportPassword"
-            :placeholder="t('settings.exportData.export.passwordPlaceholder')"
-            autocomplete="new-password"
-          />
-          <button class="pw-toggle" @click="exportShowPw = !exportShowPw" type="button">
-            <Eye v-if="!exportShowPw" :size="13" />
-            <EyeOff v-else :size="13" />
-          </button>
-        </div>
-
-        <!-- confirm password -->
-        <div
-          class="pw-row"
-          :class="{ mismatch: exportConfirmPassword.length > 0 && exportConfirmPassword !== exportPassword }"
-        >
-          <input
-            :type="exportConfirmShowPw ? 'text' : 'password'"
-            class="pw-input"
-            v-model="exportConfirmPassword"
-            :placeholder="t('settings.exportData.export.confirmPasswordPlaceholder')"
-            autocomplete="new-password"
-          />
-          <button class="pw-toggle" @click="exportConfirmShowPw = !exportConfirmShowPw" type="button">
-            <Eye v-if="!exportConfirmShowPw" :size="13" />
-            <EyeOff v-else :size="13" />
-          </button>
-        </div>
-
-        <button
-          class="ud-btn primary-btn"
-          :disabled="!exportReady || exportBusy"
-          @click="handleExport"
-        >
-          <Download :size="12" :stroke-width="1.9" />{{ t('settings.exportData.export.button') }}
+      <!-- password -->
+      <div class="pw-row">
+        <input
+          :type="exportShowPw ? 'text' : 'password'"
+          class="pw-input"
+          v-model="exportPassword"
+          :placeholder="t('settings.exportData.export.passwordPlaceholder')"
+          autocomplete="new-password"
+        />
+        <button class="pw-toggle" @click="exportShowPw = !exportShowPw" type="button">
+          <Eye v-if="!exportShowPw" :size="13" />
+          <EyeOff v-else :size="13" />
         </button>
-        <p v-if="!exportReady" class="ud-hint">{{ t('settings.exportData.export.hint') }}</p>
-      </section>
+      </div>
+
+      <!-- confirm password -->
+      <div
+        class="pw-row"
+        :class="{ mismatch: exportConfirmPassword.length > 0 && exportConfirmPassword !== exportPassword }"
+      >
+        <input
+          :type="exportConfirmShowPw ? 'text' : 'password'"
+          class="pw-input"
+          v-model="exportConfirmPassword"
+          :placeholder="t('settings.exportData.export.confirmPasswordPlaceholder')"
+          autocomplete="new-password"
+        />
+        <button class="pw-toggle" @click="exportConfirmShowPw = !exportConfirmShowPw" type="button">
+          <Eye v-if="!exportConfirmShowPw" :size="13" />
+          <EyeOff v-else :size="13" />
+        </button>
+      </div>
+
+      <button
+        class="ud-btn primary-btn"
+        :disabled="!exportReady || exportBusy"
+        @click="handleExport"
+      >
+        <Download :size="12" :stroke-width="1.9" />{{ t('settings.exportData.export.button') }}
+      </button>
+      <p v-if="!exportReady" class="ud-hint">{{ t('settings.exportData.export.hint') }}</p>
     </div>
 
     <!-- Footer status -->
@@ -226,26 +220,6 @@ function todayStamp(): string {
 .ud-body::-webkit-scrollbar { width: 3px; }
 .ud-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
 
-.ud-card {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-scrollbar);
-  border-radius: 10px;
-  padding: 14px;
-}
-.ud-card-head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--color-text-secondary);
-}
-.ud-card-title {
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.01em;
-}
 .ud-desc {
   font-size: 11px;
   font-weight: 500;
@@ -336,7 +310,6 @@ function todayStamp(): string {
   color: var(--color-text);
   background: var(--color-surface-hover);
   border-color: var(--color-border);
-  flex: 1;
 }
 .primary-btn:hover:not(:disabled) {
   background: var(--color-border);

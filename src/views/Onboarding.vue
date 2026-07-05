@@ -634,15 +634,17 @@ onMounted(async () => {
   <div class="flex items-center justify-center h-dvh px-6 select-none" style="background: var(--color-bg)" @mousedown="handleDrag" @click="onRootClick">
     <div class="w-full max-w-[520px] flex flex-col relative" style="height: 100%; max-height: 100dvh; min-height: 0">
 
-      <!-- Close button -->
-      <button
-        class="absolute top-0 right-0 z-10 flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
-        style="color: var(--color-text-muted)"
-        @click="handleClose"
-        :title="t('common.hide')"
-      >
-        <X :size="18" :stroke-width="1.5" />
-      </button>
+      <!-- Header: X button only, non-scrollable -->
+      <div class="flex items-center justify-end flex-shrink-0 h-10 pr-1">
+        <button
+          class="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+          style="color: var(--color-text-muted)"
+          @click="handleClose"
+          :title="t('common.hide')"
+        >
+          <X :size="18" :stroke-width="1.5" />
+        </button>
+      </div>
 
       <!-- Close confirmation modal -->
       <Transition name="drop">
@@ -672,7 +674,8 @@ onMounted(async () => {
       </Transition>
 
       <!-- Content area with transitions -->
-      <div class="flex-1 relative overflow-hidden min-h-0">
+      <div class="onb-content flex-1 relative overflow-y-auto min-h-0">
+        <div class="w-full max-w-[520px] min-h-full">
         <Transition :name="direction === 'forward' ? 'slide-left' : 'slide-right'" mode="out-in">
 
           <!-- Step 0: Welcome -->
@@ -1347,6 +1350,7 @@ onMounted(async () => {
           </div>
 
         </Transition>
+        </div>
       </div>
 
       <!-- Bottom navigation -->
@@ -1517,6 +1521,27 @@ div::-webkit-scrollbar-track {
 div::-webkit-scrollbar-thumb {
   background: var(--color-scrollbar);
   border-radius: 2px;
+}
+
+/* Scrollable step content: matches the 3px scrollbar used by the Settings /
+ * data-management pages (ExportData / ImportData / ResetSoftware) so onboarding
+ * does not look heavier than the rest of the app. The global 4px rule above
+ * still applies to nested lists (e.g. model list). */
+.onb-content::-webkit-scrollbar {
+  width: 3px;
+}
+.onb-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.onb-content::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar);
+  border-radius: 3px;
+}
+/* The scrollbar must hug the right edge of the card; any right padding would
+ * push it inward. */
+.onb-content {
+  width: calc(100% + max(24px, 50vw - 260px));
+  padding-right: 0 !important;
 }
 
 /* ── Dropdown (matching Settings style) ── */

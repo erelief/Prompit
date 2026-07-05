@@ -8,7 +8,7 @@ import { useDataImport } from "../composables/useDataImport";
 import DataCategorySelector from "../components/DataCategorySelector.vue";
 import { ALL_CATEGORIES } from "../composables/useDataCategories";
 import {
-  Upload, Eye, EyeOff, Check, X, ShieldAlert,
+  Upload, ArrowLeft, Eye, EyeOff, Check, X, ShieldAlert,
   FileText, FolderOpen, Search,
 } from "@lucide/vue";
 
@@ -56,7 +56,7 @@ const analyzeBtnLabel = computed(() =>
 
 async function handleDrag(e: MouseEvent) {
   const target = e.target as HTMLElement;
-  if (target.closest("button, input, textarea, a, select, .ud-card, .ud-footer")) return;
+  if (target.closest("button, input, textarea, a, select, .ud-footer")) return;
   await getCurrentWindow().startDragging();
 }
 
@@ -70,124 +70,118 @@ void ref;
     <!-- Header -->
     <div class="ud-header">
       <button class="back-btn" @click="router.push('/settings?tab=general')">
-        <Upload :size="16" />
+        <ArrowLeft :size="16" />
       </button>
       <span class="header-title">{{ t('settings.importData.pageTitle') }}</span>
     </div>
 
     <!-- Body -->
     <div class="ud-body">
-      <section class="ud-card import-card">
-        <div class="ud-card-head">
-          <Upload :size="13" />
-          <span class="ud-card-title">{{ t('settings.importData.import.title') }}</span>
+      <p class="ud-desc">{{ t('settings.importData.import.description') }}</p>
+      <p class="ud-warn">{{ t('settings.importData.import.warning') }}</p>
+
+      <!-- Step 1: select file -->
+      <button
+        v-if="!importPath"
+        class="file-pick-btn"
+        @click="selectImportFile"
+      >
+        <FolderOpen :size="14" :stroke-width="1.8" />{{ t('settings.importData.import.selectFile') }}
+      </button>
+
+      <!-- Step 2/3: file selected -->
+      <template v-else>
+        <!-- selected file row -->
+        <div class="file-row">
+          <FileText :size="14" class="file-icon" />
+          <span class="file-name" :title="importPath">{{ importFileName }}</span>
+          <button
+            class="pw-toggle change-file-btn"
+            :disabled="importConfirming || importBusy || importAnalyzing"
+            @click="selectImportFile"
+            type="button"
+          >
+            <FolderOpen :size="13" />
+          </button>
         </div>
-        <p class="ud-desc">{{ t('settings.importData.import.description') }}</p>
-        <p class="ud-warn">{{ t('settings.importData.import.warning') }}</p>
 
-        <!-- Step 1: select file -->
-        <button
-          v-if="!importPath"
-          class="file-pick-btn"
-          @click="selectImportFile"
-        >
-          <FolderOpen :size="14" :stroke-width="1.8" />{{ t('settings.importData.import.selectFile') }}
-        </button>
-
-        <!-- Step 2/3: file selected -->
-        <template v-else>
-          <!-- selected file row -->
-          <div class="file-row">
-            <FileText :size="14" class="file-icon" />
-            <span class="file-name" :title="importPath">{{ importFileName }}</span>
-            <button
-              class="pw-toggle change-file-btn"
-              :disabled="importConfirming || importBusy || importAnalyzing"
-              @click="selectImportFile"
-              type="button"
-            >
-              <FolderOpen :size="13" />
+        <!-- password + analyze (hidden while confirming) -->
+        <template v-if="!importConfirming">
+          <div class="pw-row">
+            <input
+              :type="importShowPw ? 'text' : 'password'"
+              class="pw-input"
+              v-model="importPassword"
+              :placeholder="t('settings.importData.import.passwordPlaceholder')"
+              autocomplete="off"
+              @keyup.enter="analyzeImport"
+            />
+            <button class="pw-toggle" @click="importShowPw = !importShowPw" type="button">
+              <Eye v-if="!importShowPw" :size="13" />
+              <EyeOff v-else :size="13" />
             </button>
           </div>
 
-          <!-- password + analyze (hidden while confirming) -->
-          <template v-if="!importConfirming">
-            <div class="pw-row">
-              <input
-                :type="importShowPw ? 'text' : 'password'"
-                class="pw-input"
-                v-model="importPassword"
-                :placeholder="t('settings.importData.import.passwordPlaceholder')"
-                autocomplete="off"
-                @keyup.enter="analyzeImport"
-              />
-              <button class="pw-toggle" @click="importShowPw = !importShowPw" type="button">
-                <Eye v-if="!importShowPw" :size="13" />
-                <EyeOff v-else :size="13" />
-              </button>
-            </div>
+          <button
+            class="ud-btn analyze-btn"
+            :disabled="!importCanAnalyze"
+            @click="analyzeImport"
+          >
+            <Search :size="12" :stroke-width="1.9" />{{ analyzeBtnLabel }}
+          </button>
 
-            <button
-              class="ud-btn analyze-btn"
-              :disabled="!importCanAnalyze"
-              @click="analyzeImport"
-            >
-              <Search :size="12" :stroke-width="1.9" />{{ analyzeBtnLabel }}
-            </button>
-
-            <!-- Category selector appears once analysis succeeds -->
-            <template v-if="importAnalyzed">
-              <div class="selector-label">{{ t('settings.importData.selectCategories') }}</div>
-              <DataCategorySelector
-                v-model="selectedArray"
-                :available="available"
-                :counts="importPreview"
-              />
-            </template>
-
-            <!-- import button -->
-            <button
-              class="ud-btn primary-btn danger"
-              :disabled="!importCanConfirm"
-              @click="requestImport"
-            >
-              <Upload :size="12" :stroke-width="1.9" />{{ t('settings.importData.import.button') }}
-            </button>
+          <!-- Category selector appears once analysis succeeds -->
+          <template v-if="importAnalyzed">
+            <div class="selector-label">{{ t('settings.importData.selectCategories') }}</div>
+            <DataCategorySelector
+              v-model="selectedArray"
+              :available="available"
+              :counts="importPreview"
+            />
           </template>
 
-          <!-- Step 3: countdown confirm -->
-          <div v-else class="confirm-warn-row">
-            <div class="confirm-warn-text">
-              <ShieldAlert :size="14" :stroke-width="1.6" />
-              <span>{{ t('settings.importData.import.confirmWarning') }}</span>
-            </div>
-            <div class="confirm-actions">
+          <!-- import button -->
+          <button
+            class="ud-btn primary-btn danger"
+            :disabled="!importCanConfirm"
+            @click="requestImport"
+          >
+            <Upload :size="12" :stroke-width="1.9" />{{ t('settings.importData.import.button') }}
+          </button>
+        </template>
+
+        <!-- Step 3: countdown confirm -->
+        <div v-else class="confirm-warn-row">
+          <div class="confirm-warn-text">
+            <ShieldAlert :size="14" :stroke-width="1.6" />
+            <span>{{ t('settings.importData.import.confirmWarning') }}</span>
+          </div>
+          <div class="confirm-actions">
+            <button
+              class="mini-btn"
+              :title="t('common.cancel')"
+              :disabled="importBusy"
+              @click="stopCountdown"
+            >
+              <X :size="12" :stroke-width="2.5" />
+            </button>
+            <div class="confirm-with-countdown">
               <button
-                class="mini-btn"
-                :title="t('common.cancel')"
-                :disabled="importBusy"
-                @click="stopCountdown"
+                class="mini-btn danger-active"
+                :class="{ 'confirm-counting': importCountdown > 0 }"
+                :title="importCountdown > 0
+                  ? t('settings.reset.confirmCountdown', { n: importCountdown })
+                  : t('common.confirm')"
+                :disabled="importCountdown > 0 || importBusy"
+                @click="confirmImport"
               >
-                <X :size="12" :stroke-width="2.5" />
+                <Check :size="12" :stroke-width="2.5" />
               </button>
-              <div class="confirm-with-countdown">
-                <button
-                  class="mini-btn danger-active"
-                  :class="{ 'confirm-counting': importCountdown > 0 }"
-                  :title="importCountdown > 0
-                    ? t('settings.reset.confirmCountdown', { n: importCountdown })
-                    : t('common.confirm')"
-                  :disabled="importCountdown > 0 || importBusy"
-                  @click="confirmImport"
-                >
-                  <Check :size="12" :stroke-width="2.5" />
-                </button>
-                <span v-if="importCountdown > 0" class="countdown-label">{{ importCountdown }}s</span>
-              </div>
+              <span v-if="importCountdown > 0" class="countdown-label">{{ importCountdown }}s</span>
             </div>
           </div>
-        </template>
-      </section>
+        </div>
+      </template>
     </div>
 
     <!-- Footer status -->
@@ -264,26 +258,6 @@ void ref;
 .ud-body::-webkit-scrollbar { width: 3px; }
 .ud-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
 
-.ud-card {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-scrollbar);
-  border-radius: 10px;
-  padding: 14px;
-}
-.ud-card-head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--color-text-secondary);
-}
-.ud-card-title {
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.01em;
-}
 .ud-desc {
   font-size: 11px;
   font-weight: 500;
@@ -372,7 +346,6 @@ void ref;
   color: var(--color-accent-text);
   background: var(--color-accent-bg);
   border-color: var(--color-accent-border);
-  flex: 1;
 }
 .analyze-btn:hover:not(:disabled) {
   background: var(--color-accent);
@@ -382,7 +355,6 @@ void ref;
   color: var(--color-text);
   background: var(--color-surface-hover);
   border-color: var(--color-border);
-  flex: 1;
 }
 .primary-btn.danger {
   color: var(--color-danger);
