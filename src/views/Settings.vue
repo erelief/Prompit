@@ -3,6 +3,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { useRouter, useRoute } from "vue-router";
 import { altKey, ctrlKey } from "../utils/platform";
 import {
@@ -12,6 +13,9 @@ import {
   flushConfigSave,
   savePersonas as persistPersonas,
   saveSkillsLites as persistSkillsLites,
+  loadSkillsLites,
+  exportSkillsLiteMarkdown,
+  importSkillsLiteMarkdown,
   getOrderedLanguages,
   rebuildLanguageOrder,
   loadProviderPresets,
@@ -456,6 +460,60 @@ function toggleSkillsLite(index: number, e: MouseEvent) {
   // Guard: never disable the last remaining skills-lite.
   if (skillsLiteStore.skillsLites[index].enabled && skillsLiteStore.skillsLites.length <= 1) return;
   activateExclusive(skillsLiteStore.skillsLites, index, e, () => persistSkillsLites());
+}
+
+// Import result toast — shown briefly after a batch import, mirrors the
+// dictionary editor's importMessage pattern.
+const skillsLiteImportMsg = ref<string>("");
+let skillsLiteImportTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Sanitize a skill name into a safe filename stem (drop OS-illegal chars). */
+function safeSkillFileName(name: string): string {
+  const cleaned = (name || "").replace(/[<>:"/\\|?*\x00-\x1f]/g, "").trim();
+  return cleaned || "skill";
+}
+
+async function handleExportSkillsLite(index: number) {
+  const entry = skillsLiteStore.skillsLites[index];
+  if (!entry) return;
+  const filePath = await saveDialog({
+    defaultPath: `${safeSkillFileName(entry.name)}-skill.md`,
+    filters: [{ name: "Markdown", extensions: ["md"] }],
+  });
+  if (!filePath) return;
+  try {
+    await exportSkillsLiteMarkdown(filePath, entry);
+  } catch (err) {
+    console.error("Failed to export skills lite:", err);
+  }
+}
+
+async function handleImportSkillsLite() {
+  const selected = await openDialog({
+    multiple: true,
+    filters: [{ name: "Markdown", extensions: ["md"] }],
+  });
+  if (!selected) return;
+  const paths = Array.isArray(selected) ? selected : [selected];
+  if (paths.length === 0) return;
+  try {
+    const result = await importSkillsLiteMarkdown(paths);
+    // Reload from disk so the UI reflects the freshly-appended entries.
+    await loadSkillsLites();
+    if (result.imported === 0) {
+      skillsLiteImportMsg.value = t("settings.skillsLiteImportNone");
+    } else {
+      skillsLiteImportMsg.value = t("settings.skillsLiteImported", {
+        imported: result.imported,
+        skipped: result.skipped,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to import skills lite:", err);
+    skillsLiteImportMsg.value = String(err);
+  }
+  if (skillsLiteImportTimer) clearTimeout(skillsLiteImportTimer);
+  skillsLiteImportTimer = setTimeout(() => { skillsLiteImportMsg.value = ""; }, 4000);
 }
 
 // ── Web search provider management ──
@@ -2286,6 +2344,18 @@ onUnmounted(() => {
           @confirm="() => persistSkillsLites()"
           @remove="() => persistSkillsLites()"
         >
+          <template #header-actions>
+            <button
+              v-if="skillsLiteImportMsg === ''"
+              class="pill-btn micro import-skills-pill"
+              :title="t('settings.importSkillsLite')"
+              @click="handleImportSkillsLite"
+            >
+              <Download :size="12" :stroke-width="2" />{{ t('common.import') }}
+            </button>
+            <span v-else class="skills-lite-import-msg">{{ skillsLiteImportMsg }}</span>
+          </template>
+
           <template #collapsed="{ item, index }">
             <span class="card-drag-handle prov-drag-logo" @click.stop>
               <GripVertical :size="13" :stroke-width="1.8" />
@@ -2298,6 +2368,13 @@ onUnmounted(() => {
               <span class="persona-name">{{ item.name }}</span>
               <span v-if="item.description?.trim()" class="skills-lite-desc">{{ item.description }}</span>
             </span>
+            <button
+              class="mini-btn skills-lite-export-btn"
+              :title="t('settings.exportSkillsLite')"
+              @click.stop="handleExportSkillsLite(index)"
+            >
+              <Upload :size="11" :stroke-width="1.9" />
+            </button>
           </template>
 
           <template #name-input="{ item }">
@@ -2829,6 +2906,22 @@ label {
 }
 .skills-lite-desc-fi {
   margin-bottom: 10px;
+}
+
+/* ── Skills Lite per-entry export + section import ── */
+.skills-lite-export-btn {
+  /* Sit at the right edge of ecl-lhs, visually adjacent to edit/remove */
+  margin-left: auto; flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+.skills-lite-export-btn:hover {
+  color: var(--color-accent); background: var(--color-accent-bg);
+}
+.import-skills-pill { color: var(--color-text-muted); }
+.import-skills-pill:hover { color: var(--color-accent); background: var(--color-accent-bg); }
+.skills-lite-import-msg {
+  font-size: 10.5px; font-weight: 550; letter-spacing: .01em;
+  color: var(--color-accent-text);
 }
 
 /* ── Persona textarea ── */

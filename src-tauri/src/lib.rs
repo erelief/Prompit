@@ -161,6 +161,8 @@ pub fn run() {
             commands::persona::save_personas,
             commands::skills_lite::read_skills_lites,
             commands::skills_lite::save_skills_lites,
+            commands::skills_lite::export_skills_lite_markdown,
+            commands::skills_lite::import_skills_lite_markdown,
             commands::history::read_history,
             commands::history::save_history,
             commands::history::clear_history,

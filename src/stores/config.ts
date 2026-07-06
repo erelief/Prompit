@@ -800,6 +800,28 @@ export async function saveSkillsLites(): Promise<void> {
   }
 }
 
+/** Export a single skills-lite entry to a plaintext .md file (docs/SKILL.md template). */
+export async function exportSkillsLiteMarkdown(
+  filePath: string,
+  entry: SkillsLiteEntry,
+): Promise<void> {
+  await invoke("export_skills_lite_markdown", { filePath, entry });
+}
+
+export interface SkillsLiteImportResult {
+  imported: number;
+  skipped: number;
+}
+
+/** Import one or more .md skill files (append mode). Persists on the Rust side. */
+export async function importSkillsLiteMarkdown(
+  filePaths: string[],
+): Promise<SkillsLiteImportResult> {
+  return await invoke<SkillsLiteImportResult>("import_skills_lite_markdown", {
+    filePaths,
+  });
+}
+
 // ── Mode registry ──
 
 export const MODES: ModeDefinition[] = [

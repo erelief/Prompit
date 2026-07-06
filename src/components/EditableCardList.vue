@@ -215,9 +215,12 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   <!-- Section head -->
   <div class="section-head" v-bind="$attrs">
     <span class="section-title"><component :is="icon" :size="13" />{{ title }}</span>
-    <button v-show="!adding && !isEditingAny" class="pill-btn add-pill" @click="handleAdd" :disabled="adding">
-      <Plus :size="12" :stroke-width="2" />{{ t('common.add') }} {{ title }}
-    </button>
+    <div class="section-head-actions">
+      <slot name="header-actions" />
+      <button v-show="!adding && !isEditingAny" class="pill-btn add-pill" @click="handleAdd" :disabled="adding">
+        <Plus :size="12" :stroke-width="2" />{{ t('common.add') }} {{ title }}
+      </button>
+    </div>
   </div>
 
   <div ref="rootEl" class="ecl-stack" :class="{ compact: !adding && !isEditingAny }" :style="(!adding && !isEditingAny) ? { maxHeight: (props.maxCollapsed * 56 + 4) + 'px' } : undefined">
@@ -459,6 +462,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   margin-bottom: 10px;
 }
 .section-head.mt { margin-top: 18px; }
+.section-head-actions { display:flex; align-items:center; gap:6px; }
 .section-title {
   display:flex; align-items:center; gap:7px;
   font-size: 11.5px; font-weight: 650; letter-spacing: .01em;
