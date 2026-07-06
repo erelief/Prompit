@@ -76,22 +76,15 @@ fn yaml_single_quote(s: &str) -> String {
 /// {prompt}
 /// ```
 fn format_skill_markdown(entry: &SkillsLiteEntry) -> String {
-    let mut out = String::new();
-    out.push_str("---\n");
-    out.push_str(&format!("name: {}\n", yaml_single_quote(&entry.name)));
-    out.push_str(&format!(
-        "description: {}\n",
-        yaml_single_quote(&entry.description)
-    ));
-    out.push_str("---\n\n");
-    out.push_str(&format!("# {}\n", entry.name));
-    // Preserve the prompt verbatim (trailing newline optional).
+    // Preserve the prompt verbatim (strip a single trailing newline so the
+    // file ends cleanly without a blank line).
     let prompt = entry.prompt.trim_end_matches('\n');
-    out.push_str(prompt);
-    if !prompt.is_empty() {
-        out.push('\n');
-    }
-    out
+    format!(
+        "---\nname: {name}\ndescription: {desc}\n---\n\n# {name}\n{prompt}\n",
+        name = yaml_single_quote(&entry.name),
+        desc = yaml_single_quote(&entry.description),
+        prompt = prompt,
+    )
 }
 
 /// Parse the docs/SKILL.md plaintext template back into a skill entry.
@@ -137,19 +130,13 @@ fn parse_skill_markdown(raw: &str) -> Option<SkillsLiteEntry> {
         .copied()
         .collect();
 
-    let mut prompt: String = String::new();
+    let mut prompt = String::new();
     let mut heading_name: Option<String> = None;
     for (i, line) in body_lines.iter().enumerate() {
         if let Some(rest) = line.trim_start().strip_prefix("# ") {
             heading_name = Some(rest.trim().to_string());
             // Prompt is everything after the heading line, blank lines trimmed.
-            prompt = body_lines[i + 1..]
-                .iter()
-                .copied()
-                .collect::<Vec<_>>()
-                .join("\n")
-                .trim()
-                .to_string();
+            prompt = body_lines[i + 1..].join("\n").trim().to_string();
             break;
         }
     }
@@ -169,19 +156,20 @@ fn parse_skill_markdown(raw: &str) -> Option<SkillsLiteEntry> {
 
 /// Parse a `key: value` YAML line, returning the unquoted value if `key` matches.
 fn parse_yaml_kv(line: &str, key: &str) -> Option<String> {
-    let trimmed = line.trim();
-    let prefix = format!("{key}:");
-    let rest = trimmed.strip_prefix(&prefix)?;
-    let v = rest.trim();
-    // Strip matching surrounding quotes (single or double). For single-quoted
-    // YAML scalars, also collapse doubled single quotes back to one.
-    if v.len() >= 2 && v.starts_with('\'') && v.ends_with('\'') {
-        Some(v[1..v.len() - 1].replace("''", "'").trim().to_string())
-    } else if v.len() >= 2 && v.starts_with('"') && v.ends_with('"') {
-        Some(v[1..v.len() - 1].trim().to_string())
-    } else {
-        Some(v.to_string())
-    }
+    let v = line.trim().strip_prefix(&format!("{key}:"))?.trim();
+    // Strip one pair of matching surrounding quotes. Single-quoted YAML
+    // scalars escape embedded quotes by doubling them; collapse back to one.
+    let unquoted = v
+        .strip_prefix('\'')
+        .and_then(|s| s.strip_suffix('\''))
+        .map(|inner| inner.replace("''", "'"))
+        .or_else(|| {
+            v.strip_prefix('"')
+                .and_then(|s| s.strip_suffix('"'))
+                .map(str::to_string)
+        })
+        .unwrap_or_else(|| v.to_string());
+    Some(unquoted)
 }
 
 #[tauri::command]

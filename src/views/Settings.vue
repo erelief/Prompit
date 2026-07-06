@@ -489,13 +489,12 @@ async function handleExportSkillsLite(index: number) {
 }
 
 async function handleImportSkillsLite() {
-  const selected = await openDialog({
+  // multiple: true narrows the dialog return to string[] | null.
+  const paths = await openDialog({
     multiple: true,
     filters: [{ name: "Markdown", extensions: ["md"] }],
   });
-  if (!selected) return;
-  const paths = Array.isArray(selected) ? selected : [selected];
-  if (paths.length === 0) return;
+  if (!paths || paths.length === 0) return;
   try {
     const result = await importSkillsLiteMarkdown(paths);
     // Reload from disk so the UI reflects the freshly-appended entries.
@@ -2910,9 +2909,7 @@ label {
 
 /* ── Skills Lite per-entry export + section import ── */
 .skills-lite-export-btn {
-  /* Sit at the right edge of ecl-lhs, visually adjacent to edit/remove */
-  margin-left: auto; flex-shrink: 0;
-  color: var(--color-text-muted);
+  flex-shrink: 0; color: var(--color-text-muted);
 }
 .skills-lite-export-btn:hover {
   color: var(--color-accent); background: var(--color-accent-bg);
