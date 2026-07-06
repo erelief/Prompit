@@ -218,7 +218,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
     <div class="section-head-actions">
       <slot name="header-actions" :adding="adding" :editing="isEditingAny" />
       <button v-show="!adding && !isEditingAny" class="pill-btn add-pill" @click="handleAdd" :disabled="adding">
-        <Plus :size="12" :stroke-width="2" />{{ t('common.add') }} {{ title }}
+        <Plus :size="12" :stroke-width="2" />{{ t('common.add') }}
       </button>
     </div>
   </div>

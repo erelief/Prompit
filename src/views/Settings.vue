@@ -2245,7 +2245,10 @@ onUnmounted(() => {
           </template>
 
           <template #name-input="{ item }">
-            <input v-model="item.name" :placeholder="t('settings.personaName')" class="fi name-fi" @click.stop />
+            <div class="name-input-icon-wrap">
+              <UserCircle :size="14" :stroke-width="1.8" class="name-input-icon" />
+              <input v-model="item.name" :placeholder="t('settings.personaName')" class="fi name-fi" @click.stop />
+            </div>
           </template>
 
           <template #content="{ item, index }">
@@ -2379,7 +2382,10 @@ onUnmounted(() => {
           </template>
 
           <template #name-input="{ item }">
-            <input v-model="item.name" :placeholder="t('settings.skillsLiteName')" class="fi name-fi" @click.stop />
+            <div class="name-input-icon-wrap">
+              <Sparkles :size="14" :stroke-width="1.8" class="name-input-icon" />
+              <input v-model="item.name" :placeholder="t('settings.skillsLiteName')" class="fi name-fi" @click.stop />
+            </div>
           </template>
 
           <template #content="{ item, index }">
