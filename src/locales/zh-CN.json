@@ -95,6 +95,7 @@
     "dark": "深色",
     "system": "跟随系统",
     "language": "语言",
+    "appLangAuto": "自动（跟随系统）",
     "translationModel": "翻译模型",
     "noModelsAvailable": "暂无可用模型",
     "targetLanguage": "目标语言",

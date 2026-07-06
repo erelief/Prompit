@@ -169,7 +169,7 @@ const defaultConfig: AppConfig = {
   user_dict_enabled: false,
   custom_languages: [],
   language_order: [],
-  app_lang: "en",
+  app_lang: "auto",
   theme: "system",
   floating_opacity: 90,
   font_size: 100,
@@ -405,6 +405,32 @@ async function saveWebSearch(): Promise<void> {
   await invoke("save_websearch", { bundle });
 }
 
+/**
+ * Maps an OS locale tag (BCP 47, e.g. "zh-CN", "zh-Hans", "en-US") to one of
+ * the supported `app_lang` values. Only `zh-CN` is a non-English supported
+ * locale today; everything else falls back to English.
+ */
+function osLocaleToAppLang(osLocale: string): string {
+  const tag = (osLocale || "").trim().toLowerCase();
+  if (!tag) return "en";
+  // Any Chinese variant (zh, zh-cn, zh-hans, zh-tw, zh-hk, …) → zh-CN.
+  if (tag === "zh" || tag.startsWith("zh-") || tag.startsWith("zh_")) return "zh-CN";
+  return "en";
+}
+
+/**
+ * Resolves the concrete UI locale to apply. When `app_lang === "auto"` (the
+ * default until the user explicitly picks a language), reads the OS UI locale
+ * from `navigator.language` — which the webview derives from the system
+ * preferred UI language on all platforms (WebView2/WKWebView/WebKitGTK) — and
+ * maps it to a supported value. Otherwise returns the stored value as-is.
+ */
+function resolveAppLang(): string {
+  const raw = appConfig.app_lang;
+  if (raw !== "auto") return raw;
+  return osLocaleToAppLang(navigator.language);
+}
+
 export async function loadConfig(): Promise<void> {
   try {
     const loaded = await invoke<AppConfig>("read_config");
@@ -438,7 +464,7 @@ export async function loadConfig(): Promise<void> {
       appConfig.target_lang = "Simplified Chinese";
     }
     normalizeActiveModelIndices();
-    i18n.global.locale.value = appConfig.app_lang as any;
+    i18n.global.locale.value = resolveAppLang() as any;
     // Providers and web engines live in their own encrypted files; hydrate them
     // AFTER Object.assign so they override any stale arrays left in config.json
     // by a partial/legacy migration.
@@ -454,9 +480,14 @@ export async function loadConfig(): Promise<void> {
 
 watch(
   () => appConfig.app_lang,
-  (lang) => {
-    i18n.global.locale.value = lang as any;
-    rebuildLanguageOrder(lang);
+  () => {
+    // Resolve "auto" to a concrete locale (OS lookup) before applying; this
+    // also fires when the user switches back to Auto in Settings/Onboarding.
+    // Reads appConfig.app_lang directly (not the callback arg) so resolveAppLang
+    // sees the already-updated value.
+    const resolved = resolveAppLang();
+    i18n.global.locale.value = resolved as any;
+    rebuildLanguageOrder(resolved);
   },
 );
 

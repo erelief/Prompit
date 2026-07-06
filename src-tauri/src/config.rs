@@ -270,7 +270,10 @@ fn default_theme() -> String {
     "system".to_string()
 }
 fn default_app_lang() -> String {
-    "en".to_string()
+    // "auto" = follow the OS UI locale on each launch until the user explicitly
+    // picks a language. Resolved in the frontend via `navigator.language`
+    // (see `resolveAppLang`).
+    "auto".to_string()
 }
 fn default_floating_opacity() -> u8 {
     90
@@ -305,7 +308,7 @@ impl Default for AppConfig {
             user_dict_enabled: false,
             custom_languages: vec![],
             language_order: vec![],
-            app_lang: "en".to_string(),
+            app_lang: "auto".to_string(),
             theme: "system".to_string(),
             floating_opacity: 90,
             show_startup_reminder: true,
@@ -398,7 +401,7 @@ mod tests {
         let config: AppConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.target_lang, "English");
         assert_eq!(config.theme, "system");
-        assert_eq!(config.app_lang, "en");
+        assert_eq!(config.app_lang, "auto");
     }
 
     #[test]
@@ -442,7 +445,7 @@ mod tests {
         assert!(config.custom_languages.is_empty());
         assert!(config.language_order.is_empty());
         assert_eq!(config.theme, "system");
-        assert_eq!(config.app_lang, "en");
+        assert_eq!(config.app_lang, "auto");
         assert_eq!(config.history_limit, 50);
     }
 

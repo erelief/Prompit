@@ -95,6 +95,7 @@
     "dark": "Dark",
     "system": "System",
     "language": "Language",
+    "appLangAuto": "Auto (follow system)",
     "translationModel": "Translation Model",
     "noModelsAvailable": "No models available",
     "targetLanguage": "Target Language",

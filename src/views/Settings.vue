@@ -148,10 +148,12 @@ const selBtnRef = ref<HTMLElement | null>(null);
 const translationLangBtnRef = ref<HTMLElement | null>(null);
 
 // ── App language switcher ──
-const appLanguageOptions = [
+// "auto" follows the OS locale on each launch until the user picks one.
+const appLanguageOptions = computed(() => [
+  { value: "auto", label: t("settings.appLangAuto") },
   { value: "en", label: "English" },
   { value: "zh-CN", label: "简体中文" },
-];
+]);
 
 const showAppLangMenu = ref(false);
 const showHistoryClearConfirm = ref(false);
@@ -172,7 +174,7 @@ function selectAppLang(lang: string) {
 }
 
 const currentAppLangLabel = computed(() => {
-  return appLanguageOptions.find(o => o.value === appConfig.app_lang)?.label || "English";
+  return appLanguageOptions.value.find(o => o.value === appConfig.app_lang)?.label || "English";
 });
 
 const fontSizeOptions = computed(() => [
