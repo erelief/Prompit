@@ -54,7 +54,7 @@ import {
   Minus,
   Globe,
   Info,
-  Upload,
+  Download,
   FolderOpen,
   FileText,
   ShieldAlert,
@@ -1298,7 +1298,7 @@ onMounted(async () => {
                     @click="analyzeImport"
                   >
                     <Loader2 v-if="importAnalyzing" :size="12" class="spin" />
-                    <Upload v-else :size="12" :stroke-width="1.9" />
+                    <Download v-else :size="12" :stroke-width="1.9" />
                     {{ importAnalyzing
                       ? t('settings.importData.import.analyzing')
                       : importAnalyzed
@@ -1322,7 +1322,7 @@ onMounted(async () => {
                       @click="requestImport"
                     >
                       <Loader2 v-if="importBusy" :size="12" class="spin" />
-                      <Upload v-else :size="12" :stroke-width="1.9" />{{ t('settings.importData.import.button') }}
+                      <Download v-else :size="12" :stroke-width="1.9" />{{ t('settings.importData.import.button') }}
                     </button>
                   </template>
                 </template>

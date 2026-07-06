@@ -8,7 +8,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import DataCategorySelector from "../components/DataCategorySelector.vue";
 import { ALL_CATEGORIES, defaultSelectedCategories } from "../composables/useDataCategories";
-import { Download, Eye, EyeOff, ArrowLeft } from "@lucide/vue";
+import { Upload, Eye, EyeOff, ArrowLeft } from "@lucide/vue";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -141,7 +141,7 @@ function todayStamp(): string {
         :disabled="!exportReady || exportBusy"
         @click="handleExport"
       >
-        <Download :size="12" :stroke-width="1.9" />{{ t('settings.exportData.export.button') }}
+        <Upload :size="12" :stroke-width="1.9" />{{ t('settings.exportData.export.button') }}
       </button>
       <p v-if="!exportReady" class="ud-hint">{{ t('settings.exportData.export.hint') }}</p>
     </div>

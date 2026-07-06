@@ -1974,13 +1974,13 @@ onUnmounted(() => {
           <div class="card-row">
             <span class="card-label">{{ t('settings.exportData.entryDescription') }}</span>
             <button class="reset-btn neutral" @click="router.push('/settings/export')">
-              <Download :size="11" :stroke-width="1.9" />{{ t('settings.exportData.entryButton') }}
+              <Upload :size="11" :stroke-width="1.9" />{{ t('settings.exportData.entryButton') }}
             </button>
           </div>
           <div class="card-row">
             <span class="card-label">{{ t('settings.importData.entryDescription') }}</span>
             <button class="reset-btn neutral" @click="router.push('/settings/import')">
-              <Upload :size="11" :stroke-width="1.9" />{{ t('settings.importData.entryButton') }}
+              <Download :size="11" :stroke-width="1.9" />{{ t('settings.importData.entryButton') }}
             </button>
           </div>
           <div class="card-row">

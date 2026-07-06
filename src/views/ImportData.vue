@@ -8,7 +8,7 @@ import { useDataImport } from "../composables/useDataImport";
 import DataCategorySelector from "../components/DataCategorySelector.vue";
 import { ALL_CATEGORIES, knownCategoriesIn } from "../composables/useDataCategories";
 import {
-  Upload, ArrowLeft, Eye, EyeOff, Check, X, ShieldAlert,
+  Download, ArrowLeft, Eye, EyeOff, Check, X, ShieldAlert,
   FileText, FolderOpen, Search,
 } from "@lucide/vue";
 
@@ -137,7 +137,7 @@ async function handleDrag(e: MouseEvent) {
             :disabled="!importCanConfirm"
             @click="requestImport"
           >
-            <Upload :size="12" :stroke-width="1.9" />{{ t('settings.importData.import.button') }}
+            <Download :size="12" :stroke-width="1.9" />{{ t('settings.importData.import.button') }}
           </button>
         </template>
 
