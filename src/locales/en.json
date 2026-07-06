@@ -144,7 +144,7 @@
       "personas": "Translation personas",
       "personasDescription": "Custom translation personas",
       "skills_lite": "Skills-lite",
-      "skills_liteDescription": "Custom skills-lite prompt"
+      "skills_liteDescription": "Custom skills-lite prompts"
     },
     "exportData": {
       "pageTitle": "Export Data",
@@ -352,7 +352,7 @@
     "skip": "Skip",
     "importExistingSettings": "Or, import existing settings",
     "importCardTitle": "Restore from backup",
-    "importCardBody": "Pick a Prompit backup file, enter its password, choose what to restore, and we'll continue setup based on what came in.",
+    "importCardBody": "Pick a Prompit backup file, enter its password, choose what to restore.",
     "importRetry": "Re-import",
     "importSummaryTitle": "What was restored",
     "importSummaryProviders": "AI providers: {n}",
