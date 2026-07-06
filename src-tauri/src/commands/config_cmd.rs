@@ -115,7 +115,7 @@ mod tests {
             theme: "system".to_string(),
             floating_opacity: 90,
             show_startup_reminder: true,
-            history_limit: 50,
+            history_limit: 100,
             shortcut: "Alt+Y".to_string(),
             mode_shortcut: "Alt+M".to_string(),
             forward_shortcut: "Alt+F".to_string(),

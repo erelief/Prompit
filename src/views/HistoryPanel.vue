@@ -6,7 +6,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink, ToggleRight, ToggleLeft } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { useGlassBg, domainOf } from "../composables/useGlass";
-import { appConfig, historyStore, loadHistory, saveHistory, MODES, type HistoryEntry } from "../stores/config";
+import { appConfig, historyStore, loadHistory, saveHistory, MODES, HISTORY_LIMIT_DEFAULT, type HistoryEntry } from "../stores/config";
 import { useI18n } from "vue-i18n";
 import type { SearchHit } from "../services/websearch/types";
 
@@ -208,7 +208,7 @@ onMounted(async () => {
           </template>
         </div>
         <div class="history-footer">
-          {{ t('history.entryCount', { current: modeEntries.length, limit: appConfig.history_limit || 50 }) }}
+          {{ t('history.entryCount', { current: modeEntries.length, limit: appConfig.history_limit || HISTORY_LIMIT_DEFAULT }) }}
         </div>
       </div>
       </template>

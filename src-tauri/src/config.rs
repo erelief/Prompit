@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Default history-entry limit. Frontend slider bounds live in `config.ts`
+/// (`HISTORY_LIMIT_MIN` / `HISTORY_LIMIT_MAX`).
+const DEFAULT_HISTORY_LIMIT: u32 = 100;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiFormat {
     #[serde(default = "default_auth_header")]
@@ -286,7 +290,7 @@ fn default_true() -> bool {
     true
 }
 fn default_history_limit() -> u32 {
-    50
+    DEFAULT_HISTORY_LIMIT
 }
 fn default_shortcut() -> String {
     "Alt+Y".to_string()
@@ -322,7 +326,7 @@ impl Default for AppConfig {
             theme: "system".to_string(),
             floating_opacity: 90,
             show_startup_reminder: true,
-            history_limit: 50,
+            history_limit: DEFAULT_HISTORY_LIMIT,
             shortcut: "Alt+Y".to_string(),
             mode_shortcut: "Alt+M".to_string(),
             forward_shortcut: "Alt+F".to_string(),
@@ -381,7 +385,7 @@ mod tests {
             theme: "dark".to_string(),
             floating_opacity: 90,
             show_startup_reminder: true,
-            history_limit: 50,
+            history_limit: 100,
             shortcut: "Alt+Y".to_string(),
             mode_shortcut: "Alt+M".to_string(),
             forward_shortcut: "Alt+F".to_string(),
@@ -460,7 +464,7 @@ mod tests {
         assert!(config.language_order.is_empty());
         assert_eq!(config.theme, "system");
         assert_eq!(config.app_lang, "auto");
-        assert_eq!(config.history_limit, 50);
+        assert_eq!(config.history_limit, DEFAULT_HISTORY_LIMIT);
     }
 
     #[test]

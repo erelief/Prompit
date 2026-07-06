@@ -24,6 +24,9 @@ import {
   clearAllHistory,
   MODES,
   FONT_SIZE_LEVELS,
+  HISTORY_LIMIT_DEFAULT,
+  HISTORY_LIMIT_MIN,
+  HISTORY_LIMIT_MAX,
 } from "../stores/config";
 import { burstParticles } from "../utils/burstParticles";
 import { shortcutsEqual } from "../utils/shortcut";
@@ -1980,23 +1983,23 @@ onUnmounted(() => {
             <span class="card-label">{{ t('history.historyLimit') }}</span>
             <div class="opacity-row compact">
               <input
-                type="range" min="1" max="100" step="1"
+                type="range" :min="HISTORY_LIMIT_MIN" :max="HISTORY_LIMIT_MAX" step="1"
                 :value="appConfig.history_limit"
                 @input="appConfig.history_limit = +($event.target as HTMLInputElement).value"
                 class="opacity-slider"
               />
               <div class="opacity-value-wrap">
                 <input
-                  type="number" min="1" max="100"
+                  type="number" :min="HISTORY_LIMIT_MIN" :max="HISTORY_LIMIT_MAX"
                   :value="appConfig.history_limit"
-                  @change="appConfig.history_limit = Math.min(100, Math.max(1, +($event.target as HTMLInputElement).value || 50))"
+                  @change="appConfig.history_limit = Math.min(HISTORY_LIMIT_MAX, Math.max(HISTORY_LIMIT_MIN, +($event.target as HTMLInputElement).value || HISTORY_LIMIT_DEFAULT))"
                   class="opacity-value-input"
                 />
                 <button
                   class="opacity-reset"
-                  :class="{ 'opacity-reset-off': appConfig.history_limit === 50 }"
-                  :disabled="appConfig.history_limit === 50"
-                  @click="appConfig.history_limit = 50"
+                  :class="{ 'opacity-reset-off': appConfig.history_limit === HISTORY_LIMIT_DEFAULT }"
+                  :disabled="appConfig.history_limit === HISTORY_LIMIT_DEFAULT"
+                  @click="appConfig.history_limit = HISTORY_LIMIT_DEFAULT"
                   :title="t('settings.resetToDefault')"
                 >
                   <RotateCcw :size="10" :stroke-width="2" />

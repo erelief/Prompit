@@ -132,6 +132,11 @@ export interface ModeDefinition {
   settingTabKey: string;
 }
 
+/** History-entry limits: default value, slider bounds. */
+export const HISTORY_LIMIT_DEFAULT = 100;
+export const HISTORY_LIMIT_MIN = 1;
+export const HISTORY_LIMIT_MAX = 500;
+
 export interface AppConfig {
   providers: ProviderConfig[];
   active_mode: string;
@@ -175,7 +180,7 @@ const defaultConfig: AppConfig = {
   floating_opacity: 90,
   font_size: 100,
   show_startup_reminder: true,
-  history_limit: 50,
+  history_limit: HISTORY_LIMIT_DEFAULT,
   history_enabled: true,
   shortcut: "Alt+Y",
   mode_shortcut: "Alt+M",
@@ -933,7 +938,7 @@ export async function saveHistoryEntry(input: string, output: string, searched: 
     edited,
   };
   historyStore.entries.unshift(entry);
-  const limit = appConfig.history_limit || 50;
+  const limit = appConfig.history_limit || HISTORY_LIMIT_DEFAULT;
   if (historyStore.entries.length > limit) {
     historyStore.entries = historyStore.entries.slice(0, limit);
   }
@@ -957,7 +962,7 @@ export async function clearAllHistory(): Promise<void> {
 }
 
 export async function saveHistory(): Promise<void> {
-  const limit = appConfig.history_limit || 50;
+  const limit = appConfig.history_limit || HISTORY_LIMIT_DEFAULT;
   try {
     await invoke("save_history", {
       entries: toRaw(historyStore.entries),
