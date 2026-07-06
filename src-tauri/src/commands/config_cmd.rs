@@ -118,6 +118,8 @@ mod tests {
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
             mode_shortcut: "Alt+M".to_string(),
+            forward_shortcut: "Alt+F".to_string(),
+            edit_shortcut: "Alt+E".to_string(),
             launch_on_startup: false,
             show_capability_icons: true,
             web_search_providers: vec![],

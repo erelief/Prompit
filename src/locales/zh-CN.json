@@ -89,6 +89,8 @@
     "modeShortcutHint": "点击录制新的模式切换快捷键（仅在浮动输入框中生效）",
     "forwardShortcut": "发送到输入框",
     "forwardShortcutHint": "点击录制新的发送到输入框快捷键（仅在浮动输入框中生效）",
+    "editShortcut": "编辑返回结果",
+    "editShortcutHint": "点击录制新的编辑结果快捷键（仅在浮动输入框中生效）",
     "shortcutRecording": "请按下快捷键…",
     "opacityScrollHint": "在浮动窗口中可用 {modifier} + 滚轮 调节透明度",
     "shortcutInvalid": "需包含修饰键（Alt/Ctrl/Shift/Cmd）和普通键。",

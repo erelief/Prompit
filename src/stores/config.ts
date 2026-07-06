@@ -151,6 +151,7 @@ export interface AppConfig {
   shortcut: string;
   mode_shortcut: string;
   forward_shortcut: string;
+  edit_shortcut: string;
   launch_on_startup: boolean;
   show_capability_icons: boolean;
   skills_lite_active_provider_index: number;
@@ -179,6 +180,7 @@ const defaultConfig: AppConfig = {
   shortcut: "Alt+Y",
   mode_shortcut: "Alt+M",
   forward_shortcut: "Alt+F",
+  edit_shortcut: "Alt+E",
   launch_on_startup: false,
   show_capability_icons: false,
   skills_lite_active_provider_index: 0,

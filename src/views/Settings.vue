@@ -231,13 +231,14 @@ async function toggleLaunchOnStartup(e: MouseEvent) {
   }
 }
 
-// ── Shortcut recorders (wake-up + mode-switch + forward-to-input) ──
-// All three share the same UI/validate/conflict logic via useShortcutRecorder.
+// ── Shortcut recorders (wake-up + mode-switch + forward-to-input + edit-result) ──
+// All four share the same UI/validate/conflict logic via useShortcutRecorder.
 // The wake shortcut is an OS-global hotkey re-registered through Tauri; the
-// mode and forward shortcuts are webview-scoped and just write the config field.
+// others are webview-scoped and just write the config field.
 const wakeField = computed({ get: () => appConfig.shortcut, set: (v) => { appConfig.shortcut = v; } });
 const modeField = computed({ get: () => appConfig.mode_shortcut, set: (v) => { appConfig.mode_shortcut = v; } });
 const forwardField = computed({ get: () => appConfig.forward_shortcut, set: (v) => { appConfig.forward_shortcut = v; } });
+const editField = computed({ get: () => appConfig.edit_shortcut, set: (v) => { appConfig.edit_shortcut = v; } });
 
 const {
   recording: shortcutRecording, error: shortcutError, recBtn: shortcutRecBtn,
@@ -267,6 +268,16 @@ const {
 } = useShortcutRecorder(t, {
   field: forwardField, otherField: modeField,
   defaultBinding: "Alt+F",
+  invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
+});
+
+const {
+  recording: editShortcutRecording, error: editShortcutError, recBtn: editShortcutRecBtn,
+  tokens: editShortcutTokens, start: startEditShortcutRecord, cancel: cancelEditShortcutRecord,
+  onKeydown: onEditShortcutKeydown, reset: resetEditShortcut,
+} = useShortcutRecorder(t, {
+  field: editField, otherField: modeField,
+  defaultBinding: "Alt+E",
   invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
 });
 
@@ -1909,6 +1920,42 @@ onUnmounted(() => {
                 :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+F', appConfig.forward_shortcut) }"
                 :disabled="shortcutsEqual('Alt+F', appConfig.forward_shortcut)"
                 @click="resetForwardShortcut"
+                :title="t('settings.resetToDefault')"
+              >
+                <RotateCcw :size="11" :stroke-width="2" />
+              </button>
+            </div>
+          </div>
+          <!-- Edit-result shortcut (webview-scoped, active only in FloatingInput) -->
+          <div class="card-row shortcut-row">
+            <span class="card-label">{{ t('settings.editShortcut') }}</span>
+            <div class="shortcut-controls">
+              <button
+                ref="editShortcutRecBtn"
+                class="shortcut-btn"
+                :class="{ recording: editShortcutRecording, 'has-error': !!editShortcutError }"
+                :title="t('settings.editShortcutHint')"
+                tabindex="0"
+                @click="editShortcutRecording ? cancelEditShortcutRecord() : startEditShortcutRecord()"
+                @keydown="onEditShortcutKeydown"
+                @blur="cancelEditShortcutRecord"
+              >
+                <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
+                <template v-if="editShortcutRecording">
+                  <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
+                </template>
+                <template v-else-if="editShortcutError">
+                  <span class="shortcut-err-text">{{ editShortcutError }}</span>
+                </template>
+                <template v-else>
+                  <kbd v-for="(tok, i) in editShortcutTokens" :key="i" class="kbd-badge">{{ tok }}</kbd>
+                </template>
+              </button>
+              <button
+                class="shortcut-reset"
+                :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+E', appConfig.edit_shortcut) }"
+                :disabled="shortcutsEqual('Alt+E', appConfig.edit_shortcut)"
+                @click="resetEditShortcut"
                 :title="t('settings.resetToDefault')"
               >
                 <RotateCcw :size="11" :stroke-width="2" />

@@ -38,6 +38,7 @@ const lastResultSearched = ref(false);
 const lastResultSources = ref<SearchHit[]>([]);
 const sourcesView = ref(false);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const editTextareaRef = ref<HTMLTextAreaElement | null>(null);
 const hasResult = ref(false);
 const isRestoringHistory = ref(false);
 const growAbove = ref(false);
@@ -279,6 +280,16 @@ function onForwardShortcutKeydown(e: KeyboardEvent) {
   }
 }
 
+// Alt+E enters result edit mode. Skipped while already editing or with no result.
+function onEditShortcutKeydown(e: KeyboardEvent) {
+  if (isEditing.value) return;
+  if (!translatedText.value) return;
+  if (eventMatchesShortcut(e, appConfig.edit_shortcut)) {
+    e.preventDefault();
+    startEditing();
+  }
+}
+
 // Disabled while editing (requirement: "在编辑返回结果的时候，不启用") so the
 // textarea's native copy keeps working. A non-empty selection is left to the
 // browser so users can still copy just a highlighted snippet.
@@ -343,6 +354,12 @@ watch(inputText, () => {
 });
 
 function handleKeydown(e: KeyboardEvent) {
+  // 在编辑结果期间，输入框为只读：禁用所有快捷行为（历史导航、Enter 发送、Esc 关闭等），
+  // 仅 ESC 由编辑文本框自身的 handleEditKeydown 处理退出编辑。
+  if (isEditing.value) {
+    return;
+  }
+
   // ── History navigation with ↑↓ ──
   if (e.key === "ArrowUp" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
     const ta = textareaRef.value;
@@ -359,11 +376,6 @@ function handleKeydown(e: KeyboardEvent) {
       navigateHistory(-1); // ↓ = toward newer
       return;
     }
-  }
-
-  // 在编辑模式下禁用 Enter 键发送功能
-  if (isEditing.value) {
-    return;
   }
 
   if (e.key === "Enter" && !e.shiftKey) {
@@ -564,6 +576,9 @@ function closeResult() {
 function startEditing() {
   editedText.value = translatedText.value;
   isEditing.value = true;
+  nextTick(() => {
+    editTextareaRef.value?.focus();
+  });
 }
 
 function cancelEditing() {
@@ -582,6 +597,12 @@ async function confirmEditing() {
 }
 
 function handleEditKeydown(e: KeyboardEvent) {
+  // ESC exits edit mode (discards changes); the next ESC closes the window.
+  if (e.key === "Escape") {
+    e.preventDefault();
+    cancelEditing();
+    return;
+  }
   // 阻止 Enter 键发送
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
@@ -646,6 +667,7 @@ onMounted(async () => {
   document.addEventListener("mousedown", onDocumentClick);
   window.addEventListener("keydown", onModeShortcutKeydown);
   window.addEventListener("keydown", onForwardShortcutKeydown);
+  window.addEventListener("keydown", onEditShortcutKeydown);
   window.addEventListener("keydown", onCopyShortcutKeydown);
   window.addEventListener("wheel", onAltWheel, { passive: false });
   window.addEventListener("wheel", onCtrlWheel, { passive: false });
@@ -697,6 +719,7 @@ onUnmounted(() => {
   document.removeEventListener("mousedown", onDocumentClick);
   window.removeEventListener("keydown", onModeShortcutKeydown);
   window.removeEventListener("keydown", onForwardShortcutKeydown);
+  window.removeEventListener("keydown", onEditShortcutKeydown);
   window.removeEventListener("keydown", onCopyShortcutKeydown);
   window.removeEventListener("wheel", onAltWheel);
   window.removeEventListener("wheel", onCtrlWheel);
@@ -809,6 +832,7 @@ useShortcutTriggered(() => {
             <!-- Edit mode -->
             <div v-if="isEditing" class="result-edit-textarea-wrapper">
               <textarea
+                ref="editTextareaRef"
                 v-model="editedText"
                 class="result-edit-textarea"
                 @keydown="handleEditKeydown"
@@ -900,6 +924,7 @@ useShortcutTriggered(() => {
               v-model="inputText"
               @keydown="handleKeydown"
               :placeholder="inputPlaceholder"
+              :readonly="isEditing"
               rows="1"
               class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
             ></textarea>
@@ -1168,6 +1193,7 @@ useShortcutTriggered(() => {
               v-model="inputText"
               @keydown="handleKeydown"
               :placeholder="inputPlaceholder"
+              :readonly="isEditing"
               rows="1"
               class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
             ></textarea>
@@ -1305,6 +1331,7 @@ useShortcutTriggered(() => {
             <!-- Edit mode -->
             <div v-if="isEditing" class="result-edit-textarea-wrapper">
               <textarea
+                ref="editTextareaRef"
                 v-model="editedText"
                 class="result-edit-textarea"
                 @keydown="handleEditKeydown"

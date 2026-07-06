@@ -251,6 +251,10 @@ pub struct AppConfig {
     pub shortcut: String,
     #[serde(default = "default_mode_shortcut")]
     pub mode_shortcut: String,
+    #[serde(default = "default_forward_shortcut")]
+    pub forward_shortcut: String,
+    #[serde(default = "default_edit_shortcut")]
+    pub edit_shortcut: String,
     #[serde(default)]
     pub launch_on_startup: bool,
     #[serde(default, skip_serializing)]
@@ -290,6 +294,12 @@ fn default_shortcut() -> String {
 fn default_mode_shortcut() -> String {
     "Alt+M".to_string()
 }
+fn default_forward_shortcut() -> String {
+    "Alt+F".to_string()
+}
+fn default_edit_shortcut() -> String {
+    "Alt+E".to_string()
+}
 /// `-1` means "no provider selected" (no built-in fallback anymore).
 fn default_web_search_active_index() -> i64 {
     -1
@@ -315,6 +325,8 @@ impl Default for AppConfig {
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
             mode_shortcut: "Alt+M".to_string(),
+            forward_shortcut: "Alt+F".to_string(),
+            edit_shortcut: "Alt+E".to_string(),
             launch_on_startup: false,
             show_capability_icons: false,
             web_search_providers: vec![],
@@ -372,6 +384,8 @@ mod tests {
             history_limit: 50,
             shortcut: "Alt+Y".to_string(),
             mode_shortcut: "Alt+M".to_string(),
+            forward_shortcut: "Alt+F".to_string(),
+            edit_shortcut: "Alt+E".to_string(),
             launch_on_startup: false,
             show_capability_icons: false,
             web_search_providers: vec![],

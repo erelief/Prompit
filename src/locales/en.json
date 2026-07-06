@@ -89,6 +89,8 @@
     "modeShortcutHint": "Click to record a new mode-switch shortcut (works only in the floating input)",
     "forwardShortcut": "Send-to-input",
     "forwardShortcutHint": "Click to record a new send-to-input shortcut (works only in the floating input)",
+    "editShortcut": "Edit Result",
+    "editShortcutHint": "Click to record a new edit-result shortcut (works only in the floating input)",
     "shortcutRecording": "Press a shortcut…",
     "opacityScrollHint": "{modifier} + Scroll to adjust opacity in the floating window",
     "shortcutInvalid": "Must include a modifier (Alt/Ctrl/Shift/Cmd) and a key.",
