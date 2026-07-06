@@ -180,8 +180,7 @@
         "analyzing": "Analyzing…",
         "reanalyze": "Re-analyze",
         "confirmWarning": "This will overwrite existing data and cannot be undone.",
-        "success": "Imported successfully.",
-        "cancelled": "Import cancelled"
+        "success": "Imported successfully."
       },
       "error": "Failed: {message}"
     },

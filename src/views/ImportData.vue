@@ -24,7 +24,6 @@ const {
   selectImportFile, analyzeImport, requestImport, confirmImport, stopCountdown,
 } = useDataImport({
   messages: {
-    cancelled: t("settings.importData.import.cancelled"),
     success: t("settings.importData.import.success"),
     error: (message: string) => t("settings.importData.error", { message }),
   },

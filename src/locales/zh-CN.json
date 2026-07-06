@@ -180,8 +180,7 @@
         "analyzing": "分析中…",
         "reanalyze": "重新分析",
         "confirmWarning": "此操作将覆盖已有数据，且不可撤销。",
-        "success": "导入成功。",
-        "cancelled": "已取消导入"
+        "success": "导入成功。"
       },
       "error": "失败：{message}"
     },

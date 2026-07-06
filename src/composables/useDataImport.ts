@@ -30,7 +30,6 @@ const CONFIRM_COUNTDOWN_SECONDS = 5;
 export interface UseDataImportOptions {
   /** i18n message keys (resolved by the caller via t()) for status strings. */
   messages: {
-    cancelled: string;
     success: string;
     error: (message: string) => string;
   };
@@ -96,10 +95,10 @@ export function useDataImport(opts: UseDataImportOptions) {
   async function selectImportFile() {
     const selected = await open({ multiple: false, filters: JSON_FILTER });
     const path = typeof selected === "string" ? selected : null;
-    if (!path) {
-      importStatus.value = { kind: "info", msg: opts.messages.cancelled };
-      return;
-    }
+    // User dismissed the file dialog — that's their own action, nothing to
+    // announce. Leave any existing status untouched so a stale error from a
+    // prior attempt isn't wiped either.
+    if (!path) return;
     importPath.value = path;
     importPassword.value = "";
     clearAnalyzed();

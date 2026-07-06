@@ -199,7 +199,6 @@ const {
   selectImportFile, analyzeImport, requestImport, confirmImport, stopCountdown, resetImport,
 } = useDataImport({
   messages: {
-    cancelled: t("settings.importData.import.cancelled"),
     success: t("settings.importData.import.success"),
     error: (message: string) => t("settings.importData.error", { message }),
   },
@@ -701,10 +700,11 @@ onMounted(async () => {
 
       <!-- Content area with transitions -->
       <div class="onb-content flex-1 relative overflow-x-hidden overflow-y-auto min-h-0">
+        <div class="onb-scroll-inner">
         <Transition :name="direction === 'forward' ? 'slide-left' : 'slide-right'" mode="out-in">
 
           <!-- Step 0: Welcome -->
-          <div v-if="currentStep === 0" key="step0" class="flex flex-col items-center justify-center h-full py-10">
+          <div v-if="currentStep === 0" key="step0" class="flex flex-col items-center justify-center flex-1 py-10">
             <h1 class="text-5xl font-light tracking-tight mb-3" style="color: var(--color-text)">
               {{ t('onboarding.hello') }}
             </h1>
@@ -761,7 +761,7 @@ onMounted(async () => {
           </div>
 
           <!-- Step 1: Info -->
-          <div v-else-if="currentStep === 1" key="step1" class="flex flex-col items-center justify-center h-full py-10 relative">
+          <div v-else-if="currentStep === 1" key="step1" class="flex flex-col items-center justify-center flex-1 py-10 relative">
             <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
               <Zap :size="22" style="color: var(--color-accent)" />
             </div>
@@ -946,7 +946,7 @@ onMounted(async () => {
           </div>
 
           <!-- Step 3: Lightweight model suggestion -->
-          <div v-else-if="currentStep === 3" key="step3" class="flex flex-col items-center justify-center h-full py-10">
+          <div v-else-if="currentStep === 3" key="step3" class="flex flex-col items-center justify-center flex-1 py-10">
             <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
               <PiggyBank :size="22" style="color: var(--color-accent)" />
             </div>
@@ -1057,7 +1057,7 @@ onMounted(async () => {
                canProceed skip them). The template blocks stay so the code
                is easy to restore later. -->
           <!-- Step 5: Search info -->
-          <div v-else-if="currentStep === 5" key="step5" class="flex flex-col items-center justify-center h-full py-10">
+          <div v-else-if="currentStep === 5" key="step5" class="flex flex-col items-center justify-center flex-1 py-10">
             <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
               <Globe :size="22" style="color: var(--color-accent)" />
             </div>
@@ -1190,7 +1190,7 @@ onMounted(async () => {
           </div>
 
           <!-- Step 7: Done -->
-          <div v-else-if="currentStep === 7" key="step7" class="flex flex-col items-center justify-center h-full py-10">
+          <div v-else-if="currentStep === 7" key="step7" class="flex flex-col items-center justify-center flex-1 py-10">
             <div class="w-12 h-12 rounded-full flex items-center justify-center mb-6" style="background: var(--color-accent-bg)">
               <PartyPopper :size="22" style="color: var(--color-accent)" />
             </div>
@@ -1208,7 +1208,7 @@ onMounted(async () => {
           <!-- Step 8: Import (branch) -->
           <div v-else-if="currentStep === 8" key="step8"
             class="flex flex-col py-6"
-            :class="{ 'h-full relative': importSucceeded }">
+            :class="{ 'flex-1 relative': importSucceeded }">
             <!-- Success state: import done + inline summary (was step 9, now merged) -->
             <template v-if="importSucceeded">
               <h2 class="text-lg font-medium mb-3" style="color: var(--color-text)">
@@ -1362,6 +1362,7 @@ onMounted(async () => {
           </div>
 
         </Transition>
+        </div>
       </div>
 
       <!-- Bottom navigation -->
@@ -1534,8 +1535,30 @@ div::-webkit-scrollbar-thumb {
   border-radius: 2px;
 }
 
-/* Scrollable step content: 3px scrollbar matching Settings / data-management
- * pages. The global 4px rule above still applies to nested lists. */
+/* Scrollable step content.
+ *
+ * Goal: the slim scrollbar hugs the window's right edge (aligned with the X
+ * button at right-6), while step content stays in the centred content column
+ * with its normal side gutters.
+ *
+ * Mechanism: this scroll box overflows the card to the window edge, and an
+ * inner wrapper (.onb-scroll-inner) re-applies the right gutter to the content.
+ * The scrollbar lives between the box's border and padding edge (per spec), so
+ * widening the box is what moves the scrollbar to the window edge — padding
+ * alone would not.
+ *
+ *   --onb-content-max  content column max width (mirrors the card's
+ *                      max-w-[520px]; centralised here so the gutter math is
+ *                      self-documenting, not a bare magic number).
+ *   --onb-right-gap    gap between the card's right edge and the window's
+ *                      right edge: 24px (the outer px-6) when the window is
+ *                      narrow enough that the card fills it, otherwise half
+ *                      the surplus window width. */
+.onb-content {
+  --onb-content-max: 520px;
+  --onb-right-gap: max(24px, calc(50vw - var(--onb-content-max) / 2));
+  width: calc(100% + var(--onb-right-gap));
+}
 .onb-content::-webkit-scrollbar {
   width: 3px;
 }
@@ -1545,6 +1568,20 @@ div::-webkit-scrollbar-thumb {
 .onb-content::-webkit-scrollbar-thumb {
   background: var(--color-scrollbar);
   border-radius: 3px;
+}
+/* Inner content column. The parent .onb-content is widened to the window edge
+   on the right; margin-right reclaims that extra width so the content area
+   stays at the card width and step content aligns with the card edges (and the
+   nav buttons) rather than the window edge.
+   min-height:100% + flex column lets centred steps (0/1/3/5/7) keep their
+   vertical centring: when content is short the wrapper still fills the
+   viewport so flex-1 + justify-center do their job; when it overflows, it grows
+   and the parent scrolls. */
+.onb-scroll-inner {
+  min-height: 100%;
+  margin-right: var(--onb-right-gap);
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Dropdown (matching Settings style) ── */

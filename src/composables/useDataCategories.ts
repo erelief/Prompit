@@ -105,8 +105,10 @@ export interface BundlePreview {
  * the import UIs so the filter rule lives in one place.
  */
 export function knownCategoriesIn(preview: CategoryPreview[]): DataCategory[] {
-  const known = new Set<string>(ALL_CATEGORIES);
-  return preview
-    .map((c) => c.id)
-    .filter((id): id is DataCategory => known.has(id));
+  // Preserve the canonical ALL_CATEGORIES order so every import UI lists rows
+  // in the same sequence as export / reset, regardless of how the backend
+  // ordered the bundle (KNOWN_STEMS). Only categories actually present in the
+  // bundle are kept; unknown ids are dropped.
+  const present = new Set(preview.map((c) => c.id));
+  return ALL_CATEGORIES.filter((c) => present.has(c));
 }
