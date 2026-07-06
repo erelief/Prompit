@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { useDataImport } from "../composables/useDataImport";
 import DataCategorySelector from "../components/DataCategorySelector.vue";
-import { ALL_CATEGORIES } from "../composables/useDataCategories";
+import { ALL_CATEGORIES, knownCategoriesIn } from "../composables/useDataCategories";
 import {
   Upload, ArrowLeft, Eye, EyeOff, Check, X, ShieldAlert,
   FileText, FolderOpen, Search,
@@ -39,11 +39,7 @@ const selectedArray = computed<string[]>({
 
 // Only categories present in the analyzed bundle are selectable.
 const available = computed(() =>
-  importAnalyzed.value
-    ? (importPreview.value.map((c) => c.id).filter((id) =>
-        (ALL_CATEGORIES as string[]).includes(id),
-      ) as typeof ALL_CATEGORIES)
-    : ALL_CATEGORIES,
+  importAnalyzed.value ? knownCategoriesIn(importPreview.value) : ALL_CATEGORIES,
 );
 
 const analyzeBtnLabel = computed(() =>
@@ -59,10 +55,6 @@ async function handleDrag(e: MouseEvent) {
   if (target.closest("button, input, textarea, a, select, .ud-footer")) return;
   await getCurrentWindow().startDragging();
 }
-
-// Silence unused-import lint for the ref re-exported by the composable when
-// templates reference it indirectly.
-void ref;
 </script>
 
 <template>

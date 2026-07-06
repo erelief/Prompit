@@ -130,7 +130,6 @@
     "categories": {
       "selectAll": "全选",
       "sensitive": "敏感信息",
-      "legacy": "旧",
       "notInBackup": "备份中无",
       "settings": "软件设置",
       "settingsDescription": "主题、语言、快捷键、透明度等偏好",
@@ -145,9 +144,7 @@
       "personas": "翻译角色",
       "personasDescription": "自定义翻译风格与提示词",
       "skills_lite": "轻技能",
-      "skills_liteDescription": "自定义轻技能提示词",
-      "secrets": "旧 Key 存储",
-      "secretsDescription": "为迁移保留的旧存储"
+      "skills_liteDescription": "自定义轻技能提示词"
     },
     "exportData": {
       "pageTitle": "导出数据",
@@ -357,8 +354,6 @@
     "importExistingSettings": "你也可以选择导入已有设置",
     "importCardTitle": "从备份恢复",
     "importCardBody": "选择一个 Prompit 备份文件，输入密码，勾选要恢复的内容，我们会根据导入结果继续引导。",
-    "importSuccessTitle": "导入成功",
-    "importSuccessBody": "所选数据已恢复。",
     "importRetry": "重新导入",
     "importSummaryTitle": "已恢复的内容",
     "importSummaryProviders": "AI 服务商：{n}",

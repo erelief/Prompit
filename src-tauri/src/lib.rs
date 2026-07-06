@@ -147,9 +147,6 @@ pub fn run() {
             shortcut::update_shortcut,
             shortcut::start_record_shortcut,
             shortcut::finish_record_shortcut,
-            commands::secrets::save_secret,
-            commands::secrets::read_secret,
-            commands::secrets::delete_secret,
             commands::providers::read_providers,
             commands::providers::read_providers_resolved,
             commands::providers::save_providers,
@@ -199,12 +196,6 @@ pub fn run() {
             // lives in the data dir. A failure here is fatal: without a Master
             // Key, no encrypted file can be decrypted.
             vault::unlock_or_migrate(app.handle()).expect("fatal: failed to initialize vault");
-
-            // Migrate the legacy skills-lite file (`sparkles.json` under scope
-            // "sparkles") to the renamed `skills_lite.json` / scope
-            // "skills_lite". Best-effort: failures are logged and swallowed
-            // (load_skills_lites_encrypted also has a read-side fallback).
-            commands::skills_lite::migrate_legacy_file(app.handle());
 
             let handle = app.handle().clone();
             let saved_shortcut = commands::config_cmd::read_config(app.handle().clone())

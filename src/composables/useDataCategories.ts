@@ -4,8 +4,7 @@
  * stem strings; this module mirrors those strings for the frontend.
  *
  * `settings` corresponds to the otherwise-plaintext `config.json` (software
- * settings) and is the newest category. `secrets` is a legacy/orphaned store
- * kept for migration; it is shown but de-emphasized.
+ * settings) and is the newest category.
  */
 
 export type DataCategory =
@@ -15,8 +14,7 @@ export type DataCategory =
   | "history"
   | "dictionaries"
   | "personas"
-  | "skills_lite"
-  | "secrets";
+  | "skills_lite";
 
 export interface CategoryMeta {
   /** i18n key under `settings.categories.<id>` for the human label. */
@@ -25,8 +23,6 @@ export interface CategoryMeta {
   descKey: string;
   /** Carries api keys / credentials. Used to flag sensitive rows. */
   sensitive: boolean;
-  /** Legacy / orphaned store; rendered with a muted badge, default-on but quiet. */
-  legacy?: boolean;
 }
 
 export const ALL_CATEGORIES: DataCategory[] = [
@@ -37,7 +33,6 @@ export const ALL_CATEGORIES: DataCategory[] = [
   "skills_lite",
   "settings",
   "history",
-  "secrets",
 ];
 
 /**
@@ -90,12 +85,6 @@ export const CATEGORY_META: Record<DataCategory, CategoryMeta> = {
     descKey: "settings.categories.skills_liteDescription",
     sensitive: false,
   },
-  secrets: {
-    labelKey: "settings.categories.secrets",
-    descKey: "settings.categories.secretsDescription",
-    sensitive: true,
-    legacy: true,
-  },
 };
 
 /** Preview entry returned by `inspect_bundle` for a single category. */
@@ -108,4 +97,16 @@ export interface CategoryPreview {
 export interface BundlePreview {
   version: number;
   categories: CategoryPreview[];
+}
+
+/**
+ * Filter a bundle preview down to the categories this app actually knows
+ * about (drops any unknown ids a future/newer bundle might carry). Shared by
+ * the import UIs so the filter rule lives in one place.
+ */
+export function knownCategoriesIn(preview: CategoryPreview[]): DataCategory[] {
+  const known = new Set<string>(ALL_CATEGORIES);
+  return preview
+    .map((c) => c.id)
+    .filter((id): id is DataCategory => known.has(id));
 }

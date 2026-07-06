@@ -6,7 +6,6 @@ pub mod http_proxy;
 pub mod persona;
 pub mod presets;
 pub mod providers;
-pub mod secrets;
 pub mod skills_lite;
 pub mod websearch;
 pub mod window;

@@ -27,7 +27,7 @@ import {
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import DataCategorySelector from "../components/DataCategorySelector.vue";
-import { ALL_CATEGORIES, type DataCategory, type CategoryPreview } from "../composables/useDataCategories";
+import { knownCategoriesIn, type CategoryPreview } from "../composables/useDataCategories";
 import type { ModelInputCapabilities } from "../stores/config";
 import {
   testProviderConnection,
@@ -245,13 +245,7 @@ const importSelectedArray = computed<string[]>({
   get: () => [...importSelected.value],
   set: (v) => { importSelected.value = new Set(v); },
 });
-const importAvailableCats = computed<DataCategory[]>(() =>
-  importPreview.value
-    .map((c) => c.id)
-    .filter((id): id is DataCategory =>
-      (ALL_CATEGORIES as string[]).includes(id),
-    ),
-);
+const importAvailableCats = computed(() => knownCategoriesIn(importPreview.value));
 
 // Summary-step derived state, backed by the snapshot captured in onSuccess
 // (the composable's importPreview was already cleared by resetImport).
@@ -322,11 +316,11 @@ const canProceed = computed(() => {
         providerForm.value.base_url.trim() !== "" &&
         (isLocalProvider(providerForm.value, providerPresets.value) || providerForm.value.api_key.trim() !== "")
       );
-	    case 8:
-	      // Import step: Next is only enabled after a successful import; the
-	      // in-line summary (shown on success) doubles as the routing hub.
-	      return importSucceeded.value;
-	    case 4:
+    case 8:
+      // Import step: Next is only enabled after a successful import; the
+      // in-line summary (shown on success) doubles as the routing hub.
+      return importSucceeded.value;
+    case 4:
       return selectedModels.value.size > 0;
     case 0: case 1: case 3: case 7:
       // Info/optional steps are always reachable (5-6 disabled, see backup).

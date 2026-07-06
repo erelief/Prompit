@@ -50,13 +50,11 @@ const VERIFIER_SCOPE: &str = "__vault_verifier__";
 
 /// The encrypted data files carried in an export bundle. Each entry is the raw
 /// on-disk ciphertext; it is already wrapped under the Master Key, so it
-/// travels untouched and lands verbatim on import. The skills-lite file stem is
-/// `skills_lite` (renamed from the legacy `sparkles`). `providers` and
-/// `websearch` carry the AI-provider / web-search-engine configurations (with
-/// their api keys and active indices) so a backup restores the full service
+/// travels untouched and lands verbatim on import. `providers` and `websearch`
+/// carry the AI-provider / web-search-engine configurations (with their api
+/// keys and active indices) so a backup restores the full service
 /// configuration, not just the user content.
 const DATA_FILES: &[&str] = &[
-    "secrets",
     "history",
     "dictionaries",
     "personas",
@@ -77,7 +75,6 @@ const SETTINGS_STEM: &str = "settings";
 /// the import/inspect allowlist (replaces the path-traversal guard that used to
 /// consult `DATA_FILES` alone).
 const KNOWN_STEMS: &[&str] = &[
-    "secrets",
     "history",
     "dictionaries",
     "personas",
@@ -141,7 +138,7 @@ fn to_array32(bytes: &[u8], what: &str) -> Result<[u8; 32], String> {
 fn install_and_persist(app: &AppHandle, master_key: [u8; 32]) -> Result<(), String> {
     let (kek, source) = kek::kek_for_write();
     let wrapped = crypto::encrypt_with_key(&kek, &master_key)?;
-    let verifier = crypto::encrypt_with_key(&verifier_key(&master_key), VERIFIER_MAGIC)?;
+    let verifier = crypto::encrypt_with_key(&scope_key(&master_key, VERIFIER_SCOPE), VERIFIER_MAGIC)?;
     let file = VaultFile {
         version: source.version(),
         wrapped_master_key: wrapped,
@@ -189,7 +186,7 @@ pub fn unlock_or_migrate(app: &AppHandle) -> Result<(), String> {
 
     // Verify before installing: a mismatch (e.g. vault.key copied from another
     // machine) must fail loudly here, not silently produce wrong data keys.
-    let verifier_plain = crypto::decrypt_with_key(&verifier_key(&master_key), &file.verifier)?;
+    let verifier_plain = crypto::decrypt_with_key(&scope_key(&master_key, VERIFIER_SCOPE), &file.verifier)?;
     if verifier_plain != VERIFIER_MAGIC {
         return Err("vault verifier mismatch: wrong machine or corrupt vault".into());
     }
@@ -210,14 +207,20 @@ pub fn unlock_or_migrate(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// Derive the verifier key from the Master Key. Distinct from data scopes so a
-/// wrong key is caught at verification rather than during data deserialization.
-fn verifier_key(master_key: &[u8; 32]) -> [u8; 32] {
+/// Master-Key-derived per-scope key: `SHA256(master_key || ":" || scope)`.
+/// This mirrors `crypto::derive_key`, which is private to that module and
+/// requires the Master Key to be installed in-process. Several paths here
+/// (verifier, settings, inspect) need a scope key WITHOUT the Master Key being
+/// installed — e.g. inspecting a bundle on a fresh machine before import — so
+/// the derivation is duplicated here taking the key as an explicit argument.
+/// `VERIFIER_SCOPE` is deliberately a scope no data file uses, so a wrong
+/// Master Key fails loudly at the verifier, not at some downstream data step.
+fn scope_key(master_key: &[u8; 32], scope: &str) -> [u8; 32] {
     use sha2::{Digest, Sha256};
     let mut h = Sha256::new();
     h.update(master_key.as_slice());
     h.update(b":");
-    h.update(VERIFIER_SCOPE.as_bytes());
+    h.update(scope.as_bytes());
     let out = h.finalize();
     let mut k = [0u8; 32];
     k.copy_from_slice(&out);
@@ -318,7 +321,7 @@ pub fn export_bundle(
     };
     let pw_key = derive_password_key(password, &salt, &kdf)?;
     let wrapped = crypto::encrypt_with_key(&pw_key, &master_key)?;
-    let verifier = crypto::encrypt_with_key(&verifier_key(&master_key), VERIFIER_MAGIC)?;
+    let verifier = crypto::encrypt_with_key(&scope_key(&master_key, VERIFIER_SCOPE), VERIFIER_MAGIC)?;
     let mut data = collect_data_payloads(app)?;
 
     // Filter to the requested categories. Anything not in the allowlist or not
@@ -377,7 +380,7 @@ pub fn import_bundle(
         }
         if stem == SETTINGS_STEM {
             let plain =
-                crypto::decrypt_with_key(&settings_key(&master_key), payload).map_err(|e| {
+                crypto::decrypt_with_key(&scope_key(&master_key, SETTINGS_STEM), payload).map_err(|e| {
                     format!("decrypt settings: {e}")
                 })?;
             fs::write(dir.join("config.json"), plain)
@@ -452,28 +455,12 @@ fn open_bundle(path: &str, password: &str) -> Result<(ExportBundle, [u8; 32]), S
     let mk_bytes = crypto::decrypt_with_key(&pw_key, &bundle.wrapped_master_key)
         .map_err(|_| "wrong password or corrupt bundle".to_string())?;
     let master_key = to_array32(&mk_bytes, "corrupt bundle")?;
-    let verifier_plain = crypto::decrypt_with_key(&verifier_key(&master_key), &bundle.verifier)
+    let verifier_plain = crypto::decrypt_with_key(&scope_key(&master_key, VERIFIER_SCOPE), &bundle.verifier)
         .map_err(|_| "corrupt bundle: verifier unreadable".to_string())?;
     if verifier_plain != VERIFIER_MAGIC {
         return Err("bundle verifier mismatch".into());
     }
     Ok((bundle, master_key))
-}
-
-/// Per-category key for the settings scope, derived the same way as
-/// `crypto::derive_key` (which is private to that module) so import/inspect
-/// here can reuse the Master-Key-derived settings key without exposing a new
-/// public surface.
-fn settings_key(master_key: &[u8; 32]) -> [u8; 32] {
-    use sha2::{Digest, Sha256};
-    let mut h = Sha256::new();
-    h.update(master_key.as_slice());
-    h.update(b":");
-    h.update(SETTINGS_STEM.as_bytes());
-    let out = h.finalize();
-    let mut k = [0u8; 32];
-    k.copy_from_slice(&out);
-    k
 }
 
 /// Decrypt the named stem's payload and report a count for the categories
@@ -502,22 +489,6 @@ fn count_for(
         }
         _ => Ok(None),
     }
-}
-
-/// Generic Master-Key-derived per-scope key, mirroring `crypto::derive_key`.
-/// Used by `count_for` so inspection does not need `crypto::derive_key` (which
-/// is private and requires the Master Key to be installed in-process, which it
-/// is not when merely inspecting a bundle on a fresh machine).
-fn scope_key(master_key: &[u8; 32], scope: &str) -> [u8; 32] {
-    use sha2::{Digest, Sha256};
-    let mut h = Sha256::new();
-    h.update(master_key.as_slice());
-    h.update(b":");
-    h.update(scope.as_bytes());
-    let out = h.finalize();
-    let mut k = [0u8; 32];
-    k.copy_from_slice(&out);
-    k
 }
 
 // ── Tauri commands ──────────────────────────────────────────────────────────
@@ -555,15 +526,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn verifier_key_is_deterministic_and_distinct() {
+    fn scope_key_is_deterministic_and_distinct() {
         let mk = [1u8; 32];
-        let a = verifier_key(&mk);
-        let b = verifier_key(&mk);
-        assert_eq!(a, b);
-        // Distinct from a data-scope key derived the same way but with a
-        // different scope label.
-        let other = verifier_key(&[2u8; 32]);
-        assert_ne!(a, other);
+        // Same (master_key, scope) → same key.
+        assert_eq!(scope_key(&mk, VERIFIER_SCOPE), scope_key(&mk, VERIFIER_SCOPE));
+        // Different master key → different key.
+        assert_ne!(scope_key(&mk, VERIFIER_SCOPE), scope_key(&[2u8; 32], VERIFIER_SCOPE));
+        // Different scope → different key. This is what keeps the verifier
+        // (a scope no data file uses) from colliding with a data-scope key.
+        assert_ne!(scope_key(&mk, VERIFIER_SCOPE), scope_key(&mk, SETTINGS_STEM));
+        assert_ne!(scope_key(&mk, "providers"), scope_key(&mk, "websearch"));
     }
 
     #[test]
@@ -614,7 +586,7 @@ mod tests {
         // KEK is always available, so re-derive it directly.
         let env_kek = crypto::derive_raw_machine_key();
         let wrapped = crypto::encrypt_with_key(&env_kek, &master).unwrap();
-        let verifier = crypto::encrypt_with_key(&verifier_key(&master), VERIFIER_MAGIC).unwrap();
+        let verifier = crypto::encrypt_with_key(&scope_key(&master, VERIFIER_SCOPE), VERIFIER_MAGIC).unwrap();
         let file = VaultFile {
             version: kek::KekSource::EnvHash.version(),
             wrapped_master_key: wrapped,
@@ -640,7 +612,7 @@ mod tests {
         let recovered = crypto::decrypt_with_key(&read_kek, &back.wrapped_master_key).unwrap();
         assert_eq!(recovered, master);
         // Verifier must still validate under the recovered Master Key.
-        let v = crypto::decrypt_with_key(&verifier_key(&master), &back.verifier).unwrap();
+        let v = crypto::decrypt_with_key(&scope_key(&master, VERIFIER_SCOPE), &back.verifier).unwrap();
         assert_eq!(v, VERIFIER_MAGIC);
         // kek is used in the write branch above; reference it to avoid an
         // unused-variable lint on platforms where the compiler can't see it.
@@ -665,12 +637,12 @@ mod tests {
 
         // Wrap as export does.
         let wrapped = crypto::encrypt_with_key(&pw_key, &master).unwrap();
-        let verifier = crypto::encrypt_with_key(&verifier_key(&master), VERIFIER_MAGIC).unwrap();
+        let verifier = crypto::encrypt_with_key(&scope_key(&master, VERIFIER_SCOPE), VERIFIER_MAGIC).unwrap();
 
         // Unwrap as import does — note: NO call to kek:: anything.
         let mk_bytes = crypto::decrypt_with_key(&pw_key, &wrapped).unwrap();
         assert_eq!(mk_bytes, master);
-        let v = crypto::decrypt_with_key(&verifier_key(&master), &verifier).unwrap();
+        let v = crypto::decrypt_with_key(&scope_key(&master, VERIFIER_SCOPE), &verifier).unwrap();
         assert_eq!(v, VERIFIER_MAGIC);
 
         // A wrong password must fail, proving the wrap is genuinely keyed by

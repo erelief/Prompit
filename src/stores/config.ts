@@ -405,13 +405,6 @@ async function saveWebSearch(): Promise<void> {
   await invoke("save_websearch", { bundle });
 }
 
-// Note: before the encrypted providers.json/websearch.json files existed, api
-// keys were stored positionally in secrets.json as `provider_<i>` /
-// `websearch_<i>`. After migration those entries are orphaned. They are
-// encrypted at rest and nothing reads them anymore, so they are left in place
-// (deleting 50×2 keys per launch via IPC isn't worth it). A future vault
-// re-key or reset clears them.
-
 export async function loadConfig(): Promise<void> {
   try {
     const loaded = await invoke<AppConfig>("read_config");

@@ -96,7 +96,6 @@ function countLabel(cat: DataCategory): string | null {
       :class="{
         checked: selectedSet.has(cat),
         disabled,
-        legacy: CATEGORY_META[cat].legacy,
         absent: counts && countMap[cat] === undefined,
       }"
       :disabled="disabled"
@@ -110,7 +109,6 @@ function countLabel(cat: DataCategory): string | null {
           <span class="cat-label">{{ t(CATEGORY_META[cat].labelKey) }}</span>
           <span v-if="countLabel(cat) !== null" class="cat-count">{{ countLabel(cat) }}</span>
           <span v-if="CATEGORY_META[cat].sensitive" class="cat-badge sensitive">{{ t('settings.categories.sensitive') }}</span>
-          <span v-if="CATEGORY_META[cat].legacy" class="cat-badge legacy">{{ t('settings.categories.legacy') }}</span>
           <span v-if="counts && countMap[cat] === undefined" class="cat-badge absent">{{ t('settings.categories.notInBackup') }}</span>
         </span>
         <span class="cat-desc">{{ t(CATEGORY_META[cat].descKey) }}</span>
@@ -229,17 +227,10 @@ function countLabel(cat: DataCategory): string | null {
   color: var(--color-danger);
   background: var(--color-danger-bg);
 }
-.cat-badge.legacy {
-  color: var(--color-text-muted);
-  background: var(--color-surface-hover);
-}
 .cat-badge.absent {
   color: var(--color-text-muted);
   background: transparent;
   border: 1px dashed var(--color-border);
-}
-.cat-row.legacy .cat-label {
-  color: var(--color-text-muted);
 }
 .cat-row.absent {
   opacity: 0.6;

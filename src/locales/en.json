@@ -130,7 +130,6 @@
     "categories": {
       "selectAll": "Select all",
       "sensitive": "Sensitive",
-      "legacy": "Legacy",
       "notInBackup": "Not in backup",
       "settings": "Software settings",
       "settingsDescription": "Theme, languages, shortcuts, opacity and other preferences",
@@ -145,9 +144,7 @@
       "personas": "Translation personas",
       "personasDescription": "Custom translation personas",
       "skills_lite": "Skills-lite",
-      "skills_liteDescription": "Custom skills-lite prompt",
-      "secrets": "Legacy secrets",
-      "secretsDescription": "Older key store kept for migration"
+      "skills_liteDescription": "Custom skills-lite prompt"
     },
     "exportData": {
       "pageTitle": "Export Data",
@@ -357,8 +354,6 @@
     "importExistingSettings": "Or, import existing settings",
     "importCardTitle": "Restore from backup",
     "importCardBody": "Pick a Prompit backup file, enter its password, choose what to restore, and we'll continue setup based on what came in.",
-    "importSuccessTitle": "Import successful",
-    "importSuccessBody": "Your selected data has been restored.",
     "importRetry": "Re-import",
     "importSummaryTitle": "What was restored",
     "importSummaryProviders": "AI providers: {n}",
