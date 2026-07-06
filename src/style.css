@@ -89,9 +89,12 @@ textarea {
   font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
+/* Hide the native password-reveal eye that WebView2 (Edge/Chromium on Windows)
+   injects into type="password" inputs. Every password field already has its
+   own show/hide toggle, so the native one would otherwise duplicate it. */
 input[type="password"]::-ms-reveal,
-input[type="password"]::-webkit-credentials-auto-fill-button {
-  filter: invert(1);
+input[type="password"]::-ms-clear {
+  display: none;
 }
 
 /* ══════════════════════════════════════
