@@ -2343,16 +2343,18 @@ onUnmounted(() => {
           @confirm="() => persistSkillsLites()"
           @remove="() => persistSkillsLites()"
         >
-          <template #header-actions>
-            <button
-              v-if="skillsLiteImportMsg === ''"
-              class="pill-btn micro import-skills-pill"
-              :title="t('settings.importSkillsLite')"
-              @click="handleImportSkillsLite"
-            >
-              <Download :size="12" :stroke-width="2" />{{ t('common.import') }}
-            </button>
-            <span v-else class="skills-lite-import-msg">{{ skillsLiteImportMsg }}</span>
+          <template #header-actions="{ adding, editing }">
+            <span v-show="!adding && !editing">
+              <button
+                v-if="skillsLiteImportMsg === ''"
+                class="pill-btn micro import-skills-pill"
+                :title="t('settings.importSkillsLite')"
+                @click="handleImportSkillsLite"
+              >
+                <Download :size="12" :stroke-width="2" />{{ t('common.import') }}
+              </button>
+              <span v-else class="skills-lite-import-msg">{{ skillsLiteImportMsg }}</span>
+            </span>
           </template>
 
           <template #collapsed="{ item, index }">
