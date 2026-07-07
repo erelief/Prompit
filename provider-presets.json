@@ -26,7 +26,7 @@
       "api_format": "anthropic"
     },
     {
-      "name": "Baidu/百度千帆",
+      "name": "Baidu/百度智能云",
       "icon": "baidu",
       "model_series": "ERNIE",
       "api_format": "openai",
@@ -46,16 +46,9 @@
                 "api_url": "https://console.bce.baidu.com/iam/#/iam/apikey/list"
               },
               {
-                "key": "coding",
-                "label": "Coding Plan",
-                "provider_name": "百度千帆 Coding Plan",
-                "base_url": "https://qianfan.baidubce.com/v2/coding",
-                "api_url": "https://console.bce.baidu.com/qianfan/resource/subscribe"
-              },
-              {
                 "key": "token",
-                "label": "Token Plan Team",
-                "provider_name": "百度千帆 Token Plan 企业版",
+                "label": "Token Plan",
+                "provider_name": "百度千帆 Token Plan",
                 "base_url": "https://qianfan.baidubce.com/v2/tokenplan/team",
                 "api_url": "https://console.bce.baidu.com/qianfan/resource/token-plan-enterprise/my-subscription"
               }
