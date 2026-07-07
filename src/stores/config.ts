@@ -772,7 +772,7 @@ export function presetBelongsToFamily(
 // ── Skills Lite store ──
 
 const DEFAULT_POLISH_SKILLS_LITE: SkillsLiteEntry = {
-  name: "Polish（润色）",
+  name: "polish-skill",
   prompt:
     "Detect the language of the user's input. Adopt the role of a native speaker of that language. Rewrite the user's input as a more idiomatic, accurate, and natural expression in the same language, preserving the original meaning and intent.",
   description: "Polish the input like a native speaker of its language.",

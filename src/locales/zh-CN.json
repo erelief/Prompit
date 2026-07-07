@@ -121,7 +121,7 @@
     "noSkillsLitesYet": "暂无轻技能。",
     "addOneToSkillsLite": "添加一个开始使用。",
     "addSkillsLites": "添加轻技能",
-    "skillsLiteName": "轻技能名称…",
+    "skillsLiteName": "技能名称（如 polish-skill，全小写用连字符连接）…",
     "skillsLitePrompt": "系统提示词",
     "skillsLiteDescription": "用一两句话简述该轻技能的作用…",
     "organizePrompt": "AI 条理化",

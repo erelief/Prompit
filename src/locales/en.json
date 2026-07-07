@@ -121,7 +121,7 @@
     "noSkillsLitesYet": "No skills yet.",
     "addOneToSkillsLite": "Add one to get started.",
     "addSkillsLites": "Add Skill",
-    "skillsLiteName": "Skill name…",
+    "skillsLiteName": "Skill name (e.g. polish-skill)…",
     "skillsLitePrompt": "System Prompt",
     "skillsLiteDescription": "Briefly describe what this skill does…",
     "organizePrompt": "AI Organize prompt",
