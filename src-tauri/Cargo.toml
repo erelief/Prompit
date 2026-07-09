@@ -53,6 +53,11 @@ windows-sys = { version = "0.59", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_Foundation",
     "Win32_System_LibraryLoader",
+    # Power APIs (RegisterPowerSettingNotification / POWERBROADCAST_SETTING)
+    # for Modern-Standby lid-close detection.
+    "Win32_System_Power",
+    # GUID_CONSOLE_DISPLAY_STATE lives in SystemServices.
+    "Win32_System_SystemServices",
 ] }
 # OS credential store (Windows Credential Manager / DPAPI) for the local vault
 # KEK. See kek.rs. v3 ships no default features, so the platform backend must
