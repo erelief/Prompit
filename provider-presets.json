@@ -236,6 +236,15 @@
       }
     },
     {
+      "name": "Meta AI",
+      "provider_name": "Meta AI",
+      "icon": "meta",
+      "model_series": "Muse Spark",
+      "base_url": "https://api.meta.ai/v1",
+      "api_url": "https://dev.meta.ai/",
+      "api_format": "openai"
+    },
+    {
       "name": "MiniMax",
       "icon": "minimax",
       "model_series": "MiniMax",

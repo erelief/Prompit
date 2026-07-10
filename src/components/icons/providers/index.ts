@@ -11,6 +11,7 @@ import Gemini from "./Gemini.vue";
 import Grok from "./Grok.vue";
 import Kimi from "./Kimi.vue";
 import LMStudio from "./LMStudio.vue";
+import Meta from "./Meta.vue";
 import MiMo from "./MIMO.vue";
 import Minimax from "./Minimax.vue";
 import Moonshot from "./Moonshot.vue";
@@ -41,6 +42,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   grok: Grok,
   kimi: Kimi,
   lmstudio: LMStudio,
+  meta: Meta,
   mimo: MiMo,
   minimax: Minimax,
   moonshot: Moonshot,
