@@ -420,9 +420,9 @@
       }
     },
     {
-      "name": "Volcengine/火山方舟（字节跳动）",
-      "icon": "volcengine",
-      "model_series": "Doubao",
+      "name": "StreamLake/快手万擎",
+      "icon": "streamlake",
+      "model_series": "KwaiKAT",
       "api_format": "openai",
       "variants": {
         "default_region": "cn",
@@ -434,17 +434,37 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
-                "provider_name": "火山方舟",
-                "base_url": "https://ark.cn-beijing.volces.com/api/v3",
-                "api_url": "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey"
+                "label": "按量付费",
+                "provider_name": "KwaiKAT",
+                "base_url": "https://wanqing.streamlakeapi.com/api/gateway/v1/endpoints",
+                "api_url": "https://console.streamlake.com/console/home/index"
               },
               {
-                "key": "agent_plan",
-                "label": "Agent Plan",
-                "provider_name": "方舟 Agent Plan",
-                "base_url": "https://ark.cn-beijing.volces.com/api/plan/v3",
-                "api_url": "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement"
+                "key": "step_plan",
+                "label": "Coding Plan",
+                "provider_name": "KwaiKAT_Coding Plan",
+                "base_url": "https://wanqing.streamlakeapi.com/api/gateway/coding/v1",
+                "api_url": "https://console.streamlake.com/console/home/index"
+              }
+            ]
+          },
+          {
+            "key": "global",
+            "label": "Global",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Pay-as-you-go",
+                "provider_name": "KwaiKAT (Global)",
+                "base_url": "https://vanchin.streamlake.ai/api/gateway/coding/v1",
+                "api_url": "https://console.streamlake.ai/console/home/index"
+              },
+              {
+                "key": "step_plan",
+                "label": "Step Plan",
+                "provider_name": "KwaiKAT_Coding Plan(Global)",
+                "base_url": "https://vanchin.streamlake.ai/api/gateway/v1/endpoints",
+                "api_url": "https://console.streamlake.ai/console/home/index"
               }
             ]
           }
@@ -490,6 +510,38 @@
                 "provider_name": "Tencent Cloud Tokenhub",
                 "base_url": "https://tokenhub-intl.tencentmaas.com/v1",
                 "api_url": "https://www.tencentcloud.com/account/"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Volcengine/火山方舟（字节跳动）",
+      "icon": "volcengine",
+      "model_series": "Doubao",
+      "api_format": "openai",
+      "variants": {
+        "default_region": "cn",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn",
+            "label": "CN",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "火山方舟",
+                "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+                "api_url": "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey"
+              },
+              {
+                "key": "agent_plan",
+                "label": "Agent Plan",
+                "provider_name": "方舟 Agent Plan",
+                "base_url": "https://ark.cn-beijing.volces.com/api/plan/v3",
+                "api_url": "https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement"
               }
             ]
           }

@@ -21,6 +21,7 @@ import Qwen from "./Qwen.vue";
 import SenseNova from "./SenseNova.vue";
 import SiliconFlow from "./SiliconFlow.vue";
 import Step from "./Step.vue";
+import StreamLake from "./StreamLake.vue";
 import Tavily from "./Tavily.vue";
 import TencentCloud from "./TencentCloud.vue";
 import Volcengine from "./Volcengine.vue";
@@ -50,6 +51,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   sensenova: SenseNova,
   siliconflow: SiliconFlow,
   step: Step,
+  streamlake: StreamLake,
   tavily: Tavily,
   tencentcloud: TencentCloud,
   volcengine: Volcengine,
