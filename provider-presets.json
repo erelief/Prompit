@@ -40,7 +40,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "按量付费",
                 "provider_name": "百度千帆",
                 "base_url": "https://qianfan.baidubce.com/v2",
                 "api_url": "https://console.bce.baidu.com/iam/#/iam/apikey/list"
@@ -72,7 +72,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "按量付费",
                 "provider_name": "阿里云百炼",
                 "base_url": "https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
                 "api_url": "https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key"
@@ -99,7 +99,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "Pay-as-you-go",
                 "provider_name": "Bailian (SP)",
                 "base_url": "https://{WorkspaceId}.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
                 "api_url": "https://bailian.console.aliyun.com/ap-southeast-1?tab=model#/api-key"
@@ -112,7 +112,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "Pay-as-you-go",
                 "provider_name": "Bailian (EU)",
                 "base_url": "https://{WorkspaceId}.eu-central-1.maas.aliyuncs.com/compatible-mode/v1",
                 "api_url": "https://bailian.console.aliyun.com/eu-central-1?tab=model#/api-key"
@@ -125,7 +125,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "Pay-as-you-go",
                 "provider_name": "Bailian (JP)",
                 "base_url": "https://{WorkspaceId}.ap-northeast-1.maas.aliyuncs.com/compatible-mode/v1",
                 "api_url": "https://bailian.console.aliyun.com/ap-northeast-1?tab=model#/api-key"
@@ -138,7 +138,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "Pay-as-you-go",
                 "provider_name": "Bailian (US)",
                 "base_url": "https://dashscope-us.aliyuncs.com/compatible-mode/v1",
                 "api_url": "https://bailian.console.aliyun.com/us-west-1?tab=model#/api-key"
@@ -184,7 +184,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "按量付费",
                 "provider_name": "Kimi",
                 "base_url": "https://api.moonshot.cn/v1",
                 "api_url": "https://platform.kimi.com/console/api-keys"
@@ -204,7 +204,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "Pay-as-you-go",
                 "provider_name": "Kimi (Global)",
                 "base_url": "https://api.moonshot.ai/v1",
                 "api_url": "https://platform.kimi.ai/console/api-keys"
@@ -250,7 +250,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "按量付费",
                 "provider_name": "MiniMaxi.com",
                 "base_url": "https://api.minimaxi.com/anthropic/v1",
                 "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key"
@@ -263,7 +263,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "Pay-as-you-go",
                 "provider_name": "MiniMax.io",
                 "base_url": "https://api.minimax.io/anthropic/v1",
                 "api_url": "https://platform.minimax.io/user-center/basic-information/interface-key"
@@ -335,7 +335,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "按量付费",
                 "provider_name": "硅基流动",
                 "base_url": "https://api.siliconflow.cn/v1",
                 "api_url": "https://cloud.siliconflow.cn/"
@@ -348,7 +348,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "Pay-as-you-go",
                 "provider_name": "SiliconFlow",
                 "base_url": "https://api.siliconflow.com/v1/",
                 "api_url": "https://cloud.siliconflow.com/"
@@ -382,7 +382,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "按量付费",
                 "provider_name": "阶跃星辰",
                 "base_url": "https://api.stepfun.com/v1",
                 "api_url": "https://platform.stepfun.com/interface-key"
@@ -402,7 +402,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "Pay-as-you-go",
                 "provider_name": "StepFun",
                 "base_url": "https://api.stepfun.ai/v1",
                 "api_url": "https://platform.stepfun.ai/interface-key"
@@ -486,7 +486,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "腾讯云大模型" ,
+                "label": "腾讯云大模型",
                 "provider_name": "腾讯云大模型",
                 "base_url": "https://tokenhub.tencentmaas.com/v1",
                 "api_url": "https://console.cloud.tencent.com/?Is=sdk-topnav"
@@ -531,7 +531,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "按量付费",
                 "provider_name": "火山方舟",
                 "base_url": "https://ark.cn-beijing.volces.com/api/v3",
                 "api_url": "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey"
@@ -572,7 +572,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "按量付费",
                 "provider_name": "Xiaomi MiMo",
                 "base_url": "https://api.xiaomimimo.com/v1",
                 "api_url": "https://platform.xiaomimimo.com/console/api-keys"
@@ -604,7 +604,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "按量付费",
                 "provider_name": "智谱|BigModel",
                 "base_url": "https://open.bigmodel.cn/api/paas/v4",
                 "api_url": "https://bigmodel.cn/apikey/platform"
@@ -624,7 +624,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Standard",
+                "label": "Pay-as-you-go",
                 "provider_name": "Z.AI",
                 "base_url": "https://api.z.ai/api/paas/v4/",
                 "api_url": "https://z.ai/manage-apikey/apikey-list"
