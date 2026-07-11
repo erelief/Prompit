@@ -252,7 +252,10 @@
     "historyLimit": "Max History Entries",
     "clearHistory": "Clear History",
     "entryCount": "Max entries: {current}/{limit}",
-    "edited": "Edited"
+    "edited": "Edited",
+    "searchPlaceholder": "Search input or output…",
+    "searchEmpty": "No matching history.",
+    "searchCount": "Matches {current} / {total} total"
   },
   "dictionary": {
     "userDictionary": "User Dictionary",

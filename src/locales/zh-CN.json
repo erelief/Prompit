@@ -252,7 +252,10 @@
     "historyLimit": "最大历史条数",
     "clearHistory": "清除历史记录",
     "entryCount": "最大条数: {current}/{limit}",
-    "edited": "已编辑"
+    "edited": "已编辑",
+    "searchPlaceholder": "搜索输入或输出…",
+    "searchEmpty": "没有匹配的历史记录。",
+    "searchCount": "匹配 {current} / 共 {total} 条"
   },
   "dictionary": {
     "userDictionary": "用户词典",

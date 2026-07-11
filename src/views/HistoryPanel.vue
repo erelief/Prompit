@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink, ToggleRight, ToggleLeft } from "@lucide/vue";
+import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink, ToggleRight, ToggleLeft, Search } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { useGlassBg, domainOf } from "../composables/useGlass";
 import { appConfig, historyStore, loadHistory, saveHistory, MODES, HISTORY_LIMIT_DEFAULT, type HistoryEntry } from "../stores/config";
@@ -25,7 +25,7 @@ async function goBack() {
 
 async function handleDrag(e: MouseEvent) {
   const target = e.target as HTMLElement;
-  if (target.closest("button, a, .history-item")) return;
+  if (target.closest("button, a, .history-item, .history-search, input")) return;
   await getCurrentWindow().startDragging();
 }
 
@@ -63,6 +63,21 @@ function presetTag(entry: HistoryEntry): string | null {
 
 // All modes share one unified history list
 const modeEntries = computed(() => historyStore.entries);
+
+// ── Real-time search (matches input OR output, case-insensitive) ──
+const searchQuery = ref("");
+const filteredEntries = computed<HistoryEntry[]>(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return historyStore.entries;
+  return historyStore.entries.filter(
+    (e) =>
+      (e.input && e.input.toLowerCase().includes(q)) ||
+      (e.output && e.output.toLowerCase().includes(q)),
+  );
+});
+function clearSearch() {
+  searchQuery.value = "";
+}
 
 async function handleClear() {
   // Clear all history (shared across modes)
@@ -112,6 +127,25 @@ onMounted(async () => {
         <History :size="14" :stroke-width="1.8" />
         {{ t('history.title') }}
       </h1>
+      <!-- Real-time search: filters by input OR output -->
+      <div v-if="!sourcesEntry" class="history-search" :class="{ 'has-query': searchQuery }">
+        <Search :size="13" :stroke-width="1.9" class="search-icon" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          :placeholder="t('history.searchPlaceholder')"
+          @click.stop
+        />
+        <button
+          v-if="searchQuery"
+          class="search-clear"
+          :title="t('common.cancel')"
+          @click.stop="clearSearch"
+        >
+          <X :size="12" :stroke-width="2.2" />
+        </button>
+      </div>
       <div v-if="!sourcesEntry" class="header-actions">
         <button
           class="reset-btn"
@@ -156,13 +190,17 @@ onMounted(async () => {
       </template>
       <!-- Normal history list -->
       <template v-else>
-      <div v-if="modeEntries.length === 0" class="empty-state">
+      <div v-if="historyStore.entries.length === 0" class="empty-state">
         <History :size="28" :stroke-width="1" class="empty-icon" />
         <span class="empty-text">{{ t('history.empty') }}<br><small>{{ t('history.emptySub') }}</small></span>
       </div>
+      <div v-else-if="filteredEntries.length === 0" class="empty-state">
+        <Search :size="28" :stroke-width="1" class="empty-icon" />
+        <span class="empty-text">{{ t('history.searchEmpty') }}</span>
+      </div>
       <div v-else class="history-list">
         <div
-          v-for="entry in modeEntries"
+          v-for="entry in filteredEntries"
           :key="entry.timestamp"
           class="history-item"
           :class="{ 'remove-pending': pendingRemove === entry.timestamp }"
@@ -208,7 +246,12 @@ onMounted(async () => {
           </template>
         </div>
         <div class="history-footer">
-          {{ t('history.entryCount', { current: modeEntries.length, limit: appConfig.history_limit || HISTORY_LIMIT_DEFAULT }) }}
+          <template v-if="searchQuery">
+            {{ t('history.searchCount', { current: filteredEntries.length, total: historyStore.entries.length }) }}
+          </template>
+          <template v-else>
+            {{ t('history.entryCount', { current: modeEntries.length, limit: appConfig.history_limit || HISTORY_LIMIT_DEFAULT }) }}
+          </template>
         </div>
       </div>
       </template>
@@ -266,7 +309,7 @@ onMounted(async () => {
   color: var(--color-text);
   line-height: 1.2;
   margin: 0;
-  flex: 1;
+  flex: 0 0 auto;
 }
 
 .header-actions {
@@ -307,6 +350,69 @@ onMounted(async () => {
 }
 @keyframes danger-pulse {
   to { background: var(--color-danger-bg); filter: brightness(.88); }
+}
+
+/* ── Search box (realtime filter by input OR output) ── */
+.history-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  margin: 0 6px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  transition: border-color 0.15s, background 0.15s;
+}
+.history-search:focus-within {
+  border-color: var(--color-accent);
+  background: var(--color-surface-hover);
+}
+.history-search.has-query {
+  color: var(--color-text-secondary);
+}
+.search-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--color-text);
+}
+.search-input::placeholder {
+  color: var(--color-text-muted);
+}
+.search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.search-clear:hover {
+  color: var(--color-text);
+  background: var(--color-border);
+}
+/* Hide the title text on very narrow windows so search stays usable */
+@media (max-width: 360px) {
+  .header-title { display: none; }
 }
 
 /* Body */
