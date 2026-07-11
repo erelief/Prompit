@@ -79,6 +79,28 @@ function clearSearch() {
   searchQuery.value = "";
 }
 
+// Split text into segments so matched substrings can be highlighted.
+// Returns a single non-highlighted segment when there is no active query.
+function highlightSegments(text: string): { text: string; hit: boolean }[] {
+  const q = searchQuery.value.trim();
+  if (!q) return [{ text, hit: false }];
+  const lower = text.toLowerCase();
+  const ql = q.toLowerCase();
+  const parts: { text: string; hit: boolean }[] = [];
+  let i = 0;
+  while (i < text.length) {
+    const idx = lower.indexOf(ql, i);
+    if (idx === -1) {
+      parts.push({ text: text.slice(i), hit: false });
+      break;
+    }
+    if (idx > i) parts.push({ text: text.slice(i, idx), hit: false });
+    parts.push({ text: text.slice(idx, idx + q.length), hit: true });
+    i = idx + q.length;
+  }
+  return parts;
+}
+
 async function handleClear() {
   // Clear all history (shared across modes)
   historyStore.entries = [];
@@ -222,13 +244,13 @@ onMounted(async () => {
                 <component :is="modeIcon(entry.mode)" :size="12" :stroke-width="1.8" />
               </div>
               <div class="history-item-text">
-                <div class="history-item-input">
-                  <Send :size="9" :stroke-width="2" class="input-icon" />
-                  <span>{{ entry.input }}</span>
-                </div>
+              <div class="history-item-input">
+                <Send :size="9" :stroke-width="2" class="input-icon" />
+                <span><template v-for="(seg, si) in highlightSegments(entry.input)" :key="si"><mark v-if="seg.hit" class="search-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></span>
+              </div>
                 <div class="history-item-output">
                   <MessageSquare :size="9" :stroke-width="2" class="output-icon" />
-                  <span>{{ entry.output }}</span>
+                  <span><template v-for="(seg, si) in highlightSegments(entry.output)" :key="si"><mark v-if="seg.hit" class="search-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></span>
                   <span v-if="entry.model" class="model-badge">{{ shortModel(entry.model) }}</span>
                   <span v-if="presetTag(entry)" class="preset-badge">{{ presetTag(entry) }}</span>
                   <span v-if="entry.edited" class="edited-tag">{{ t('history.edited') }}</span>
@@ -409,6 +431,15 @@ onMounted(async () => {
 .search-clear:hover {
   color: var(--color-text);
   background: var(--color-border);
+}
+
+/* Highlighted matched keyword in search results */
+mark.search-hl {
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  border-radius: 2px;
+  padding: 0 1px;
+  font-weight: 600;
 }
 /* Hide the title text on very narrow windows so search stays usable */
 @media (max-width: 360px) {
