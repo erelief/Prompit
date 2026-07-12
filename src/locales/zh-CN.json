@@ -9,13 +9,13 @@
     "copy": "复制",
     "copied": "已复制",
     "add": "添加",
-    "remove": "删除",
+    "remove": "移除",
     "import": "导入",
     "export": "导出",
-    "confirmRemove": "确认删除",
+    "confirmRemove": "确认移除",
     "cannotBeUndone": "此操作不可撤销。",
     "settings": "设置",
-    "hide": "隐藏 (Esc)",
+    "hide": "隐藏（Esc）",
     "close": "关闭",
     "closeAfterSend": "发送后关闭",
     "keepOpenAfterSend": "发送后不关闭",
@@ -211,9 +211,9 @@
     }
   },
   "floating": {
-    "pressEnterToPaste": "按 Enter 粘贴结果...",
-    "typeToSend": "输入以发送...",
-    "sending": "发送中...",
+    "pressEnterToPaste": "按 Enter 粘贴结果…",
+    "typeToSend": "输入以发送…",
+    "sending": "发送中…",
     "pasteIntoActiveField": "粘贴到当前文本输入框 (Enter)",
     "send": "发送 (Enter)",
     "forwardToInput": "发送结果到输入框",
@@ -293,27 +293,54 @@
     "acknowledgments": "致谢",
     "checkUpdate": "检查更新",
     "autoUpdate": "启动时自动检查更新",
-    "checking": "检查中...",
+    "checking": "检查中…",
     "upToDate": "已是最新",
     "newVersion": "发现新版本 v{version}",
     "install": "立即更新",
-    "preparing": "准备下载...",
-    "downloading": "下载中...",
-    "installing": "安装中...",
-    "restarting": "重启中...",
+    "preparing": "准备下载…",
+    "downloading": "下载中…",
+    "installing": "安装中…",
+    "restarting": "重启中…",
     "updateFailed": "更新失败",
     "checkFailed": "检查失败"
   },
   "languages": {
-    "English": { "name": "英语", "code": "英" },
-    "Japanese": { "name": "日语", "code": "日" },
-    "Korean": { "name": "韩语", "code": "韩" },
-    "French": { "name": "法语", "code": "法" },
-    "German": { "name": "德语", "code": "德" },
-    "Spanish": { "name": "西班牙语", "code": "西" },
-    "Russian": { "name": "俄语", "code": "俄" },
-    "Simplified Chinese": { "name": "简体中文", "code": "简" },
-    "Traditional Chinese": { "name": "繁体中文", "code": "繁" }
+    "English": {
+      "name": "英语",
+      "code": "英"
+    },
+    "Japanese": {
+      "name": "日语",
+      "code": "日"
+    },
+    "Korean": {
+      "name": "韩语",
+      "code": "韩"
+    },
+    "French": {
+      "name": "法语",
+      "code": "法"
+    },
+    "German": {
+      "name": "德语",
+      "code": "德"
+    },
+    "Spanish": {
+      "name": "西班牙语",
+      "code": "西"
+    },
+    "Russian": {
+      "name": "俄语",
+      "code": "俄"
+    },
+    "Simplified Chinese": {
+      "name": "简体中文",
+      "code": "简"
+    },
+    "Traditional Chinese": {
+      "name": "繁体中文",
+      "code": "繁"
+    }
   },
   "onboarding": {
     "hello": "你好",
@@ -368,7 +395,7 @@
     "importRetry": "重新导入",
     "importSummaryTitle": "已恢复的内容",
     "importSummaryProviders": "AI 模型供应商：{n}",
-    "importSummaryWebSearch": "网络搜索服务供应商：{n}",
+    "importSummaryWebSearch": "网页搜索服务供应商：{n}",
     "importSummaryAllReady": "一切就绪。点击下一步完成。",
     "importSummaryNeedProvider": "未发现 AI 模型供应商。软件至少需要一个才能使用 —— 下一步将引导你添加。",
     "importSummarySkipped": "未导入（保留原数据）"

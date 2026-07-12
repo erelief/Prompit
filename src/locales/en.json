@@ -12,7 +12,7 @@
     "remove": "Remove",
     "import": "Import",
     "export": "Export",
-    "confirmRemove": "Confirm remove",
+    "confirmRemove": "Confirm Remove",
     "cannotBeUndone": "This cannot be undone.",
     "settings": "Settings",
     "hide": "Hide (Esc)",
@@ -63,7 +63,7 @@
     "openaiCompatHint": "Requires an OpenAI-compatible API.",
     "getApiKeyAt": "Get your API key at {name}",
     "downloadAt": "Download {name}",
-    "apiKeyDisclaimer": "This configuration is for reference only,official settings may have changed. Please obtain the API Key through official channels and use it within the scope of service agreed with the supplier. All fees will be settled directly between you and the supplier.",
+    "apiKeyDisclaimer": "This configuration is for reference only, official settings may have changed. Please obtain the API Key through official channels and use it within the scope of service agreed with the supplier. All fees will be settled directly between you and the supplier.",
     "variantAxisRegion": "Region",
     "variantAxisEndpoint": "Endpoint",
     "noPresetsFound": "No presets found. Edit the presets file to add one.",
@@ -152,8 +152,8 @@
       "dictionariesDescription": "Your custom-dictionary entries",
       "personas": "Translation personas",
       "personasDescription": "Custom translation personas",
-      "skills_lite": "Skills-lite",
-      "skills_liteDescription": "Custom skills-lite prompts"
+      "skills_lite": "Skills Lite",
+      "skills_liteDescription": "Custom Skills Lite prompts"
     },
     "exportData": {
       "pageTitle": "Export Data",
@@ -211,9 +211,9 @@
     }
   },
   "floating": {
-    "pressEnterToPaste": "Press Enter to paste result...",
-    "typeToSend": "Type to send...",
-    "sending": "Sending...",
+    "pressEnterToPaste": "Press Enter to paste result…",
+    "typeToSend": "Type to send…",
+    "sending": "Sending…",
     "pasteIntoActiveField": "Paste into active field (Enter)",
     "send": "Send (Enter)",
     "forwardToInput": "Send result to input",
@@ -293,27 +293,54 @@
     "acknowledgments": "Acknowledgments",
     "checkUpdate": "Check for Updates",
     "autoUpdate": "Check for updates on launch",
-    "checking": "Checking...",
+    "checking": "Checking…",
     "upToDate": "Up to date",
     "newVersion": "New version v{version}",
     "install": "Install",
-    "preparing": "Preparing...",
-    "downloading": "Downloading...",
-    "installing": "Installing...",
-    "restarting": "Restarting...",
+    "preparing": "Preparing…",
+    "downloading": "Downloading…",
+    "installing": "Installing…",
+    "restarting": "Restarting…",
     "updateFailed": "Update failed",
     "checkFailed": "Failed"
   },
   "languages": {
-    "English": { "name": "English", "code": "EN" },
-    "Japanese": { "name": "Japanese", "code": "JA" },
-    "Korean": { "name": "Korean", "code": "KO" },
-    "French": { "name": "French", "code": "FR" },
-    "German": { "name": "German", "code": "DE" },
-    "Spanish": { "name": "Spanish", "code": "ES" },
-    "Russian": { "name": "Russian", "code": "RU" },
-    "Simplified Chinese": { "name": "Simplified Chinese", "code": "SC" },
-    "Traditional Chinese": { "name": "Traditional Chinese", "code": "TC" }
+    "English": {
+      "name": "English",
+      "code": "EN"
+    },
+    "Japanese": {
+      "name": "Japanese",
+      "code": "JA"
+    },
+    "Korean": {
+      "name": "Korean",
+      "code": "KO"
+    },
+    "French": {
+      "name": "French",
+      "code": "FR"
+    },
+    "German": {
+      "name": "German",
+      "code": "DE"
+    },
+    "Spanish": {
+      "name": "Spanish",
+      "code": "ES"
+    },
+    "Russian": {
+      "name": "Russian",
+      "code": "RU"
+    },
+    "Simplified Chinese": {
+      "name": "Simplified Chinese",
+      "code": "SC"
+    },
+    "Traditional Chinese": {
+      "name": "Traditional Chinese",
+      "code": "TC"
+    }
   },
   "onboarding": {
     "hello": "Hello",
