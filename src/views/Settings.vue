@@ -2023,7 +2023,7 @@ onUnmounted(() => {
                 </button>
               </template>
               <template v-else>
-                <button class="mini-btn danger-active" :title="t('common.confirmRemove')" @click="clearAllHistory().then(() => showHistoryClearConfirm = false)">
+                <button class="mini-btn danger-active" :title="t('history.clearConfirm')" @click="clearAllHistory().then(() => showHistoryClearConfirm = false)">
                   <Check :size="11" :stroke-width="2.5" />
                 </button>
                 <button class="mini-btn" :title="t('common.cancel')" @click="showHistoryClearConfirm = false">
