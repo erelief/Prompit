@@ -31,7 +31,7 @@
   "settings": {
     "general": "General",
     "translation": "Translation",
-    "providers": "Providers",
+    "providers": "AI model providers",
     "noProvidersYet": "No providers yet.",
     "addOneToGetStarted": "Add one for a more stable experience.",
     "addProviders": "Add Providers",
@@ -62,7 +62,7 @@
     "openaiCompatHint": "Requires an OpenAI-compatible API.",
     "getApiKeyAt": "Get your API key at {name}",
     "downloadAt": "Download {name}",
-    "apiKeyDisclaimer": "This configuration is for reference only, official settings may have changed. Please obtain the API Key through official channels and use it within the scope of service agreed with the supplier. All fees will be settled directly between you and the supplier.",
+    "apiKeyDisclaimer": "This configuration is for reference only, official settings may have changed. Please obtain the API Key through official channels and use it within the scope of service agreed with the provider. All fees will be settled directly between you and the provider.",
     "variantAxisRegion": "Region",
     "variantAxisEndpoint": "Endpoint",
     "noPresetsFound": "No presets found. Edit the presets file to add one.",
