@@ -122,8 +122,16 @@ export function useAnimatedResize() {
       rafId = null;
     }
 
-    const startH = currentH || height;
-    const startW = currentW || targetW;
+    // Resolve the START size from the live webview geometry, not from a stale
+    // cache. Backend commands (StartupReminder / Onboarding / tray show) resize
+    // the OS window directly, bypassing this module, so currentH/W can be out of
+    // sync. window.innerHeight/Width is synchronous, zero-IPC, and in the same
+    // logical-CSS-px coordinate system the backend height/width uses.
+    // Fallback to the cache only mid-tween (retarget), where the webview is
+    // already mid-transition and reading it would catch a stale frame.
+    const inFlightTween = state !== null;
+    const startH = inFlightTween ? (currentH || height) : (window.innerHeight || currentH || height);
+    const startW = inFlightTween ? (currentW || targetW) : (window.innerWidth || currentW || targetW);
 
     // No-op if we're already at the target (avoids a needless IPC burst —
     // important since ResizeObserver can fire frequently while typing).
