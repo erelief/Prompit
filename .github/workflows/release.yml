@@ -1,0 +1,121 @@
+# Release pipeline for Prompit (Tauri v2).
+#
+# Builds Windows (MSI + NSIS), Linux (deb + AppImage), and macOS (universal)
+# installers, signs the updater artifacts, and uploads everything to a GitHub
+# Release as a DRAFT. The auto-update mechanism stays inert until you click
+# "Publish release" — only then does the app's endpoint
+# (…/releases/latest/download/latest.json) resolve.
+#
+# ── Triggers ─────────────────────────────────────────────────────────────
+#   1. Push a tag matching `v*`  →  git tag v0.1.0 && git push --tags
+#   2. Manual run via the Actions tab "Run workflow" button (type the tag)
+#
+# ── Prerequisites (one-time, do these first) ─────────────────────────────
+#   • Secret TAURI_SIGNING_PRIVATE_KEY         → contents of src-tauri/tauri.key
+#                                                 (gitignored; CI can't see it)
+#   • Secret TAURI_SIGNING_PRIVATE_KEY_PASSWORD → the password for that key
+#                                                 (empty string if none)
+#   • Merge this workflow to `main` before tagging — GitHub only fires
+#     tag-triggered workflows that exist on the default branch.
+#
+# ── Releasing a new version ──────────────────────────────────────────────
+#   package.json is the single source of truth. `npm version` bumps it and
+#   the `version` lifecycle hook (in package.json) runs scripts/sync-tauri-
+#   config.mjs to propagate the new version into Cargo.toml + tauri.conf.json,
+#   then stages those two files. npm also auto-commits and tags.
+#
+#   1. npm version patch   # or minor / major — creates commit + vX.Y.Z tag
+#   2. git push --follow-tags
+#   3. Wait for the three matrix jobs to finish.
+#   4. Open the draft release, review assets, click "Publish".
+#   5. Existing users get auto-prompted; new users download from the page.
+#
+# ── Limitations (can be added later) ─────────────────────────────────────
+#   • No OS code-signing (no Apple Developer ID / Windows Authenticode cert):
+#       macOS users must bypass Gatekeeper; Windows shows SmartScreen once.
+#   • Linux .deb users update manually; only AppImage self-updates.
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tagName:
+        description: "Tag to build & release (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write # create the GitHub Release + upload assets
+
+jobs:
+  build:
+    runs-on: ${{ matrix.platform }}
+    # One OS failing should not cancel the others.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+            rust-targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+            rust-targets: ""
+          - platform: windows-latest
+            args: ""
+            rust-targets: ""
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Tauri v2 on Linux needs system webkit/gtk + the autostart/appindicator
+      # dev headers. Run only on Ubuntu.
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` so beforeBuildCommand's `npm run build` can run.
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - name: Build & publish draft release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Required to emit signed .sig files + the updater manifest.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.event.inputs.tagName || github.ref_name }}
+          releaseName: "Prompit ${{ github.event.inputs.tagName || github.ref_name }}"
+          releaseDraft: true
+          # NSIS is the Windows installer format the updater can install
+          # in place (MSI cannot self-update).
+          updaterJsonPreferNsis: true
+          args: ${{ matrix.args }}
