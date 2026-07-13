@@ -1,5 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
-import { MAIN_WIDTH } from "./useSettingsWindow";
+import mainWindowConfig from "../shared/main-window.json";
+
+// NOTE: imported from the JSON directly (NOT from useSettingsWindow) to avoid a
+// circular import: useSettingsWindow → useAnimatedResize → useSettingsWindow.
+// Reading the live `const` mid-cycle would hit the TDZ and crash the app on boot.
+/** Width of the main panel; kept in sync with useSettingsWindow's MAIN_WIDTH. */
+const MAIN_WIDTH = mainWindowConfig.width;
 
 /**
  * Animated window resize: eases the OS window into its new size instead of the
