@@ -8,6 +8,7 @@ import { eventMatchesShortcut } from "../utils/shortcut";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
+import { useAnimatedResize } from "../composables/useAnimatedResize";
 import { useGlassBg, domainOf } from "../composables/useGlass";
 import { useEventListener } from "@vueuse/core";
 import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
@@ -126,19 +127,26 @@ const activeModelCapabilities = computed<ModelInputCapabilities | undefined>(() 
 
 const glassBg = useGlassBg();
 
+// Animated window resize: eases the OS window into its new size instead of the
+// raw SetWindowPos snap. Used both for view transitions and for result-grow.
+const { animateResize, snapResize } = useAnimatedResize();
+
 const floatingAlpha = computed(() => (appConfig.floating_opacity ?? 90) / 100);
 
 const fontScale = computed(() => (appConfig.font_size ?? 100) / 100);
 
 // Ask the backend to resize/reposition the window for the current content.
 // Invalidates lastSentHeight when `force` so the next bodyHeight watch still fires.
+// `force` paths (mount, wake) snap instantly — animation is reserved for
+// user-visible content/transition changes, not cold-start geometry setup.
 function applyWindowResize(force = false) {
   if (force) lastSentHeight = -1;
   nextTick(() => {
-    invoke("resize_and_reposition", {
-      height: bodyHeight.value * fontScale.value,
-      width: MAIN_WIDTH * fontScale.value,
-    });
+    if (force) {
+      snapResize(bodyHeight.value * fontScale.value, MAIN_WIDTH * fontScale.value);
+    } else {
+      animateResize(bodyHeight.value * fontScale.value, MAIN_WIDTH * fontScale.value);
+    }
   });
 }
 
@@ -728,14 +736,12 @@ onUnmounted(() => {
   resizeObserver?.disconnect();
 });
 
-// Resize window when content changes
+// Resize window when content changes (e.g. a result arrives and grows the
+// window). Animated so the panel eases open instead of snapping.
 watch(bodyHeight, (h) => {
   if (h !== lastSentHeight) {
     lastSentHeight = h;
-    invoke("resize_and_reposition", {
-      height: h * fontScale.value,
-      width: MAIN_WIDTH * fontScale.value,
-    });
+    animateResize(h * fontScale.value, MAIN_WIDTH * fontScale.value);
   }
 });
 
