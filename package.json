@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/validate-i18n.mjs && vue-tsc --noEmit && vite build",
+    "build": "node scripts/generate-third-party-licenses.mjs && node scripts/validate-i18n.mjs && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
+    "gen:third-party": "node scripts/generate-third-party-licenses.mjs",
+    "prepare": "node scripts/generate-third-party-licenses.mjs",
     "tauri": "tauri",
     "tauri:sandbox": "set SANDBOX=1 && tauri dev",
     "version": "node scripts/sync-tauri-config.mjs && git add src-tauri/tauri.conf.json src-tauri/Cargo.toml"
@@ -23,7 +25,6 @@
     "@tauri-apps/plugin-shell": "^2.3.5",
     "@tauri-apps/plugin-updater": "^2.10.1",
     "@vueuse/core": "^14.3.0",
-    "headroom-ai": "^0.22.4",
     "tailwindcss": "^4.3.0",
     "vue": "^3.5.13",
     "vue-i18n": "^11.4.4",

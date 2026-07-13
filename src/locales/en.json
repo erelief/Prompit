@@ -289,6 +289,7 @@
     "title": "About",
     "repository": "Repository",
     "license": "License",
+    "thirdParty": "Third-party licenses",
     "acknowledgments": "Acknowledgments",
     "checkUpdate": "Check for Updates",
     "autoUpdate": "Check for updates on launch",

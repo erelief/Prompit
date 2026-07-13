@@ -25,6 +25,16 @@ const router = createRouter({
       component: () => import("../views/About.vue"),
     },
     {
+      path: "/settings/license",
+      name: "license",
+      component: () => import("../views/License.vue"),
+    },
+    {
+      path: "/settings/third-party",
+      name: "third-party",
+      component: () => import("../views/ThirdPartyLicenses.vue"),
+    },
+    {
       path: "/settings/reset",
       name: "reset",
       component: () => import("../views/ResetSoftware.vue"),

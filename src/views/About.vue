@@ -2,8 +2,15 @@
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { ArrowLeft, ExternalLink } from "@lucide/vue";
+import { ArrowLeft, ExternalLink, ChevronRight } from "@lucide/vue";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
+// Versions are resolved from package-lock.json / Cargo.lock at build time by
+// scripts/generate-third-party-licenses.mjs. To add/remove an entry, edit the
+// ABOUT_DEPS list in that script and re-run `npm run build` (or
+// `npm run gen:third-party`). Fonts and manually-vendored assets aren't in the
+// lockfile as production deps, so they are appended below.
+import generatedDeps from "../generated/about-deps.json";
 
 declare const __APP_VERSION__: string;
 const appVersion = __APP_VERSION__;
@@ -13,21 +20,25 @@ const router = useRouter();
 const { growAbove } = useSettingsWindow();
 
 const deps = [
-  { name: "Tauri", version: "2.11.0", url: "https://tauri.app" },
-  { name: "Vue", version: "3.5.35", url: "https://vuejs.org" },
-  { name: "Vue Router", version: "5.0.7", url: "https://router.vuejs.org" },
-  { name: "Vue I18n", version: "11.4.4", url: "https://vue-i18n.intlify.dev" },
-  { name: "VueUse", version: "14.3.0", url: "https://vueuse.org" },
-  { name: "Lucide", version: "1.17.0", url: "https://lucide.dev" },
+  ...generatedDeps,
+  // ── Fonts ──
+  // Geist ships the woff2 bundled in src/assets/fonts/. It's a devDep in the
+  // lockfile (build-time only) so the generator skips it — acknowledge here.
+  { name: "Geist", version: "1.7.2", url: "https://vercel.com/font" },
+  // Madimi One renders the "P" in the logo SVG. OFL-1.1 (see OFL FAQ). Not an
+  // npm/cargo dep, so it isn't in any lockfile.
+  { name: "Madimi One", version: "", url: "https://fonts.google.com/specimen/Madimi+One" },
+  // ── Manually-vendored assets ──
   { name: "Lobe Icons", version: "1.91.0", url: "https://www.npmjs.com/package/@lobehub/icons" },
-  { name: "Tailwind CSS", version: "4.3.0", url: "https://tailwindcss.com" },
-  { name: "VueDraggable", version: "4.1.0", url: "https://sortablejs.github.io/vue.draggable.next/" },
-  // Rust crate: binds the vault's local KEK to the OS credential store
-  // (Windows Credential Manager / macOS Keychain / Linux Secret Service).
-  { name: "Keyring", version: "3.6.3", url: "https://crates.io/crates/keyring" },
 ];
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
+async function handleDrag(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (target.closest("button, a, input")) return;
+  await getCurrentWindow().startDragging();
+}
 
 onMounted(() => {
   const container = document.querySelector(".about-root");
@@ -42,7 +53,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="about-root" :class="{ 'grow-above': growAbove }">
+  <div class="about-root" :class="{ 'grow-above': growAbove }" @mousedown="handleDrag">
     <!-- Header -->
     <div class="about-header">
       <button class="back-btn" @click="router.push('/settings?tab=general')">
@@ -68,19 +79,31 @@ onMounted(() => {
     </div>
     <div class="about-section">
       <span class="about-label">{{ t('about.license') }}</span>
-      <span class="about-value">MIT License</span>
+      <button class="about-link" @click="router.push('/settings/license')">
+        <span>Apache License 2.0</span>
+        <ChevronRight :size="12" :stroke-width="2" />
+      </button>
+    </div>
+    <div class="about-section">
+      <span class="about-label">{{ t('about.thirdParty') }}</span>
+      <button class="about-link" @click="router.push('/settings/third-party')">
+        <span>{{ t('about.thirdParty') }}</span>
+        <ChevronRight :size="12" :stroke-width="2" />
+      </button>
     </div>
 
     <!-- Acknowledgments -->
     <div class="about-divider" />
     <div class="about-deps-title">{{ t('about.acknowledgments') }}</div>
-    <div class="about-dep" v-for="dep in deps" :key="dep.name">
-      <span class="about-dep-name">{{ dep.name }}</span>
-      <a class="about-link" :href="dep.url">
-        <span v-if="dep.version">v{{ dep.version }}</span>
-        <span v-else>{{ dep.name }}</span>
-        <ExternalLink :size="10" :stroke-width="2" />
-      </a>
+    <div class="about-deps-scroll">
+      <div class="about-dep" v-for="dep in deps" :key="dep.name">
+        <span class="about-dep-name">{{ dep.name }}</span>
+        <a class="about-link" :href="dep.url">
+          <span v-if="dep.version">v{{ dep.version }}</span>
+          <span v-else>{{ dep.name }}</span>
+          <ExternalLink :size="10" :stroke-width="2" />
+        </a>
+      </div>
     </div>
   </div>
 </template>
@@ -96,7 +119,6 @@ onMounted(() => {
   background: var(--color-bg);
   color: var(--color-text);
   overflow: hidden;
-  border-radius: 11px;
 }
 .about-root.grow-above .about-header { order: 99; border-bottom: none; border-top: 1px solid var(--color-surface); margin-top: auto; }
 
@@ -168,6 +190,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 6px 24px;
+  flex-shrink: 0;
 }
 .about-label {
   font-size: 12px;
@@ -188,6 +211,15 @@ onMounted(() => {
   font-weight: 500;
   transition: 0.15s;
 }
+/* When used as a <button> (the license row), reset button defaults so it
+   renders identically to the <a> variant above. */
+button.about-link {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
 .about-link:hover {
   color: var(--color-accent);
 }
@@ -197,6 +229,7 @@ onMounted(() => {
   height: 1px;
   background: var(--color-surface);
   margin: 8px 24px;
+  flex-shrink: 0;
 }
 
 /* ── Dependencies ── */
@@ -206,6 +239,24 @@ onMounted(() => {
   color: var(--color-text-muted);
   letter-spacing: 0.02em;
   padding: 2px 24px 6px;
+  flex-shrink: 0;
+}
+/* Scrollable acknowledgments list: takes remaining height, scrolls internally
+   so the header/title/info rows stay fixed and never get pushed off-screen. */
+.about-deps-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar) transparent;
+}
+.about-deps-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+.about-deps-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar);
+  border-radius: 3px;
 }
 .about-dep {
   display: flex;
