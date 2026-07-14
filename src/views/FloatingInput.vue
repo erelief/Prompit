@@ -8,7 +8,8 @@ import { eventMatchesShortcut } from "../utils/shortcut";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
-import { useGlassBg, domainOf } from "../composables/useGlass";
+import { useAnimatedResize } from "../composables/useAnimatedResize";
+import { useWindowBg, domainOf } from "../composables/useWindowBg";
 import { useEventListener } from "@vueuse/core";
 import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
@@ -124,7 +125,11 @@ const activeModelCapabilities = computed<ModelInputCapabilities | undefined>(() 
   appConfig.providers[activeProviderIdx()]?.models?.[activeModelIdx()]?.input_capabilities
 );
 
-const glassBg = useGlassBg();
+const windowBg = useWindowBg();
+
+// Animated window resize: eases the OS window into its new size instead of the
+// raw SetWindowPos snap. Used both for view transitions and for result-grow.
+const { animateResize, snapResize } = useAnimatedResize();
 
 const floatingAlpha = computed(() => (appConfig.floating_opacity ?? 90) / 100);
 
@@ -132,13 +137,26 @@ const fontScale = computed(() => (appConfig.font_size ?? 100) / 100);
 
 // Ask the backend to resize/reposition the window for the current content.
 // Invalidates lastSentHeight when `force` so the next bodyHeight watch still fires.
+// `force` paths (mount, wake) snap instantly — animation is reserved for
+// user-visible content/transition changes, not cold-start geometry setup.
 function applyWindowResize(force = false) {
   if (force) lastSentHeight = -1;
   nextTick(() => {
-    invoke("resize_and_reposition", {
-      height: bodyHeight.value * fontScale.value,
-      width: MAIN_WIDTH * fontScale.value,
-    });
+    // Re-measure synchronously: on wake the ResizeObserver callback may not have
+    // flushed yet, so bodyHeight can still be 0. Passing height 0 to the backend
+    // collapses the window to a transparent strip. Read scrollHeight directly and
+    // bail if there's genuinely nothing to size to.
+    let h = bodyHeight.value;
+    if ((!h || h <= 0) && contentWrapRef.value) {
+      h = Math.ceil(contentWrapRef.value.scrollHeight);
+      if (h > 0) bodyHeight.value = h;
+    }
+    if (h <= 0) return; // nothing rendered yet — the observer will fire later
+    if (force) {
+      snapResize(h * fontScale.value, MAIN_WIDTH * fontScale.value);
+    } else {
+      animateResize(h * fontScale.value, MAIN_WIDTH * fontScale.value);
+    }
   });
 }
 
@@ -435,6 +453,8 @@ function navigateHistory(direction: -1 | 1) {
   historyIndex.value = next;
   const entry = entries[next];
   isRestoringHistory.value = true;
+  // History restore shows content atomically → snap the resize (see result note).
+  snapNextResize = true;
   inputText.value = entry.input;
   translatedText.value = entry.output;
   hasResult.value = !!entry.output;
@@ -483,6 +503,9 @@ async function handleTranslate() {
       sourcesView.value = false;
       webSearchStatus.value = outcome.searched ? "done-searched" : "done-nosearch";
       hasResult.value = true;
+      // The ResizeObserver will fire once the result-block lays out; snap that
+      // resize so the window matches the content instantly (no grow-in tear).
+      snapNextResize = true;
       await saveHistoryEntry(text, outcome.content, outcome.searched, outcome.sources);
     }
     // search-error is handled in catch below via SearchFailureError
@@ -655,6 +678,7 @@ onMounted(async () => {
     try {
       const entry = JSON.parse(restore);
       isRestoringHistory.value = true;
+      snapNextResize = true; // restored content appears atomically → snap
       inputText.value = entry.input || "";
       translatedText.value = entry.output || "";
       hasResult.value = !!entry.output;
@@ -728,14 +752,22 @@ onUnmounted(() => {
   resizeObserver?.disconnect();
 });
 
-// Resize window when content changes
+// Result text arrives atomically, so the content reflow races the window
+// resize. Animating the window here produces a one-frame tear (the growing
+// window edge repaints ahead of the webview). Snap instead so the window
+// matches the content instantly; the result-block's own fade transition still
+// gives a soft appearance. Other height changes (typing, result clear, mode
+// switch) stay animated.
+let snapNextResize = false;
 watch(bodyHeight, (h) => {
+  // Consume the flag on every fire so it can't leak into an unrelated later
+  // resize if this one was a height no-op.
+  const snap = snapNextResize;
+  snapNextResize = false;
   if (h !== lastSentHeight) {
     lastSentHeight = h;
-    invoke("resize_and_reposition", {
-      height: h * fontScale.value,
-      width: MAIN_WIDTH * fontScale.value,
-    });
+    const fn = snap ? snapResize : animateResize;
+    fn(h * fontScale.value, MAIN_WIDTH * fontScale.value);
   }
 });
 
@@ -755,7 +787,7 @@ useShortcutTriggered(() => {
     @mousedown="handleDrag"
     class="w-full flex justify-center overflow-hidden"
     :class="growAbove ? 'items-end' : 'items-start'"
-    :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)', height: 'calc(100dvh / var(--font-scale, 1))' }"
+    :style="{ background: windowBg, height: 'calc(100dvh / var(--font-scale, 1))' }"
   >
     <div ref="contentWrapRef"
       class="w-full px-5 py-4 flex flex-col gap-1.5 overflow-y-auto flex-shrink-0 h-fit"
@@ -935,7 +967,7 @@ useShortcutTriggered(() => {
               @click="router.push('/history')"
               class="history-btn"
               :title="t('floating.history')"
-              :style="{ background: glassBg, '--btn-alpha': floatingAlpha }"
+              :style="{ background: windowBg, '--btn-alpha': floatingAlpha }"
             >
               <History :size="14" />
             </button>
@@ -1204,7 +1236,7 @@ useShortcutTriggered(() => {
               @click="router.push('/history')"
               class="history-btn"
               :title="t('floating.history')"
-              :style="{ background: glassBg, '--btn-alpha': floatingAlpha }"
+              :style="{ background: windowBg, '--btn-alpha': floatingAlpha }"
             >
               <History :size="14" />
             </button>

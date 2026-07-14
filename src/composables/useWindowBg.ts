@@ -1,5 +1,12 @@
-// Shared glass-surface background + URL-domain helpers used by the floating
-// input and history panel. Both previously inlined byte-identical copies.
+// Shared window background (theme-tracking, opacity-aware) + URL-domain helpers.
+//
+// Historically this was a "glass" surface with a backdrop-filter blur. The blur
+// was dead code: it only does something when the window behind is visible
+// through transparency, and in practice the window renders opaque at the
+// default opacity. Keeping it created a composited layer that tore during
+// animated window resize (the growing region showed a stale/blurred frame).
+// What remains is the real, used behaviour: a gradient background whose alpha
+// tracks `floating_opacity` so Ctrl+scroll can adjust window transparency.
 
 import { computed } from "vue";
 import { appConfig } from "../stores/config";
@@ -25,8 +32,8 @@ function darken(r: number, g: number, b: number, dr = 8, dg = 8, db = 4) {
 
 const LIGHT_BG = "#F8F7F4";
 
-/** Glass background gradient that tracks floating_opacity and the theme. */
-export function useGlassBg() {
+/** Window background gradient that tracks floating_opacity and the theme. */
+export function useWindowBg() {
   return computed(() => {
     const o = (appConfig.floating_opacity ?? 90) / 100;
     const bg = cssVar("--color-bg", LIGHT_BG);
@@ -48,3 +55,4 @@ export function domainOf(url: string): string {
     return url;
   }
 }
+

@@ -5,7 +5,7 @@ import { useRouter } from "vue-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink, ToggleRight, ToggleLeft, Search } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
-import { useGlassBg, domainOf } from "../composables/useGlass";
+import { useWindowBg, domainOf } from "../composables/useWindowBg";
 import { appConfig, historyStore, loadHistory, saveHistory, MODES, HISTORY_LIMIT_DEFAULT, type HistoryEntry } from "../stores/config";
 import { useI18n } from "vue-i18n";
 import type { SearchHit } from "../services/websearch/types";
@@ -14,7 +14,7 @@ const { t } = useI18n();
 const router = useRouter();
 const { growAbove } = useSettingsWindow();
 
-const glassBg = useGlassBg();
+const windowBg = useWindowBg();
 
 const showClearConfirm = ref(false);
 const pendingRemove = ref<number | null>(null);
@@ -131,7 +131,7 @@ onMounted(async () => {
     class="history-root"
     :class="{ 'grow-above': growAbove }"
     @mousedown="handleDrag"
-    :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)' }"
+    :style="{ background: windowBg }"
   >
     <!-- Header (normal mode vs sources mode) -->
     <header class="history-header">
