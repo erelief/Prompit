@@ -9,7 +9,7 @@ import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
 import { useAnimatedResize } from "../composables/useAnimatedResize";
-import { useGlassBg, domainOf } from "../composables/useGlass";
+import { useWindowBg, domainOf } from "../composables/useWindowBg";
 import { useEventListener } from "@vueuse/core";
 import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
@@ -125,7 +125,7 @@ const activeModelCapabilities = computed<ModelInputCapabilities | undefined>(() 
   appConfig.providers[activeProviderIdx()]?.models?.[activeModelIdx()]?.input_capabilities
 );
 
-const glassBg = useGlassBg();
+const windowBg = useWindowBg();
 
 // Animated window resize: eases the OS window into its new size instead of the
 // raw SetWindowPos snap. Used both for view transitions and for result-grow.
@@ -142,10 +142,20 @@ const fontScale = computed(() => (appConfig.font_size ?? 100) / 100);
 function applyWindowResize(force = false) {
   if (force) lastSentHeight = -1;
   nextTick(() => {
+    // Re-measure synchronously: on wake the ResizeObserver callback may not have
+    // flushed yet, so bodyHeight can still be 0. Passing height 0 to the backend
+    // collapses the window to a transparent strip. Read scrollHeight directly and
+    // bail if there's genuinely nothing to size to.
+    let h = bodyHeight.value;
+    if ((!h || h <= 0) && contentWrapRef.value) {
+      h = Math.ceil(contentWrapRef.value.scrollHeight);
+      if (h > 0) bodyHeight.value = h;
+    }
+    if (h <= 0) return; // nothing rendered yet — the observer will fire later
     if (force) {
-      snapResize(bodyHeight.value * fontScale.value, MAIN_WIDTH * fontScale.value);
+      snapResize(h * fontScale.value, MAIN_WIDTH * fontScale.value);
     } else {
-      animateResize(bodyHeight.value * fontScale.value, MAIN_WIDTH * fontScale.value);
+      animateResize(h * fontScale.value, MAIN_WIDTH * fontScale.value);
     }
   });
 }
@@ -761,7 +771,7 @@ useShortcutTriggered(() => {
     @mousedown="handleDrag"
     class="w-full flex justify-center overflow-hidden"
     :class="growAbove ? 'items-end' : 'items-start'"
-    :style="{ background: glassBg, backdropFilter: 'blur(24px) saturate(1.5)', height: 'calc(100dvh / var(--font-scale, 1))' }"
+    :style="{ background: windowBg, height: 'calc(100dvh / var(--font-scale, 1))' }"
   >
     <div ref="contentWrapRef"
       class="w-full px-5 py-4 flex flex-col gap-1.5 overflow-y-auto flex-shrink-0 h-fit"
@@ -941,7 +951,7 @@ useShortcutTriggered(() => {
               @click="router.push('/history')"
               class="history-btn"
               :title="t('floating.history')"
-              :style="{ background: glassBg, '--btn-alpha': floatingAlpha }"
+              :style="{ background: windowBg, '--btn-alpha': floatingAlpha }"
             >
               <History :size="14" />
             </button>
@@ -1210,7 +1220,7 @@ useShortcutTriggered(() => {
               @click="router.push('/history')"
               class="history-btn"
               :title="t('floating.history')"
-              :style="{ background: glassBg, '--btn-alpha': floatingAlpha }"
+              :style="{ background: windowBg, '--btn-alpha': floatingAlpha }"
             >
               <History :size="14" />
             </button>
