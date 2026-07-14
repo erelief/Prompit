@@ -408,8 +408,14 @@ function handleKeydown(e: KeyboardEvent) {
   }
   if (e.key === "Escape") {
     if (historyIndex.value !== null) {
+      // 历史导航本质就是恢复到某个"返回结果状态"，因此退出导航与关闭结果
+      // 是同一个动作——一次 Esc 同时退出历史导航并关闭结果。
       historyIndex.value = null;
       draftSnapshot = null;
+      closeResult();
+    } else if (hasResult.value) {
+      // 有返回结果：第一次 Esc 关闭结果（同结果 UI 上的 x），再按一次才隐藏窗口
+      closeResult();
     } else {
       handleHide();
     }
