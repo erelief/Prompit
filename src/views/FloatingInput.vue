@@ -453,6 +453,8 @@ function navigateHistory(direction: -1 | 1) {
   historyIndex.value = next;
   const entry = entries[next];
   isRestoringHistory.value = true;
+  // History restore shows content atomically → snap the resize (see result note).
+  snapNextResize = true;
   inputText.value = entry.input;
   translatedText.value = entry.output;
   hasResult.value = !!entry.output;
@@ -501,6 +503,9 @@ async function handleTranslate() {
       sourcesView.value = false;
       webSearchStatus.value = outcome.searched ? "done-searched" : "done-nosearch";
       hasResult.value = true;
+      // The ResizeObserver will fire once the result-block lays out; snap that
+      // resize so the window matches the content instantly (no grow-in tear).
+      snapNextResize = true;
       await saveHistoryEntry(text, outcome.content, outcome.searched, outcome.sources);
     }
     // search-error is handled in catch below via SearchFailureError
@@ -673,6 +678,7 @@ onMounted(async () => {
     try {
       const entry = JSON.parse(restore);
       isRestoringHistory.value = true;
+      snapNextResize = true; // restored content appears atomically → snap
       inputText.value = entry.input || "";
       translatedText.value = entry.output || "";
       hasResult.value = !!entry.output;
@@ -746,12 +752,22 @@ onUnmounted(() => {
   resizeObserver?.disconnect();
 });
 
-// Resize window when content changes (e.g. a result arrives and grows the
-// window). Animated so the panel eases open instead of snapping.
+// Result text arrives atomically, so the content reflow races the window
+// resize. Animating the window here produces a one-frame tear (the growing
+// window edge repaints ahead of the webview). Snap instead so the window
+// matches the content instantly; the result-block's own fade transition still
+// gives a soft appearance. Other height changes (typing, result clear, mode
+// switch) stay animated.
+let snapNextResize = false;
 watch(bodyHeight, (h) => {
+  // Consume the flag on every fire so it can't leak into an unrelated later
+  // resize if this one was a height no-op.
+  const snap = snapNextResize;
+  snapNextResize = false;
   if (h !== lastSentHeight) {
     lastSentHeight = h;
-    animateResize(h * fontScale.value, MAIN_WIDTH * fontScale.value);
+    const fn = snap ? snapResize : animateResize;
+    fn(h * fontScale.value, MAIN_WIDTH * fontScale.value);
   }
 });
 

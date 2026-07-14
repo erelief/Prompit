@@ -9,26 +9,33 @@ const MAIN_WIDTH = mainWindowConfig.width;
 
 /**
  * Animated window resize: eases the OS window into its new size instead of the
- * raw Win32 `SetWindowPos` / NSWindow `setFrame` snap. Used both for view
- * transitions (FloatingInput → Settings/History) and for in-view content growth
- * (a translate result arriving).
+ * raw Win32 `SetWindowPos` / NSWindow `setFrame` snap.
+ *
+ * Two duration tiers:
+ *  - View transitions (FloatingInput ↔ Settings/History): ~160ms. Short enough
+ *    to read as a crisp ease rather than a noticeable animation, long enough to
+ *    avoid the one-frame compositor tear that a bare SetWindowPos produces.
+ *  - Micro (small continuous resizes, e.g. typing): ~120ms.
+ *
+ * Result-appearance growth is handled by `snapResize`, NOT animated: the result
+ * text arrives atomically and the content reflow races the window resize, so a
+ * tween there produces a visible layering glitch (window edge grows before the
+ * webview repaints). Snapping eliminates the mismatch.
  *
  * State is held at MODULE scope because the whole app shares a single OS
- * window — when a view unmounts and another mounts (e.g. Settings →
- * FloatingInput), the new view must retarget the animation from wherever the
- * window *actually is*, not from a per-instance zero. A module-level
- * `currentH/W` survives that view swap.
+ * window — when a view unmounts and another mounts, the new view must retarget
+ * from wherever the window *actually is*, not from a per-instance zero.
  */
 
-/** Subtle easing: fast start, gentle settle — reads as a soft "snap into place". */
+/** Subtle easing: fast start, gentle settle. */
 function easeOutQuart(t: number): number {
   return 1 - Math.pow(1 - t, 4);
 }
 
-/** Duration for a typical 120→580px view transition. */
-const DEFAULT_DURATION = 320; // ms
-/** Short variant: tiny continuous resizes (typing / result grow). */
-const MICRO_DURATION = 200; // ms
+/** Duration for view transitions (120→580px class changes). */
+const DEFAULT_DURATION = 160; // ms
+/** Short variant: tiny continuous resizes (typing). */
+const MICRO_DURATION = 120; // ms
 /** Threshold below which we use the micro duration. */
 const MICRO_DELTA = 120; // px
 
@@ -92,20 +99,22 @@ function frame(now: number) {
  *
  * Design notes:
  *  - The backend native call is cheap (a single Win32 `SetWindowPos` / NSWindow
- *    `setFrame`), so ~16-20 calls across 320ms is well within budget.
+ *    `setFrame`), so ~10 calls across 160ms is well within budget.
  *  - New targets cancel and *retarget* any in-flight animation: the new tween
  *    starts from wherever the window currently is, so rapid content changes
- *    (typing, streaming result) still feel responsive — no overshoot.
+ *    still feel responsive — no overshoot.
  *  - We skip the animation entirely for `prefers-reduced-motion` users.
  *
- * Returns two functions mirroring the `resize_and_reposition` IPC signature so
- * callers can swap the raw `invoke` call one-for-one.
+ * Returns two functions mirroring the `resize_and_reposition` IPC signature.
  */
 export function useAnimatedResize() {
   /**
    * Animate the window to `height` × `width` (logical, CSS px).
    * Pass `width: undefined` to keep the current width (matches the backend's
    * `Option<f64>` signature, which defaults to 500 when absent).
+   *
+   * Use for view transitions and small continuous resizes. Do NOT use for
+   * result-appearance growth — call `snapResize` for that (see class doc).
    */
   function animateResize(height: number, width?: number) {
     const targetW = width ?? currentW;
@@ -158,9 +167,9 @@ export function useAnimatedResize() {
   }
 
   /**
-   * Jump to `height` × `width` instantly, bypassing the animation. Use when the
-   * caller has already decided animation is undesirable (e.g. a synchronous
-   * force-resize on mount/wake).
+   * Jump to `height` × `width` instantly, bypassing the animation. Use for:
+   *  - Result-appearance growth (content arrives atomically; a tween here tears).
+   *  - Force-resize on mount/wake (cold-start geometry, no animation wanted).
    */
   function snapResize(height: number, width?: number) {
     if (rafId !== null) {
