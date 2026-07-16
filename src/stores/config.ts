@@ -771,22 +771,80 @@ export function presetBelongsToFamily(
 
 // ── Skills Lite store ──
 
+// Preset skills seeded on first install. Order matters: the first entry with
+// `enabled: true` is the one selected by default. Only one should be enabled.
+const DEFAULT_QUICK_QUESTION_SKILLS_LITE: SkillsLiteEntry = {
+  name: "quick-question",
+  prompt:
+    "Please answer briefly in the input language, no more than 50 characters.",
+  description: "Answer questions in a brief form, recommend turning on web search.",
+  enabled: true,
+};
+
+const DEFAULT_XML_TAG_PROMPT_SKILLS_LITE: SkillsLiteEntry = {
+  name: "xml-tag-prompt",
+  description: "Optimize user-supplied prompts into an XML-tag structured format.",
+  prompt: `Your task is to optimize user-supplied prompts into an XML-tag structured format. You are not an AI that executes user tasks; you are an assistant that helps users rewrite prompts.
+
+## How It Works
+
+1. Read the original prompt provided by the user.
+2. Identify its components: role, context, instructions, constraints, format requirements, etc.
+3. Map each part to the corresponding XML tag and output the structured version.
+4. For any missing information, make reasonable inferences based on the task itself and fill it in, aiming to populate every tag.
+
+## Tag Semantics
+
+- **\`<role>\`**：Role definition. Who you are, what experience and expertise you have, who your audience is. Define it in one sentence in the format: "You are a [role] with [years/level] of experience in [field], specializing in [specific skills]. Your audience is [target readers]."
+- **\`<context>\`**：Background information. The scenario, project background, facts you need to know but not act upon.
+- **\`<instructions>\`**：The specific task to carry out. The core action.
+- **\`<examples>\`**：Example output. The desired finished style.
+- **\`<constraints>\`**：Hard constraints. Word count, tone, prohibitions, etc.
+- **\`<output_format>\`**：Output structure. Sections, paragraphs, length requirements.
+
+## Optimization Principles
+
+1. Preserve the original meaning of information already in the prompt; do not alter or change the language.
+2. Infer and supplement missing information from the task itself. For example, if the user only says "write an email," you can infer that \`<role>\` is a business assistant role, \`<output_format>\` should include a salutation, body, and closing, and a general word limit can be provided.
+3. Tag names can be flexibly adjusted to fit the user's scenario and are not limited to the six above.
+4. Output only the optimized XML prompt. If you need to state what has been supplemented, conclude with a single sentence without elaboration.
+
+## Example
+
+User input:
+> Help me write an email to a client to confirm the meeting time next Wednesday. The tone should be formal but not stiff.
+
+Your output:
+<role>You are a customer relationship manager with 5 years of experience, specializing in business communication and client relationship maintenance. Your audience is a client who needs to confirm a meeting schedule.</role>
+<context>An email to a client to confirm the meeting time next Wednesday.</context>
+<instructions>Write a business email to confirm the meeting time.</instructions>
+<constraints>The tone should be formal but not stiff. No more than 200 words. Avoid overly formulaic business language.</constraints>
+<output_format>Salutation, body (confirm time + express anticipation), polite closing.</output_format>`,
+  enabled: false,
+};
+
 const DEFAULT_POLISH_SKILLS_LITE: SkillsLiteEntry = {
   name: "polish-skill",
   prompt:
     "Detect the language of the user's input. Adopt the role of a native speaker of that language. Rewrite the user's input as a more idiomatic, accurate, and natural expression in the same language, preserving the original meaning and intent.",
   description: "Polish the input like a native speaker of its language.",
-  enabled: true,
+  enabled: false,
 };
+
+const DEFAULT_SKILLS_LITES: SkillsLiteEntry[] = [
+  DEFAULT_QUICK_QUESTION_SKILLS_LITE,
+  DEFAULT_XML_TAG_PROMPT_SKILLS_LITE,
+  DEFAULT_POLISH_SKILLS_LITE,
+];
 
 export async function loadSkillsLites(): Promise<void> {
   try {
     const entries = await invoke<SkillsLiteEntry[]>("read_skills_lites");
     if (entries.length === 0) {
-      skillsLiteStore.skillsLites = [DEFAULT_POLISH_SKILLS_LITE];
+      skillsLiteStore.skillsLites = DEFAULT_SKILLS_LITES;
       await saveSkillsLites();
     } else {
-      // Belt-and-suspenders with the Rust #[serde(default)]: guarantee
+      // Belt-and-suspenders with the Rust #[serde(default)]: Guarantee
       // `description` is always a string even for data persisted before the field existed.
       skillsLiteStore.skillsLites = entries.map((e) => ({
         ...e,
@@ -795,7 +853,7 @@ export async function loadSkillsLites(): Promise<void> {
     }
   } catch (err) {
     console.error("Failed to load skills lites:", err);
-    skillsLiteStore.skillsLites = [DEFAULT_POLISH_SKILLS_LITE];
+    skillsLiteStore.skillsLites = DEFAULT_SKILLS_LITES;
   }
 }
 
