@@ -632,9 +632,10 @@ function handleEditKeydown(e: KeyboardEvent) {
     cancelEditing();
     return;
   }
-  // 阻止 Enter 键发送
+  // Enter 提交（修改完毕），Shift+Enter 换行——与输入框体验一致
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
+    confirmEditing();
   }
 }
 
