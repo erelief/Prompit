@@ -259,7 +259,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "按量付费",
+                "label": "Standard",
                 "provider_name": "MiniMaxi.com",
                 "base_url": "https://api.minimaxi.com/anthropic/v1",
                 "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key"
@@ -272,7 +272,7 @@
             "endpoints": [
               {
                 "key": "standard",
-                "label": "Pay-as-you-go",
+                "label": "Standard",
                 "provider_name": "MiniMax.io",
                 "base_url": "https://api.minimax.io/anthropic/v1",
                 "api_url": "https://platform.minimax.io/user-center/basic-information/interface-key"
