@@ -120,6 +120,8 @@ mod tests {
             mode_shortcut: "Alt+M".to_string(),
             forward_shortcut: "Alt+F".to_string(),
             edit_shortcut: "Alt+E".to_string(),
+            skills_prev_shortcut: "Alt+Up".to_string(),
+            skills_next_shortcut: "Alt+Down".to_string(),
             launch_on_startup: false,
             show_capability_icons: true,
             web_search_providers: vec![],

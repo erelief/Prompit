@@ -157,6 +157,8 @@ export interface AppConfig {
   mode_shortcut: string;
   forward_shortcut: string;
   edit_shortcut: string;
+  skills_prev_shortcut: string;
+  skills_next_shortcut: string;
   launch_on_startup: boolean;
   show_capability_icons: boolean;
   skills_lite_active_provider_index: number;
@@ -186,6 +188,8 @@ const defaultConfig: AppConfig = {
   mode_shortcut: "Alt+M",
   forward_shortcut: "Alt+F",
   edit_shortcut: "Alt+E",
+  skills_prev_shortcut: "Alt+Up",
+  skills_next_shortcut: "Alt+Down",
   launch_on_startup: false,
   show_capability_icons: false,
   skills_lite_active_provider_index: 0,

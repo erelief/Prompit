@@ -20,8 +20,10 @@ import { burstParticles } from "../utils/burstParticles";
 export interface ShortcutRecorderOptions {
   /** The reactive config field holding the current binding string. */
   field: WritableComputedRef<string>;
-  /** The *other* shortcut's reactive field, for conflict detection. */
-  otherField: WritableComputedRef<string>;
+  /** The *other* shortcuts' reactive fields, for conflict detection.
+   *  Pass every shortcut field except the recorder's own so a candidate
+   *  is rejected if it collides with any other binding. */
+  otherFields: WritableComputedRef<string>[];
   /** Factory default to restore on Backspace. */
   defaultBinding: string;
   /** i18n key for the "needs a modifier" message. */
@@ -115,7 +117,7 @@ export function useShortcutRecorder(t: (key: string) => string, opts: ShortcutRe
       }
       return;
     }
-    if (shortcutsEqual(candidate, opts.otherField.value)) {
+    if (opts.otherFields.some((f) => shortcutsEqual(candidate, f.value))) {
       showError(t(opts.conflictMsg));
       return;
     }
@@ -123,11 +125,11 @@ export function useShortcutRecorder(t: (key: string) => string, opts: ShortcutRe
     await apply(candidate);
   }
 
-  /** Restore the factory default; refuses if the other shortcut holds it. */
+  /** Restore the factory default; refuses if another shortcut holds it. */
   async function reset() {
     const def = opts.defaultBinding;
     if (shortcutsEqual(def, opts.field.value)) return;
-    if (shortcutsEqual(def, opts.otherField.value)) {
+    if (opts.otherFields.some((f) => shortcutsEqual(def, f.value))) {
       showError(t(opts.conflictMsg));
       return;
     }

@@ -259,6 +259,10 @@ pub struct AppConfig {
     pub forward_shortcut: String,
     #[serde(default = "default_edit_shortcut")]
     pub edit_shortcut: String,
+    #[serde(default = "default_skills_prev_shortcut")]
+    pub skills_prev_shortcut: String,
+    #[serde(default = "default_skills_next_shortcut")]
+    pub skills_next_shortcut: String,
     #[serde(default)]
     pub launch_on_startup: bool,
     #[serde(default, skip_serializing)]
@@ -304,6 +308,12 @@ fn default_forward_shortcut() -> String {
 fn default_edit_shortcut() -> String {
     "Alt+E".to_string()
 }
+fn default_skills_prev_shortcut() -> String {
+    "Alt+Up".to_string()
+}
+fn default_skills_next_shortcut() -> String {
+    "Alt+Down".to_string()
+}
 /// `-1` means "no provider selected" (no built-in fallback anymore).
 fn default_web_search_active_index() -> i64 {
     -1
@@ -331,6 +341,8 @@ impl Default for AppConfig {
             mode_shortcut: "Alt+M".to_string(),
             forward_shortcut: "Alt+F".to_string(),
             edit_shortcut: "Alt+E".to_string(),
+            skills_prev_shortcut: "Alt+Up".to_string(),
+            skills_next_shortcut: "Alt+Down".to_string(),
             launch_on_startup: false,
             show_capability_icons: false,
             web_search_providers: vec![],
@@ -390,6 +402,8 @@ mod tests {
             mode_shortcut: "Alt+M".to_string(),
             forward_shortcut: "Alt+F".to_string(),
             edit_shortcut: "Alt+E".to_string(),
+            skills_prev_shortcut: "Alt+Up".to_string(),
+            skills_next_shortcut: "Alt+Down".to_string(),
             launch_on_startup: false,
             show_capability_icons: false,
             web_search_providers: vec![],

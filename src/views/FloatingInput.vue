@@ -11,7 +11,7 @@ import { MAIN_WIDTH } from "../composables/useSettingsWindow";
 import { useAnimatedResize } from "../composables/useAnimatedResize";
 import { useWindowBg, domainOf } from "../composables/useWindowBg";
 import { useEventListener } from "@vueuse/core";
-import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
+import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, saveSkillsLites, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
@@ -279,6 +279,22 @@ function cycleMode() {
   selectMode(next.id);
 }
 
+// Alt+↑/↓ 在 skills_lite 模式下循环切换 skill（↑=上一个，↓=下一个，折返）。
+// direction: -1 = 上一个，+1 = 下一个。与点击下拉项做同样三件事：
+// 独占启用目标、持久化、清掉过期结果（handleResultStale）。
+function cycleSkillsLite(direction: 1 | -1) {
+  const list = skillsLiteStore.skillsLites;
+  if (list.length < 2) return; // 0 或 1 个无需切换
+  const cur = list.findIndex((s) => s.enabled);
+  // 安全 modulo：兼容 cur === -1（无启用项）与负方向折返
+  const next = (((cur + direction) % list.length) + list.length) % list.length;
+  if (next === cur) return;
+  for (const s of list) s.enabled = false;
+  list[next].enabled = true;
+  saveSkillsLites();
+  handleResultStale();
+}
+
 // Webview-scoped keydown listener: fires the mode-cycle shortcut only while
 // FloatingInput is mounted (other views are unmounted, so the listener is gone).
 function onModeShortcutKeydown(e: KeyboardEvent) {
@@ -305,6 +321,21 @@ function onEditShortcutKeydown(e: KeyboardEvent) {
   if (eventMatchesShortcut(e, appConfig.edit_shortcut)) {
     e.preventDefault();
     startEditing();
+  }
+}
+
+// Skills-lite 上一个/下一个 skill 快捷键（默认 Alt+↑/↓，可在设置中自定义）。
+// 仅 skills_lite 模式生效；编辑态禁用，让结果编辑框保留原生按键
+//（与 Alt+F/E、Ctrl+C 约定一致）。
+function onCycleSkillsLiteKeydown(e: KeyboardEvent) {
+  if (isEditing.value) return;
+  if (appConfig.active_mode !== "skills_lite") return;
+  if (eventMatchesShortcut(e, appConfig.skills_prev_shortcut)) {
+    e.preventDefault();
+    cycleSkillsLite(-1); // 上一个
+  } else if (eventMatchesShortcut(e, appConfig.skills_next_shortcut)) {
+    e.preventDefault();
+    cycleSkillsLite(1); // 下一个
   }
 }
 
@@ -379,7 +410,13 @@ function handleKeydown(e: KeyboardEvent) {
   }
 
   // ── History navigation with ↑↓ ──
-  if (e.key === "ArrowUp" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+  // 若该按键已被绑定为 skills 上一个/下一个快捷键，则交给 window 级
+  // onCycleSkillsLiteKeydown 处理，历史导航不抢先消费。
+  const isSkillsShortcut =
+    eventMatchesShortcut(e, appConfig.skills_prev_shortcut) ||
+    eventMatchesShortcut(e, appConfig.skills_next_shortcut);
+  if (isSkillsShortcut) return;
+  if (e.key === "ArrowUp" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
     const ta = textareaRef.value;
     if (ta && ta.selectionStart === 0 && ta.selectionEnd === 0) {
       e.preventDefault();
@@ -387,7 +424,7 @@ function handleKeydown(e: KeyboardEvent) {
       return;
     }
   }
-  if (e.key === "ArrowDown" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+  if (e.key === "ArrowDown" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
     const ta = textareaRef.value;
     if (ta && ta.selectionStart === ta.value.length && ta.selectionEnd === ta.value.length) {
       e.preventDefault();
@@ -699,6 +736,7 @@ onMounted(async () => {
   window.addEventListener("keydown", onModeShortcutKeydown);
   window.addEventListener("keydown", onForwardShortcutKeydown);
   window.addEventListener("keydown", onEditShortcutKeydown);
+  window.addEventListener("keydown", onCycleSkillsLiteKeydown);
   window.addEventListener("keydown", onCopyShortcutKeydown);
   window.addEventListener("wheel", onAltWheel, { passive: false });
   window.addEventListener("wheel", onCtrlWheel, { passive: false });
@@ -751,6 +789,7 @@ onUnmounted(() => {
   window.removeEventListener("keydown", onModeShortcutKeydown);
   window.removeEventListener("keydown", onForwardShortcutKeydown);
   window.removeEventListener("keydown", onEditShortcutKeydown);
+  window.removeEventListener("keydown", onCycleSkillsLiteKeydown);
   window.removeEventListener("keydown", onCopyShortcutKeydown);
   window.removeEventListener("wheel", onAltWheel);
   window.removeEventListener("wheel", onCtrlWheel);
