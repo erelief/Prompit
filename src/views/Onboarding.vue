@@ -656,12 +656,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center h-dvh px-6 select-none relative" style="background: var(--color-bg)" @mousedown="handleDrag" @click="onRootClick">
+  <div class="flex items-center justify-center px-6 select-none relative" style="background: var(--color-bg); height: calc(100dvh / var(--font-scale, 1))" @mousedown="handleDrag" @click="onRootClick">
     <!-- Close button: absolute on the outer wrapper so it's pinned to the
          viewport right edge instead of the inset card. -->
     <button
-      class="absolute top-4 right-6 z-10 flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
-      style="color: var(--color-text-muted)"
+      class="close-btn absolute top-4 right-6 z-10 flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
       @click="handleClose"
       :title="t('common.hide')"
     >
@@ -718,7 +717,7 @@ onMounted(async () => {
                 {{ t('onboarding.selectLanguage') }}
               </label>
               <div class="sel-wrap" style="position: relative">
-                <button class="sel-btn w-full" @click="showAppLangMenu = !showAppLangMenu">
+                <button class="sel-btn lang-btn w-full" @click="showAppLangMenu = !showAppLangMenu">
                   <span class="sel-text">{{ currentAppLangLabel }}</span>
                   <ChevronDown :size="11" :stroke-width="2" class="sel-arrow" :class="{ rot: showAppLangMenu }" />
                 </button>
@@ -833,8 +832,7 @@ onMounted(async () => {
               <input
                 v-model="providerForm.name"
                 type="text"
-                class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
-                style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
+                class="ui-input w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
               />
               <p v-if="!selectedPreset || selectedPreset === 'Custom'" class="mt-1.5" style="font-size: 10.5px; color: var(--color-text-muted); line-height: 1.4">
                 {{ t('settings.openaiCompatHint') }}
@@ -884,8 +882,7 @@ onMounted(async () => {
               <input
                 v-model="providerForm.base_url"
                 type="text"
-                class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
-                style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
+                class="ui-input w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
                 placeholder="https://api.example.com/v1"
               />
             </div>
@@ -900,8 +897,7 @@ onMounted(async () => {
                   <input
                     v-model="providerForm.api_key"
                     :type="showApiKey ? 'text' : 'password'"
-                    class="w-full h-9 pl-3 pr-9 rounded-lg text-sm outline-none transition-colors select-text"
-                    style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
+                    class="ui-input pw-eye-pad w-full h-9 pl-3 pr-9 rounded-lg text-sm outline-none transition-colors select-text"
                   />
                   <button
                     @click="showApiKey = !showApiKey"
@@ -916,7 +912,7 @@ onMounted(async () => {
                 <button
                   class="flex items-center justify-center h-9 w-9 rounded-lg transition-colors"
                   :style="{
-                    background: testKeyStatus === 'ok' ? 'var(--color-accent-bg)' : testKeyStatus === 'fail' ? 'rgba(239,68,68,0.1)' : 'var(--color-surface)',
+                    background: testKeyStatus === 'ok' ? 'var(--color-accent-bg)' : testKeyStatus === 'fail' ? 'var(--color-danger-bg)' : 'var(--color-surface)',
                     border: '1px solid var(--color-border)',
                     cursor: ((!providerForm.api_key && !isLocalProvider(providerForm, providerPresets)) || !providerForm.base_url || isTestingKey) ? 'not-allowed' : 'pointer',
                     opacity: ((!providerForm.api_key && !isLocalProvider(providerForm, providerPresets)) || !providerForm.base_url) ? 0.4 : 1,
@@ -976,15 +972,13 @@ onMounted(async () => {
             <div class="flex gap-3 mb-4 items-center">
               <button
                 @click="selectAll"
-                class="text-xs font-medium px-3 py-1 rounded-md transition-colors"
-                style="color: var(--color-accent); background: var(--color-accent-bg)"
+                class="bulk-btn text-xs font-medium px-3 py-1 rounded-md transition-colors"
               >
                 {{ t('onboarding.selectAll') }}
               </button>
               <button
                 @click="deselectAll"
-                class="text-xs font-medium px-3 py-1 rounded-md transition-colors"
-                style="color: var(--color-text-muted); background: var(--color-surface)"
+                class="bulk-btn muted text-xs font-medium px-3 py-1 rounded-md transition-colors"
               >
                 {{ t('onboarding.deselectAll') }}
               </button>
@@ -996,11 +990,8 @@ onMounted(async () => {
                 v-for="entry in availableModels"
                 :key="entry.id"
                 @click="toggleModel(entry)"
-                class="flex items-center gap-3 h-9 px-3 rounded-lg cursor-pointer transition-colors text-sm"
-                :style="{
-                  background: selectedModels.has(entry.id) ? 'var(--color-accent-bg)' : 'transparent',
-                  color: 'var(--color-text)',
-                }"
+                class="model-row flex items-center gap-3 h-9 px-3 rounded-lg cursor-pointer transition-colors text-sm"
+                :class="{ selected: selectedModels.has(entry.id) }"
               >
                 <span
                   class="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all"
@@ -1046,8 +1037,7 @@ onMounted(async () => {
               <button
                 @click="retryFetchModels"
                 :disabled="isFetching"
-                class="text-xs font-medium px-3 py-1 rounded-md transition-colors"
-                style="color: var(--color-accent); background: var(--color-accent-bg)"
+                class="bulk-btn text-xs font-medium px-3 py-1 rounded-md transition-colors"
               >
                 {{ t('onboarding.retryFetch') }}
               </button>
@@ -1124,8 +1114,7 @@ onMounted(async () => {
               <input
                 v-model="searchCustomName"
                 type="text"
-                class="w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
-                style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
+                class="ui-input w-full h-9 px-3 rounded-lg text-sm outline-none transition-colors select-text"
                 :placeholder="searchSelectedPreset ? currentSearchPresetLabel : t('onboarding.providerName')"
               />
             </div>
@@ -1141,8 +1130,7 @@ onMounted(async () => {
                   <input
                     v-model="searchApiKey"
                     :type="searchShowApiKey ? 'text' : 'password'"
-                    class="w-full h-9 pl-3 pr-9 rounded-lg text-sm outline-none transition-colors select-text"
-                    style="background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border)"
+                    class="ui-input pw-eye-pad w-full h-9 pl-3 pr-9 rounded-lg text-sm outline-none transition-colors select-text"
                   />
                   <button
                     @click="searchShowApiKey = !searchShowApiKey"
@@ -1157,7 +1145,7 @@ onMounted(async () => {
                 <button
                   class="flex items-center justify-center h-9 w-9 rounded-lg transition-colors"
                   :style="{
-                    background: searchTestStatus === 'ok' ? 'var(--color-accent-bg)' : searchTestStatus === 'fail' ? 'rgba(239,68,68,0.1)' : 'var(--color-surface)',
+                    background: searchTestStatus === 'ok' ? 'var(--color-accent-bg)' : searchTestStatus === 'fail' ? 'var(--color-danger-bg)' : 'var(--color-surface)',
                     border: '1px solid var(--color-border)',
                     cursor: (!searchSelectedPreset || searchKeyMissing || searchIsTesting) ? 'not-allowed' : 'pointer',
                     opacity: (!searchSelectedPreset || searchKeyMissing) ? 0.4 : 1,
@@ -1373,8 +1361,7 @@ onMounted(async () => {
         <button
           v-if="currentStep > 0"
           @click="goPrev"
-          class="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium transition-colors"
-          style="background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-secondary)"
+          class="prev-btn flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium transition-colors"
         >
           <ChevronLeft :size="16" />
           {{ t('onboarding.previous') }}
@@ -1415,12 +1402,7 @@ onMounted(async () => {
           v-else-if="currentStep !== 8 || importSucceeded"
           @click="goNext"
           :disabled="!canProceed || isConnecting || isFetching"
-          class="flex items-center gap-1.5 h-9 px-5 rounded-lg text-sm font-medium transition-all"
-          :style="{
-            background: (!canProceed || isConnecting || isFetching) ? 'var(--color-surface)' : 'var(--color-accent)',
-            color: (!canProceed || isConnecting || isFetching) ? 'var(--color-text-muted)' : 'white',
-            cursor: (!canProceed || isConnecting || isFetching) ? 'not-allowed' : 'pointer',
-          }"
+          class="next-btn flex items-center gap-1.5 h-9 px-5 rounded-lg text-sm font-medium transition-all"
         >
           <Loader2 v-if="isConnecting || isFetching" :size="14" class="spin" />
           <template v-else>
@@ -1438,19 +1420,24 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.mini-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 27px; height: 27px; border-radius: 7px;
-  color: var(--color-text-muted); cursor: pointer;
-  border: none; background: none; transition: .12s;
+/* .mini-btn cluster and @keyframes danger-pulse are provided globally by
+   src/shared/ui.css (identical spec) — local copies removed. */
+
+/* ── Close button + footer nav ── */
+.close-btn { color: var(--color-text-muted); }
+.close-btn:hover { color: var(--color-text); background: var(--color-surface-hover); }
+.prev-btn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
 }
-.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
-.mini-btn.danger-active {
-  color: var(--color-danger); background: var(--color-danger-bg);
-  animation: danger-pulse .8s ease-in-out infinite alternate;
-}
-@keyframes danger-pulse {
-  to { background: var(--color-danger-bg); filter: brightness(.88); }
+.prev-btn:hover { background: var(--color-surface-hover); }
+.next-btn { background: var(--color-accent); color: white; cursor: pointer; }
+.next-btn:hover:not(:disabled) { filter: brightness(1.05); }
+.next-btn:disabled {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
 }
 
 .slide-left-enter-active,
@@ -1481,7 +1468,7 @@ onMounted(async () => {
 }
 
 .spin {
-  animation: spin 1s linear infinite;
+  animation: spin 0.75s linear infinite;
 }
 
 @keyframes spin {
@@ -1489,13 +1476,24 @@ onMounted(async () => {
   to { transform: rotate(360deg); }
 }
 
-input {
+input:not(.ui-input) {
   transition: border-color 0.15s ease;
 }
 
-input:focus {
-  border-color: var(--color-accent) !important;
-}
+/* Password inputs with an inline eye toggle: reserve space for the toggle
+   (scoped, so it wins over the global .ui-input padding). */
+.pw-eye-pad { padding-right: 36px; }
+
+/* ── Bulk actions + retry (step 4) ── */
+.bulk-btn { color: var(--color-accent); background: var(--color-accent-bg); }
+.bulk-btn.muted { color: var(--color-text-muted); background: var(--color-surface); }
+.bulk-btn:hover:not(:disabled) { background: var(--color-surface-hover); }
+
+/* ── Model list rows: hover only lifts unselected rows ── */
+.model-row { color: var(--color-text); background: transparent; }
+.model-row:hover { background: var(--color-surface-hover); }
+.model-row.selected,
+.model-row.selected:hover { background: var(--color-accent-bg); }
 
 /* ── Manual model entry ── */
 .manual-model-row {
@@ -1590,7 +1588,7 @@ div::-webkit-scrollbar-thumb {
 .sel-btn {
   display:flex; align-items:center; gap:8px; width:100%;
   padding: 9px 13px; border-radius:9px; font-size:12px;
-  background: var(--color-surface); border: 1px solid var(--color-scrollbar);
+  background: var(--color-surface); border: 1px solid var(--color-border);
   color: var(--color-text); cursor:pointer; transition:.15s; text-align:left;
 }
 .sel-btn:hover{ border-color: var(--color-border-hover); background: var(--color-surface); }
@@ -1598,6 +1596,7 @@ div::-webkit-scrollbar-thumb {
   flex:1; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+.lang-btn .sel-text{ font-family: inherit; font-size:12px; }
 .sel-arrow { color: var(--color-text-muted); transition: transform .18s; flex-shrink:0; }
 .sel-arrow.rot{ transform: rotate(180deg); }
 .sel-menu {
@@ -1748,11 +1747,14 @@ div::-webkit-scrollbar-thumb {
 .import-pw-toggle:hover { color: var(--color-text); }
 .import-btn {
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  height: 36px; border-radius: 10px; border: none;
+  height: 36px; border-radius: 10px;
   font-size: 13px; font-weight: 500; cursor: pointer; transition: .12s;
-  color: white; background: var(--color-danger);
+  background: var(--color-surface); color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
-.import-btn:hover:not(:disabled) { filter: brightness(1.05); }
+.import-btn:hover:not(:disabled) { background: var(--color-surface-hover); }
+.import-btn.danger { color: white; background: var(--color-danger); border-color: transparent; }
+.import-btn.danger:hover:not(:disabled) { background: var(--color-danger); filter: brightness(1.05); }
 .import-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .import-confirm-row {
   display: flex; flex-direction: column; gap: 10px;
@@ -1768,5 +1770,4 @@ div::-webkit-scrollbar-thumb {
 }
 .import-confirm-cd { display: flex; align-items: center; gap: 6px; }
 .import-cd-label { font-size: 11px; color: var(--color-danger); }
-.mini-btn.confirm-counting { opacity: 0.6; cursor: not-allowed; }
 </style>

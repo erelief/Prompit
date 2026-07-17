@@ -1282,7 +1282,7 @@ onUnmounted(() => {
   <div class="settings-root" :class="{ 'grow-above': growAbove }" @mousedown="handleDrag">
     <!-- ═══ Header ═══ -->
     <header class="settings-header">
-      <button @click="goBack" class="back-btn" title="Back">
+      <button @click="goBack" class="back-btn" :title="t('common.back')">
         <ArrowLeft :size="18" :stroke-width="1.8" />
       </button>
       <h1 class="header-title">{{ t('common.settings') }}</h1>
@@ -1451,7 +1451,7 @@ onUnmounted(() => {
                     :type="editStates.get(index)?.keyVisible ? 'text' : 'password'"
                     class="fi key-fi" @click.stop
                   />
-                  <button class="icon-btn-sm" @click.stop="toggleKeyVisibility(index)" :title="editStates.get(index)?.keyVisible ? 'Hide' : 'Show'">
+                  <button class="icon-btn-sm" @click.stop="toggleKeyVisibility(index)" :title="editStates.get(index)?.keyVisible ? t('common.hidePassword') : t('common.showPassword')">
                     <EyeOff v-if="editStates.get(index)?.keyVisible" :size="12" :stroke-width="1.9" />
                     <Eye v-else :size="12" :stroke-width="1.9" />
                   </button>
@@ -2434,7 +2434,7 @@ onUnmounted(() => {
             <div class="persona-textarea-wrap">
               <textarea
                 v-model="item.prompt"
-                placeholder="Enter the translation prompt for this persona…"
+                :placeholder="t('settings.personaPromptPlaceholder')"
                 class="persona-textarea"
                 rows="3"
                 @click.stop
@@ -2643,16 +2643,6 @@ onUnmounted(() => {
   padding: 16px 24px 12px; border-bottom: 1px solid var(--color-surface);
   flex-shrink: 0;
 }
-.header-title {
-  flex: 1; font-size: 15px; font-weight: 700; letter-spacing: -.02em;
-  color: var(--color-text); line-height: 1.2;
-}
-.back-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 9px;
-  color: var(--color-text-muted); transition: .15s;
-}
-.back-btn:hover { color: var(--color-text); background: var(--color-surface-hover); }
 .close-btn {
   display: flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: 9px;
@@ -2669,7 +2659,7 @@ onUnmounted(() => {
   display: flex; align-items: center; gap: 6px;
   padding: 10px 16px; font-size: 11px; font-weight: 550;
   color: var(--color-text-muted); position: relative;
-  transition: color .18s ease; cursor: default;
+  transition: color .18s ease; cursor: pointer;
 }
 .tab::after {
   content:""; position:absolute; bottom:-1px; left:16px; right:16px;
@@ -2707,22 +2697,6 @@ onUnmounted(() => {
   font-size: 9.5px; font-weight: 500; color: var(--color-text-muted);
   text-transform: uppercase; letter-spacing: .04em;
 }
-
-/* ── Pill button (Add / Fetch / Add model) ── */
-.pill-btn {
-  display:inline-flex; align-items:center; gap:4px;
-  padding: 4px 11px; border-radius: 7px; font-size: 10.5px; font-weight: 550;
-  cursor: pointer; border:none; background:none; transition:.15s;
-}
-.add-pill { color: var(--color-accent-text); }
-.add-pill:hover { color: var(--color-accent); background: var(--color-accent-bg); }
-.micro { color: var(--color-text-muted); padding: 3px 8px; }
-.micro:hover:not(:disabled){ color: var(--color-text-secondary); background: var(--color-surface-hover); }
-.micro:disabled{ opacity:.32; cursor:default; }
-.gold-micro { color: var(--color-accent-text); }
-.gold-micro:hover { color: rgba(212,160,72,.9); background: var(--color-accent-bg); }
-.fetch-ok { color: var(--color-success); cursor: default; }
-.fetch-ok:hover { color: var(--color-success); background: var(--color-success-bg); }
 
 /* ── Provider collapsed content ── */
 .prov-lhs { display:flex; align-items:center; gap:10px; }
@@ -2768,9 +2742,6 @@ onUnmounted(() => {
 
 
 /* ── Expanded internals ── */
-.name-row {
-  display:flex; align-items:center; gap:7px; margin-bottom:13px;
-}
 .name-row-wrap {
 	  display:flex; align-items:center; gap:4px; flex:1; min-width:0;
 	}
@@ -2851,7 +2822,7 @@ label {
 
 .fi {
   width:100%; background: var(--color-surface);
-  border: 1px solid var(--color-border); border-radius:7px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
   padding: 7px 11px; font-size: 12px; color: var(--color-text);
   outline:none; transition:border-color .15s, box-shadow .15s;
 }
@@ -2876,7 +2847,7 @@ label {
 .icon-btn-sm:hover:not(:disabled){ color: var(--color-text); background: var(--color-surface-hover); }
 .icon-btn-sm.linkish { color: var(--color-accent-text); }
 .icon-btn-sm.linkish:hover:not(:disabled){ color: var(--color-accent); background: var(--color-accent-bg); }
-.icon-btn-sm:disabled{ opacity:.34; cursor:default; }
+.icon-btn-sm:disabled{ opacity:.4; cursor:not-allowed; }
 
 /* Status pill */
 .status-pill {
@@ -2924,32 +2895,7 @@ label {
   border:none; cursor:pointer; transition:.12s;
 }
 .manual-model-add:hover:not(:disabled){ background: var(--color-accent-border); }
-.manual-model-add:disabled{ opacity:.4; cursor:default; }
-
-/* Picker (fetched models) */
-.picker {
-  margin-top:7px; border: 1px solid var(--color-border);
-  border-radius:9px; background: var(--color-surface); overflow:hidden;
-}
-.picker-scroll {
-  max-height:180px; overflow-y:auto; padding:3px;
-}
-.pick-item {
-  display:flex; align-items:center; justify-content:space-between;
-  width:100%; padding: 5px 9px; border-radius:5px;
-  font-size: 10.5px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  color: var(--color-text-secondary); cursor:pointer;
-  border:none; background:none; text-align:left; transition:.1s;
-}
-.pick-item:hover:not(.dim){ background: var(--color-accent-bg); color: var(--color-text); }
-.pick-item.dim{ color: var(--color-text-muted); cursor:default; }
-.picker-done {
-  display:block; width:100%; padding:5px; font-size:10px;
-  color: var(--color-text-muted); text-align:center;
-  border-top: 1px solid var(--color-surface);
-  background:none; cursor:pointer; transition:color .12s;
-}
-.picker-done:hover{ color: var(--color-text-secondary); }
+.manual-model-add:disabled{ opacity:.4; cursor:not-allowed; }
 
 /* Tags (pool items) */
 .tags {
@@ -2966,10 +2912,10 @@ label {
 .tag-x {
   display:flex; align-items:center; justify-content:center;
   width:15px; height:15px; border-radius:3px;
-  color: var(--color-scrollbar); cursor:pointer;
+  color: var(--color-text-muted); cursor:pointer;
   border:none; background:none; opacity:0; transition:.1s;
 }
-.tag:hover .tag-x{ opacity:1; }
+.tag:hover .tag-x, .tag:focus-within .tag-x{ opacity:1; }
 .tag-x:hover{ color: var(--color-danger); background: var(--color-danger-bg); }
 
 /* Tags: pickable mode */
@@ -3011,7 +2957,7 @@ label {
 .sel-btn {
   display:flex; align-items:center; gap:8px; width:100%;
   padding: 9px 13px; border-radius:9px; font-size:12px;
-  background: var(--color-surface); border: 1px solid var(--color-scrollbar);
+  background: var(--color-surface); border: 1px solid var(--color-border);
   color: var(--color-text); cursor:pointer; transition:.15s; text-align:left;
 }
 .sel-btn:hover:not(.dead){ border-color: var(--color-border-hover); background: var(--color-surface); }
@@ -3031,7 +2977,7 @@ label {
   padding: 0; border-radius: 11px;
   background: var(--color-overlay); backdrop-filter: blur(20px) saturate(1.4);
   border: 1px solid var(--color-border);
-  box-shadow: 0 16px 40px rgba(0,0,0,.55), 0 0 0 1px var(--color-surface);
+  box-shadow: 0 16px 40px var(--color-shadow), 0 0 0 1px var(--color-surface);
   z-index:99999; overflow:hidden;
 }
 .preset-menu { max-width:none; min-width:0; }
@@ -3070,7 +3016,7 @@ label {
 .lang-actions { flex-shrink:0; }
 .lang-opt { gap: 4px; padding: 4px 8px; justify-content: flex-start; user-select: none; -webkit-user-select: none; }
 .lang-opt .lang-drag-handle { opacity: 0; transition: opacity .12s; }
-.lang-opt:hover .lang-drag-handle { opacity: 1; }
+.lang-opt:hover .lang-drag-handle, .lang-opt:focus-within .lang-drag-handle { opacity: 1; }
 .lang-end { margin-left: auto; display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 .lang-sep { height: 1px; background: var(--color-surface-hover); margin: 4px 8px; }
 
@@ -3111,7 +3057,7 @@ label {
 /* ── Persona textarea ── */
 .persona-textarea {
   width:100%; background: var(--color-surface);
-  border: 1px solid var(--color-border); border-radius:7px;
+  border: 1px solid var(--color-border); border-radius:var(--radius-md);
   padding: 9px 11px; font-size: 12px; color: var(--color-text);
   outline:none; transition:border-color .15s, box-shadow .15s;
   resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.5;
@@ -3189,7 +3135,8 @@ label {
   transition: all 0.12s;
   opacity: 0;
 }
-.lang-opt:hover .lang-item-delete {
+.lang-opt:hover .lang-item-delete,
+.lang-opt:focus-within .lang-item-delete {
   opacity: 1;
 }
 .lang-item-delete:hover {
@@ -3254,15 +3201,15 @@ label {
   background: var(--color-accent-border);
 }
 .lang-add-confirm:disabled {
-  opacity: 0.25;
-  cursor: default;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .lang-add-cancel {
   background: var(--color-surface);
   color: var(--color-text-placeholder);
 }
 .lang-add-cancel:hover {
-  background: var(--color-scrollbar);
+  background: var(--color-surface-hover);
   color: var(--color-text-secondary);
 }
 .lang-add-btn {
@@ -3342,7 +3289,7 @@ label {
   align-items: center;
   gap: 10px;
   background: var(--color-surface);
-  border: 1px solid var(--color-scrollbar);
+  border: 1px solid var(--color-border);
   border-radius: 9px;
   padding: 10px 14px;
 }
@@ -3424,8 +3371,8 @@ label {
   color: var(--color-text-secondary);
 }
 .opacity-reset-off {
-  opacity: 0.25;
-  cursor: default;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ── Card section: reusable grouped-settings container ── */
@@ -3433,7 +3380,7 @@ label {
 .card-section {
   display: flex; flex-direction: column; gap: 8px;
   background: var(--color-surface);
-  border: 1px solid var(--color-scrollbar);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 12px 14px;
 }
@@ -3488,26 +3435,12 @@ label {
   align-items: center;
   gap: 6px;
   background: var(--color-surface);
-  border: 1px solid var(--color-scrollbar);
+  border: 1px solid var(--color-border);
   border-radius: 9px;
   padding: 10px 14px 10px 12px;
 }
 
 /* ── Reset row ── */
-.reset-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-scrollbar);
-  border-radius: 9px;
-  padding: 10px 14px 10px 14px;
-}
-.reset-desc {
-  flex: 1;
-  font-size: 11.5px;
-  color: var(--color-text-muted);
-}
 .reset-btn {
   display: inline-flex;
   align-items: center;
@@ -3533,23 +3466,11 @@ label {
 .card-section.remove-pending { background: var(--color-danger-bg); }
 .ecl-lhs { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
 .ecl-rhs { display:flex; align-items:center; gap:2px; opacity:.6; transition:opacity .12s; }
-.card-row:hover .ecl-rhs { opacity:1; }
+.card-row:hover .ecl-rhs, .card-row:focus-within .ecl-rhs { opacity:1; }
 .remove-warning-text {
   font-size: 10px; font-weight: 550; letter-spacing: .01em;
   color: var(--color-danger);
 }
-.mini-btn {
-  display:flex; align-items:center; justify-content:center;
-  width:27px; height:27px; border-radius:7px;
-  color: var(--color-text-muted); cursor:pointer;
-  border:none; background:none; transition:.12s;
-}
-.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
-.mini-btn.danger-active {
-  color: var(--color-danger); background: var(--color-danger-bg);
-  animation: danger-pulse .8s ease-in-out infinite alternate;
-}
-@keyframes danger-pulse{ to{ background: var(--color-danger-bg)} }
 .about-row-info {
   display: flex;
   align-items: center;
@@ -3657,8 +3578,8 @@ label {
   color: var(--color-accent);
 }
 .about-auto-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .about-auto-btn:disabled:hover {
   background: none;
@@ -3692,8 +3613,8 @@ label {
   color: var(--color-text-secondary);
 }
 .shortcut-reset-off {
-  opacity: 0.25;
-  cursor: default;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .shortcut-row .shortcut-btn {
   display: flex;

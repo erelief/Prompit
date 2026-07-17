@@ -234,7 +234,7 @@ async function handleSave() {
     await saveDictionary(viewLang.value, valid);
     dirty.value = false;
   } catch (err) {
-    saveError.value = "Failed to save dictionary.";
+    saveError.value = t('dictionary.saveError');
     console.error("Failed to save dictionary:", err);
   }
 }
@@ -308,6 +308,7 @@ async function executeImport(mode: "add" | "overwrite") {
     importMessage.value = t('dictionary.imported', { n: result.imported, langs });
     setTimeout(() => { importMessage.value = ""; }, 4000);
   } catch (err) {
+    saveError.value = t('dictionary.importFailed');
     console.error("Failed to import dictionary:", err);
   } finally {
     pendingImportPath.value = "";
@@ -331,6 +332,7 @@ async function handleExport() {
   try {
     await exportDictionaryCsv(filePath);
   } catch (err) {
+    saveError.value = t('dictionary.exportFailed');
     console.error("Failed to export dictionary:", err);
   }
 }
@@ -507,6 +509,10 @@ onUnmounted(() => {
             </button>
           </div>
         </div>
+
+        <!-- Loading / empty state -->
+        <div v-if="loading" class="dict-row dict-status-row">…</div>
+        <div v-else-if="entries.length === 0" class="dict-row dict-status-row">{{ t('settings.dictEmpty') }}</div>
       </div>
     </div>
 
@@ -611,7 +617,7 @@ onUnmounted(() => {
               <div class="modal-actions modal-actions--stacked">
                 <button class="modal-choice" @click="chooseImportMode('add')">
                   <span class="choice-label">{{ t('dictionary.addToExisting') }}</span>
-                  <span class="choice-desc">{{ t('common.cancel') }}</span>
+                  <span class="choice-desc">{{ t('dictionary.addToExistingDesc') }}</span>
                 </button>
                 <button class="modal-choice modal-choice--danger" @click="chooseImportMode('overwrite')">
                   <span class="choice-label">{{ t('dictionary.overwritePerLang') }}</span>
@@ -707,58 +713,6 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--color-surface);
   flex-shrink: 0;
 }
-.header-title {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-  line-height: 1.2;
-}
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  color: var(--color-text-muted);
-  transition: 0.15s;
-}
-.back-btn:hover {
-  color: var(--color-text);
-  background: var(--color-surface-hover);
-}
-
-/* ── Pill buttons ── */
-.pill-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 11px;
-  border-radius: 7px;
-  font-size: 10.5px;
-  font-weight: 550;
-  cursor: pointer;
-  border: none;
-  background: none;
-  transition: 0.15s;
-}
-.add-pill {
-  color: var(--color-accent-text);
-}
-.add-pill:hover {
-  color: var(--color-accent);
-  background: var(--color-accent-bg);
-}
-.micro {
-  color: var(--color-text-muted);
-  padding: 3px 8px;
-}
-.micro:hover:not(:disabled) {
-  color: var(--color-text-secondary);
-  background: var(--color-surface-hover);
-}
 
 /* ── Language row ── */
 .dict-lang-row {
@@ -778,7 +732,7 @@ onUnmounted(() => {
   border-radius: 9px;
   font-size: 12px;
   background: var(--color-surface);
-  border: 1px solid var(--color-scrollbar);
+  border: 1px solid var(--color-border);
   color: var(--color-text);
   cursor: pointer;
   transition: .15s;
@@ -812,7 +766,7 @@ onUnmounted(() => {
   background: var(--color-overlay);
   backdrop-filter: blur(20px) saturate(1.4);
   border: 1px solid var(--color-border);
-  box-shadow: 0 16px 40px rgba(0,0,0,.55), 0 0 0 1px var(--color-surface);
+  box-shadow: 0 16px 40px var(--color-shadow), 0 0 0 1px var(--color-surface);
   z-index: 99999;
   overflow: hidden;
 }
@@ -864,7 +818,7 @@ onUnmounted(() => {
 .dict-table {
   height: 100%;
   overflow-y: auto;
-  border: 1px solid var(--color-border-hover);
+  border: 1px solid var(--color-border);
   border-radius: 9px;
 }
 
@@ -884,10 +838,17 @@ onUnmounted(() => {
 .dict-row {
   display: flex;
   align-items: stretch;
-  border-bottom: 1px solid var(--color-border-hover);
+  border-bottom: 1px solid var(--color-border);
 }
 .dict-row:last-child {
   border-bottom: none;
+}
+.dict-status-row {
+  align-items: center;
+  justify-content: center;
+  padding: 18px 12px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
 }
 
 /* ── Header row ── */
@@ -896,8 +857,7 @@ onUnmounted(() => {
   top: 0;
   z-index: 1;
   background: var(--color-surface);
-  backdrop-filter: blur(6px);
-  border-radius: 8px 8px 0 0;
+  border-radius: 9px 9px 0 0;
 }
 .dict-header-row .dict-col {
   font-size: 10.5px;
@@ -916,7 +876,7 @@ onUnmounted(() => {
 }
 .col-source {
   flex: 1;
-  border-right: 1px solid var(--color-border-hover);
+  border-right: 1px solid var(--color-border);
 }
 .col-trans {
   flex: 1;
@@ -944,26 +904,7 @@ onUnmounted(() => {
   border-color: var(--color-accent-border);
 }
 .dict-input::placeholder {
-  color: var(--color-scrollbar);
-}
-
-/* ── Mini button (delete) ── */
-.mini-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 27px;
-  height: 27px;
-  border-radius: 7px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  border: none;
-  background: none;
-  transition: 0.12s;
-}
-.mini-btn.warn:hover {
-  color: var(--color-danger);
-  background: var(--color-danger-bg);
+  color: var(--color-text-placeholder);
 }
 
 /* ── Footer ── */
@@ -1100,12 +1041,11 @@ onUnmounted(() => {
   background: var(--color-bg);
 }
 .modal-choice--danger {
-  border-color: rgba(220,38,38,.25);
-  background: rgba(220,38,38,.04);
+  border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 .modal-choice--danger:hover {
-  border-color: rgba(220,38,38,.45);
-  background: rgba(220,38,38,.08);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
 }
 .choice-label {
   font-size: 12px;
@@ -1118,56 +1058,10 @@ onUnmounted(() => {
   margin-left: auto;
   padding-left: 10px;
 }
-.modal-btn {
-  padding: 6px 16px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .01em;
-  color: var(--color-text-secondary);
-  background: var(--color-surface);
-  border-radius: 7px;
-  transition: color .15s, background .15s;
-}
-.modal-btn:hover {
-  color: var(--color-text);
-  background: var(--color-surface-hover);
-}
-.warn-btn {
-  color: var(--color-danger);
-  background: var(--color-danger-bg);
-}
-.warn-btn:hover {
-  color: var(--color-danger);
-  background: var(--color-danger-bg);
-  filter: brightness(.92);
-}
-.danger-active {
-  color: var(--color-danger);
-  background: var(--color-danger-bg);
-  animation: danger-pulse .8s ease-in-out infinite alternate;
-}
-.confirm-counting {
-  opacity: .55;
-  cursor: not-allowed;
-  animation: none;
-  color: var(--color-text-muted);
-  background: var(--color-surface);
-}
 .confirm-with-countdown {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-.countdown-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-  opacity: .85;
-  min-width: 20px;
-}
-@keyframes danger-pulse {
-  to { background: var(--color-danger-bg); filter: brightness(.88); }
 }
 
 /* ── Modal transition ── */
@@ -1188,7 +1082,7 @@ onUnmounted(() => {
 /* ── Persona column ── */
 .col-persona {
   flex: 0 0 110px;
-  border-left: 1px solid var(--color-border-hover);
+  border-left: 1px solid var(--color-border);
 }
 .persona-btn {
   display: flex;

@@ -49,9 +49,9 @@ export function setTheme(theme: "light" | "dark" | "system") {
 }
 
 /**
- * Current appConfig theme value ("light" | "dark" | "system").
+ * Current appConfig theme value.
  */
-export function getTheme(): string {
+export function getTheme(): "light" | "dark" | "system" {
   return appConfig.theme;
 }
 

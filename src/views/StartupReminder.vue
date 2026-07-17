@@ -5,7 +5,6 @@ import { useRouter } from "vue-router";
 import { invoke } from "@tauri-apps/api/core";
 import { useIntervalFn } from "@vueuse/core";
 import { useShortcutTriggered } from "../composables/useTauriEvents";
-import { isDark } from "../composables/useTheme";
 import { X } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -40,7 +39,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="reminder-root" :class="{ dark: isDark() }">
+  <div class="reminder-root">
     <div class="reminder-card">
       <!-- Close button with countdown -->
       <button class="close-btn" @click="close" :title="t('common.hide')">
@@ -65,7 +64,7 @@ onMounted(async () => {
   background: var(--color-bg);
   color: var(--color-text);
   overflow: hidden;
-  border-radius: 11px;
+  border-radius: var(--radius-lg);
 }
 
 .reminder-card {
@@ -79,8 +78,8 @@ onMounted(async () => {
 
 .close-btn {
   position: absolute;
-  top: -4px;
-  right: -12px;
+  top: 8px;
+  right: 8px;
   display: flex;
   align-items: center;
   justify-content: center;

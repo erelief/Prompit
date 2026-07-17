@@ -34,6 +34,13 @@
   --color-success-bg:      rgba(22,163,74,0.08);
   --color-overlay:         rgba(255,255,255,0.96);
   --color-scrollbar:       rgba(0,0,0,0.18);
+  --color-shadow:          rgba(0,0,0,0.16);
+
+  /* Radius scale — prefer these steps for shared/new components */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 11px;
 }
 
 html.dark {
@@ -45,7 +52,7 @@ html.dark {
   --color-text:            rgba(255,255,255,0.88);
   --color-text-secondary:  rgba(255,255,255,0.66);
   --color-text-muted:      rgba(255,255,255,0.44);
-  --color-text-placeholder:rgba(255,255,255,0.15);
+  --color-text-placeholder:rgba(255,255,255,0.35);
   --color-accent:          rgba(212,160,72,0.85);
   --color-accent-text:     rgba(212,160,72,0.72);
   --color-accent-bg:       rgba(212,160,72,0.08);
@@ -56,6 +63,7 @@ html.dark {
   --color-success-bg:      rgba(74,222,128,0.08);
   --color-overlay:         rgba(16,16,22,0.97);
   --color-scrollbar:       rgba(255,255,255,0.12);
+  --color-shadow:          rgba(0,0,0,0.5);
 }
 
 * {
@@ -95,6 +103,16 @@ textarea {
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
+}
+
+/* Keyboard focus ring. Text inputs already show an accent ring via
+   :focus/:focus-within in their component styles; buttons and links had
+   none, so give them a global one (only rendered for keyboard focus). */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: 1px;
 }
 
 /* ══════════════════════════════════════

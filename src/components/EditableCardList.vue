@@ -349,16 +349,16 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 .ecl-card {
   position: relative;
   border-radius: 11px; overflow:hidden;
-  border: 1px solid var(--color-surface-hover);
+  border: 1px solid var(--color-border);
   background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface) 100%);
   transition: border-color .18s, box-shadow .18s;
   user-select: none;
 }
 .ecl-card:hover { border-color: var(--color-border-hover); }
-.ecl-card.open { padding: 15px 30px 14px 40px; }
+.ecl-card.open { padding: 15px 14px 14px 40px; }
 /* When a slot-provided element acts as the drag handle (e.g. provider logo), drop the left gutter reserved for the built-in grip */
 .ecl-card.no-builtin-handle .ecl-collapsed { padding-left: 14px; }
-.ecl-card.no-builtin-handle.open { padding: 15px 30px 14px 16px; }
+.ecl-card.no-builtin-handle.open { padding: 15px 14px 14px 16px; }
 
 /* ── Collapsed ── */
 .ecl-collapsed {
@@ -370,6 +370,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 .ecl-lhs { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
 .ecl-rhs { display:flex; align-items:center; gap:2px; opacity:.6; transition:opacity .12s; }
 .ecl-collapsed:hover .ecl-rhs { opacity:1; }
+.ecl-card:focus-within .ecl-rhs { opacity:1; }
 
 /* ── Expanded / Adding ── */
 .ecl-expanded { /* container only, no padding — card.open provides it */ }
@@ -404,35 +405,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   border-radius: 11px; min-height: 44px;
 }
 
-/* ── Pill button (Add / Confirm / Cancel) ── */
-.pill-btn {
-  display:inline-flex; align-items:center; gap:4px;
-  padding: 4px 11px; border-radius: 7px; font-size: 10.5px; font-weight: 550;
-  cursor: pointer; border:none; background:none; transition:.15s;
-}
-.add-pill { color: var(--color-accent-text); }
-.add-pill:hover { color: var(--color-accent); background: var(--color-accent-bg); }
-.add-pill:disabled { opacity:.32; cursor:default; }
-.micro { color: var(--color-text-muted); padding: 3px 8px; }
-.micro:hover:not(:disabled){ color: var(--color-text-secondary); background: var(--color-surface-hover); }
-.micro:disabled{ opacity:.32; cursor:default; }
-.gold-micro { color: var(--color-accent-text); }
-.gold-micro:hover { color: var(--color-accent); background: var(--color-accent-bg); }
-
 /* ── Mini button (Edit / Remove / Collapse) ── */
-.mini-btn {
-  display:flex; align-items:center; justify-content:center;
-  width:27px; height:27px; border-radius:7px;
-  color: var(--color-text-muted); cursor:pointer;
-  border:none; background:none; transition:.12s;
-}
-.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
-.mini-btn.warn:hover { color: var(--color-danger); background: var(--color-danger-bg); }
-.mini-btn.danger-active {
-  color: var(--color-danger); background: var(--color-danger-bg);
-  animation: danger-pulse .8s ease-in-out infinite alternate;
-}
-.remove-warning-row { margin-bottom: 6px; }
 .remove-warning-text {
   font-size: 10px; font-weight: 550; letter-spacing: .01em;
   color: var(--color-danger);
@@ -441,8 +414,6 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   font-size: 10px; font-weight: 550; letter-spacing: .01em;
   color: var(--color-danger); margin-top: 6px;
 }
-.mini-btn.ghost { color: var(--color-text-muted); }
-.mini-btn.ghost:hover { color: var(--color-text-secondary); background: var(--color-surface); }
 .mini-btn.gold-active { color: var(--color-accent-text); }
 .mini-btn.gold-active:hover { color: var(--color-accent); background: var(--color-accent-bg); }
 
@@ -478,8 +449,4 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   text-align: center;
 }
 .empty-card small{ font-size: 10px; color: var(--color-text-muted); }
-
-@keyframes spin{ to{ transform: rotate(360deg)} }
-@keyframes danger-pulse{ to{ background: var(--color-danger-bg)} }
-.spin{ animation: spin .75s linear infinite; }
 </style>

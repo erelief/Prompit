@@ -36,6 +36,11 @@ const exportReady = computed(
     && selected.value.length > 0,
 );
 
+const passwordMismatch = computed(
+  () => exportConfirmPassword.value.length > 0
+    && exportConfirmPassword.value !== exportPassword.value,
+);
+
 // WebDAV is just another destination for the same bundle — available only
 // once a server is configured (Settings → General → Data Management → WebDAV).
 const webdavConfigured = computed(() => appConfig.webdav.url.trim().length > 0);
@@ -150,7 +155,7 @@ function todayStamp(): string {
       <!-- confirm password -->
       <div
         class="pw-row"
-        :class="{ mismatch: exportConfirmPassword.length > 0 && exportConfirmPassword !== exportPassword }"
+        :class="{ mismatch: passwordMismatch }"
       >
         <input
           :type="exportConfirmShowPw ? 'text' : 'password'"
@@ -164,6 +169,7 @@ function todayStamp(): string {
           <EyeOff v-else :size="13" />
         </button>
       </div>
+      <p v-if="passwordMismatch" class="ud-hint" style="color: var(--color-danger)">{{ t('settings.exportData.export.passwordMismatch') }}</p>
 
       <div class="btn-row">
         <button
@@ -171,10 +177,10 @@ function todayStamp(): string {
           :disabled="!exportReady || exportBusy"
           @click="handleExport"
         >
-          <Upload :size="12" :stroke-width="1.9" />{{ t('settings.exportData.export.toFile') }}
+          <Upload :size="12" :stroke-width="1.9" />{{ exportBusy ? t('settings.exportData.export.exporting') : t('settings.exportData.export.toFile') }}
         </button>
         <button
-          class="ud-btn primary-btn"
+          class="ud-btn secondary-btn"
           :disabled="!exportReady || exportBusy || !webdavConfigured"
           :title="webdavConfigured ? '' : t('settings.webdav.notConfigured')"
           @click="handleExportWebdav"
@@ -199,171 +205,13 @@ function todayStamp(): string {
 </template>
 
 <style scoped>
-.ud-root {
-  height: calc(100dvh / var(--font-scale, 1));
-  display: flex;
-  flex-direction: column;
-  background: var(--color-bg);
-  color: var(--color-text);
-  overflow: hidden;
-  border-radius: 11px;
-}
-.ud-root.grow-above .ud-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
-.ud-root.grow-above .ud-body { order: 0; }
-
-.ud-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 24px 12px;
-  border-bottom: 1px solid var(--color-surface);
-  flex-shrink: 0;
-}
-.header-title {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-  line-height: 1.2;
-}
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  color: var(--color-text-muted);
-  transition: 0.15s;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-.back-btn:hover {
-  color: var(--color-text);
-  background: var(--color-surface-hover);
-}
-
-.ud-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 18px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.ud-body::-webkit-scrollbar { width: 3px; }
-.ud-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
-
-.ud-desc {
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.55;
-  color: var(--color-text-muted);
-}
-.ud-hint {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  opacity: 0.8;
-}
-.selector-label {
-  font-size: 10.5px;
-  font-weight: 650;
+.secondary-btn {
   color: var(--color-text-secondary);
-  letter-spacing: 0.01em;
-  margin-top: 2px;
-}
-
-.pw-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 7px 10px;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.pw-row:focus-within {
-  border-color: var(--color-accent-border);
-  box-shadow: 0 0 0 2px var(--color-accent-bg);
-}
-.pw-row.mismatch {
-  border-color: var(--color-danger);
-}
-.pw-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--color-text);
-  font-size: 12px;
-  font-family: inherit;
-  min-width: 0;
-}
-.pw-input::placeholder { color: var(--color-text-placeholder); }
-.pw-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  color: var(--color-text-muted);
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: 0.12s;
-  flex-shrink: 0;
-}
-.pw-toggle:hover:not(:disabled) {
-  color: var(--color-text);
-  background: var(--color-border);
-}
-
-.ud-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid transparent;
-  background: none;
-  transition: 0.15s;
-  font-family: inherit;
-}
-.ud-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.primary-btn {
-  color: var(--color-text);
-  background: var(--color-surface-hover);
   border-color: var(--color-border);
+  background: transparent;
 }
-.primary-btn:hover:not(:disabled) {
-  background: var(--color-border);
+.secondary-btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
 }
-.btn-row {
-  display: flex;
-  gap: 8px;
-}
-.btn-row .ud-btn {
-  flex: 1;
-}
-
-.status-text {
-  font-size: 10.5px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-}
-.status-text.success { color: var(--color-success); }
-.status-text.error { color: var(--color-danger); }
-.status-text.info { color: var(--color-text-muted); }
 </style>

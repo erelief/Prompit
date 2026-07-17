@@ -1,0 +1,224 @@
+/* ══════════════════════════════════════
+   Shared UI primitives
+
+   These styles were copy-pasted across 4-8 view files and had
+   started to drift (three danger-pulse variants, missing hover
+   states, divergent paddings). They now live here once, under the
+   SAME class names the templates already use. A scoped rule with
+   the same class name in a component still wins by specificity,
+   so intentional local overrides keep working.
+   ══════════════════════════════════════ */
+
+/* ── Header back button + title (all sub-pages) ── */
+.back-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 9px;
+  color: var(--color-text-muted); transition: .15s;
+  border: none; background: none; cursor: pointer;
+}
+.back-btn:hover { color: var(--color-text); background: var(--color-surface-hover); }
+
+.header-title {
+  flex: 1; font-size: 15px; font-weight: 700; letter-spacing: -.02em;
+  color: var(--color-text); line-height: 1.2; margin: 0;
+}
+
+/* ── Mini icon button (27×27) + danger-confirm cluster ── */
+.mini-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 27px; height: 27px; border-radius: 7px;
+  color: var(--color-text-muted); cursor: pointer;
+  border: none; background: none; transition: .12s;
+}
+.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
+.mini-btn.warn:hover { color: var(--color-danger); background: var(--color-danger-bg); }
+.mini-btn.danger-active {
+  color: var(--color-danger); background: var(--color-danger-bg);
+  animation: danger-pulse .8s ease-in-out infinite alternate;
+}
+.mini-btn:disabled { opacity: .4; cursor: not-allowed; }
+.confirm-counting { opacity: .55; cursor: not-allowed; }
+.countdown-label {
+  font-size: 10px; font-weight: 600; color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums; opacity: .85; min-width: 20px;
+}
+@keyframes danger-pulse {
+  to { background: var(--color-danger-bg); filter: brightness(.88); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mini-btn.danger-active { animation: none; }
+}
+
+/* ── Pill buttons (section-head actions) ── */
+.pill-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 11px; border-radius: 7px; font-size: 10.5px; font-weight: 550;
+  cursor: pointer; border: none; background: none; transition: .15s;
+}
+.add-pill { color: var(--color-accent-text); }
+.add-pill:hover { color: var(--color-accent); background: var(--color-accent-bg); }
+.add-pill:disabled { opacity: .32; cursor: default; }
+.micro { color: var(--color-text-muted); padding: 3px 8px; }
+.micro:hover:not(:disabled) { color: var(--color-text-secondary); background: var(--color-surface-hover); }
+.micro:disabled { opacity: .32; cursor: default; }
+
+/* ── Floating dropdown (FloatingInput + TranslateToolbar) ── */
+.model-dropdown {
+  position: fixed;
+  min-width: 160px; max-width: 240px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--color-overlay);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 24px var(--color-shadow), 0 0 0 1px var(--color-surface);
+  backdrop-filter: blur(16px);
+  z-index: 9999;
+  overflow-y: auto; overflow-x: hidden;
+}
+.model-dropdown::-webkit-scrollbar { width: 3px; }
+.model-dropdown::-webkit-scrollbar-track { margin: 10px 0; }
+.model-dropdown::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+.model-option {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; width: 100%;
+  padding: 6px 10px; border-radius: 5px; font-size: 11px;
+  color: var(--color-text-secondary); text-align: left;
+  transition: all .1s ease;
+}
+.model-option:hover { background: var(--color-surface); color: var(--color-text); }
+.model-option.selected { color: var(--color-accent); }
+.opt-left { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.check-mark { font-size: 10px; flex-shrink: 0; display: inline-flex; }
+
+.toolbar-chevron {
+  color: var(--color-text-muted);
+  transition: transform .15s ease;
+  flex-shrink: 0;
+}
+
+/* Dropdown / fade transitions (Vue <Transition name="dropdown|fade">) */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: opacity .12s ease, transform .12s ease;
+}
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(.97);
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity .15s ease-out;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ── User-data page shell (Export / Import) ── */
+.ud-root {
+  height: calc(100dvh / var(--font-scale, 1));
+  display: flex; flex-direction: column;
+  background: var(--color-bg); color: var(--color-text);
+  overflow: hidden; border-radius: var(--radius-lg);
+}
+.ud-root.grow-above .ud-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
+.ud-root.grow-above .ud-body { order: 0; }
+
+.ud-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 24px 12px;
+  border-bottom: 1px solid var(--color-surface);
+  flex-shrink: 0;
+}
+.ud-body {
+  flex: 1; overflow-y: auto;
+  padding: 18px 24px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.ud-body::-webkit-scrollbar { width: 3px; }
+.ud-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
+
+.ud-desc {
+  font-size: 11px; font-weight: 500; line-height: 1.55;
+  color: var(--color-text-muted);
+}
+.ud-hint { font-size: 10px; font-weight: 500; color: var(--color-text-muted); }
+.selector-label {
+  font-size: 10.5px; font-weight: 650;
+  color: var(--color-text-secondary);
+  letter-spacing: .01em; margin-top: 2px;
+}
+
+.pw-row {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 7px 10px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pw-row:focus-within {
+  border-color: var(--color-accent-border);
+  box-shadow: 0 0 0 2px var(--color-accent-bg);
+}
+.pw-row.mismatch { border-color: var(--color-danger); }
+.pw-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--color-text); font-size: 12px; font-family: inherit;
+  min-width: 0;
+}
+.pw-input::placeholder { color: var(--color-text-placeholder); }
+.pw-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  border: none; background: none; cursor: pointer;
+  transition: .12s; flex-shrink: 0;
+}
+.pw-toggle:hover:not(:disabled) { color: var(--color-text); background: var(--color-border); }
+
+.ud-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 5px; padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-size: 11px; font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent; background: none;
+  transition: .15s; font-family: inherit;
+}
+.ud-btn:disabled { opacity: .4; cursor: not-allowed; }
+.primary-btn {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+  border-color: var(--color-border);
+}
+.primary-btn:hover:not(:disabled) { background: var(--color-border); }
+.btn-row { display: flex; gap: 8px; }
+.btn-row .ud-btn { flex: 1; }
+
+.status-text {
+  font-size: 10.5px; font-weight: 500;
+  color: var(--color-text-muted);
+}
+.status-text.success { color: var(--color-success); }
+.status-text.error { color: var(--color-danger); }
+.status-text.info { color: var(--color-text-muted); }
+
+/* ── Form input (replaces repeated inline input styles) ── */
+.ui-input {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 7px 11px;
+  font-size: 12px; color: var(--color-text);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.ui-input::placeholder { color: var(--color-text-placeholder); }
+.ui-input:focus {
+  border-color: var(--color-accent-border);
+  box-shadow: 0 0 0 2px var(--color-accent-bg);
+}

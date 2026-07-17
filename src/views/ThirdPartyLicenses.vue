@@ -52,6 +52,7 @@ async function handleDrag(e: MouseEvent) {
   background: var(--color-bg);
   color: var(--color-text);
   overflow: hidden;
+  border-radius: var(--radius-lg);
 }
 .license-root.grow-above .license-header {
   order: 99;
@@ -68,31 +69,6 @@ async function handleDrag(e: MouseEvent) {
   padding: 16px 24px 12px;
   border-bottom: 1px solid var(--color-surface);
   flex-shrink: 0;
-}
-.header-title {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-  line-height: 1.2;
-}
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  color: var(--color-text-muted);
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: 0.15s;
-}
-.back-btn:hover {
-  color: var(--color-text);
-  background: var(--color-surface-hover);
 }
 
 /* ── Body ── */

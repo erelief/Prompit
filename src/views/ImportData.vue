@@ -263,147 +263,15 @@ async function handleDrag(e: MouseEvent) {
 </template>
 
 <style scoped>
-.ud-root {
-  height: calc(100dvh / var(--font-scale, 1));
-  display: flex;
-  flex-direction: column;
-  background: var(--color-bg);
-  color: var(--color-text);
-  overflow: hidden;
-  border-radius: 11px;
-}
-.ud-root.grow-above .ud-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
-.ud-root.grow-above .ud-body { order: 0; }
-
-.ud-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 24px 12px;
-  border-bottom: 1px solid var(--color-surface);
-  flex-shrink: 0;
-}
-.header-title {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-  line-height: 1.2;
-}
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  color: var(--color-text-muted);
-  transition: 0.15s;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-.back-btn:hover {
-  color: var(--color-text);
-  background: var(--color-surface-hover);
-}
-
-.ud-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 18px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.ud-body::-webkit-scrollbar { width: 3px; }
-.ud-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
-
-.ud-desc {
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.55;
-  color: var(--color-text-muted);
-}
 .ud-warn {
   font-size: 11px;
   font-weight: 650;
   color: var(--color-danger);
   letter-spacing: 0.01em;
 }
-.selector-label {
-  font-size: 10.5px;
-  font-weight: 650;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.01em;
-  margin-top: 2px;
-}
 
-.pw-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 7px 10px;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.pw-row:focus-within {
-  border-color: var(--color-accent-border);
-  box-shadow: 0 0 0 2px var(--color-accent-bg);
-}
-.pw-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--color-text);
-  font-size: 12px;
-  font-family: inherit;
-  min-width: 0;
-}
-.pw-input::placeholder { color: var(--color-text-placeholder); }
-.pw-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  color: var(--color-text-muted);
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: 0.12s;
-  flex-shrink: 0;
-}
-.pw-toggle:hover:not(:disabled) {
-  color: var(--color-text);
-  background: var(--color-border);
-}
 .change-file-btn { width: 22px; height: 22px; }
 
-.ud-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid transparent;
-  background: none;
-  transition: 0.15s;
-  font-family: inherit;
-}
-.ud-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
 .analyze-btn {
   color: var(--color-accent-text);
   background: var(--color-accent-bg);
@@ -412,11 +280,6 @@ async function handleDrag(e: MouseEvent) {
 .analyze-btn:hover:not(:disabled) {
   background: var(--color-accent);
   color: var(--color-bg);
-}
-.primary-btn {
-  color: var(--color-text);
-  background: var(--color-surface-hover);
-  border-color: var(--color-border);
 }
 .primary-btn.danger {
   color: var(--color-danger);
@@ -433,7 +296,7 @@ async function handleDrag(e: MouseEvent) {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 8px 14px;
+  padding: 6px 14px;
   border-radius: 8px;
   font-size: 11px;
   font-weight: 600;
@@ -481,8 +344,15 @@ async function handleDrag(e: MouseEvent) {
   outline: none;
   cursor: pointer;
 }
+.webdav-select:hover:not(:disabled) {
+  border-color: var(--color-border-hover);
+}
 .webdav-select:focus {
   border-color: var(--color-accent-border);
+}
+.webdav-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .file-icon {
   color: var(--color-accent-text);
@@ -521,58 +391,9 @@ async function handleDrag(e: MouseEvent) {
   justify-content: flex-end;
   gap: 6px;
 }
-.mini-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 27px;
-  height: 27px;
-  border-radius: 7px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  border: none;
-  background: none;
-  transition: 0.12s;
-}
-.mini-btn:hover:not(:disabled) {
-  color: var(--color-text);
-  background: var(--color-border);
-}
-.mini-btn.danger-active {
-  color: var(--color-danger);
-  background: var(--color-bg);
-  animation: danger-pulse 0.8s ease-in-out infinite alternate;
-}
-.mini-btn.confirm-counting {
-  opacity: 0.55;
-  cursor: not-allowed;
-  animation: none;
-  color: var(--color-text-muted);
-  background: var(--color-surface);
-}
 .confirm-with-countdown {
   display: flex;
   align-items: center;
   gap: 4px;
 }
-.countdown-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-  opacity: 0.85;
-  min-width: 20px;
-}
-@keyframes danger-pulse {
-  to { filter: brightness(0.88); }
-}
-
-.status-text {
-  font-size: 10.5px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-}
-.status-text.success { color: var(--color-success); }
-.status-text.error { color: var(--color-danger); }
-.status-text.info { color: var(--color-text-muted); }
 </style>

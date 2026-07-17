@@ -6,17 +6,21 @@ import i18n from "./i18n";
 import { loadConfig, loadSkillsLites, appConfig, enableConfigAutosave } from "./stores/config";
 import { initTheme } from "./composables/useTheme";
 import "./style.css";
+import "./shared/ui.css";
 
 const app = createApp(App);
 app.use(router);
 app.use(i18n);
 
 function applyRouteTheme(path: string) {
-  const isSettings = path === "/settings" || path === "/settings/dictionary" || path === "/onboarding" || path === "/startup-reminder";
-  const bg = isSettings ? "var(--color-bg)" : "transparent";
+  // The floating surfaces (floating input + history) paint their own
+  // translucent background via useWindowBg and manage their own scrolling;
+  // every other route is an opaque settings-class page.
+  const isFloating = path === "/" || path === "/history";
+  const bg = isFloating ? "transparent" : "var(--color-bg)";
   document.documentElement.style.background = bg;
   document.body.style.background = bg;
-  document.body.style.overflow = isSettings ? "auto" : "hidden";
+  document.body.style.overflow = isFloating ? "hidden" : "auto";
   document.getElementById("app")!.style.background = bg;
 }
 

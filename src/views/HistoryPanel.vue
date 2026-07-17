@@ -138,7 +138,7 @@ onMounted(async () => {
       <button v-if="sourcesEntry" @click="closeSources" class="back-btn" :title="t('search.backToHistory')">
         <ArrowLeft :size="18" :stroke-width="1.8" />
       </button>
-      <button v-else @click="goBack" class="back-btn" :title="t('common.settings')">
+      <button v-else @click="goBack" class="back-btn" :title="t('common.back')">
         <ArrowLeft :size="18" :stroke-width="1.8" />
       </button>
       <h1 v-if="sourcesEntry" class="header-title">
@@ -179,7 +179,7 @@ onMounted(async () => {
         </button>
         <button
           v-if="!showClearConfirm && modeEntries.length > 0"
-          class="reset-btn"
+          class="reset-btn danger"
           @click.stop="showClearConfirm = true"
           :title="t('history.clearAll')"
         >
@@ -246,11 +246,11 @@ onMounted(async () => {
               <div class="history-item-text">
               <div class="history-item-input">
                 <Send :size="9" :stroke-width="2" class="input-icon" />
-                <span><template v-for="(seg, si) in highlightSegments(entry.input)" :key="si"><mark v-if="seg.hit" class="search-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></span>
+                <span :title="entry.input"><template v-for="(seg, si) in highlightSegments(entry.input)" :key="si"><mark v-if="seg.hit" class="search-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></span>
               </div>
                 <div class="history-item-output">
                   <MessageSquare :size="9" :stroke-width="2" class="output-icon" />
-                  <span><template v-for="(seg, si) in highlightSegments(entry.output)" :key="si"><mark v-if="seg.hit" class="search-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></span>
+                  <span :title="entry.output"><template v-for="(seg, si) in highlightSegments(entry.output)" :key="si"><mark v-if="seg.hit" class="search-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></span>
                   <span v-if="entry.model" class="model-badge">{{ shortModel(entry.model) }}</span>
                   <span v-if="presetTag(entry)" class="preset-badge">{{ presetTag(entry) }}</span>
                   <span v-if="entry.edited" class="edited-tag">{{ t('history.edited') }}</span>
@@ -306,31 +306,10 @@ onMounted(async () => {
   flex-shrink: 0;
   border-bottom: 1px solid var(--color-surface);
 }
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.back-btn:hover { background: var(--color-surface-hover); color: var(--color-text); }
-
 .header-title {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-  line-height: 1.2;
-  margin: 0;
   flex: 0 0 auto;
 }
 
@@ -354,24 +333,12 @@ onMounted(async () => {
   transition: 0.15s;
 }
 .reset-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+.reset-btn.danger:hover {
   color: var(--color-danger);
   background: var(--color-danger-bg);
-}
-
-.mini-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 27px; height: 27px; border-radius: 7px;
-  color: var(--color-text-muted); cursor: pointer;
-  border: none; background: none; transition: 0.12s;
-}
-.mini-btn:hover { color: var(--color-text); background: var(--color-border); }
-.mini-btn.warn:hover { color: var(--color-danger); background: var(--color-danger-bg); }
-.mini-btn.danger-active {
-  color: var(--color-danger); background: var(--color-danger-bg);
-  animation: danger-pulse 0.8s ease-in-out infinite alternate;
-}
-@keyframes danger-pulse {
-  to { background: var(--color-danger-bg); filter: brightness(.88); }
 }
 
 /* ── Search box (realtime filter by input OR output) ── */
@@ -412,7 +379,7 @@ onMounted(async () => {
   color: var(--color-text);
 }
 .search-input::placeholder {
-  color: var(--color-text-muted);
+  color: var(--color-text-placeholder);
 }
 .search-clear {
   display: flex;
@@ -563,7 +530,7 @@ mark.search-hl {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--color-text-tertiary, var(--color-text-muted));
+  color: var(--color-text-muted);
   background: var(--color-surface-hover);
   padding: 0 5px;
   border-radius: 4px;
@@ -576,7 +543,7 @@ mark.search-hl {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--color-text-tertiary, var(--color-text-muted));
+  color: var(--color-text-muted);
   background: var(--color-surface-hover);
   padding: 0 5px;
   border-radius: 4px;
@@ -588,7 +555,7 @@ mark.search-hl {
 }
 .history-item-output .output-icon {
   flex-shrink: 0;
-  color: var(--color-text-tertiary, var(--color-text-muted));
+  color: var(--color-text-muted);
   opacity: 0.5;
   margin-top: 1px;
 }
@@ -600,7 +567,8 @@ mark.search-hl {
   transition: opacity 0.12s;
   flex-shrink: 0;
 }
-.history-item:hover .history-item-actions {
+.history-item:hover .history-item-actions,
+.history-item:focus-within .history-item-actions {
   opacity: 1;
 }
 .remove-warning-text {
@@ -621,7 +589,7 @@ mark.search-hl {
   border-top: 1px solid var(--color-surface);
   text-align: center;
   font-size: 10.5px;
-  color: var(--color-text-tertiary, var(--color-text-muted));
+  color: var(--color-text-muted);
   letter-spacing: 0.01em;
 }
 
@@ -642,7 +610,7 @@ mark.search-hl {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--color-text-tertiary, var(--color-text-muted));
+  color: var(--color-text-muted);
   background: var(--color-surface-hover);
   padding: 0 5px;
   border-radius: 4px;

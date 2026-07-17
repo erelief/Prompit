@@ -68,10 +68,13 @@ function frame(now: number) {
   const t = elapsed >= state.duration ? 1 : elapsed / state.duration;
   const eased = easeOutQuart(t);
 
-  const nextH = state.startH + (state.targetH - state.startH) * eased;
+  // Round to whole px before sending: the backend applies SetWindowPos-style
+  // calls at integer pixel granularity, and float values can make the window
+  // edge shimmer ±1px between frames.
+  const nextH = Math.round(state.startH + (state.targetH - state.startH) * eased);
   const widthChanges = state.targetW !== state.startW;
   const nextW = widthChanges
-    ? state.startW + (state.targetW - state.startW) * eased
+    ? Math.round(state.startW + (state.targetW - state.startW) * eased)
     : state.targetW;
 
   invoke("resize_and_reposition", {
@@ -85,7 +88,7 @@ function frame(now: number) {
     rafId = requestAnimationFrame(frame);
   } else {
     // Guarantee we land exactly on target (avoid float drift on the last frame).
-    invoke("resize_and_reposition", { height: state.targetH, width: state.targetW });
+    invoke("resize_and_reposition", { height: Math.round(state.targetH), width: Math.round(state.targetW) });
     currentH = state.targetH;
     currentW = state.targetW;
     state = null;
@@ -142,11 +145,11 @@ export function useAnimatedResize() {
     const startH = inFlightTween ? (currentH || height) : (window.innerHeight || currentH || height);
     const startW = inFlightTween ? (currentW || targetW) : (window.innerWidth || currentW || targetW);
 
-    // No-op if we're already at the target (avoids a needless IPC burst —
+    // No-op for sub-pixel deltas (avoids a needless IPC burst —
     // important since ResizeObserver can fire frequently while typing).
     const dh = Math.abs(height - startH);
     const dw = Math.abs(targetW - startW);
-    if (dh < 0.5 && dw < 0.5) {
+    if (dh < 1 && dw < 1) {
       currentH = height;
       currentW = targetW;
       return;
