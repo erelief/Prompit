@@ -11,6 +11,7 @@ import { MAIN_WIDTH } from "../composables/useSettingsWindow";
 import { useAnimatedResize } from "../composables/useAnimatedResize";
 import { useWindowBg, domainOf } from "../composables/useWindowBg";
 import { useEventListener } from "@vueuse/core";
+import { capHeight, chevronTransform } from "../shared/dropdown";
 import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, saveSkillsLites, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
@@ -79,8 +80,6 @@ function togglePin() {
   pinned.value = !pinned.value;
   invoke("set_main_pinned", { pinned: pinned.value });
 }
-const chevronTransform = (open: boolean) =>
-  `rotate(${open === growAbove.value ? 0 : 180}deg)`;
 const contentWrapRef = ref<HTMLDivElement | null>(null);
 const bodyHeight = ref(0);
 let lastSentHeight = 0;
@@ -233,9 +232,6 @@ const isActiveModelEntry = (pIndex: number, mIndex: number) =>
   pIndex === activeProviderIdx() && mIndex === activeModelIdx();
 
 // ── Dropdown max-height (2 items visible, scroll beyond) ──
-const ITEM_H = 28;
-const PAD = 6;
-const capHeight = (n: number) => n > 2 ? { maxHeight: `${2 * ITEM_H + PAD}px` } : {};
 const modelDropdownStyle = computed(() => capHeight(allModels.value.length));
 
 // ── Mode switch ──
@@ -838,319 +834,9 @@ useShortcutTriggered(() => {
     <div ref="contentWrapRef"
       class="w-full px-5 py-4 flex flex-col gap-1.5 overflow-y-auto flex-shrink-0 h-fit"
       :style="{ maxWidth: 560 * fontScale + 'px' }"
-      :class="{ 'justify-end': growAbove }">
-      <!-- growAbove: result grows upward, input anchored at bottom -->
-        <template v-if="growAbove">
-        <!-- Result area -->
-        <Transition name="fade">
-          <div v-show="translatedText" class="result-block">
-            <!-- Edit button (top-left corner) - replaces close button position -->
-            <button
-              v-if="!isEditing"
-              @click="startEditing"
-              class="edit-result-btn"
-              :title="t('common.edit')"
-            >
-              <Pencil :size="12" />
-            </button>
-
-            <!-- Copy button (top-left, beside Edit) -->
-            <button
-              v-if="!isEditing"
-              @click="copyResult"
-              class="copy-result-btn"
-              :class="{ 'copied': copiedFlash }"
-              :title="t('common.copy')"
-            >
-              <Check v-if="copiedFlash" :size="12" />
-              <Copy v-else :size="12" />
-            </button>
-
-            <!-- Forward-to-input button (top-left, beside Copy) -->
-            <button
-              v-if="!isEditing"
-              @click="sendToInput"
-              class="forward-result-btn"
-              :title="t('floating.forwardToInput')"
-            >
-              <Forward :size="12" />
-            </button>
-
-            <!-- Copy success hint -->
-            <Transition name="fade">
-              <div v-if="copiedFlash && !isEditing" class="copy-hint">
-                <Check :size="11" :stroke-width="2.2" /> {{ t('common.copied') }}
-              </div>
-            </Transition>
-
-            <!-- Close result button (top-right corner) - moved -->
-            <button
-              @click="closeResult"
-              class="close-result-btn"
-              :title="t('common.close')"
-              :class="{ 'editing-mode': isEditing }"
-            >
-              <X :size="12" />
-            </button>
-
-            <div v-if="lastResultSearched && !isEditing" class="provenance-row">
-              <button class="provenance-btn" @click="sourcesView = !sourcesView">
-                <Globe :size="11" :stroke-width="1.8" />
-                <span>{{ t('search.sourceSearched') }}</span>
-                <component :is="sourcesView ? ChevronLeft : ChevronRight" :size="11" :stroke-width="2" class="provenance-chevron" />
-              </button>
-              <button v-if="sourcesView" class="sources-back" @click="sourcesView = false">
-                <ArrowLeft :size="12" :stroke-width="1.8" /> {{ t('search.backToResult') }}
-              </button>
-            </div>
-
-            <!-- Result view (default) -->
-            <div v-if="!isEditing" v-show="!sourcesView" class="result-text">{{ translatedText }}</div>
-            
-            <!-- Edit mode -->
-            <div v-if="isEditing" class="result-edit-textarea-wrapper">
-              <textarea
-                ref="editTextareaRef"
-                v-model="editedText"
-                class="result-edit-textarea"
-                @keydown="handleEditKeydown"
-              ></textarea>
-              <div class="resize-handle" @mousedown="startResize">
-                <svg width="14" height="14" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-                  <path fill="currentColor" d="M14.228 16.227a1 1 0 0 1-.707-1.707l1-1a1 1 0 0 1 1.416 1.414l-1 1a1 1 0 0 1-.707.293zm-5.638 0a1 1 0 0 1-.707-1.707l6.638-6.638a1 1 0 0 1 1.416 1.414l-6.638 6.638a1 1 0 0 1-.707.293z"/>
-                </svg>
-              </div>
-            </div>
-            
-            <!-- Edit action buttons (bottom-right) -->
-            <div v-if="isEditing" class="edit-actions">
-              <button @click="cancelEditing" class="edit-action-btn cancel" :title="t('common.cancel')">
-                <X :size="14" />
-              </button>
-              <button @click="confirmEditing" class="edit-action-btn confirm" :title="t('common.confirm')">
-                <Check :size="14" />
-              </button>
-            </div>
-            
-            <!-- Sources view (shown when the provenance button is toggled on) -->
-            <div v-if="sourcesView && !isEditing" class="sources-view">
-              <a v-for="(src, i) in lastResultSources" :key="i"
-                 :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
-                <div class="source-favicon">🌐</div>
-                <div class="source-meta">
-                  <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
-                  <div class="source-domain">{{ domainOf(src.url) }}</div>
-                </div>
-                <ExternalLink :size="11" :stroke-width="1.8" class="source-external" />
-              </a>
-              <div v-if="lastResultSources.length === 0" class="sources-empty">{{ t('search.noSources') }}</div>
-            </div>
-          </div>
-        </Transition>
-
-        <!-- AI disclaimer (appears only when a result is present) -->
-        <Transition name="fade">
-          <div v-show="translatedText" class="ai-disclaimer">
-            {{ t('floating.aiDisclaimer') }}
-          </div>
-        </Transition>
-
-        <!-- Loading state -->
-        <Transition name="fade">
-          <div
-            v-show="isLoading"
-            class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
-          >
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
-            {{ webSearchStatus === 'searching' ? t('floating.searching') : t('floating.sending') }}
-            <button
-              @click="cancelRequest"
-              class="cancel-request-btn"
-              :title="t('common.cancel')"
-            >
-              <X :size="12" />
-            </button>
-          </div>
-        </Transition>
-
-        <!-- Web search error (blocking; one line, no buttons) -->
-        <Transition name="fade">
-          <div
-            v-show="webSearchStatus === 'error' && webSearchErrorText"
-            class="text-[11px] text-red-400/80"
-          >
-            {{ webSearchErrorText }}
-          </div>
-        </Transition>
-
-        <!-- Error -->
-        <Transition name="fade">
-          <div
-            v-show="errorMessage"
-            class="text-[11px] text-red-400/80 flex items-center gap-1.5"
-          >
-            <X :size="12" :stroke-width="2" />
-            {{ errorMessage }}
-          </div>
-        </Transition>
-
-        <!-- Input area + inline send -->
-        <div class="relative">
-          <div class="textarea-with-history">
-            <textarea
-              ref="textareaRef"
-              v-model="inputText"
-              @keydown="handleKeydown"
-              :placeholder="inputPlaceholder"
-              :readonly="isEditing"
-              rows="1"
-              class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
-            ></textarea>
-
-            <!-- History button (top-left corner of textarea) -->
-            <button
-              v-if="!isEditing"
-              @click="router.push('/history')"
-              class="history-btn"
-              :title="t('floating.history')"
-              :style="{ background: windowBg, '--btn-alpha': floatingAlpha }"
-            >
-              <History :size="14" />
-            </button>
-          </div>
-
-          <button
-            @click="hasResult ? handlePasteResult() : handleTranslate()"
-            :disabled="(!inputText.trim() && !hasResult) || isLoading || isEditing"
-            class="send-btn-inline"
-            :class="{ 'paste-mode': hasResult }"
-            :title="hasResult ? t('floating.pasteIntoActiveField') : t('floating.send')"
-          >
-            <LoaderCircle v-if="isLoading" :size="14" class="animate-spin" />
-            <ClipboardPaste v-else-if="hasResult" :size="13" />
-            <Send v-else :size="13" />
-          </button>
-        </div>
-
-        <!-- Toolbar -->
-        <div class="flex items-center gap-2" :class="{ 'toolbar-disabled': isEditing }">
-          <!-- Mode switch button -->
-          <div class="relative">
-            <button
-              ref="modeBtnRef"
-              @click="toggleModeDropdown"
-              class="mode-btn"
-              :class="{ active: showModeDropdown }"
-              :title="t(currentMode.labelKey)"
-              :disabled="isEditing"
-            >
-              <component :is="currentMode.icon" :size="14" :stroke-width="1.8" />
-            </button>
-
-            <Teleport to="body">
-              <Transition name="dropdown">
-                <div
-                  v-if="showModeDropdown && MODES.length > 0"
-                  ref="modeMenuRef"
-                  class="model-dropdown"
-                  :style="{ top: modeDropdownPos.top + 'px', left: modeDropdownPos.left + 'px' }"
-                >
-                  <button
-                    v-for="mode in MODES"
-                    :key="mode.id"
-                    @click="selectMode(mode.id)"
-                    class="model-option"
-                    :class="{ selected: appConfig.active_mode === mode.id }"
-                  >
-                    <component :is="mode.icon" :size="12" :stroke-width="1.8" />
-                    <span>{{ t(mode.labelKey) }}</span>
-                    <span v-if="appConfig.active_mode === mode.id" class="check-mark">&#10003;</span>
-                  </button>
-                </div>
-              </Transition>
-            </Teleport>
-          </div>
-
-          <div class="w-px h-3 bg-[var(--color-border)] shrink-0"></div>
-
-          <!-- Model selector -->
-          <div class="relative" ref="modelDropdownRef">
-            <button
-              v-if="activeModelName"
-              ref="modelBtnRef"
-              @click="toggleModelDropdown"
-              class="model-btn"
-              :class="{ active: showModelDropdown }"
-            >
-              <span class="model-icon" v-if="activeModelIcon"><ProviderIcon :icon="activeModelIcon" :size="14" /></span>
-              <span class="truncate max-w-[120px] min-w-0">{{ activeModelName }}</span>
-              <ModelCapabilityIcon :capabilities="activeModelCapabilities" :size="10" />
-              <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
-                :style="{ transform: chevronTransform(showModelDropdown) }" />
-            </button>
-
-            <Teleport to="body">
-              <Transition name="dropdown">
-                <div
-                  v-if="showModelDropdown && allModels.length > 0"
-                  ref="modelMenuRef"
-                  class="model-dropdown"
-                  :style="{ top: dropdownPos.top + 'px', left: dropdownPos.left + 'px', ...modelDropdownStyle }"
-                >
-                  <button
-                    v-for="entry in allModels"
-                    :key="entry.pIndex + '-' + entry.mIndex"
-                    @click="selectModel(entry.pIndex, entry.mIndex)"
-                    class="model-option"
-                    :class="{ selected: isActiveModelEntry(entry.pIndex, entry.mIndex) }"
-                  >
-                    <div class="opt-left"><ProviderIcon :icon="entry.icon" :size="14" />
-                    <span class="truncate">{{ entry.id }}</span>
-                    <ModelCapabilityIcon :capabilities="entry.input_capabilities" :size="11" /></div>
-                    <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
-                  </button>
-                </div>
-              </Transition>
-            </Teleport>
-          </div>
-
-          <div class="w-px h-3 bg-[var(--color-border)] shrink-0"></div>
-
-          <!-- Mode-specific toolbar -->
-          <TranslateToolbar :grow-above="growAbove" @result-stale="handleResultStale" />
-
-          <div class="flex-1"></div>
-
-          <div class="flex items-center gap-1 toolbar-keep-active">
-            <button
-              @click="togglePin"
-              class="icon-btn"
-              :class="{ 'pin-active': pinned }"
-              :title="pinned ? t('common.keepOpenAfterSend') : t('common.closeAfterSend')"
-            >
-              <MessageSquareLock v-if="pinned" :size="14" :stroke-width="1.8" />
-              <MessageSquareShare v-else :size="14" :stroke-width="1.8" />
-            </button>
-
-            <button
-              @click="handleOpenSettings"
-              class="icon-btn"
-              :title="t('common.settings')"
-            >
-              <Settings :size="14" :stroke-width="1.8" />
-            </button>
-
-            <button @click="handleHide" class="icon-btn" :title="t('common.hide')">
-              <X :size="14" :stroke-width="1.8" />
-            </button>
-          </div>
-        </div>
-    </template>
-
-    <!-- !growAbove: result grows downward, input at top (default) -->
-    <template v-else>
+      :class="{ 'justify-end': growAbove, 'grow-order': growAbove }">
       <!-- Toolbar -->
-        <div class="flex items-center gap-2" :class="{ 'toolbar-disabled': isEditing }">
+        <div class="flex items-center gap-2 fi-toolbar" :class="{ 'toolbar-disabled': isEditing }">
           <!-- Mode switch button -->
           <div class="relative">
             <button
@@ -1181,7 +867,7 @@ useShortcutTriggered(() => {
                   >
                     <component :is="mode.icon" :size="12" :stroke-width="1.8" />
                     <span>{{ t(mode.labelKey) }}</span>
-                    <span v-if="appConfig.active_mode === mode.id" class="check-mark">&#10003;</span>
+                    <span v-if="appConfig.active_mode === mode.id" class="check-mark"><Check :size="10" :stroke-width="2.5" /></span>
                   </button>
                 </div>
               </Transition>
@@ -1203,7 +889,7 @@ useShortcutTriggered(() => {
               <span class="truncate max-w-[120px] min-w-0">{{ activeModelName }}</span>
               <ModelCapabilityIcon :capabilities="activeModelCapabilities" :size="10" />
               <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
-                :style="{ transform: chevronTransform(showModelDropdown) }" />
+                :style="{ transform: chevronTransform(showModelDropdown, growAbove) }" />
             </button>
 
             <Teleport to="body">
@@ -1224,7 +910,7 @@ useShortcutTriggered(() => {
                     <div class="opt-left"><ProviderIcon :icon="entry.icon" :size="14" />
                     <span class="truncate">{{ entry.id }}</span>
                     <ModelCapabilityIcon :capabilities="entry.input_capabilities" :size="11" /></div>
-                    <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark">&#10003;</span>
+                    <span v-if="isActiveModelEntry(entry.pIndex, entry.mIndex)" class="check-mark"><Check :size="10" :stroke-width="2.5" /></span>
                   </button>
                 </div>
               </Transition>
@@ -1264,7 +950,7 @@ useShortcutTriggered(() => {
         </div>
 
         <!-- Input area + inline send -->
-        <div class="relative">
+        <div class="relative fi-input">
           <div class="textarea-with-history">
             <textarea
               ref="textareaRef"
@@ -1305,9 +991,9 @@ useShortcutTriggered(() => {
         <Transition name="fade">
           <div
             v-show="isLoading"
-            class="flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
+            class="fi-status flex items-center gap-2 text-[11px] text-[var(--color-text-secondary)]"
           >
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse"></span>
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-pulse"></span>
             {{ webSearchStatus === 'searching' ? t('floating.searching') : t('floating.sending') }}
             <button
               @click="cancelRequest"
@@ -1323,7 +1009,7 @@ useShortcutTriggered(() => {
         <Transition name="fade">
           <div
             v-show="webSearchStatus === 'error' && webSearchErrorText"
-            class="text-[11px] text-red-400/80"
+            class="fi-status text-[11px] text-[var(--color-danger)]"
           >
             {{ webSearchErrorText }}
           </div>
@@ -1333,7 +1019,7 @@ useShortcutTriggered(() => {
         <Transition name="fade">
           <div
             v-show="errorMessage"
-            class="text-[11px] text-red-400/80 flex items-center gap-1.5"
+            class="fi-status text-[11px] text-[var(--color-danger)] flex items-center gap-1.5"
           >
             <X :size="12" :stroke-width="2" />
             {{ errorMessage }}
@@ -1342,12 +1028,12 @@ useShortcutTriggered(() => {
 
         <!-- Result area -->
         <Transition name="fade">
-          <div v-show="translatedText" class="result-block">
+          <div v-show="translatedText" class="result-block fi-result">
             <!-- Edit button (top-left corner) - replaces close button position -->
             <button
               v-if="!isEditing"
               @click="startEditing"
-              class="edit-result-btn"
+              class="corner-btn pos-1"
               :title="t('common.edit')"
             >
               <Pencil :size="12" />
@@ -1357,7 +1043,7 @@ useShortcutTriggered(() => {
             <button
               v-if="!isEditing"
               @click="copyResult"
-              class="copy-result-btn"
+              class="corner-btn pos-2"
               :class="{ 'copied': copiedFlash }"
               :title="t('common.copy')"
             >
@@ -1369,7 +1055,7 @@ useShortcutTriggered(() => {
             <button
               v-if="!isEditing"
               @click="sendToInput"
-              class="forward-result-btn"
+              class="corner-btn pos-3"
               :title="t('floating.forwardToInput')"
             >
               <Forward :size="12" />
@@ -1385,9 +1071,8 @@ useShortcutTriggered(() => {
             <!-- Close result button (top-right corner) - moved -->
             <button
               @click="closeResult"
-              class="close-result-btn"
+              class="corner-btn pos-close close"
               :title="t('common.close')"
-              :class="{ 'editing-mode': isEditing }"
             >
               <X :size="12" />
             </button>
@@ -1449,11 +1134,10 @@ useShortcutTriggered(() => {
 
         <!-- AI disclaimer (appears only when a result is present) -->
         <Transition name="fade">
-          <div v-show="translatedText" class="ai-disclaimer">
+          <div v-show="translatedText" class="ai-disclaimer fi-disclaimer">
             {{ t('floating.aiDisclaimer') }}
           </div>
         </Transition>
-      </template>
     </div>
   </div>
 </template>
@@ -1482,17 +1166,6 @@ useShortcutTriggered(() => {
 }
 
 /* Textarea with inline send button */
-/* Keep old floating-input-with-btn class for potential future use */
-.floating-input-with-btn {
-  padding-right: 34px;
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
-}
-
-.floating-input-with-history {
-  padding-left: 35px;
-}
-
 .send-btn-inline {
   position: absolute;
   right: 7px;
@@ -1590,73 +1263,6 @@ useShortcutTriggered(() => {
   flex-shrink: 0;
 }
 
-/* Model dropdown */
-.toolbar-chevron {
-  color: var(--color-text-muted);
-  transition: transform 0.15s ease;
-  flex-shrink: 0;
-}
-
-.model-dropdown {
-  position: fixed;
-  min-width: 160px;
-  max-width: 240px;
-  padding: 3px;
-  border-radius: 8px;
-  background: var(--color-overlay);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--color-surface);
-  backdrop-filter: blur(16px);
-  z-index: 9999;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-.model-dropdown::-webkit-scrollbar { width: 3px; }
-.model-dropdown::-webkit-scrollbar-track { margin: 10px 0; }
-.model-dropdown::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
-
-.model-option {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 10px;
-  border-radius: 5px;
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  text-align: left;
-  transition: all 0.1s ease;
-}
-
-.model-option:hover {
-  background: var(--color-surface);
-  color: var(--color-text);
-}
-
-.model-option.selected {
-  color: var(--color-accent);
-}
-
-.opt-left { display:flex; align-items:center; gap:6px; min-width:0; flex:1; }
-.check-mark {
-  font-size: 10px;
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-/* Dropdown transition */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: opacity 0.12s ease, transform 0.12s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px) scale(0.97);
-}
-
 /* Icon buttons (settings, dismiss) */
 .icon-btn {
   display: flex;
@@ -1717,11 +1323,10 @@ useShortcutTriggered(() => {
   position: relative;
 }
 
-/* Edit button - replaces close button position */
-.edit-result-btn {
+/* Corner action buttons on the result block (revealed on hover/focus) */
+.corner-btn {
   position: absolute !important;
   top: -11px !important;
-  left: -11px !important;
   width: 22px !important;
   height: 22px !important;
   border-radius: 50% !important;
@@ -1737,85 +1342,34 @@ useShortcutTriggered(() => {
   box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
   background: var(--color-bg) !important;
 }
+.corner-btn.pos-1 { left: -11px !important; }
+.corner-btn.pos-2 { left: 15px !important; }
+.corner-btn.pos-3 { left: 39px !important; }
+.corner-btn.pos-close { right: -11px !important; }
 
-.result-block:hover .edit-result-btn {
+.result-block:hover .corner-btn,
+.result-block:focus-within .corner-btn,
+.corner-btn:focus-visible {
   opacity: 1 !important;
 }
 
-.edit-result-btn:hover {
+.corner-btn:hover {
   color: var(--color-accent) !important;
   border-color: var(--color-accent) !important;
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
 }
-
-/* Copy button - sits beside the Edit button (top-left) */
-.copy-result-btn {
-  position: absolute !important;
-  top: -11px !important;
-  left: 15px !important;
-  width: 22px !important;
-  height: 22px !important;
-  border-radius: 50% !important;
-  border: 1px solid var(--color-border) !important;
-  color: var(--color-text-muted) !important;
-  cursor: pointer !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  opacity: 0 !important;
-  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s !important;
-  z-index: 9999 !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
-  background: var(--color-bg) !important;
-}
-
-.result-block:hover .copy-result-btn {
-  opacity: 1 !important;
-}
-
-.copy-result-btn:hover {
-  color: var(--color-accent) !important;
-  border-color: var(--color-accent) !important;
-  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
-}
-
-/* Forward-to-input button - sits beside the Copy button (top-left) */
-.forward-result-btn {
-  position: absolute !important;
-  top: -11px !important;
-  left: 39px !important;
-  width: 22px !important;
-  height: 22px !important;
-  border-radius: 50% !important;
-  border: 1px solid var(--color-border) !important;
-  color: var(--color-text-muted) !important;
-  cursor: pointer !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  opacity: 0 !important;
-  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s !important;
-  z-index: 9999 !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
-  background: var(--color-bg) !important;
-}
-
-.result-block:hover .forward-result-btn {
-  opacity: 1 !important;
-}
-
-.forward-result-btn:hover {
-  color: var(--color-accent) !important;
-  border-color: var(--color-accent) !important;
-  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
+.corner-btn.close:hover {
+  color: var(--color-danger) !important;
+  border-color: var(--color-danger) !important;
+  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-bg)) !important;
 }
 
 /* Copied success state (green) */
-.copy-result-btn.copied {
+.corner-btn.copied {
   opacity: 1 !important;
-  color: #16a34a !important;
-  border-color: #16a34a !important;
-  background: color-mix(in srgb, #16a34a 14%, var(--color-bg)) !important;
+  color: var(--color-success) !important;
+  border-color: var(--color-success) !important;
+  background: color-mix(in srgb, var(--color-success) 14%, var(--color-bg)) !important;
 }
 
 /* Transient "Copied" hint pill */
@@ -1831,44 +1385,12 @@ useShortcutTriggered(() => {
   padding: 3px 9px !important;
   font-size: 11px !important;
   line-height: 1.4 !important;
-  color: #16a34a !important;
+  color: var(--color-success) !important;
   background: var(--color-bg) !important;
-  border: 1px solid #16a34a !important;
+  border: 1px solid var(--color-success) !important;
   border-radius: 999px !important;
   box-shadow: 0 1px 4px rgba(0,0,0,.12) !important;
   pointer-events: none !important;
-}
-
-/* Close result button - moved to top-right */
-.close-result-btn {
-  position: absolute !important;
-  top: -11px !important;
-  right: -11px !important;
-  left: auto !important;
-  width: 22px !important;
-  height: 22px !important;
-  border-radius: 50% !important;
-  border: 1px solid var(--color-border) !important;
-  color: var(--color-text-muted) !important;
-  cursor: pointer !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  opacity: 0 !important;
-  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s !important;
-  z-index: 9999 !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
-  background: var(--color-bg) !important;
-}
-
-.result-block:hover .close-result-btn {
-  opacity: 1 !important;
-}
-
-.close-result-btn:hover {
-  color: var(--color-danger) !important;
-  border-color: var(--color-danger) !important;
-  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-bg)) !important;
 }
 
 /* Edit textarea */
@@ -1987,30 +1509,7 @@ useShortcutTriggered(() => {
   font-size: 10.5px;
   line-height: 1.4;
   color: var(--color-text-secondary);
-  opacity: 0.7;
   flex-shrink: 0;
-}
-
-/* Transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.15s ease-out;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.drop-enter-active,
-.drop-leave-active {
-  transition: opacity 0.14s ease, transform 0.14s ease;
-}
-
-.drop-enter-from,
-.drop-leave-to {
-  opacity: 0;
-  transform: translateY(-5px) scale(0.967);
 }
 
 /* Thin scrollbar to prevent layout shift on appear */
@@ -2068,11 +1567,6 @@ useShortcutTriggered(() => {
   color: var(--color-accent) !important;
   border-color: var(--color-accent-border) !important;
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .icon-btn.active { animation: none;
-}
 }
 
 /* ── Web search provenance button + sources view ── */
@@ -2135,4 +1629,11 @@ useShortcutTriggered(() => {
 }
 .source-external { flex-shrink: 0; color: var(--color-text-muted); }
 .sources-empty { font-size: 10.5px; color: var(--color-text-muted); padding: 8px 0; }
+
+/* Block order when the window grows upward (result above, input+toolbar below) */
+.grow-order .fi-result { order: 0; }
+.grow-order .fi-disclaimer { order: 1; }
+.grow-order .fi-status { order: 2; }
+.grow-order .fi-input { order: 3; }
+.grow-order .fi-toolbar { order: 4; }
 </style>
