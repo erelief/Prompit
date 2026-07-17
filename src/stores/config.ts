@@ -166,6 +166,21 @@ export interface AppConfig {
   web_search_providers: WebSearchProviderConfig[];
   web_search_active_index: number;
   web_search_enabled_in_skills_lite: boolean;
+  webdav: WebdavSettings;
+}
+
+/**
+ * WebDAV server settings (plaintext, non-sensitive). WebDAV is only a storage
+ * location for the normal password-protected backup/restore flow — this holds
+ * the connection fields. The account password lives in the OS credential
+ * store, never here. Mirrors `WebdavSettings` in src-tauri/src/config.rs.
+ */
+export interface WebdavSettings {
+  url: string;
+  username: string;
+  remote_dir: string;
+  /** Upload file name (no OS save dialog exists on the WebDAV path). */
+  file_name: string;
 }
 
 const defaultConfig: AppConfig = {
@@ -197,6 +212,12 @@ const defaultConfig: AppConfig = {
   web_search_providers: [],
   web_search_active_index: -1,
   web_search_enabled_in_skills_lite: false,
+  webdav: {
+    url: "",
+    username: "",
+    remote_dir: "prompit",
+    file_name: "prompit-backup.json",
+  },
 };
 
 export const appConfig = reactive<AppConfig>({ ...defaultConfig });

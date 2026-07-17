@@ -145,6 +145,8 @@
       "notInBackup": "Not in backup",
       "settings": "Software settings",
       "settingsDescription": "Theme, languages, shortcuts, opacity and other preferences",
+      "webdav": "WebDAV server",
+      "webdavDescription": "WebDAV server URL, username and remote settings (password not included)",
       "providers": "AI providers",
       "providersDescription": "Configured AI model providers and their API keys",
       "websearch": "Web search providers",
@@ -159,40 +161,46 @@
       "skills_liteDescription": "Custom Skills Lite prompts"
     },
     "exportData": {
-      "pageTitle": "Export Data",
-      "entryButton": "Export",
+      "pageTitle": "Back Up Data",
+      "entryButton": "Back up",
       "entryDescription": "Back up selected data to an encrypted file",
       "selectCategories": "Choose what to include",
       "export": {
-        "title": "Export",
+        "title": "Backup",
         "description": "Pack the selected items into an encrypted backup file. The password you set here encrypts the backup — there is no way to recover it if lost.",
         "passwordPlaceholder": "At least 6 characters",
         "confirmPasswordPlaceholder": "Confirm password",
-        "button": "Export",
-        "hint": "Enter the same password twice to enable Export.",
-        "success": "Exported to {path}",
-        "cancelled": "Export cancelled"
+        "toFile": "Back up to file",
+        "toWebdav": "Back up to WebDAV",
+        "hint": "Enter the same password twice to enable backup.",
+        "success": "Backed up to {path}",
+        "webdavSuccess": "Uploaded {size} KB to WebDAV.",
+        "cancelled": "Backup cancelled"
       },
       "error": "Failed: {message}"
     },
     "importData": {
-      "pageTitle": "Import Data",
-      "entryButton": "Import",
+      "pageTitle": "Restore Data",
+      "entryButton": "Restore",
       "entryDescription": "Restore selected data from a backup file",
       "selectCategories": "Choose what to restore",
       "import": {
-        "title": "Import",
-        "description": "Analyze a backup file and pick which parts to restore. Anything you select overwrites the existing data of that kind.",
+        "title": "Restore",
+        "description": "Analyze a backup and pick which parts to restore. Anything you select overwrites the existing data of that kind.",
         "warning": "Selected categories overwrite existing data. This cannot be undone.",
         "passwordPlaceholder": "Backup password",
-        "button": "Import",
+        "button": "Restore",
         "selectFile": "Select Backup File",
+        "fromWebdav": "Restore from WebDAV",
+        "webdavLoading": "Fetching file list…",
+        "webdavPickPlaceholder": "Select a backup file on the server",
+        "webdavEmpty": "No backup files on the server yet.",
         "changeFile": "Change",
         "analyze": "Analyze",
         "analyzing": "Analyzing…",
         "reanalyze": "Re-analyze",
         "confirmWarning": "This will overwrite existing data and cannot be undone.",
-        "success": "Imported successfully."
+        "success": "Restored successfully."
       },
       "error": "Failed: {message}"
     },
@@ -211,6 +219,34 @@
       "selectCategories": "Choose what to delete",
       "partialSuccess": "Selected data deleted.",
       "restartRequired": "Settings deleted. Restart the app to apply."
+    },
+    "webdav": {
+      "pageTitle": "WebDAV Server",
+      "entryButton": "WebDAV",
+      "entryDescription": "(optional) Configure the WebDAV server used for backup and restore",
+      "error": "Failed: {message}",
+      "notConfigured": "Configure and save a WebDAV server in Data Management first.",
+      "server": {
+        "description": "WebDAV is only a storage location for your backup file; backups stay encrypted with the backup password you enter. The account password is kept only in this device's OS credential store.",
+        "urlLabel": "Server URL",
+        "urlPlaceholder": "e.g. https://dav.example.com/remote.php/dav/files/you",
+        "usernameLabel": "Username",
+        "usernamePlaceholder": "Username",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "Password / app password (leave empty to use the saved one)",
+        "passwordSaved": "Saved",
+        "remoteDirLabel": "Remote directory",
+        "remoteDirPlaceholder": "Remote directory (default: prompit)",
+        "fileNameLabel": "Backup file name",
+        "fileNamePlaceholder": "Backup file name (default: prompit-backup.json)",
+        "fileNameHint": "Used when uploading to WebDAV; an existing file with the same name is overwritten.",
+        "test": "Test",
+        "testing": "Testing…",
+        "save": "Save",
+        "saved": "Server config saved.",
+        "testSuccess": "Connection OK.",
+        "testSuccessNewDir": "Connection OK; the backup folder will be created on the first upload."
+      }
     }
   },
   "floating": {

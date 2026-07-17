@@ -173,6 +173,13 @@ pub fn run() {
             vault::export_data,
             vault::import_data,
             vault::inspect_bundle,
+            commands::webdav::webdav_test_connection,
+            commands::webdav::webdav_save_password,
+            commands::webdav::webdav_has_password,
+            commands::webdav::webdav_list_files,
+            commands::webdav::webdav_export,
+            commands::webdav::webdav_inspect_file,
+            commands::webdav::webdav_restore_file,
             get_proxy_url,
             is_sandbox,
         ])

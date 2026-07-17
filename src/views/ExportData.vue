@@ -8,7 +8,8 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import DataCategorySelector from "../components/DataCategorySelector.vue";
 import { ALL_CATEGORIES, defaultSelectedCategories } from "../composables/useDataCategories";
-import { Upload, Eye, EyeOff, ArrowLeft } from "@lucide/vue";
+import { appConfig } from "../stores/config";
+import { Upload, CloudUpload, Eye, EyeOff, ArrowLeft } from "@lucide/vue";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -34,6 +35,10 @@ const exportReady = computed(
     && exportPassword.value === exportConfirmPassword.value
     && selected.value.length > 0,
 );
+
+// WebDAV is just another destination for the same bundle — available only
+// once a server is configured (Settings → General → Data Management → WebDAV).
+const webdavConfigured = computed(() => appConfig.webdav.url.trim().length > 0);
 
 function resetExport() {
   exportPassword.value = "";
@@ -71,9 +76,33 @@ async function handleExport() {
   }
 }
 
+async function handleExportWebdav() {
+  if (!exportReady.value || !webdavConfigured.value) return;
+  exportBusy.value = true;
+  try {
+    const r = await invoke<{ bytes: number }>("webdav_export", {
+      password: exportPassword.value,
+      categories: selected.value,
+    });
+    const kb = Math.max(1, Math.round(r.bytes / 1024));
+    exportStatus.value = {
+      kind: "success",
+      msg: t("settings.exportData.export.webdavSuccess", { size: kb }),
+    };
+    resetExport();
+  } catch (err) {
+    exportStatus.value = {
+      kind: "error",
+      msg: t("settings.exportData.error", { message: String(err) }),
+    };
+  } finally {
+    exportBusy.value = false;
+  }
+}
+
 async function handleDrag(e: MouseEvent) {
   const target = e.target as HTMLElement;
-  if (target.closest("button, input, textarea, a, select, .ud-footer")) return;
+  if (target.closest("button, input, textarea, a, select")) return;
   await getCurrentWindow().startDragging();
 }
 
@@ -136,19 +165,27 @@ function todayStamp(): string {
         </button>
       </div>
 
-      <button
-        class="ud-btn primary-btn"
-        :disabled="!exportReady || exportBusy"
-        @click="handleExport"
-      >
-        <Upload :size="12" :stroke-width="1.9" />{{ t('settings.exportData.export.button') }}
-      </button>
+      <div class="btn-row">
+        <button
+          class="ud-btn primary-btn"
+          :disabled="!exportReady || exportBusy"
+          @click="handleExport"
+        >
+          <Upload :size="12" :stroke-width="1.9" />{{ t('settings.exportData.export.toFile') }}
+        </button>
+        <button
+          class="ud-btn primary-btn"
+          :disabled="!exportReady || exportBusy || !webdavConfigured"
+          :title="webdavConfigured ? '' : t('settings.webdav.notConfigured')"
+          @click="handleExportWebdav"
+        >
+          <CloudUpload :size="12" :stroke-width="1.9" />{{ t('settings.exportData.export.toWebdav') }}
+        </button>
+      </div>
       <p v-if="!exportReady" class="ud-hint">{{ t('settings.exportData.export.hint') }}</p>
-    </div>
+      <p v-else-if="!webdavConfigured" class="ud-hint">{{ t('settings.webdav.notConfigured') }}</p>
 
-    <!-- Footer status -->
-    <div class="ud-footer">
-      <span
+      <p
         v-if="exportStatus.kind !== 'idle'"
         class="status-text"
         :class="{
@@ -156,7 +193,7 @@ function todayStamp(): string {
           error: exportStatus.kind === 'error',
           info: exportStatus.kind === 'info',
         }"
-      >{{ exportStatus.msg }}</span>
+      >{{ exportStatus.msg }}</p>
     </div>
   </div>
 </template>
@@ -172,7 +209,6 @@ function todayStamp(): string {
   border-radius: 11px;
 }
 .ud-root.grow-above .ud-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
-.ud-root.grow-above .ud-footer { order: 1; border-top: none; border-bottom: 1px solid var(--color-surface); }
 .ud-root.grow-above .ud-body { order: 0; }
 
 .ud-header {
@@ -314,16 +350,14 @@ function todayStamp(): string {
 .primary-btn:hover:not(:disabled) {
   background: var(--color-border);
 }
-
-.ud-footer {
-  flex-shrink: 0;
-  padding: 10px 24px 14px;
-  border-top: 1px solid var(--color-surface);
-  min-height: 28px;
+.btn-row {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: 8px;
 }
+.btn-row .ud-btn {
+  flex: 1;
+}
+
 .status-text {
   font-size: 10.5px;
   font-weight: 500;

@@ -220,6 +220,46 @@ pub struct WebSearchProviderConfig {
     pub custom_name: Option<String>,
 }
 
+/// WebDAV server settings (Settings → General → Data Management → WebDAV).
+/// WebDAV is only a *storage location* for the normal password-protected
+/// backup/restore flow — this holds the connection fields. The account
+/// password is NOT stored here: it lives in the OS credential store (see
+/// `commands/webdav.rs`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebdavSettings {
+    /// Base URL of the WebDAV endpoint, e.g.
+    /// `https://dav.example.com/remote.php/dav/files/user`.
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub username: String,
+    /// Remote directory (relative to `url`) holding backup files.
+    #[serde(default = "default_webdav_remote_dir")]
+    pub remote_dir: String,
+    /// File name used when uploading a backup to the server (no OS save
+    /// dialog exists for the WebDAV path, so it is configured here).
+    #[serde(default = "default_webdav_file_name")]
+    pub file_name: String,
+}
+
+impl Default for WebdavSettings {
+    fn default() -> Self {
+        Self {
+            url: String::new(),
+            username: String::new(),
+            remote_dir: default_webdav_remote_dir(),
+            file_name: default_webdav_file_name(),
+        }
+    }
+}
+
+fn default_webdav_remote_dir() -> String {
+    "prompit".to_string()
+}
+fn default_webdav_file_name() -> String {
+    "prompit-backup.json".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub providers: Vec<ProviderConfig>,
@@ -273,6 +313,8 @@ pub struct AppConfig {
     pub web_search_active_index: i64,
     #[serde(default, alias = "web_search_enabled_in_sparkle")]
     pub web_search_enabled_in_skills_lite: bool,
+    #[serde(default)]
+    pub webdav: WebdavSettings,
 }
 
 fn default_target_lang() -> String {
@@ -348,6 +390,7 @@ impl Default for AppConfig {
             web_search_providers: vec![],
             web_search_active_index: -1,
             web_search_enabled_in_skills_lite: false,
+            webdav: WebdavSettings::default(),
         }
     }
 }
@@ -409,6 +452,7 @@ mod tests {
             web_search_providers: vec![],
             web_search_active_index: -1,
             web_search_enabled_in_skills_lite: false,
+            webdav: WebdavSettings::default(),
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&json).unwrap();

@@ -85,6 +85,7 @@ import {
   GripVertical,
   RotateCcw,
   CloudDownload,
+  CloudUpload,
   Download,
   Upload,
   Sun,
@@ -2212,6 +2213,12 @@ onUnmounted(() => {
             <span class="card-label">{{ t('settings.importData.entryDescription') }}</span>
             <button class="reset-btn neutral" @click="router.push('/settings/import')">
               <Download :size="11" :stroke-width="1.9" />{{ t('settings.importData.entryButton') }}
+            </button>
+          </div>
+          <div class="card-row">
+            <span class="card-label">{{ t('settings.webdav.entryDescription') }}</span>
+            <button class="reset-btn neutral" @click="router.push('/settings/webdav')">
+              <CloudUpload :size="11" :stroke-width="1.9" />{{ t('settings.webdav.entryButton') }}
             </button>
           </div>
           <div class="card-row">

@@ -40,10 +40,13 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-autostart = "2"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
 # URL parsing for http_proxy scheme validation (VULN-4 SSRF mitigation). Already
 # in the dep tree via reqwest; declared explicitly so we can `use url::Url`.
 url = "2"
+# WebDAV PROPFIND multistatus parsing (remote backup file listing). XML is only
+# ever parsed here, and only the <href> local names are extracted.
+quick-xml = "0.36"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"

@@ -1,14 +1,16 @@
 /**
- * The single source of truth for the data categories that import / export /
+ * The single source of truth for the data categories that backup / restore /
  * reset can act on. The Rust side (`vault.rs` `KNOWN_STEMS`) must agree on the
  * stem strings; this module mirrors those strings for the frontend.
  *
  * `settings` corresponds to the otherwise-plaintext `config.json` (software
- * settings) and is the newest category.
+ * settings, minus its `webdav` key) and `webdav` to the WebDAV server
+ * settings split out of it — those two are the newest categories.
  */
 
 export type DataCategory =
   | "settings"
+  | "webdav"
   | "providers"
   | "websearch"
   | "history"
@@ -32,20 +34,22 @@ export const ALL_CATEGORIES: DataCategory[] = [
   "dictionaries",
   "skills_lite",
   "settings",
+  "webdav",
   "history",
 ];
 
 /**
- * Default selection for export / import: everything except software settings
- * and history (those are less likely to need backing up and more likely to
- * differ between machines). Reset always selects every category.
+ * Default selection for backup / restore: everything except software settings,
+ * WebDAV server settings and history (those are less likely to need backing up
+ * and more likely to differ between machines). Reset always selects every
+ * category.
  */
 export function defaultSelectedCategories(
   mode: "export" | "import" | "reset",
 ): DataCategory[] {
   if (mode === "reset") return [...ALL_CATEGORIES];
   return ALL_CATEGORIES.filter(
-    (c) => c !== "settings" && c !== "history",
+    (c) => c !== "settings" && c !== "history" && c !== "webdav",
   );
 }
 
@@ -53,6 +57,11 @@ export const CATEGORY_META: Record<DataCategory, CategoryMeta> = {
   settings: {
     labelKey: "settings.categories.settings",
     descKey: "settings.categories.settingsDescription",
+    sensitive: false,
+  },
+  webdav: {
+    labelKey: "settings.categories.webdav",
+    descKey: "settings.categories.webdavDescription",
     sensitive: false,
   },
   providers: {

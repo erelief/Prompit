@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { useDataImport } from "../composables/useDataImport";
 import DataCategorySelector from "../components/DataCategorySelector.vue";
 import { ALL_CATEGORIES, knownCategoriesIn } from "../composables/useDataCategories";
+import { appConfig } from "../stores/config";
 import {
   Download, ArrowLeft, Eye, EyeOff, Check, X, ShieldAlert,
-  FileText, FolderOpen, Search,
+  FileText, FolderOpen, Search, CloudUpload,
 } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -17,11 +19,11 @@ const router = useRouter();
 const { growAbove } = useSettingsWindow();
 
 const {
-  importPath, importPassword, importShowPw, importConfirming,
+  importPath, importSourceKind, importPassword, importShowPw, importConfirming,
   importCountdown, importStatus, importBusy,
   importPreview, importSelected, importAnalyzed, importAnalyzing,
   importFileName, importCanAnalyze, importCanConfirm,
-  selectImportFile, analyzeImport, requestImport, confirmImport, stopCountdown,
+  selectImportFile, selectWebdavFile, analyzeImport, requestImport, confirmImport, stopCountdown,
 } = useDataImport({
   messages: {
     success: t("settings.importData.import.success"),
@@ -49,9 +51,52 @@ const analyzeBtnLabel = computed(() =>
       : t("settings.importData.import.analyze"),
 );
 
+// ── WebDAV source picking ─────────────────────────────────────────────────
+// Available only once a server is configured; the Rust side reads the saved
+// connection, so nothing sensitive passes through here.
+const webdavConfigured = computed(() => appConfig.webdav.url.trim().length > 0);
+const webdavPicking = ref(false);
+const webdavFiles = ref<string[]>([]);
+const webdavLoading = ref(false);
+const webdavChoice = ref("");
+
+async function openWebdavPicker() {
+  webdavPicking.value = true;
+  webdavLoading.value = true;
+  webdavChoice.value = "";
+  try {
+    const files = await invoke<string[]>("webdav_list_files");
+    webdavFiles.value = files;
+    if (files.length === 0) {
+      webdavPicking.value = false;
+      importStatus.value = { kind: "info", msg: t("settings.importData.import.webdavEmpty") };
+    }
+  } catch (err) {
+    webdavPicking.value = false;
+    importStatus.value = {
+      kind: "error",
+      msg: t("settings.importData.error", { message: String(err) }),
+    };
+  } finally {
+    webdavLoading.value = false;
+  }
+}
+
+function pickWebdav() {
+  if (!webdavChoice.value) return;
+  selectWebdavFile(webdavChoice.value);
+  webdavPicking.value = false;
+  webdavChoice.value = "";
+}
+
+function cancelWebdavPicker() {
+  webdavPicking.value = false;
+  webdavChoice.value = "";
+}
+
 async function handleDrag(e: MouseEvent) {
   const target = e.target as HTMLElement;
-  if (target.closest("button, input, textarea, a, select, .ud-footer")) return;
+  if (target.closest("button, input, textarea, a, select")) return;
   await getCurrentWindow().startDragging();
 }
 </script>
@@ -71,25 +116,55 @@ async function handleDrag(e: MouseEvent) {
       <p class="ud-desc">{{ t('settings.importData.import.description') }}</p>
       <p class="ud-warn">{{ t('settings.importData.import.warning') }}</p>
 
-      <!-- Step 1: select file -->
-      <button
-        v-if="!importPath"
-        class="file-pick-btn"
-        @click="selectImportFile"
-      >
-        <FolderOpen :size="14" :stroke-width="1.8" />{{ t('settings.importData.import.selectFile') }}
-      </button>
+      <!-- Step 1: pick a source (local file or WebDAV server) -->
+      <template v-if="!importPath">
+        <div v-if="webdavPicking" class="webdav-pick-row">
+          <select class="webdav-select" v-model="webdavChoice" :disabled="webdavLoading">
+            <option value="" disabled>
+              {{ webdavLoading
+                ? t('settings.importData.import.webdavLoading')
+                : t('settings.importData.import.webdavPickPlaceholder') }}
+            </option>
+            <option v-for="f in webdavFiles" :key="f" :value="f">{{ f }}</option>
+          </select>
+          <button
+            class="mini-btn"
+            :title="t('common.confirm')"
+            :disabled="!webdavChoice"
+            @click="pickWebdav"
+          >
+            <Check :size="12" :stroke-width="2.5" />
+          </button>
+          <button class="mini-btn" :title="t('common.cancel')" @click="cancelWebdavPicker">
+            <X :size="12" :stroke-width="2.5" />
+          </button>
+        </div>
+        <template v-else>
+          <button class="file-pick-btn" @click="selectImportFile">
+            <FolderOpen :size="14" :stroke-width="1.8" />{{ t('settings.importData.import.selectFile') }}
+          </button>
+          <button
+            class="file-pick-btn"
+            :disabled="!webdavConfigured"
+            :title="webdavConfigured ? '' : t('settings.webdav.notConfigured')"
+            @click="openWebdavPicker"
+          >
+            <CloudUpload :size="14" :stroke-width="1.8" />{{ t('settings.importData.import.fromWebdav') }}
+          </button>
+        </template>
+      </template>
 
-      <!-- Step 2/3: file selected -->
+      <!-- Step 2/3: source selected -->
       <template v-else>
-        <!-- selected file row -->
+        <!-- selected source row -->
         <div class="file-row">
-          <FileText :size="14" class="file-icon" />
-          <span class="file-name" :title="importPath">{{ importFileName }}</span>
+          <CloudUpload v-if="importSourceKind === 'webdav'" :size="14" class="file-icon" />
+          <FileText v-else :size="14" class="file-icon" />
+          <span class="file-name" :title="importPath || ''">{{ importFileName }}</span>
           <button
             class="pw-toggle change-file-btn"
             :disabled="importConfirming || importBusy || importAnalyzing"
-            @click="selectImportFile"
+            @click="importSourceKind === 'webdav' ? openWebdavPicker() : selectImportFile()"
             type="button"
           >
             <FolderOpen :size="13" />
@@ -173,11 +248,8 @@ async function handleDrag(e: MouseEvent) {
           </div>
         </div>
       </template>
-    </div>
 
-    <!-- Footer status -->
-    <div class="ud-footer">
-      <span
+      <p
         v-if="importStatus.kind !== 'idle'"
         class="status-text"
         :class="{
@@ -185,7 +257,7 @@ async function handleDrag(e: MouseEvent) {
           error: importStatus.kind === 'error',
           info: importStatus.kind === 'info',
         }"
-      >{{ importStatus.msg }}</span>
+      >{{ importStatus.msg }}</p>
     </div>
   </div>
 </template>
@@ -201,7 +273,6 @@ async function handleDrag(e: MouseEvent) {
   border-radius: 11px;
 }
 .ud-root.grow-above .ud-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
-.ud-root.grow-above .ud-footer { order: 1; border-top: none; border-bottom: 1px solid var(--color-surface); }
 .ud-root.grow-above .ud-body { order: 0; }
 
 .ud-header {
@@ -256,8 +327,8 @@ async function handleDrag(e: MouseEvent) {
   color: var(--color-text-muted);
 }
 .ud-warn {
-  font-size: 10.5px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 650;
   color: var(--color-danger);
   letter-spacing: 0.01em;
 }
@@ -362,9 +433,9 @@ async function handleDrag(e: MouseEvent) {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 10px 14px;
+  padding: 8px 14px;
   border-radius: 8px;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-accent-text);
   background: var(--color-accent-bg);
@@ -373,10 +444,14 @@ async function handleDrag(e: MouseEvent) {
   transition: 0.15s;
   font-family: inherit;
 }
-.file-pick-btn:hover {
+.file-pick-btn:hover:not(:disabled) {
   background: var(--color-accent);
   color: var(--color-bg);
   border-style: solid;
+}
+.file-pick-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .file-row {
@@ -387,6 +462,27 @@ async function handleDrag(e: MouseEvent) {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 8px 10px;
+}
+.webdav-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.webdav-select {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 7px 10px;
+  outline: none;
+  cursor: pointer;
+}
+.webdav-select:focus {
+  border-color: var(--color-accent-border);
 }
 .file-icon {
   color: var(--color-accent-text);
@@ -471,15 +567,6 @@ async function handleDrag(e: MouseEvent) {
   to { filter: brightness(0.88); }
 }
 
-.ud-footer {
-  flex-shrink: 0;
-  padding: 10px 24px 14px;
-  border-top: 1px solid var(--color-surface);
-  min-height: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
 .status-text {
   font-size: 10.5px;
   font-weight: 500;

@@ -50,6 +50,11 @@ const router = createRouter({
       component: () => import("../views/ImportData.vue"),
     },
     {
+      path: "/settings/webdav",
+      name: "webdav-sync",
+      component: () => import("../views/WebdavSync.vue"),
+    },
+    {
       path: "/onboarding",
       name: "onboarding",
       component: () => import("../views/Onboarding.vue"),

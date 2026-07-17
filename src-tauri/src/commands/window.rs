@@ -344,6 +344,23 @@ pub fn reset_app_data(app: AppHandle) -> Result<(), String> {
 pub fn delete_categories(app: AppHandle, categories: Vec<String>) -> Result<(), String> {
     let dir = crate::get_data_dir(&app)?;
     for stem in &categories {
+        if stem == "webdav" {
+            // The webdav category is the `webdav` key inside config.json, not
+            // a file of its own — strip the key, keep the rest of the config.
+            let cfg_path = dir.join("config.json");
+            if let Ok(content) = std::fs::read(&cfg_path) {
+                if let Ok(mut v) = serde_json::from_slice::<serde_json::Value>(&content) {
+                    if let Some(obj) = v.as_object_mut() {
+                        obj.remove("webdav");
+                        if let Ok(json) = serde_json::to_string_pretty(&v) {
+                            std::fs::write(&cfg_path, json)
+                                .map_err(|e| format!("write config: {e}"))?;
+                        }
+                    }
+                }
+            }
+            continue;
+        }
         let path = if stem == "settings" {
             dir.join("config.json")
         } else {

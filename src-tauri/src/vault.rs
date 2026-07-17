@@ -71,6 +71,14 @@ const DATA_FILES: &[&str] = &[
 /// by the encrypt/decrypt step this category requires.
 const SETTINGS_STEM: &str = "settings";
 
+/// Pseudo-stem for the WebDAV server settings. These live inside the
+/// plaintext `config.json` (`webdav` key), but are their own backup category
+/// (default unselected): at export the key is split out of the settings
+/// snapshot into its own entry, and at import each stem merges back into
+/// `config.json` independently. The account password is never part of this —
+/// it stays in the OS credential store.
+const WEBDAV_STEM: &str = "webdav";
+
 /// Every stem that may legally appear as a key in `ExportBundle.data`. Used as
 /// the import/inspect allowlist (replaces the path-traversal guard that used to
 /// consult `DATA_FILES` alone).
@@ -82,6 +90,7 @@ const KNOWN_STEMS: &[&str] = &[
     "providers",
     "websearch",
     "settings",
+    "webdav",
 ];
 
 // ── Argon2id parameters for the transport envelope ─────────────────────────
@@ -250,9 +259,11 @@ pub struct ExportBundle {
     /// Ciphertexts keyed by data-file stem. The 7 user-data files share a
     /// single on-disk shape (a single `EncryptedPayload` wrapping the
     /// serialized structure) and travel verbatim. The `"settings"` entry is the
-    /// otherwise-plaintext `config.json` re-encrypted under the Master Key's
-    /// `"settings"` scope at export time (and decrypted back to plaintext on
-    /// import). All values are wrapped under the Master Key.
+    /// otherwise-plaintext `config.json` (minus its `webdav` key) re-encrypted
+    /// under the Master Key's `"settings"` scope at export time; the `"webdav"`
+    /// entry carries that split-out key under its own scope. Both are decrypted
+    /// back to plaintext and merged into `config.json` on import. All values
+    /// are wrapped under the Master Key.
     data: std::collections::BTreeMap<String, EncryptedPayload>,
 }
 
@@ -289,26 +300,86 @@ fn collect_data_payloads(
         map.insert((*stem).to_string(), payload);
     }
     // config.json is the only plaintext source — encrypt it under the settings
-    // scope so the bundle stays ciphertext end-to-end. Absent on a fresh install.
+    // scope so the bundle stays ciphertext end-to-end. Absent on a fresh
+    // install. The `webdav` key is split out into its own category so users
+    // can leave server settings out of a backup while keeping the rest.
     let cfg_path = dir.join("config.json");
     if cfg_path.exists() {
         let content = fs::read(&cfg_path).map_err(|e| format!("read config: {e}"))?;
-        let payload = crypto::encrypt(SETTINGS_STEM, &content)?;
+        let (settings_part, webdav_part) = split_config_webdav(&content);
+        let payload = crypto::encrypt(SETTINGS_STEM, &settings_part)?;
         map.insert(SETTINGS_STEM.to_string(), payload);
+        if let Some(webdav) = webdav_part {
+            let payload = crypto::encrypt(WEBDAV_STEM, &webdav)?;
+            map.insert(WEBDAV_STEM.to_string(), payload);
+        }
     }
     Ok(map)
 }
 
-/// Build an export bundle for the current machine's data, keyed by `password`.
-/// Writes it to `path`. `categories` filters which entries land in the bundle;
-/// pass an empty slice (or all of `KNOWN_STEMS`) to include everything.
-/// Intended to be invoked from the export_data command.
-pub fn export_bundle(
+/// Split a plaintext `config.json` into (settings-without-webdav, webdav).
+/// An unparseable config is returned whole with no split (matches the old
+/// encrypt-verbatim behavior). Pure helper, unit-tested below.
+fn split_config_webdav(content: &[u8]) -> (Vec<u8>, Option<Vec<u8>>) {
+    let mut value: serde_json::Value = match serde_json::from_slice(content) {
+        Ok(v) => v,
+        Err(_) => return (content.to_vec(), None),
+    };
+    let webdav = value.as_object_mut().and_then(|o| o.remove(WEBDAV_STEM));
+    match webdav {
+        Some(w) => match (serde_json::to_vec(&value), serde_json::to_vec(&w)) {
+            (Ok(settings), Ok(webdav)) => (settings, Some(webdav)),
+            _ => (content.to_vec(), None),
+        },
+        None => (content.to_vec(), None),
+    }
+}
+
+/// Merge an imported settings payload into the local `config.json` while
+/// preserving the LOCAL `webdav` key: the settings category no longer carries
+/// it (it is its own stem), so a settings-only restore must not clobber the
+/// WebDAV server config on this machine. Pure helper, unit-tested below.
+fn merge_settings_preserving_webdav(imported: &[u8], existing: Option<&[u8]>) -> Vec<u8> {
+    let mut imported_v: serde_json::Value = match serde_json::from_slice(imported) {
+        Ok(v) => v,
+        Err(_) => return imported.to_vec(),
+    };
+    let existing_webdav = existing
+        .and_then(|e| serde_json::from_slice::<serde_json::Value>(e).ok())
+        .and_then(|v| v.get(WEBDAV_STEM).cloned());
+    if let (Some(obj), Some(w)) = (imported_v.as_object_mut(), existing_webdav) {
+        obj.insert(WEBDAV_STEM.to_string(), w);
+    }
+    serde_json::to_vec_pretty(&imported_v).unwrap_or_else(|_| imported.to_vec())
+}
+
+/// Merge an imported `webdav` category payload into the local `config.json`
+/// (creating a minimal config from `{}` when none exists). Pure helper.
+fn merge_webdav_into_config(webdav: &[u8], existing: Option<&[u8]>) -> Result<Vec<u8>, String> {
+    let webdav_v: serde_json::Value =
+        serde_json::from_slice(webdav).map_err(|e| format!("parse webdav payload: {e}"))?;
+    let mut base: serde_json::Value = existing
+        .and_then(|e| serde_json::from_slice(e).ok())
+        .unwrap_or_else(|| serde_json::json!({}));
+    match base.as_object_mut() {
+        Some(obj) => {
+            obj.insert(WEBDAV_STEM.to_string(), webdav_v);
+            serde_json::to_vec_pretty(&base).map_err(|e| format!("serialize config: {e}"))
+        }
+        None => Err("local config.json is not a JSON object".into()),
+    }
+}
+
+/// Build an export bundle for the current machine's data, keyed by `password`,
+/// returning the serialized bundle bytes. `categories` filters which entries
+/// land in the bundle; pass an empty slice (or all of `KNOWN_STEMS`) to include
+/// everything. This is the in-memory form of `export_bundle`, used when the
+/// bundle is sent somewhere other than a local file (e.g. WebDAV upload).
+pub fn build_bundle(
     app: &AppHandle,
     password: &str,
-    path: &str,
     categories: &[String],
-) -> Result<(), String> {
+) -> Result<Vec<u8>, String> {
     let master_key = crypto::get_master_key()?;
 
     let mut salt = [0u8; ARGON2_SALT_LEN];
@@ -345,7 +416,21 @@ pub fn export_bundle(
     };
     let json =
         serde_json::to_string_pretty(&bundle).map_err(|e| format!("serialize bundle: {e}"))?;
-    fs::write(path, json).map_err(|e| format!("write bundle: {e}"))?;
+    Ok(json.into_bytes())
+}
+
+/// Build an export bundle for the current machine's data, keyed by `password`.
+/// Writes it to `path`. `categories` filters which entries land in the bundle;
+/// pass an empty slice (or all of `KNOWN_STEMS`) to include everything.
+/// Intended to be invoked from the export_data command.
+pub fn export_bundle(
+    app: &AppHandle,
+    password: &str,
+    path: &str,
+    categories: &[String],
+) -> Result<(), String> {
+    let bytes = build_bundle(app, password, categories)?;
+    fs::write(path, bytes).map_err(|e| format!("write bundle: {e}"))?;
     Ok(())
 }
 
@@ -361,7 +446,33 @@ pub fn import_bundle(
     categories: &[String],
 ) -> Result<(), String> {
     let (bundle, master_key) = open_bundle(path, password)?;
+    land_bundle(app, bundle, master_key, categories)
+}
 
+/// In-memory form of `import_bundle`: unwrap a bundle held in `bytes` (e.g.
+/// downloaded from WebDAV) and land its data on this machine. Identical
+/// semantics to `import_bundle`, including the final Master Key re-wrap.
+pub fn import_bundle_bytes(
+    app: &AppHandle,
+    password: &str,
+    bytes: &[u8],
+    categories: &[String],
+) -> Result<(), String> {
+    let (bundle, master_key) = open_bundle_bytes(bytes, password)?;
+    land_bundle(app, bundle, master_key, categories)
+}
+
+/// Land an already-opened bundle's data ciphertexts on this machine and
+/// re-wrap the Master Key under THIS machine's KEK (so local use stays
+/// passwordless). `categories` selects which bundle entries are written; an
+/// empty slice means all known stems present in the bundle. Shared by the
+/// file-based and bytes-based import paths.
+fn land_bundle(
+    app: &AppHandle,
+    bundle: ExportBundle,
+    master_key: [u8; 32],
+    categories: &[String],
+) -> Result<(), String> {
     let want: std::collections::HashSet<&str> = if categories.is_empty() {
         KNOWN_STEMS.iter().copied().collect()
     } else {
@@ -370,21 +481,27 @@ pub fn import_bundle(
 
     // 1) Write each requested, allowlisted entry. The 7 data files are raw
     //    ciphertexts and land verbatim (already wrapped under the Master Key).
-    //    The "settings" entry is a Master-Key-encrypted blob of the otherwise
-    //    plaintext config.json — decrypt it back to plaintext on write.
+    //    The "settings"/"webdav" entries are Master-Key-encrypted blobs of the
+    //    otherwise-plaintext config.json — decrypt them back to plaintext and
+    //    merge: settings keeps the LOCAL webdav key, the webdav stem only
+    //    replaces that one key.
     let dir = crate::get_data_dir(app)?;
     fs::create_dir_all(&dir).map_err(|e| format!("create dir: {e}"))?;
+    let cfg_path = dir.join("config.json");
     for (stem, payload) in &bundle.data {
         if !KNOWN_STEMS.contains(&stem.as_str()) || !want.contains(stem.as_str()) {
             continue;
         }
-        if stem == SETTINGS_STEM {
-            let plain =
-                crypto::decrypt_with_key(&scope_key(&master_key, SETTINGS_STEM), payload).map_err(|e| {
-                    format!("decrypt settings: {e}")
-                })?;
-            fs::write(dir.join("config.json"), plain)
-                .map_err(|e| format!("write config: {e}"))?;
+        if stem == SETTINGS_STEM || stem == WEBDAV_STEM {
+            let plain = crypto::decrypt_with_key(&scope_key(&master_key, stem), payload)
+                .map_err(|e| format!("decrypt {}: {e}", stem))?;
+            let existing = fs::read(&cfg_path).ok();
+            let merged = if stem == SETTINGS_STEM {
+                merge_settings_preserving_webdav(&plain, existing.as_deref())
+            } else {
+                merge_webdav_into_config(&plain, existing.as_deref())?
+            };
+            fs::write(&cfg_path, merged).map_err(|e| format!("write config: {e}"))?;
         } else {
             let out = serde_json::to_string_pretty(payload)
                 .map_err(|e| format!("serialize {}: {e}", stem))?;
@@ -422,10 +539,30 @@ pub fn inspect_bundle_file(
     password: &str,
 ) -> Result<BundlePreview, String> {
     let (bundle, master_key) = open_bundle(path, password)?;
+    summarize_bundle(&bundle, &master_key)
+}
+
+/// In-memory form of `inspect_bundle_file`: inspect a bundle held in `bytes`
+/// (e.g. downloaded from WebDAV) without writing anything to disk. Wrong
+/// password yields the same error string as `import_bundle_bytes`.
+pub fn inspect_bundle_bytes(
+    bytes: &[u8],
+    password: &str,
+) -> Result<BundlePreview, String> {
+    let (bundle, master_key) = open_bundle_bytes(bytes, password)?;
+    summarize_bundle(&bundle, &master_key)
+}
+
+/// Build the per-category preview for an already-opened bundle. Shared by the
+/// file-based and bytes-based inspect paths.
+fn summarize_bundle(
+    bundle: &ExportBundle,
+    master_key: &[u8; 32],
+) -> Result<BundlePreview, String> {
     let mut cats = Vec::new();
     for stem in KNOWN_STEMS {
         if let Some(payload) = bundle.data.get(*stem) {
-            let count = count_for(stem, payload, &master_key)?;
+            let count = count_for(stem, payload, master_key)?;
             cats.push(CategoryPreview {
                 id: (*stem).to_string(),
                 count,
@@ -442,9 +579,16 @@ pub fn inspect_bundle_file(
 /// recovered Master Key. Shared by import and inspect so both reject bad
 /// passwords identically.
 fn open_bundle(path: &str, password: &str) -> Result<(ExportBundle, [u8; 32]), String> {
-    let content = fs::read_to_string(path).map_err(|e| format!("read bundle: {e}"))?;
+    let bytes = fs::read(path).map_err(|e| format!("read bundle: {e}"))?;
+    open_bundle_bytes(&bytes, password)
+}
+
+/// In-memory form of `open_bundle`: parse + password-verify a bundle held in
+/// `bytes`. Shared by the file-based and WebDAV download paths so both reject
+/// bad passwords identically.
+fn open_bundle_bytes(bytes: &[u8], password: &str) -> Result<(ExportBundle, [u8; 32]), String> {
     let bundle: ExportBundle =
-        serde_json::from_str(&content).map_err(|e| format!("parse bundle: {e}"))?;
+        serde_json::from_slice(bytes).map_err(|e| format!("parse bundle: {e}"))?;
     if bundle.kind != "prompit-vault-export" {
         return Err("not a prompit export bundle".into());
     }
@@ -649,5 +793,116 @@ mod tests {
         // the password (not by any local machine state).
         let wrong = derive_password_key("wrong horse", &salt, &kdf).unwrap();
         assert!(crypto::decrypt_with_key(&wrong, &wrapped).is_err());
+    }
+
+    /// The in-memory bundle path (WebDAV download) must parse, verify, and
+    /// inspect exactly like the file path, and reject bad input identically.
+    #[test]
+    fn bundle_bytes_open_and_inspect_roundtrip() {
+        let master = [0x42u8; 32];
+        let kdf = KdfParams {
+            m_cost: 4096, // light for test speed
+            t_cost: 1,
+            p_cost: 1,
+            output_len: ARGON2_OUTPUT_LEN,
+        };
+        let salt = [7u8; ARGON2_SALT_LEN];
+        let pw_key = derive_password_key("correct horse", &salt, &kdf).unwrap();
+        let wrapped = crypto::encrypt_with_key(&pw_key, &master).unwrap();
+        let verifier =
+            crypto::encrypt_with_key(&scope_key(&master, VERIFIER_SCOPE), VERIFIER_MAGIC).unwrap();
+
+        // One data entry: a 2-item providers list under the master-key scope.
+        let providers_json = serde_json::json!({ "providers": [{ "a": 1 }, { "b": 2 }] });
+        let providers_payload = crypto::encrypt_with_key(
+            &scope_key(&master, "providers"),
+            serde_json::to_string(&providers_json).unwrap().as_bytes(),
+        )
+        .unwrap();
+        let mut data = std::collections::BTreeMap::new();
+        data.insert("providers".to_string(), providers_payload);
+
+        let bundle = ExportBundle {
+            version: 1,
+            kind: "prompit-vault-export".to_string(),
+            salt: BASE64.encode(salt),
+            kdf,
+            wrapped_master_key: wrapped,
+            verifier,
+            data,
+        };
+        let bytes = serde_json::to_vec(&bundle).unwrap();
+
+        // Right password: opens, recovers the Master Key, inspects.
+        let (opened, mk) = open_bundle_bytes(&bytes, "correct horse").unwrap();
+        assert_eq!(mk, master);
+        assert!(opened.data.contains_key("providers"));
+        let preview = inspect_bundle_bytes(&bytes, "correct horse").unwrap();
+        assert_eq!(preview.version, 1);
+        assert_eq!(preview.categories.len(), 1);
+        assert_eq!(preview.categories[0].id, "providers");
+        assert_eq!(preview.categories[0].count, Some(2));
+
+        // Wrong password fails with the same message as the file path.
+        let err = open_bundle_bytes(&bytes, "wrong horse")
+            .err()
+            .expect("wrong password must fail");
+        assert!(err.contains("wrong password"));
+        assert!(inspect_bundle_bytes(&bytes, "wrong horse").is_err());
+
+        // Garbage bytes are a clean parse error, not a panic.
+        assert!(open_bundle_bytes(b"not json", "correct horse").is_err());
+    }
+
+    #[test]
+    fn split_config_webdav_separates_the_key() {
+        let cfg = br#"{"theme":"dark","webdav":{"url":"https://dav","username":"u"}}"#;
+        let (settings, webdav) = split_config_webdav(cfg);
+        let s: serde_json::Value = serde_json::from_slice(&settings).unwrap();
+        assert_eq!(s.get("theme").unwrap(), "dark");
+        assert!(s.get("webdav").is_none());
+        let w: serde_json::Value = serde_json::from_slice(&webdav.unwrap()).unwrap();
+        assert_eq!(w.get("url").unwrap(), "https://dav");
+    }
+
+    #[test]
+    fn split_config_webdav_passes_through_when_absent_or_unparseable() {
+        let cfg = br#"{"theme":"dark"}"#;
+        let (settings, webdav) = split_config_webdav(cfg);
+        assert_eq!(settings, cfg);
+        assert!(webdav.is_none());
+        let (raw, none2) = split_config_webdav(b"not json");
+        assert_eq!(raw, b"not json");
+        assert!(none2.is_none());
+    }
+
+    #[test]
+    fn merge_settings_preserves_local_webdav() {
+        let imported = br#"{"theme":"light"}"#;
+        let existing = br#"{"theme":"dark","webdav":{"url":"https://local"}}"#;
+        let merged = merge_settings_preserving_webdav(imported, Some(existing));
+        let v: serde_json::Value = serde_json::from_slice(&merged).unwrap();
+        assert_eq!(v.get("theme").unwrap(), "light");
+        assert_eq!(v["webdav"]["url"], "https://local");
+        // No local config yet → imported lands as-is.
+        let merged = merge_settings_preserving_webdav(imported, None);
+        let v: serde_json::Value = serde_json::from_slice(&merged).unwrap();
+        assert!(v.get("webdav").is_none());
+    }
+
+    #[test]
+    fn merge_webdav_replaces_only_that_key() {
+        let webdav = br#"{"url":"https://imported"}"#;
+        let existing = br#"{"theme":"dark","webdav":{"url":"https://local"}}"#;
+        let merged = merge_webdav_into_config(webdav, Some(existing)).unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&merged).unwrap();
+        assert_eq!(v.get("theme").unwrap(), "dark");
+        assert_eq!(v["webdav"]["url"], "https://imported");
+        // No local config → a minimal one is created around the webdav key.
+        let merged = merge_webdav_into_config(webdav, None).unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&merged).unwrap();
+        assert_eq!(v["webdav"]["url"], "https://imported");
+        // Unparseable payload is an error, not a silent clobber.
+        assert!(merge_webdav_into_config(b"not json", None).is_err());
     }
 }

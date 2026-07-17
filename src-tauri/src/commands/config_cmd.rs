@@ -127,6 +127,7 @@ mod tests {
             web_search_providers: vec![],
             web_search_active_index: -1,
             web_search_enabled_in_skills_lite: false,
+            webdav: crate::config::WebdavSettings::default(),
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
