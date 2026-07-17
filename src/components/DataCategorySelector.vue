@@ -124,7 +124,7 @@ function countLabel(cat: DataCategory): string | null {
   gap: 4px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   padding: 7px;
 }
 .cat-row {
@@ -133,7 +133,7 @@ function countLabel(cat: DataCategory): string | null {
   gap: 9px;
   width: 100%;
   padding: 7px 8px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   border: none;
   background: none;
   cursor: pointer;
@@ -145,15 +145,18 @@ function countLabel(cat: DataCategory): string | null {
   background: var(--color-surface-hover);
 }
 .cat-row.disabled {
-  opacity: 0.55;
   cursor: not-allowed;
+}
+.cat-row.disabled .cat-label,
+.cat-row.disabled .cat-desc {
+  opacity: 0.55;
 }
 .cat-row.checked {
   background: var(--color-surface);
 }
 .cat-all {
   border-bottom: 1px solid var(--color-border);
-  border-radius: 6px 6px 4px 4px;
+  border-radius: var(--radius-sm);
   padding-bottom: 8px;
   margin-bottom: 2px;
   align-items: center;
@@ -168,7 +171,7 @@ function countLabel(cat: DataCategory): string | null {
   justify-content: center;
   width: 14px;
   height: 14px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   border: 1.5px solid var(--color-border);
   background: var(--color-bg);
   color: var(--color-bg);
@@ -179,7 +182,7 @@ function countLabel(cat: DataCategory): string | null {
 .cat-row.checked .cat-check,
 .cat-row.indeterminate .cat-check {
   border-color: var(--color-accent-border);
-  background: var(--color-accent-text, var(--color-accent-border));
+  background: var(--color-accent);
 }
 
 .cat-text {
@@ -206,7 +209,7 @@ function countLabel(cat: DataCategory): string | null {
   color: var(--color-accent-text);
   background: var(--color-accent-bg);
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-variant-numeric: tabular-nums;
 }
 .cat-desc {
@@ -220,7 +223,7 @@ function countLabel(cat: DataCategory): string | null {
   font-weight: 650;
   letter-spacing: 0.03em;
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   text-transform: uppercase;
 }
 .cat-badge.sensitive {

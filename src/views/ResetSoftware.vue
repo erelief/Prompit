@@ -169,36 +169,14 @@ async function handleConfirm() {
   border-bottom: 1px solid var(--color-surface);
   flex-shrink: 0;
 }
-.header-title {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-  line-height: 1.2;
-}
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  color: var(--color-text-muted);
-  transition: 0.15s;
-}
-.back-btn:hover {
-  color: var(--color-text);
-  background: var(--color-surface-hover);
-}
 .sandbox-badge {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
   padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(34, 197, 94, 0.12);
-  color: #16a34a;
+  background: var(--color-success-bg);
+  color: var(--color-success);
   flex-shrink: 0;
 }
 
@@ -209,7 +187,7 @@ async function handleConfirm() {
   align-items: stretch;
   padding: 18px 24px;
   overflow-y: auto;
-  gap: 12px;
+  gap: 14px;
 }
 .reset-body::-webkit-scrollbar { width: 3px; }
 .reset-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
@@ -250,7 +228,7 @@ async function handleConfirm() {
 .sandbox-hint {
   font-size: 11px;
   font-weight: 500;
-  color: #16a34a;
+  color: var(--color-success);
 }
 .selector-label {
   font-size: 10.5px;
@@ -290,38 +268,9 @@ async function handleConfirm() {
   margin-left: auto;
 }
 
-.mini-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 27px; height: 27px; border-radius: 7px;
-  color: var(--color-text-muted); cursor: pointer;
-  border: none; background: none; transition: .12s;
-}
-.mini-btn:hover:not(:disabled) { color: var(--color-text); background: var(--color-border); }
-.mini-btn.danger-active {
-  color: var(--color-danger); background: var(--color-danger-bg);
-  animation: danger-pulse .8s ease-in-out infinite alternate;
-}
-.mini-btn.confirm-counting {
-  opacity: .55;
-  cursor: not-allowed;
-  animation: none;
-  color: var(--color-text-muted);
-  background: var(--color-surface);
-}
 .confirm-with-countdown {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-.countdown-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-  opacity: .85;
-  min-width: 20px;
-}
-@keyframes danger-pulse {
-  to { background: var(--color-danger-bg); filter: brightness(.88); }
 }
 </style>

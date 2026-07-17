@@ -22,9 +22,11 @@ import {
   Sparkles,
   Globe,
   GlobeOff,
+  Check,
 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { presetMeta } from "../services/websearch";
+import { capHeight, chevronTransform } from "../shared/dropdown";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -243,9 +245,6 @@ function pickLang(lang: string) {
 }
 
 // ── Dropdown max-height (2 items visible, scroll beyond) ──
-const ITEM_H = 28;
-const PAD = 6;
-const capHeight = (n: number) => n > 2 ? { maxHeight: `${2 * ITEM_H + PAD}px` } : {};
 const personaDropdownStyle = computed(() => capHeight(personaStore.personas.length));
 const langDropdownStyle = computed(() => capHeight(targetLanguages.value.length));
 
@@ -281,10 +280,15 @@ function onDocumentClick(e: MouseEvent) {
     return;
   }
   showSkillsLiteDropdown.value = false;
-}
 
-const chevronTransform = (open: boolean) =>
-  `rotate(${open === props.growAbove ? 0 : 180}deg)`;
+  if (
+    webSearchDropdownRef.value?.contains(target) ||
+    webSearchMenuRef.value?.contains(target)
+  ) {
+    return;
+  }
+  showWebSearchDropdown.value = false;
+}
 
 async function handleEmptyHintGo() {
   const target = emptyHintTarget.value;
@@ -324,15 +328,15 @@ defineExpose({ closeAllDropdowns });
         :title="t('floating.selectSkillsLite')"
       >
         <Sparkles :size="11" :stroke-width="1.8" />
-        <span class="truncate max-w-[5em] min-w-0">{{ activeSkillsLiteName }}</span>
+        <span v-if="activeSkillsLiteName" class="truncate max-w-[5em] min-w-0">{{ activeSkillsLiteName }}</span>
         <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
-          :style="{ transform: chevronTransform(showSkillsLiteDropdown) }" />
+          :style="{ transform: chevronTransform(showSkillsLiteDropdown, props.growAbove) }" />
       </button>
 
       <Teleport to="body">
         <Transition name="dropdown">
           <div
-            v-if="showSkillsLiteDropdown"
+            v-if="showSkillsLiteDropdown && skillsLiteStore.skillsLites.length > 0"
             ref="skillsLiteMenuRef"
             class="model-dropdown skills-lite-dropdown"
             :style="{ top: skillsLiteDropdownPos.top + 'px', left: skillsLiteDropdownPos.left + 'px', ...skillsLiteDropdownStyle }"
@@ -345,7 +349,7 @@ defineExpose({ closeAllDropdowns });
               :class="{ selected: skillsLite.enabled }"
             >
               <span class="truncate">{{ skillsLite.name }}</span>
-              <span v-if="skillsLite.enabled" class="check-mark">&#10003;</span>
+              <span v-if="skillsLite.enabled" class="check-mark"><Check :size="10" :stroke-width="2.5" /></span>
             </button>
           </div>
         </Transition>
@@ -369,7 +373,7 @@ defineExpose({ closeAllDropdowns });
       >
         <Globe v-if="webSearchOn" :size="11" :stroke-width="1.8" />
         <GlobeOff v-else :size="11" :stroke-width="1.8" />
-        <span v-if="webSearchOn" class="persona-dot on" />
+        <span v-if="webSearchOn" class="status-dot on" />
         <span class="truncate max-w-[3em] min-w-0">{{ webSearchOn ? activeWebSearchProviderName : '' }}</span>
       </button>
       <button
@@ -380,7 +384,7 @@ defineExpose({ closeAllDropdowns });
       >
         <ChevronDown
           :size="10" :stroke-width="2" class="toolbar-chevron"
-          :style="{ transform: chevronTransform(showWebSearchDropdown) }"
+          :style="{ transform: chevronTransform(showWebSearchDropdown, props.growAbove) }"
         />
       </button>
       <Teleport to="body">
@@ -402,7 +406,7 @@ defineExpose({ closeAllDropdowns });
                 <component :is="presetMeta(provider.preset).icon" :size="14" :stroke-width="1.8" class="shrink-0" />
                 <span class="truncate">{{ provider.custom_name || presetMeta(provider.preset).label }}</span>
               </span>
-              <span v-if="provider.enabled" class="check-mark">&#10003;</span>
+              <span v-if="provider.enabled" class="check-mark"><Check :size="10" :stroke-width="2.5" /></span>
             </button>
           </div>
         </Transition>
@@ -432,7 +436,7 @@ defineExpose({ closeAllDropdowns });
       <Languages :size="11" :stroke-width="1.8" />
       <span>{{ langCode }}</span>
       <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
-        :style="{ transform: chevronTransform(showLangDropdown) }" />
+        :style="{ transform: chevronTransform(showLangDropdown, props.growAbove) }" />
     </button>
 
     <Teleport to="body">
@@ -451,7 +455,7 @@ defineExpose({ closeAllDropdowns });
             :class="{ selected: appConfig.target_lang === lang }"
           >
             <span class="truncate">{{ getLangName(lang) }}</span>
-            <span v-if="appConfig.target_lang === lang" class="check-mark">&#10003;</span>
+            <span v-if="appConfig.target_lang === lang" class="check-mark"><Check :size="10" :stroke-width="2.5" /></span>
           </button>
         </div>
       </Transition>
@@ -467,7 +471,7 @@ defineExpose({ closeAllDropdowns });
       :title="personaOn ? t('floating.disablePersona') : t('floating.enablePersona')"
     >
       <UserCircle :size="11" :stroke-width="1.8" />
-      <span v-if="personaOn" class="persona-dot on" />
+      <span v-if="personaOn" class="status-dot on" />
       <span class="truncate max-w-[3em] min-w-0">{{ personaOn ? displayPersonaName : '' }}</span>
     </button>
     <button
@@ -478,7 +482,7 @@ defineExpose({ closeAllDropdowns });
       :class="{ on: personaOn, active: showPersonaDropdown }"
     >
       <ChevronDown :size="10" :stroke-width="2" class="toolbar-chevron"
-        :style="{ transform: chevronTransform(showPersonaDropdown) }" />
+        :style="{ transform: chevronTransform(showPersonaDropdown, props.growAbove) }" />
     </button>
 
     <Teleport to="body">
@@ -497,7 +501,7 @@ defineExpose({ closeAllDropdowns });
             :class="{ selected: persona.enabled }"
           >
             <span class="truncate">{{ persona.name }}</span>
-            <span v-if="persona.enabled" class="check-mark">&#10003;</span>
+            <span v-if="persona.enabled" class="check-mark"><Check :size="10" :stroke-width="2.5" /></span>
           </button>
         </div>
       </Transition>
@@ -523,7 +527,7 @@ defineExpose({ closeAllDropdowns });
     :title="appConfig.user_dict_enabled ? t('floating.disableDict') : t('floating.enableDict')"
   >
     <BookText :size="11" :stroke-width="1.8" />
-    <span v-if="appConfig.user_dict_enabled" class="dict-dot on" />
+    <span v-if="appConfig.user_dict_enabled" class="status-dot on" />
   </button>
 
   <!-- Dictionary ghost (empty state) -->
@@ -579,9 +583,8 @@ defineExpose({ closeAllDropdowns });
   height: 28px;
   padding: 0 8px 0 7px;
   border-radius: 8px;
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: .04em;
+  font-size: 10px;
+  font-weight: 550;
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-surface);
@@ -592,11 +595,6 @@ defineExpose({ closeAllDropdowns });
   color: var(--color-text-secondary);
   background: var(--color-surface-hover);
   border-color: var(--color-border-hover);
-}
-.toolbar-chevron {
-  color: var(--color-text-muted);
-  transition: transform 0.15s ease;
-  flex-shrink: 0;
 }
 
 /* Persona toggle */
@@ -622,7 +620,7 @@ defineExpose({ closeAllDropdowns });
   background: var(--color-surface);
   border: 1px solid var(--color-surface);
   border-right: none;
-  transition: all 0.18s ease;
+  transition: all 0.15s ease;
 }
 .persona-toggle.on { padding-right: 10px; }
 .persona-toggle:hover {
@@ -640,7 +638,7 @@ defineExpose({ closeAllDropdowns });
 }
 
 /* Status dot */
-.persona-dot {
+.status-dot {
   width: 5px; height: 5px; border-radius: 50%;
   background: var(--color-accent);
   box-shadow: 0 0 5px var(--color-accent-border);
@@ -690,8 +688,9 @@ defineExpose({ closeAllDropdowns });
   background: var(--color-surface);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all 0.18s ease;
-  font-size: 11px;
+  transition: all 0.15s ease;
+  font-size: 10px;
+  font-weight: 550;
   font-family: inherit;
   flex-shrink: 0;
 }
@@ -708,14 +707,6 @@ defineExpose({ closeAllDropdowns });
 .dict-toggle.on:hover {
   color: var(--color-accent);
   background: var(--color-accent-bg);
-}
-.dict-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 5px var(--color-accent-border);
-  flex-shrink: 0;
 }
 
 /* ── Ghost button (empty state) ── */
@@ -760,76 +751,6 @@ defineExpose({ closeAllDropdowns });
   color: var(--color-accent);
   background: var(--color-accent-bg);
   border-color: var(--color-accent-border);
-}
-
-/* Model dropdown (shared base for lang/persona dropdowns) */
-.model-dropdown {
-  position: fixed;
-  min-width: 160px;
-  max-width: 240px;
-  padding: 3px;
-  border-radius: 8px;
-  background: var(--color-overlay);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--color-surface);
-  backdrop-filter: blur(16px);
-  z-index: 9999;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-.model-dropdown::-webkit-scrollbar { width: 3px; }
-.model-dropdown::-webkit-scrollbar-track { margin: 10px 0; }
-.model-dropdown::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
-
-.model-option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 10px;
-  border-radius: 5px;
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  text-align: left;
-  transition: all 0.1s ease;
-}
-
-.model-option:hover {
-  background: var(--color-surface);
-  color: var(--color-text);
-}
-
-.model-option.selected {
-  color: var(--color-accent);
-}
-
-.check-mark {
-  font-size: 10px;
-  flex-shrink: 0;
-}
-
-/* Dropdown transition */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: opacity 0.12s ease, transform 0.12s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px) scale(0.97);
-}
-
-/* Transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.15s ease-out;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 
 /* ── Empty-state hint (full-window overlay) ── */
@@ -886,7 +807,7 @@ defineExpose({ closeAllDropdowns });
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
-  color: white;
+  color: var(--color-bg);
   background: var(--color-accent);
   border: none;
   cursor: pointer;
@@ -898,36 +819,6 @@ defineExpose({ closeAllDropdowns });
 
 @media (prefers-reduced-motion: reduce) {
   .persona-wrap.on,
-  .dict-toggle.on,
-  .search-toggle.on { animation: none; }
-}
-
-/* ── Web search toggle — icon-btn form (mirrors FloatingInput's pin button) ── */
-.search-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-  border: none;
-  background: none;
-}
-.search-toggle:hover {
-  color: var(--color-text);
-  background: var(--color-surface);
-}
-.search-toggle.on {
-  color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
-  animation: toggle-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
-}
-.search-toggle.on:hover {
-  color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  .dict-toggle.on { animation: none; }
 }
 </style>

@@ -87,7 +87,7 @@ onMounted(() => {
     <div class="about-section">
       <span class="about-label">{{ t('about.thirdParty') }}</span>
       <button class="about-link" @click="router.push('/settings/third-party')">
-        <span>{{ t('about.thirdParty') }}</span>
+        <span>{{ t('common.view') }}</span>
         <ChevronRight :size="12" :stroke-width="2" />
       </button>
     </div>
@@ -119,6 +119,7 @@ onMounted(() => {
   background: var(--color-bg);
   color: var(--color-text);
   overflow: hidden;
+  border-radius: var(--radius-lg);
 }
 .about-root.grow-above .about-header { order: 99; border-bottom: none; border-top: 1px solid var(--color-surface); margin-top: auto; }
 
@@ -130,31 +131,6 @@ onMounted(() => {
   padding: 16px 24px 12px;
   border-bottom: 1px solid var(--color-surface);
   flex-shrink: 0;
-}
-.header-title {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-  line-height: 1.2;
-}
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  color: var(--color-text-muted);
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: 0.15s;
-}
-.back-btn:hover {
-  color: var(--color-text);
-  background: var(--color-surface-hover);
 }
 
 /* ── Title row ── */
@@ -195,11 +171,6 @@ onMounted(() => {
 .about-label {
   font-size: 12px;
   color: var(--color-text-muted);
-}
-.about-value {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  font-weight: 500;
 }
 .about-link {
   display: inline-flex;
