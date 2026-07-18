@@ -11,78 +11,67 @@ English | **简体中文**
 <h1 align="center">Prompit</h1>
 
 <p align="center">
-  A little helper that shows up when you call it.<br>
-  Press a shortcut, it appears. One sentence in, one sentence out, and it's gone.
+  A small AI helper that shows up when called, and leaves when dismissed.
 </p>
 
 ---
 
-> The name is a mashup of *Prompt it* — as in, "give it a prompt."
-> And that really is all it knows how to do.
+> *Prompit* is a portmanteau of *Prompt it*.
+>
+> And that really is all it does.
 
-Prompit is a small floating window that lives in the background. **Press a shortcut when you need it**, it pops up near your cursor, you give it a sentence, and it uses an AI model to turn it into the sentence you want — a translation, a polish, whatever — then drops the result right back at your cursor and disappears.
-
-It only does small jobs. **Translation is its biggest, most-used job** — but not the only one. Anything that's "one sentence in, one sentence out," it'll lend a hand.
-
-It doesn't ship with a model of its own. **You'll need to connect a third-party AI service for it to do anything** (see the [Powered by AI](#-powered-by-ai--but-you-pick-the-model) section below).
+Prompit is a small floating window that lives in the background. **Press a shortcut when you need it**, it appears next to your cursor, uses an AI model to do a few simple things — translate, polish, answer a question — then drops the result right back where your cursor is and disappears on its own.
 
 ## Highlights
 
 ### 🪂 Summon on demand, dismiss in a blink
-Press `Alt+Y` (customizable) and the window pops up near your cursor. Hit `Enter` and the result is pasted straight back to where you were typing — the window vanishes on its own. No window switching, no copy-paste.
+Press `Alt+Y` (customizable) and the window pops up next to your cursor. After typing your request, press `Enter`, and after the result arrives press `Enter` again — the result is pasted straight back to where you were, and the window disappears on its own.
 
-### 🌐 Translation is the headliner
-Translation is what Prompit is best at, and what it's used for most:
-- Multiple target languages — and you can add your own, reorder them too.
-- **Personas**: want the translation to sound like a programmer wrote it, like a formal document, or like a chat? Just add a persona.
-- **User dictionary**: got words you want translated a specific way (names, jargon)? Drop them in the dictionary and it'll listen every time.
+No window switching, no copy-paste.
 
-### ✨ Light skills, second fiddle
-Beyond translation, it can do other one-sentence transformations — like **Polish**, which rewrites your text in the *same* language to read more naturally.
+### 🌐 Translation
+Translates your input into a target language, with several customization options:
+- **Multiple target languages** — you can add your own and reorder them. I've tried it; even Classical Chinese works.
+- **Translation persona**: set the "translator's" identity to better match your translation scenario.
+- **User dictionary**: a dictionary you maintain yourself, to pin specific translations for certain words.
 
-We call these little jobs "skills." You can write and edit your own, and import/export them as Markdown files — take them with you when you switch machines.
+### ✨ Skills Lite
+Beyond translation, you can load commonly-used system prompts as preset templates into the app — effectively a single-file skill system that speaks SKILL.md (and yes, it really supports direct import).
+- Built-in quick-question skill: AI replies to your question with a concise answer.
+- Built-in XML-tag-prompt skill: structures your prompt with XML tags for better organization; AI fills in missing information automatically.
+- Built-in polish skill: detects the language of your input and polishes it as if a native speaker wrote it.
+- Supports importing standard-format SKILL.md files, and exporting skills in the same format.
+- Supports connecting a third-party service for AI search, so it can pull real-time information from the web and keep the sources.
 
-### 🔌 Powered by AI — but you pick the model
-Prompit's features run on AI models, **but it doesn't ship with one** — you'll need to connect a third-party AI service (say, OpenAI, DeepSeek, Kimi, Zhipu, Alibaba Cloud, … 20+ common ones come as presets). Connect one, and you're set.
+### 🔌 AI
+Prompit's features run on AI models, **but it doesn't ship with one** — you'll need to connect a third-party AI service (any OpenAI-API-compatible provider; mainstream platforms come as presets in the app).
 
-Why no built-in model? Because models cost money, and nobody's in a good position to foot that bill for you. So you pick the model, you handle the bill — Prompit just passes your text over and brings the result back.
+- **Everything Prompit does today is free** — no paid features, no in-app purchases, no subscriptions. Any cost is between you and the third-party service. If you use a self-hosted model, it's fully private and costs nothing.
+- **A cheap model is plenty** — the app's tasks are very simple; any modern mainstream AI model handles them easily. Cheap and fast matter more than flagship.
 
-**Two things to be clear about, money-wise:**
+### 🔧 Other details
+- Basic keyboard support, designed not to interrupt a continuous typing flow.
+- History, so nothing is lost to a slip of the hand:
+  - Searchable history records.
+  - When web search is enabled, history entries keep their sources for traceability.
 
-- **Prompit itself is currently free** — no paid features, no in-app purchases, no subscriptions. It's open source (Apache-2.0); just use it.
-- **The AI service you connect may charge** — that depends on your chosen provider and model. Many offer free quotas, and local models work too. Pick a **cheap, lightweight** one — Prompit only does small jobs, no need to overpay for this.
 
-> Your wallet will thank you.
+## With so many AI input methods out there, why build this?
 
-## What it is / What it isn't
+Prompit is **not** an AI input method. It's closer to a launcher like [Alfred](https://www.alfredapp.com/) or [Listary](https://www.listary.com/).
 
-Now that you've seen what it can do, let's also be clear about what it isn't — so expectations land in the right place:
+Modern AI input methods tend to emphasize "voice input" efficiency. But even when I'm alone, talking to my computer still feels deeply awkward to me. AI input methods also lack a sense of boundary — I only want AI to show up *when I actually want it*. So Prompit and input methods don't really compete for the same niche.
 
-| It is ✅ | It isn't ❌ |
-|---|---|
-| A floating window that appears on a shortcut | An always-on, auto-popping assistant |
-| A "dumb" app that returns one sentence per request | An AI agent that thinks, plans, and chains tasks together |
-| A small tool: translation first, light skills second | An AI input method that takes over your typing |
-| Your input method stays yours; Prompit stays separate | It won't replace or intercept your system keyboard |
+The original idea came from [sxzxs/Real-time-translation-typing](https://github.com/sxzxs/Real-time-translation-typing), a real-time translation tool built on an [AHK v2 script](https://www.autohotkey.com/v2/). I first forked it into a version powered by an AI service — [erelief/Real-time-translation-typing-LLM](https://github.com/erelief/Real-time-translation-typing-LLM) — but AHK had too many limitations, was hard to pick up, and couldn't go cross-platform. So I built this.
 
-In short: **give it a sentence, get a sentence back. It won't take a single extra step on its own.**
+## Security notes
+This project is entirely the product of Vibe Coding. I can't really call myself a programmer, but I've understood and learned as much as I reasonably could. The app has some basic security in place (all personal data is stored encrypted rather than in plain text, with simple data import/export and destruction) — but please still keep the following in mind:
+- The software may have rough edges.
+- Use official provider endpoints; be wary of third-party relay/proxy services.
+- **Do not feed privacy-sensitive, important, or high-risk information** to the AI service.
+- Use a **dedicated** API key for this app, and rotate it regularly.
+- Clear your history from time to time.
 
-### Why not an AI agent?
-
-An AI agent browses the web, decides its next move, and runs through a whole sequence of tasks by itself. Prompit doesn't.
-
-Every request does exactly one thing — it takes the text you gave it and reshapes it the way you asked (translate, polish, …), then drops the result right back where your cursor was. Done. Gone. It doesn't ponder life, and it won't ponder yours for you either.
-
-### Why not an AI input method?
-
-An AI input method hangs around wherever you type and thinks about every keystroke. A lot of people don't want that kind of constant company.
-
-Prompit goes the other way:
-
-- **It basically doesn't exist most of the time** — don't press the shortcut and it sits quietly in the background. It doesn't get in your way or watch you type.
-- **It and your input method stay out of each other's business** — keep using your system keyboard; only summon Prompit when you actually need it.
-- **It comes when called, and leaves completely when dismissed** — hit `Esc` when you're done and it's gone.
-- **Way more customizable than an input method** — shortcuts, target languages, translation style, dictionaries, light skills, all yours to change (see [Customization](#customization)).
 
 ## Demo
 
@@ -102,52 +91,37 @@ Grab the installer for your system from the [Releases page](https://github.com/e
 
 After installing and opening it, the first run will ask you to connect a model provider — without one, it's just an empty shell. Connect one and you're ready.
 
-## Quick start
-
-1. **Install and open**, then follow the first-run setup to connect a model provider (pick a cheap one).
-2. **Close the setup window.**
-3. **Press `Alt + Y`** — the window pops up. Type a sentence, hit `Enter`, and the result lands right at your cursor.
-
-That's it. Three steps.
-
-> 💡 Not sure about the shortcut on day one? A little hint pops up at launch to tell you. Forget it later? It's always there (and editable) in Settings.
-
-## Customization
-
-Don't like the defaults? Almost everything's tweakable:
-
-- **Shortcuts**: summon (`Alt+Y`), switch mode (`Alt+M`), and more — all re-recordable.
-- **Appearance**: light / dark / follow system, opacity, font size.
-- **Target languages**: common ones built in, plus your own — reorder freely.
-- **Translation personas**: define your own translation styles.
-- **User dictionary**: pin specific translations, with import/export.
-- **Light skills**: write, edit, import/export as Markdown.
-- **Launch on startup**, **close after sending**, **history limit**, …
 
 ## FAQ
 
 **Does it snoop on what I type?**
-No. Until you press the shortcut, it just sits in the background — it doesn't touch your keyboard or hijack your input method. It only moves when you call it.
+
+No. It only moves when you call it.
 
 **Can it only translate?**
-Translation is what it's best at, but not the only thing. As long as your need is "one sentence in, one sentence out" — polishing, rewriting, changing tone… it'll lend a hand. Just define it as a light skill.
+
+Translation is its main feature — and the original motivation for the project — but not the only one. Any time you think "I want a quick hit of AI here, but I don't want to switch to a browser window," it fits. Define your own with Skills Lite.
 
 **Can it run a sequence of tasks for me (like "search → summarize → email")?**
-No. It returns one sentence per request. It won't plan ahead or chain steps together on its own. For that, go find an agent — not this.
+
+No. It returns one response per request. It won't plan ahead or chain steps together on its own.
 
 **Is it trying to replace my input method?**
+
 No. Your input method is yours; Prompit is Prompit. Keep typing with your system keyboard, and summon it only when you need it.
 
 **Where's my data stored?**
-On your machine, encrypted. Nothing gets uploaded to a Prompit server (there isn't one). You can also export an encrypted backup and restore it on a new machine.
+
+On your machine, encrypted. Nothing gets uploaded to a Prompit server (there isn't one). Encrypted import/export is supported too.
 
 **Do I have to pay for a model?**
-Prompit itself is free, but the AI service you connect may charge — that depends on your chosen provider and model. Many offer free quotas, and local models work too. A cheap lightweight model is more than enough.
+
+That depends on your chosen provider and model. Many providers offer free quotas, and self-hosted models are supported too.
 
 ## For developers
 
 <details>
-<summary>Tech stack & local development (click to expand)</summary>
+<summary>Tech stack & local development</summary>
 
 Prompit is built with Tauri 2 + Vue 3 + TypeScript, cross-platform (Windows / macOS / Linux).
 
