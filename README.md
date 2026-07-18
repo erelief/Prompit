@@ -15,12 +15,13 @@
 </p>
 
 ---
-
 > Prompit 是 *Prompt it* 的合成词。
 > 
 > 也确实只会这个。
 
-Prompit 是一个常驻后台的悬浮小窗。**需要它的时候按一下快捷键**，它在光标旁边出现，借助 AI 模型实现一些简单的功能——翻译、润色、回答一个问题——然后把结果直接塞回光标所在的位置，自己消失。
+Prompit 是一个常驻后台的悬浮小窗。**需要它的时候按一下快捷键**，它就在光标旁边出现，借助 AI 模型实现一些简单的功能——翻译、润色、回答一个问题——然后把结果直接塞回光标所在的位置，自己消失。
+
+<p align="center"><img src="docs/screenshots/floatinginput_light.png" width="600" alt="软件截图"></p>
 
 ## 功能亮点
 
@@ -79,7 +80,9 @@ Prompit **不是** AI 输入法，它更像 [Alfred](https://www.alfredapp.com/)
 <!-- 建议路径：docs/screenshots/summon.png（呼出）、docs/screenshots/translate.png（翻译）、docs/screenshots/skills.png（轻技能） -->
 <!-- 示例: <p align="center"><img src="docs/screenshots/summon.png" width="600" alt="呼出小窗"></p> -->
 
-（截图待补充）
+<p align="center"><img src="docs/screenshots/translate_light.png" width="600" alt="翻译效果"></p>
+<p align="center"><img src="docs/screenshots/skills-lite_light.png" width="600" alt="轻技能效果"></p>
+
 
 ## 下载安装
 

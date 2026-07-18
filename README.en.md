@@ -22,6 +22,8 @@ English | **简体中文**
 
 Prompit is a small floating window that lives in the background. **Press a shortcut when you need it**, it appears next to your cursor, uses an AI model to do a few simple things — translate, polish, answer a question — then drops the result right back where your cursor is and disappears on its own.
 
+<p align="center"><img src="docs/screenshots/floatinginput_light_en.png" width="600" alt="screenshot"></p>
+
 ## Highlights
 
 ### 🪂 Summon on demand, dismiss in a blink
@@ -78,6 +80,9 @@ This project is entirely the product of Vibe Coding. I can't really call myself 
 <!-- TODO: add screenshots here -->
 <!-- Suggested paths: docs/screenshots/summon.png (the popup), docs/screenshots/translate.png (translation), docs/screenshots/skills.png (skills) -->
 <!-- Example: <p align="center"><img src="docs/screenshots/summon.png" width="600" alt="Summoning the window"></p> -->
+
+<p align="center"><img src="docs/screenshots/translate_light_en.png" width="600" alt="Translation"></p>
+<p align="center"><img src="docs/screenshots/skills-lite_light_en.png" width="600" alt="Skills Lite"></p>
 
 (Screenshots coming soon.)
 
