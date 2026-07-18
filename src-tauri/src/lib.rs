@@ -57,6 +57,7 @@ fn read_windows_system_proxy() -> Option<String> {
     None
 }
 
+#[cfg(target_os = "windows")]
 fn prefix_url(addr: &str) -> String {
     if addr.starts_with("http") {
         addr.to_string()

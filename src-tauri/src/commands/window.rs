@@ -94,6 +94,7 @@ pub fn resize_main_window(app: AppHandle, width: f64, height: f64) -> Result<(),
 /// On other platforms (Linux) the previous two-call behavior is kept as a
 /// fallback.
 #[tauri::command]
+#[allow(unused_variables)] // physical_h/w only read on Windows + Linux, not macOS
 pub fn resize_and_reposition(
     app: AppHandle,
     height: f64,
@@ -220,13 +221,13 @@ pub fn resize_and_reposition(
         //                stays put while the bottom moves (grow down).
         // height/width are logical points here (matches what the frontend
         // measures in CSS px); setFrame takes logical points.
-        use objc2_app_kit::{NSView, NSWindow};
+        use objc2_app_kit::NSView;
         use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
         let target_w = width.unwrap_or(500.0);
         let target_h = height;
         let app_clone = app.clone();
-        app.run_on_main_thread(move || {
+        let _ = app.run_on_main_thread(move || {
             let Some(w) = app_clone.get_webview_window("main") else {
                 return;
             };
@@ -292,6 +293,7 @@ pub fn open_settings_window(app: AppHandle) -> Result<(), String> {
 /// beat later the fill is already there — no transparent gap. The excess is
 /// simply clipped by the smaller window.
 #[tauri::command]
+#[allow(unused_variables)] // pw/ph only used in the Windows webview branch
 pub fn prepare_webview_size(app: AppHandle, width: f64, height: f64) -> Result<(), String> {
     let window = main_window(&app)?;
     let scale = monitor_scale(&window);
