@@ -16,8 +16,11 @@ fn simulate_paste_keystrokes(enigo: &mut Enigo) -> Result<(), String> {
     enigo
         .key(modifier, Direction::Press)
         .map_err(|e| format!("key press: {e}"))?;
+    // enigo's Key enum has no letter variants (no Key::V); letters must be
+    // expressed as Key::Unicode('v'). This is the cross-platform form shown in
+    // enigo's own paste example and works on Windows, macOS, and Linux.
     enigo
-        .key(Key::V, Direction::Click)
+        .key(Key::Unicode('v'), Direction::Click)
         .map_err(|e| format!("v click: {e}"))?;
     enigo
         .key(modifier, Direction::Release)

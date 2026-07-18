@@ -76,6 +76,10 @@ keyring = { version = "3", features = ["windows-native"] }
 # NSWindow setFrame:display: sets origin+size atomically in one message.
 objc2 = "0.6"
 objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSView", "NSGraphics"] }
+# Raw window handle access for the atomic resize on macOS (window.rs reads the
+# NSView via AppKit). Already in the dep tree via tauri; declared explicitly so
+# `use raw_window_handle::...` resolves. Version pinned to match the tree.
+raw-window-handle = "0.6"
 # OS credential store (Keychain) for the local vault KEK. See kek.rs.
 keyring = { version = "3", features = ["apple-native"] }
 
