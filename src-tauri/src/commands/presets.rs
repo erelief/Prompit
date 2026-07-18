@@ -7,7 +7,7 @@ struct PresetsFile {
 
 #[tauri::command]
 pub fn read_provider_presets() -> Result<Vec<ProviderPreset>, String> {
-    let raw = include_str!("../../../provider-presets.json");
+    let raw = include_str!("../../data/provider-presets.json");
     let file: PresetsFile = serde_json::from_str(raw).map_err(|e| format!("parse presets: {e}"))?;
     Ok(file.presets)
 }
@@ -31,7 +31,7 @@ pub struct ModelCapabilityItem {
 
 #[tauri::command]
 pub fn read_model_capabilities() -> Result<Vec<ModelCapabilityItem>, String> {
-    let raw = include_str!("../../../model-capabilities.json");
+    let raw = include_str!("../../data/model-capabilities.json");
     let file: ModelCapabilitiesFile =
         serde_json::from_str(raw).map_err(|e| format!("parse model capabilities: {e}"))?;
     Ok(file

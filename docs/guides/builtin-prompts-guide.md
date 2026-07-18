@@ -95,10 +95,10 @@ The three layers, at a glance:
 | i18n labels | `src/locales/en.json`, `src/locales/zh-CN.json` | modes `en.json:25-28`, editor labels `en.json:102-118` |
 
 > **Out of scope** (cross-linked for clarity): the provider/model list in
-> `provider-presets.json` is a *separate*, read-only asset compiled into the
-> binary via `include_str!` (`src-tauri/src/commands/presets.rs`). It is not a
-> prompt template. The user dictionary (`DictEntry`, `config.ts:122`) is also
-> adjacent but not prompt content.
+> `src-tauri/data/provider-presets.json` is a *separate*, read-only asset compiled
+> into the binary via `include_str!` (`src-tauri/src/commands/presets.rs`). It is
+> not a prompt template. The user dictionary (`DictEntry`, `config.ts:122`) is
+> also adjacent but not prompt content.
 
 ---
 
@@ -470,9 +470,10 @@ run, which they are free to change."
   and strips them from `config.json`. Don't re-add personas to `config.json`.
 - **i18n parity is enforced.** `npm run build` runs `scripts/validate-i18n.mjs`;
   any new label must exist in both `en.json` and `zh-CN.json`.
-- **Provider/model presets are a different system.** `provider-presets.json`
-  is a read-only asset compiled into the binary (`src-tauri/src/commands/presets.rs`),
-  never written by the app — do not confuse it with prompt templates.
+- **Provider/model presets are a different system.**
+  `src-tauri/data/provider-presets.json` is a read-only asset compiled into the
+  binary (`src-tauri/src/commands/presets.rs`), never written by the app — do
+  not confuse it with prompt templates.
 - **Two test files worth keeping green** after any schema change:
   `src-tauri/src/commands/persona.rs` (`:62-82`) and
   `src-tauri/src/commands/skills_lite.rs` (`:64-88`) — they guard the

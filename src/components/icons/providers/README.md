@@ -53,7 +53,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
 
 ### Step 4: Bind to Preset
 
-Edit `provider-presets.json` (project root):
+Edit `src-tauri/data/provider-presets.json`:
 
 ```json
 {
