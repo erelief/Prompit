@@ -116,6 +116,19 @@
   opacity: 0;
 }
 
+/* Snap-resize reveal wipe overlay (created/destroyed by
+   useSettingsWindow.playRevealWipe): covers the freshly-snapped window with
+   the page background and collapses away on the compositor (scaleY via WAAPI,
+   transform only — no relayout or per-frame raster). */
+.vt-wipe-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+}
+
 /* ── User-data page shell (Export / Import) ── */
 .ud-root {
   height: calc(100dvh / var(--font-scale, 1));

@@ -18,7 +18,7 @@ function cssVar(name: string, fallback: string): string {
 }
 
 /** Parse a hex colour (#RRGGBB) into RGB components. */
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const clean = hex.replace("#", "");
   if (clean.length !== 6) return null;
   const n = parseInt(clean, 16);

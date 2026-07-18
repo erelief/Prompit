@@ -122,6 +122,8 @@ pub fn run() {
             commands::window::hide_main_window,
             commands::window::show_main_window,
             commands::window::open_settings_window,
+            commands::window::set_webview_bg,
+            commands::window::prepare_webview_size,
             commands::window::resize_main_window,
             commands::window::resize_and_reposition,
             commands::window::show_onboarding_window,

@@ -62,6 +62,11 @@ windows-sys = { version = "0.59", features = [
     # GUID_CONSOLE_DISPLAY_STATE lives in SystemServices.
     "Win32_System_SystemServices",
 ] }
+# Direct WebView2 controller access (ICoreWebView2Controller::SetBounds) for the
+# resize pre-warm: pre-sizing the webview before the OS window snaps. Versions
+# match what wry already pulls in (see Cargo.lock).
+webview2-com = "0.38"
+windows = { version = "0.61", features = ["Win32_Foundation"] }
 # OS credential store (Windows Credential Manager / DPAPI) for the local vault
 # KEK. See kek.rs. v3 ships no default features, so the platform backend must
 # be enabled explicitly.

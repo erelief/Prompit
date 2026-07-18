@@ -8,19 +8,22 @@ import mainWindowConfig from "../shared/main-window.json";
 const MAIN_WIDTH = mainWindowConfig.width;
 
 /**
- * Animated window resize: eases the OS window into its new size instead of the
- * raw Win32 `SetWindowPos` / NSWindow `setFrame` snap.
+ * Window resize drivers.
  *
- * Two duration tiers:
- *  - View transitions (FloatingInput ↔ Settings/History): ~160ms. Short enough
- *    to read as a crisp ease rather than a noticeable animation, long enough to
- *    avoid the one-frame compositor tear that a bare SetWindowPos produces.
- *  - Micro (small continuous resizes, e.g. typing): ~120ms.
+ * BIG view transitions (FloatingInput ↔ Settings/History, ~120 ↔ 580px) do
+ * NOT tween the OS window: a 60Hz SetWindowPos stream outpaces the webview's
+ * ~20Hz raster at each new viewport size, so the freshly exposed region
+ * lagged the window edge in visible staircase bands (measured with the
+ * debug/resize-loop harness: bands up to ~330 physical px). Those transitions
+ * snap (`snapResize`) and get their motion from compositor-only CSS instead —
+ * the reveal wipe in useSettingsWindow and content-height pinning in
+ * FloatingInput (the bar's root is pinned to content height while the window
+ * tweens down, so no fill ever lags the shrinking edge).
  *
- * Result-appearance growth is handled by `snapResize`, NOT animated: the result
- * text arrives atomically and the content reflow races the window resize, so a
- * tween there produces a visible layering glitch (window edge grows before the
- * webview repaints). Snapping eliminates the mismatch.
+ * `animateResize` remains for SMALL continuous resizes (typing, result clear)
+ * where deltas stay within MICRO_DELTA and the fill lag reads as a subtle
+ * ease. Result-appearance growth also uses `snapResize`: the result text
+ * arrives atomically and a tween tears against the reflow.
  *
  * State is held at MODULE scope because the whole app shares a single OS
  * window — when a view unmounts and another mounts, the new view must retarget
@@ -171,8 +174,14 @@ export function useAnimatedResize() {
 
   /**
    * Jump to `height` × `width` instantly, bypassing the animation. Use for:
+   *  - Big view transitions (snap + compositor CSS motion; see module doc).
    *  - Result-appearance growth (content arrives atomically; a tween here tears).
    *  - Force-resize on mount/wake (cold-start geometry, no animation wanted).
+   *
+   * Always sends the IPC — the backend no-ops when the OS window is already
+   * at the target geometry. The frontend must NOT guard on window.innerHeight:
+   * after a webview-only pre-size (prepare_webview_size) the viewport reports
+   * the target size while the OS window is still small.
    */
   function snapResize(height: number, width?: number) {
     if (rafId !== null) {

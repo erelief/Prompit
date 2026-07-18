@@ -9,7 +9,7 @@ import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
 import { useAnimatedResize } from "../composables/useAnimatedResize";
-import { useWindowBg, domainOf } from "../composables/useWindowBg";
+import { useWindowBg, domainOf, hexToRgb } from "../composables/useWindowBg";
 import { useEventListener } from "@vueuse/core";
 import { capHeight, chevronTransform } from "../shared/dropdown";
 import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, saveSkillsLites, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
@@ -126,9 +126,31 @@ const activeModelCapabilities = computed<ModelInputCapabilities | undefined>(() 
 
 const windowBg = useWindowBg();
 
-// Animated window resize: eases the OS window into its new size instead of the
-// raw SetWindowPos snap. Used both for view transitions and for result-grow.
+// Window resize drivers: snap for big view transitions (motion comes from
+// compositor-only CSS), IPC tween for small continuous resizes, snap for
+// result-grow (see useAnimatedResize module doc).
 const { animateResize, snapResize } = useAnimatedResize();
+
+// ── View-shrink (returning from a tall settings-class view) ──
+// The window is still ~580px at mount while this bar is ~120px. The IPC tween
+// (animateResize) shrinks the OS window smoothly — and while `shrinking` is
+// set, the root is pinned to CONTENT height instead of 100dvh, so the
+// gradient never re-rasters at intermediate sizes: the area below the bar is
+// covered by the webview's opaque default background (solid panel look),
+// leaving nothing that could lag the window edge (the old
+// 60Hz-SetWindowPos-vs-~20Hz-raster staircase). Only the shadow moves.
+const shrinking = ref(false);
+let shrinkTimer: ReturnType<typeof setTimeout> | null = null;
+const shrinkPrefersReducedMotion = () =>
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+// Push the webview's default background: opaque theme bg while a transition
+// needs a solid filler, transparent (a=0) for the floating steady state.
+function setWebviewBg(a: number) {
+  const hex = getComputedStyle(document.documentElement).getPropertyValue("--color-bg").trim();
+  const rgb = hexToRgb(hex) ?? { r: 0, g: 0, b: 0 };
+  invoke("set_webview_bg", { ...rgb, a });
+}
 
 const floatingAlpha = computed(() => (appConfig.floating_opacity ?? 90) / 100);
 
@@ -704,6 +726,17 @@ function cancelRequest() {
 onMounted(async () => {
   lastSentHeight = 0;
 
+  // Arriving from a tall settings-class view (window still ~580px, bar
+  // ~120px)? Decide NOW, synchronously, so the webview background can go
+  // opaque before any await — during the shrink tween the vacated area below
+  // the bar then reads as a solid panel, not a see-through gap.
+  const shrinkH = contentWrapRef.value ? Math.ceil(contentWrapRef.value.scrollHeight) : 0;
+  const willShrink =
+    shrinkH > 0 &&
+    window.innerHeight - shrinkH * fontScale.value > 40 &&
+    !shrinkPrefersReducedMotion();
+  if (willShrink) setWebviewBg(255);
+
   // Config is loaded once at startup (main.ts) and shared as a single reactive
   // instance across all views — do not reload here, or disk (possibly stale)
   // would overwrite in-memory edits made in other views.
@@ -745,6 +778,22 @@ onMounted(async () => {
   // growAbove ref resets to false — so re-sync or controls anchor on the
   // wrong edge after lid open.
   growAbove.value = await invoke<boolean>("get_grow_above");
+
+  if (willShrink) {
+    // Pin the root to content height and IPC-tween the window down (see the
+    // `shrinking` comment above). Setting lastSentHeight/bodyHeight up front
+    // pre-empts the bodyHeight watch so it doesn't fire a second resize.
+    lastSentHeight = shrinkH;
+    bodyHeight.value = shrinkH;
+    shrinking.value = true;
+    animateResize(shrinkH * fontScale.value, MAIN_WIDTH * fontScale.value);
+    shrinkTimer = setTimeout(() => {
+      shrinking.value = false;
+      shrinkTimer = null;
+      setWebviewBg(0); // floating steady state is translucent again
+    }, 280); // tween is 160ms; hold the pin a touch longer to cover IPC jitter
+  }
+
   unlistenConfig = await listen<boolean>("window-config", (e) => {
     growAbove.value = e.payload;
     nextTick(() => {
@@ -792,6 +841,10 @@ onUnmounted(() => {
   unlistenConfig?.();
   unlistenResume?.();
   resizeObserver?.disconnect();
+  if (shrinkTimer) {
+    clearTimeout(shrinkTimer);
+    shrinkTimer = null;
+  }
 });
 
 // Result text arrives atomically, so the content reflow races the window
@@ -827,9 +880,9 @@ useShortcutTriggered(() => {
 <template>
   <div
     @mousedown="handleDrag"
-    class="w-full flex justify-center overflow-hidden"
-    :class="growAbove ? 'items-end' : 'items-start'"
-    :style="{ background: windowBg, height: 'calc(100dvh / var(--font-scale, 1))' }"
+    class="relative w-full flex justify-center overflow-hidden"
+    :class="[growAbove ? 'items-end' : 'items-start', { 'shrink-bottom': shrinking && growAbove }]"
+    :style="{ background: windowBg, height: shrinking ? Math.ceil(bodyHeight * fontScale) + 'px' : 'calc(100dvh / var(--font-scale, 1))' }"
   >
     <div ref="contentWrapRef"
       class="w-full px-5 py-4 flex flex-col gap-1.5 overflow-y-auto flex-shrink-0 h-fit"
@@ -1143,6 +1196,16 @@ useShortcutTriggered(() => {
 </template>
 
 <style scoped>
+/* While shrinking into a grow-above bar, the root is pinned to content height
+   and must hug the viewport's bottom edge (the window's top edge is the one
+   that moves). */
+.shrink-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
 .floating-input {
   background: var(--color-surface);
   color: var(--color-text);

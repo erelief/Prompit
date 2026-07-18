@@ -5,6 +5,7 @@ import router from "./router";
 import i18n from "./i18n";
 import { loadConfig, loadSkillsLites, appConfig, enableConfigAutosave } from "./stores/config";
 import { initTheme } from "./composables/useTheme";
+import { hexToRgb } from "./composables/useWindowBg";
 import "./style.css";
 import "./shared/ui.css";
 
@@ -22,6 +23,19 @@ function applyRouteTheme(path: string) {
   document.body.style.background = bg;
   document.body.style.overflow = isFloating ? "hidden" : "auto";
   document.getElementById("app")!.style.background = bg;
+
+  // Sync the webview's DEFAULT background: it fills regions the page hasn't
+  // painted yet in the gap between a snap resize and the first raster at the
+  // new size. Floating surfaces stay transparent (their translucent gradient
+  // must show the desktop through); settings-class pages get their opaque
+  // --color-bg so the gap reads as a solid panel, not a see-through flash.
+  if (isFloating) {
+    invoke("set_webview_bg", { r: 0, g: 0, b: 0, a: 0 });
+  } else {
+    const hex = getComputedStyle(document.documentElement).getPropertyValue("--color-bg").trim();
+    const rgb = hexToRgb(hex);
+    if (rgb) invoke("set_webview_bg", { ...rgb, a: 255 });
+  }
 }
 
 router.afterEach((to) => {

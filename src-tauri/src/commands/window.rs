@@ -186,9 +186,24 @@ pub fn resize_and_reposition(
             }
         };
 
+        // No-op when the OS window already sits at the target geometry: the
+        // frontend sends snaps unconditionally (its own view of the size can
+        // be stale, e.g. after a webview-only pre-size), so the cheap check
+        // lives here where the real rects are known.
+        if let (Ok(pos), Ok(size)) = (window.outer_position(), window.outer_size()) {
+            if (size.width as i32 - outer_w).abs() <= 1
+                && (size.height as i32 - outer_h).abs() <= 1
+                && (pos.x - new_x).abs() <= 1
+                && (pos.y - new_y).abs() <= 1
+            {
+                return Ok(());
+            }
+        }
+
         let flags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOCOPYBITS;
         unsafe {
             SetWindowPos(hwnd_raw, 0 as _, new_x, new_y, outer_w, outer_h, flags);
+            sync_webview_children(hwnd_raw, physical_w as i32, physical_h as i32);
         }
     }
 
@@ -270,6 +285,48 @@ pub fn open_settings_window(app: AppHandle) -> Result<(), String> {
     show_and_focus(&main_window(&app)?)
 }
 
+/// Pre-size the WebView2 to the given logical dimensions WITHOUT moving the OS
+/// window. Settings-class views call this right at mount: the webview (and its
+/// compositor visual, filled with DefaultBackgroundColor) reaches the target
+/// size while the OS window is still small, so when the snap resize lands a
+/// beat later the fill is already there — no transparent gap. The excess is
+/// simply clipped by the smaller window.
+#[tauri::command]
+pub fn prepare_webview_size(app: AppHandle, width: f64, height: f64) -> Result<(), String> {
+    let window = main_window(&app)?;
+    let scale = monitor_scale(&window);
+    let pw = (width * scale) as i32;
+    let ph = (height * scale) as i32;
+    #[cfg(target_os = "windows")]
+    window
+        .with_webview(move |webview| unsafe {
+            let _ = webview
+                .controller()
+                .SetBounds(windows::Win32::Foundation::RECT {
+                    left: 0,
+                    top: 0,
+                    right: pw,
+                    bottom: ph,
+                });
+        })
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Set the webview background color: the color composited into regions the
+/// page has not painted yet — visible in the brief gap between a snap resize
+/// and the first raster at the new size. Settings-class routes push their
+/// opaque `--color-bg` so that gap reads as a solid panel instead of a
+/// see-through flash; floating routes push alpha 0 to stay transparent.
+/// On Windows alpha must be 0 or 255 (translucent clamps to opaque).
+#[tauri::command]
+pub fn set_webview_bg(app: AppHandle, r: u8, g: u8, b: u8, a: u8) -> Result<(), String> {
+    let window = main_window(&app)?;
+    window
+        .set_background_color(Some(tauri::utils::config::Color(r, g, b, a)))
+        .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn show_onboarding_window(app: AppHandle) -> Result<(), String> {
     let window = main_window(&app)?;
@@ -289,6 +346,49 @@ pub fn show_onboarding_window(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn show_startup_reminder_window(app: AppHandle) -> Result<(), String> {
     resize_center_show(&app, 380.0, 280.0)
+}
+
+/// Resize the WebView2 child windows (class "Chrome_WidgetWin*") to the new
+/// client area, synchronously. wry's WebView2 subclass reacts to the parent's
+/// WM_SIZE with controller.SetBounds + an ASYNC SetWindowPos on the child, so
+/// after our SetWindowPos the webview — and with it the DefaultBackgroundColor
+/// fill and the page content — trails the OS window by a beat. That trailing
+/// region is the parent window's transparent surface: the "border first,
+/// background fills later" gap. Sizing the children here closes it.
+#[cfg(target_os = "windows")]
+unsafe fn sync_webview_children(
+    hwnd: windows_sys::Win32::Foundation::HWND,
+    client_w: i32,
+    client_h: i32,
+) {
+    use windows_sys::Win32::Foundation::{HWND, LPARAM};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        EnumChildWindows, GetClassNameW, SetWindowPos, SWP_NOACTIVATE, SWP_NOZORDER,
+    };
+
+    unsafe extern "system" fn enum_proc(child: HWND, lparam: LPARAM) -> i32 {
+        let size = &*(lparam as *const [i32; 2]);
+        let mut class = [0u16; 64];
+        let n = GetClassNameW(child, class.as_mut_ptr(), class.len() as i32);
+        if n > 0 {
+            let name = String::from_utf16_lossy(&class[..n as usize]);
+            if name.starts_with("Chrome_WidgetWin") {
+                SetWindowPos(
+                    child,
+                    0 as _,
+                    0,
+                    0,
+                    size[0],
+                    size[1],
+                    SWP_NOZORDER | SWP_NOACTIVATE,
+                );
+            }
+        }
+        1 // enumerate all children
+    }
+
+    let size = [client_w, client_h];
+    EnumChildWindows(hwnd, Some(enum_proc), &size as *const _ as LPARAM);
 }
 
 /// Reveal the system tray icon and mark the frontend as ready to render window
