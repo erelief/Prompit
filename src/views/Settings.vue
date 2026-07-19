@@ -221,6 +221,11 @@ function toggleShortcutHint(e: MouseEvent) {
 // ── Launch on startup (OS autostart registration) ──
 async function toggleLaunchOnStartup(e: MouseEvent) {
   if (!isTauri) return;
+  // Capture the button synchronously: Event.currentTarget is reset to null
+  // once the handler yields (any await), so reading it after `await enable()`
+  // would throw inside burstParticles, hit the catch, and falsely revert the
+  // toggle to OFF even though the OS autostart entry was just enabled.
+  const btn = e.currentTarget as HTMLElement;
   const turning = !appConfig.launch_on_startup;
   // Optimistically flip; revert on failure so the toggle reflects truth.
   appConfig.launch_on_startup = turning;
@@ -228,7 +233,7 @@ async function toggleLaunchOnStartup(e: MouseEvent) {
     const { enable, disable } = await import("@tauri-apps/plugin-autostart");
     if (turning) {
       await enable();
-      burstParticles(e.currentTarget as HTMLElement);
+      burstParticles(btn);
     } else {
       await disable();
     }
