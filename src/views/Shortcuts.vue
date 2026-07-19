@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "@lucide/vue";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { appConfig } from "../stores/config";
 import { altKey, ctrlKey } from "../utils/platform";
 import { shortcutsEqual } from "../utils/shortcut";
@@ -29,6 +30,15 @@ import { useSettingsWindow } from "../composables/useSettingsWindow";
 const { t } = useI18n();
 const router = useRouter();
 const { growAbove } = useSettingsWindow();
+
+// Same draggable-window pattern as the other settings sub-pages: mousedown on
+// the background starts a native window drag; clicks landing on interactive
+// controls (buttons / inputs) are left alone.
+async function handleDrag(e: MouseEvent) {
+  const t = e.target as HTMLElement;
+  if (t.closest("textarea, button, input, select, a, .kbd-badge")) return;
+  await getCurrentWindow().startDragging();
+}
 
 // ── Shortcut recorders (wake-up + mode-switch + forward-to-input + edit-result
 //    + skills-prev + skills-next) ──
@@ -120,12 +130,10 @@ interface StaticShortcut {
   tokens: string[];
 }
 
-// Font size is app-wide (appConfig.font_size drives the global --font-scale),
-// so its wheel shortcut belongs to the Global group even though the gesture
-// is performed over the floating window.
-const globalStatics = computed<StaticShortcut[]>(() => [
-  { labelKey: "shortcuts.fontSizeWheel", tokens: [altKey(), t("shortcuts.wheel")] },
-]);
+// Both wheel gestures (opacity + font-size) are performed over the floating
+// window, so they belong to the Floating group; the Global group has no
+// built-in operations — only the configurable wake hotkey above.
+const globalStatics = computed<StaticShortcut[]>(() => []);
 
 const floatingStatics = computed<StaticShortcut[]>(() => [
   { labelKey: "shortcuts.send", tokens: ["Enter"] },
@@ -135,6 +143,7 @@ const floatingStatics = computed<StaticShortcut[]>(() => [
   { labelKey: "shortcuts.copyResult", tokens: [ctrlKey(), "C"] },
   { labelKey: "shortcuts.undo", tokens: [ctrlKey(), "Z"] },
   { labelKey: "shortcuts.opacityWheel", tokens: [ctrlKey(), t("shortcuts.wheel")] },
+  { labelKey: "shortcuts.fontSizeWheel", tokens: [altKey(), t("shortcuts.wheel")] },
 ]);
 
 const editingStatics = computed<StaticShortcut[]>(() => [
@@ -150,7 +159,7 @@ const settingsStatics = computed<StaticShortcut[]>(() => [
 </script>
 
 <template>
-  <div class="shortcuts-root" :class="{ 'grow-above': growAbove }">
+  <div class="shortcuts-root" :class="{ 'grow-above': growAbove }" @mousedown="handleDrag">
     <!-- Header -->
     <div class="shortcuts-header">
       <button class="back-btn" @click="router.push('/settings?tab=general')">
