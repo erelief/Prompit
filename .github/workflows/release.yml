@@ -7,8 +7,10 @@
 # (…/releases/latest/download/latest.json) resolve.
 #
 # ── Triggers ─────────────────────────────────────────────────────────────
-#   1. Push a tag matching `v*`  →  git tag v0.1.0 && git push --tags
-#   2. Manual run via the Actions tab "Run workflow" button (type the tag)
+#   1. Push a tag matching `v*` — normally created by release-please.yml
+#      when you merge its release PR. Also fires on a manual `git tag` +
+#      `git push --tags`.
+#   2. Manual run via the Actions tab "Run workflow" button (type the tag).
 #
 # ── Prerequisites (one-time, do these first) ─────────────────────────────
 #   • Secret TAURI_SIGNING_PRIVATE_KEY         → contents of src-tauri/tauri.key
@@ -19,16 +21,25 @@
 #     tag-triggered workflows that exist on the default branch.
 #
 # ── Releasing a new version ──────────────────────────────────────────────
-#   package.json is the single source of truth. `npm version` bumps it and
-#   the `version` lifecycle hook (in package.json) runs scripts/sync-tauri-
-#   config.mjs to propagate the new version into Cargo.toml + tauri.conf.json,
-#   then stages those two files. npm also auto-commits and tags.
+#   release-please (see release-please.yml) is the source of truth for the
+#   version number. It parses Conventional Commits on `main`, maintains a
+#   "chore(main): release X.Y.Z" PR, and on merge bumps package.json +
+#   tauri.conf.json, updates CHANGELOG.md, tags vX.Y.Z, and creates a DRAFT
+#   GitHub Release (body = changelog). This workflow then picks up the tag:
 #
-#   1. npm version patch   # or minor / major — creates commit + vX.Y.Z tag
-#   2. git push --follow-tags
+#   1. Merge the release-please PR → it commits the bump, tags vX.Y.Z, and
+#      opens a draft release.
+#   2. The tag push triggers this workflow; tauri-action finds the draft
+#      release by tagName and uploads the platform artifacts into it (the
+#      changelog body is preserved).
 #   3. Wait for the three matrix jobs to finish.
 #   4. Open the draft release, review assets, click "Publish".
 #   5. Existing users get auto-prompted; new users download from the page.
+#
+#   Fallback (no release-please): `npm version patch|minor|major` still
+#   works — its lifecycle hook runs scripts/sync-tauri-config.mjs to bump
+#   tauri.conf.json + Cargo.toml, then commits and tags. tauri-action will
+#   create a fresh draft release (empty body) if none exists for the tag.
 #
 # ── Limitations (can be added later) ─────────────────────────────────────
 #   • No OS code-signing (no Apple Developer ID / Windows Authenticode cert):

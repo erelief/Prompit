@@ -8,7 +8,7 @@
     "build": "node scripts/generate-third-party-licenses.mjs && node scripts/validate-i18n.mjs && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "gen:third-party": "node scripts/generate-third-party-licenses.mjs",
-    "prepare": "node scripts/generate-third-party-licenses.mjs",
+    "prepare": "husky && node scripts/generate-third-party-licenses.mjs",
     "tauri": "tauri",
     "tauri:sandbox": "set SANDBOX=1 && tauri dev",
     "version": "node scripts/sync-tauri-config.mjs && git add src-tauri/tauri.conf.json src-tauri/Cargo.toml"
@@ -32,9 +32,12 @@
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
     "@tauri-apps/cli": "^2",
     "@vitejs/plugin-vue": "^5.2.1",
     "geist": "^1.7.2",
+    "husky": "^9.1.7",
     "png-to-ico": "^3.0.1",
     "sharp": "^0.34.5",
     "typescript": "~5.6.2",

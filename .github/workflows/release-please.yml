@@ -1,0 +1,51 @@
+# Automated version bump + changelog + tag via release-please.
+#
+# Watches conventional-commit history on `main` and maintains a single
+# long-lived "release PR". Merging that PR is what cuts a release:
+# release-please bumps package.json (+ tauri.conf.json via extra-files),
+# updates CHANGELOG.md, creates the git tag, and opens a DRAFT GitHub
+# Release whose body is the changelog for this version.
+#
+# The tag push then triggers release.yml, whose tauri-action finds the
+# draft release release-please just created (keyed by tagName) and uploads
+# the platform artifacts into it — without overwriting the changelog body.
+#
+# Cargo.toml is intentionally NOT in extra-files: its [package].version
+# lives under a TOML table that release-please's generic TOML updater
+# cannot reliably locate. scripts/sync-tauri-config.mjs fixes it up at
+# beforeBuildCommand, so built artifacts always carry the correct version.
+#
+# ── Workflow (developer view) ───────────────────────────────────────────
+#   1. Commit normally (commitlint enforces Conventional Commits).
+#   2. Push to `main` → release-please opens/updates "chore(main): release
+#      X.Y.Z" PR with the computed version bump + changelog preview.
+#   3. When you're ready to ship: merge that release PR.
+#   4. release-please tags vX.Y.Z + creates a draft release (changelog body).
+#   5. The tag push triggers release.yml → matrix build → assets uploaded
+#      into the same draft release.
+#   6. Review the draft, click "Publish" → auto-updater goes live.
+
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write # commit version bump, push tag, create release
+  pull-requests: write # open / update the release PR
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          release-type: node
+          # Draft so tauri-action (release.yml) can find it by tagName and
+          # upload artifacts before you manually publish.
+          draft: true
+          # Keep release-please's default `v` prefix — matches existing
+          # tags v0.1.0 / v0.1.1 / v0.1.2 and release.yml's `v*` trigger.
+          extra-files: |
+            src-tauri/tauri.conf.json
