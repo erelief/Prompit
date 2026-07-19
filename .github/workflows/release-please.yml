@@ -2,9 +2,9 @@
 #
 # Watches conventional-commit history on `main` and maintains a single
 # long-lived "release PR". Merging that PR is what cuts a release:
-# release-please bumps package.json (+ tauri.conf.json via extra-files),
-# updates CHANGELOG.md, creates the git tag, and opens a DRAFT GitHub
-# Release whose body is the changelog for this version.
+# release-please bumps package.json (+ tauri.conf.json via extra-files in
+# release-please-config.json), updates CHANGELOG.md, creates the git tag,
+# and opens a DRAFT GitHub Release whose body is the changelog.
 #
 # The tag push then triggers release.yml, whose tauri-action finds the
 # draft release release-please just created (keyed by tagName) and uploads
@@ -24,6 +24,12 @@
 #   5. The tag push triggers release.yml → matrix build → assets uploaded
 #      into the same draft release.
 #   6. Review the draft, click "Publish" → auto-updater goes live.
+#
+# ── Prerequisite (one-time, repo setting) ───────────────────────────────
+#   Settings → Actions → General → Workflow permissions:
+#     • "Read and write permissions" (default)
+#     • ✓ "Allow GitHub Actions to create and approve pull requests"
+#   Without this, release-please cannot open the release PR.
 
 name: release-please
 
@@ -41,11 +47,5 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v4
         with:
-          release-type: node
-          # Draft so tauri-action (release.yml) can find it by tagName and
-          # upload artifacts before you manually publish.
-          draft: true
-          # Keep release-please's default `v` prefix — matches existing
-          # tags v0.1.0 / v0.1.1 / v0.1.2 and release.yml's `v*` trigger.
-          extra-files: |
-            src-tauri/tauri.conf.json
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
