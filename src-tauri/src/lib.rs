@@ -138,6 +138,23 @@ pub fn get_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Sandbox: give WebView2 its own user-data folder so a sandbox instance
+    // can run side-by-side with a real install without contending for the
+    // shared WebView2 cache (which is keyed by app identifier and would
+    // otherwise cause startup races / lock errors). Uses the same per-run
+    // temp location as the rest of the sandbox data. On macOS/Linux this env
+    // var is simply ignored by the respective webviews.
+    if sandbox_enabled() {
+        let webview_dir = std::env::temp_dir().join(format!(
+            "prompit-sandbox-webview-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis()
+        ));
+        std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", &webview_dir);
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -250,7 +267,17 @@ pub fn run() {
             let saved_shortcut = commands::config_cmd::read_config(app.handle().clone())
                 .map(|c| c.shortcut)
                 .unwrap_or_else(|_| "Alt+Y".to_string());
-            shortcut::register(&handle, &saved_shortcut)?;
+            // Sandbox: skip OS-global hotkey registration. Two reasons:
+            //   1. Global hotkeys are mutually exclusive at the OS level — a
+            //      second instance (e.g. sandbox alongside a real install)
+            //      would fail to register, or worse, steal the binding from
+            //      the real instance.
+            //   2. Letting two instances coexist is a sandbox use case.
+            if !sandbox_enabled() {
+                shortcut::register(&handle, &saved_shortcut)?;
+            } else {
+                eprintln!("[sandbox] global shortcut registration skipped");
+            }
 
             // System tray
             use tauri::menu::{MenuBuilder, MenuItemBuilder};

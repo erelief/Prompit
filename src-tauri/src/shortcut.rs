@@ -97,6 +97,11 @@ pub fn parse_shortcut(s: &str) -> Result<Shortcut, String> {
 /// with no shortcut registered.
 #[tauri::command]
 pub fn update_shortcut(app: AppHandle, shortcut: String) -> Result<(), String> {
+    // Sandbox never registers OS-global hotkeys (see lib.rs setup). Treat any
+    // update as a no-op success so the frontend config still saves.
+    if crate::sandbox_enabled() {
+        return Ok(());
+    }
     parse_shortcut(&shortcut)?;
     let previous = crate::commands::config_cmd::read_config(app.clone())
         .map(|c| c.shortcut)
@@ -116,6 +121,9 @@ pub fn update_shortcut(app: AppHandle, shortcut: String) -> Result<(), String> {
 /// key presses during shortcut recording. Pairs with `finish_record_shortcut`.
 #[tauri::command]
 pub fn start_record_shortcut(app: AppHandle) -> Result<(), String> {
+    if crate::sandbox_enabled() {
+        return Ok(());
+    }
     app.global_shortcut()
         .unregister_all()
         .map_err(|e| format!("unregister: {e}"))
@@ -125,6 +133,9 @@ pub fn start_record_shortcut(app: AppHandle) -> Result<(), String> {
 /// Use when the user cancels without choosing a new binding.
 #[tauri::command]
 pub fn finish_record_shortcut(app: AppHandle) -> Result<(), String> {
+    if crate::sandbox_enabled() {
+        return Ok(());
+    }
     let saved = crate::commands::config_cmd::read_config(app.clone())
         .map(|c| c.shortcut)
         .unwrap_or_else(|_| DEFAULT_SHORTCUT.to_string());

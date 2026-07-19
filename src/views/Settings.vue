@@ -221,6 +221,12 @@ function toggleShortcutHint(e: MouseEvent) {
 // ── Launch on startup (OS autostart registration) ──
 async function toggleLaunchOnStartup(e: MouseEvent) {
   if (!isTauri) return;
+  // Sandbox shares the OS autostart entry namespace with a real install;
+  // flipping it here would create/destroy the entry the real instance
+  // depends on. Block the toggle in sandbox mode.
+  let sandbox = false;
+  try { sandbox = await invoke<boolean>("is_sandbox"); } catch { /* ignore */ }
+  if (sandbox) return;
   // Capture the button synchronously: Event.currentTarget is reset to null
   // once the handler yields (any await), so reading it after `await enable()`
   // would throw inside burstParticles, hit the catch, and falsely revert the
