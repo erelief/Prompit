@@ -735,7 +735,13 @@ onMounted(async () => {
     shrinkH > 0 &&
     window.innerHeight - shrinkH * fontScale.value > 40 &&
     !shrinkPrefersReducedMotion();
-  if (willShrink) setWebviewBg(255);
+  // Only fill the shrink area with an opaque panel when the floating bar is
+  // itself opaque (floating_opacity ≥ 100). A translucent bar over an opaque
+  // filler produces an "opaque → translucent" flash on return from settings —
+  // the user sees the bar lose its transparency for ~280ms then regain it.
+  // When translucent, leave the webview transparent throughout so the bar's
+  // transparency is preserved from the first frame.
+  if (willShrink && floatingAlpha.value >= 1) setWebviewBg(255);
 
   // Config is loaded once at startup (main.ts) and shared as a single reactive
   // instance across all views — do not reload here, or disk (possibly stale)
