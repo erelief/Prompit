@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick, type Component } from "vue";
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -29,8 +29,6 @@ import {
   HISTORY_LIMIT_MAX,
 } from "../stores/config";
 import { burstParticles } from "../utils/burstParticles";
-import { shortcutsEqual } from "../utils/shortcut";
-import { useShortcutRecorder } from "../composables/useShortcutRecorder";
 import { useModeModelSelector, validateNamedItem, type FlatEntry } from "../composables/useModeModelSelector";
 import type { ProviderConfig, ProviderPreset, PresetVariantEndpoint, PresetVariantRegion } from "../stores/config";
 import {
@@ -74,9 +72,6 @@ import {
   Wand2,
   RefreshCw,
   ChevronDown,
-  ChevronUp,
-  ChevronLeft,
-  ChevronRight,
   Pencil,
   Cpu,
   CircleDot,
@@ -248,85 +243,6 @@ async function toggleLaunchOnStartup(e: MouseEvent) {
     appConfig.launch_on_startup = !turning;
   }
 }
-
-// ── Shortcut recorders (wake-up + mode-switch + forward-to-input + edit-result
-//    + skills-prev + skills-next) ──
-// All six share the same UI/validate/conflict logic via useShortcutRecorder.
-// The wake shortcut is an OS-global hotkey re-registered through Tauri; the
-// others are webview-scoped and just write the config field. Each recorder
-// passes every other field for conflict detection so no two bindings collide.
-const wakeField = computed({ get: () => appConfig.shortcut, set: (v) => { appConfig.shortcut = v; } });
-const modeField = computed({ get: () => appConfig.mode_shortcut, set: (v) => { appConfig.mode_shortcut = v; } });
-const forwardField = computed({ get: () => appConfig.forward_shortcut, set: (v) => { appConfig.forward_shortcut = v; } });
-const editField = computed({ get: () => appConfig.edit_shortcut, set: (v) => { appConfig.edit_shortcut = v; } });
-const skillsPrevField = computed({ get: () => appConfig.skills_prev_shortcut, set: (v) => { appConfig.skills_prev_shortcut = v; } });
-const skillsNextField = computed({ get: () => appConfig.skills_next_shortcut, set: (v) => { appConfig.skills_next_shortcut = v; } });
-
-const {
-  recording: shortcutRecording, error: shortcutError, recBtn: shortcutRecBtn,
-  tokens: shortcutTokens, start: startShortcutRecord, cancel: cancelShortcutRecord,
-  onKeydown: onShortcutKeydown, reset: resetShortcut,
-} = useShortcutRecorder(t, {
-  field: wakeField, otherFields: [modeField, forwardField, editField, skillsPrevField, skillsNextField],
-  defaultBinding: "Alt+Y",
-  invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
-  tauriGlobal: true,
-});
-
-const {
-  recording: modeShortcutRecording, error: modeShortcutError, recBtn: modeShortcutRecBtn,
-  tokens: modeShortcutTokens, start: startModeShortcutRecord, cancel: cancelModeShortcutRecord,
-  onKeydown: onModeShortcutKeydown, reset: resetModeShortcut,
-} = useShortcutRecorder(t, {
-  field: modeField, otherFields: [wakeField, forwardField, editField, skillsPrevField, skillsNextField],
-  defaultBinding: "Alt+M",
-  invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
-});
-
-const {
-  recording: forwardShortcutRecording, error: forwardShortcutError, recBtn: forwardShortcutRecBtn,
-  tokens: forwardShortcutTokens, start: startForwardShortcutRecord, cancel: cancelForwardShortcutRecord,
-  onKeydown: onForwardShortcutKeydown, reset: resetForwardShortcut,
-} = useShortcutRecorder(t, {
-  field: forwardField, otherFields: [wakeField, modeField, editField, skillsPrevField, skillsNextField],
-  defaultBinding: "Alt+F",
-  invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
-});
-
-const {
-  recording: editShortcutRecording, error: editShortcutError, recBtn: editShortcutRecBtn,
-  tokens: editShortcutTokens, start: startEditShortcutRecord, cancel: cancelEditShortcutRecord,
-  onKeydown: onEditShortcutKeydown, reset: resetEditShortcut,
-} = useShortcutRecorder(t, {
-  field: editField, otherFields: [wakeField, modeField, forwardField, skillsPrevField, skillsNextField],
-  defaultBinding: "Alt+E",
-  invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
-});
-
-const {
-  recording: skillsPrevShortcutRecording, error: skillsPrevShortcutError, recBtn: skillsPrevShortcutRecBtn,
-  tokens: skillsPrevShortcutTokens, start: startSkillsPrevShortcutRecord, cancel: cancelSkillsPrevShortcutRecord,
-  onKeydown: onSkillsPrevShortcutKeydown, reset: resetSkillsPrevShortcut,
-} = useShortcutRecorder(t, {
-  field: skillsPrevField, otherFields: [wakeField, modeField, forwardField, editField, skillsNextField],
-  defaultBinding: "Alt+Up",
-  invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
-});
-
-const {
-  recording: skillsNextShortcutRecording, error: skillsNextShortcutError, recBtn: skillsNextShortcutRecBtn,
-  tokens: skillsNextShortcutTokens, start: startSkillsNextShortcutRecord, cancel: cancelSkillsNextShortcutRecord,
-  onKeydown: onSkillsNextShortcutKeydown, reset: resetSkillsNextShortcut,
-} = useShortcutRecorder(t, {
-  field: skillsNextField, otherFields: [wakeField, modeField, forwardField, editField, skillsPrevField],
-  defaultBinding: "Alt+Down",
-  invalidMsg: "settings.shortcutInvalid", conflictMsg: "settings.shortcutConflict",
-});
-
-// 方向键 token 渲染为 chevron 图标，其余 token（Alt/Ctrl/Shift/Cmd/字母/数字/F 键）显示文字。
-const ARROW_ICON: Record<string, Component> = {
-  Up: ChevronUp, Down: ChevronDown, Left: ChevronLeft, Right: ChevronRight,
-};
 
 function toggleTranslationDict(e: MouseEvent) {
   const turning = !appConfig.user_dict_enabled;
@@ -1887,239 +1803,12 @@ onUnmounted(() => {
               <ToggleLeft v-else :size="15" :stroke-width="1.7" />
             </button>
           </div>
-          <!-- Shortcut (record a new global hotkey) -->
-          <div class="card-row shortcut-row">
-            <span class="card-label">{{ t('settings.shortcut') }}</span>
-            <div class="shortcut-controls">
-              <button
-                ref="shortcutRecBtn"
-                class="shortcut-btn"
-                :class="{ recording: shortcutRecording, 'has-error': !!shortcutError }"
-                :title="t('settings.shortcutHint')"
-                tabindex="0"
-                @click="shortcutRecording ? cancelShortcutRecord() : startShortcutRecord()"
-                @keydown="onShortcutKeydown"
-                @blur="cancelShortcutRecord"
-              >
-                <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
-                <template v-if="shortcutRecording">
-                  <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
-                </template>
-                <template v-else-if="shortcutError">
-                  <span class="shortcut-err-text">{{ shortcutError }}</span>
-                </template>
-                <template v-else>
-                  <kbd v-for="(tok, i) in shortcutTokens" :key="i" class="kbd-badge">
-                    <component v-if="ARROW_ICON[tok]" :is="ARROW_ICON[tok]" :size="11" :stroke-width="2" />
-                    <template v-else>{{ tok }}</template>
-                  </kbd>
-                </template>
-              </button>
-              <button
-                class="shortcut-reset"
-                :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+Y', appConfig.shortcut) }"
-                :disabled="shortcutsEqual('Alt+Y', appConfig.shortcut)"
-                @click="resetShortcut"
-                :title="t('settings.resetToDefault')"
-              >
-                <RotateCcw :size="11" :stroke-width="2" />
-              </button>
-            </div>
-          </div>
-          <!-- Mode-switch shortcut (webview-scoped, active only in FloatingInput) -->
-          <div class="card-row shortcut-row">
-            <span class="card-label">{{ t('settings.modeShortcut') }}</span>
-            <div class="shortcut-controls">
-              <button
-                ref="modeShortcutRecBtn"
-                class="shortcut-btn"
-                :class="{ recording: modeShortcutRecording, 'has-error': !!modeShortcutError }"
-                :title="t('settings.modeShortcutHint')"
-                tabindex="0"
-                @click="modeShortcutRecording ? cancelModeShortcutRecord() : startModeShortcutRecord()"
-                @keydown="onModeShortcutKeydown"
-                @blur="cancelModeShortcutRecord"
-              >
-                <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
-                <template v-if="modeShortcutRecording">
-                  <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
-                </template>
-                <template v-else-if="modeShortcutError">
-                  <span class="shortcut-err-text">{{ modeShortcutError }}</span>
-                </template>
-                <template v-else>
-                  <kbd v-for="(tok, i) in modeShortcutTokens" :key="i" class="kbd-badge">
-                    <component v-if="ARROW_ICON[tok]" :is="ARROW_ICON[tok]" :size="11" :stroke-width="2" />
-                    <template v-else>{{ tok }}</template>
-                  </kbd>
-                </template>
-              </button>
-              <button
-                class="shortcut-reset"
-                :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+M', appConfig.mode_shortcut) }"
-                :disabled="shortcutsEqual('Alt+M', appConfig.mode_shortcut)"
-                @click="resetModeShortcut"
-                :title="t('settings.resetToDefault')"
-              >
-                <RotateCcw :size="11" :stroke-width="2" />
-              </button>
-            </div>
-          </div>
-          <!-- Send-to-input shortcut (webview-scoped, active only in FloatingInput) -->
-          <div class="card-row shortcut-row">
-            <span class="card-label">{{ t('settings.forwardShortcut') }}</span>
-            <div class="shortcut-controls">
-              <button
-                ref="forwardShortcutRecBtn"
-                class="shortcut-btn"
-                :class="{ recording: forwardShortcutRecording, 'has-error': !!forwardShortcutError }"
-                :title="t('settings.forwardShortcutHint')"
-                tabindex="0"
-                @click="forwardShortcutRecording ? cancelForwardShortcutRecord() : startForwardShortcutRecord()"
-                @keydown="onForwardShortcutKeydown"
-                @blur="cancelForwardShortcutRecord"
-              >
-                <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
-                <template v-if="forwardShortcutRecording">
-                  <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
-                </template>
-                <template v-else-if="forwardShortcutError">
-                  <span class="shortcut-err-text">{{ forwardShortcutError }}</span>
-                </template>
-                <template v-else>
-                  <kbd v-for="(tok, i) in forwardShortcutTokens" :key="i" class="kbd-badge">
-                    <component v-if="ARROW_ICON[tok]" :is="ARROW_ICON[tok]" :size="11" :stroke-width="2" />
-                    <template v-else>{{ tok }}</template>
-                  </kbd>
-                </template>
-              </button>
-              <button
-                class="shortcut-reset"
-                :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+F', appConfig.forward_shortcut) }"
-                :disabled="shortcutsEqual('Alt+F', appConfig.forward_shortcut)"
-                @click="resetForwardShortcut"
-                :title="t('settings.resetToDefault')"
-              >
-                <RotateCcw :size="11" :stroke-width="2" />
-              </button>
-            </div>
-          </div>
-          <!-- Edit-result shortcut (webview-scoped, active only in FloatingInput) -->
-          <div class="card-row shortcut-row">
-            <span class="card-label">{{ t('settings.editShortcut') }}</span>
-            <div class="shortcut-controls">
-              <button
-                ref="editShortcutRecBtn"
-                class="shortcut-btn"
-                :class="{ recording: editShortcutRecording, 'has-error': !!editShortcutError }"
-                :title="t('settings.editShortcutHint')"
-                tabindex="0"
-                @click="editShortcutRecording ? cancelEditShortcutRecord() : startEditShortcutRecord()"
-                @keydown="onEditShortcutKeydown"
-                @blur="cancelEditShortcutRecord"
-              >
-                <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
-                <template v-if="editShortcutRecording">
-                  <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
-                </template>
-                <template v-else-if="editShortcutError">
-                  <span class="shortcut-err-text">{{ editShortcutError }}</span>
-                </template>
-                <template v-else>
-                  <kbd v-for="(tok, i) in editShortcutTokens" :key="i" class="kbd-badge">
-                    <component v-if="ARROW_ICON[tok]" :is="ARROW_ICON[tok]" :size="11" :stroke-width="2" />
-                    <template v-else>{{ tok }}</template>
-                  </kbd>
-                </template>
-              </button>
-              <button
-                class="shortcut-reset"
-                :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+E', appConfig.edit_shortcut) }"
-                :disabled="shortcutsEqual('Alt+E', appConfig.edit_shortcut)"
-                @click="resetEditShortcut"
-                :title="t('settings.resetToDefault')"
-              >
-                <RotateCcw :size="11" :stroke-width="2" />
-              </button>
-            </div>
-          </div>
-          <!-- Skills-prev shortcut (webview-scoped, skills_lite mode only) -->
-          <div class="card-row shortcut-row">
-            <span class="card-label">{{ t('settings.skillsPrevShortcut') }}</span>
-            <div class="shortcut-controls">
-              <button
-                ref="skillsPrevShortcutRecBtn"
-                class="shortcut-btn"
-                :class="{ recording: skillsPrevShortcutRecording, 'has-error': !!skillsPrevShortcutError }"
-                :title="t('settings.skillsPrevShortcutHint')"
-                tabindex="0"
-                @click="skillsPrevShortcutRecording ? cancelSkillsPrevShortcutRecord() : startSkillsPrevShortcutRecord()"
-                @keydown="onSkillsPrevShortcutKeydown"
-                @blur="cancelSkillsPrevShortcutRecord"
-              >
-                <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
-                <template v-if="skillsPrevShortcutRecording">
-                  <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
-                </template>
-                <template v-else-if="skillsPrevShortcutError">
-                  <span class="shortcut-err-text">{{ skillsPrevShortcutError }}</span>
-                </template>
-                <template v-else>
-                  <kbd v-for="(tok, i) in skillsPrevShortcutTokens" :key="i" class="kbd-badge">
-                    <component v-if="ARROW_ICON[tok]" :is="ARROW_ICON[tok]" :size="11" :stroke-width="2" />
-                    <template v-else>{{ tok }}</template>
-                  </kbd>
-                </template>
-              </button>
-              <button
-                class="shortcut-reset"
-                :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+Up', appConfig.skills_prev_shortcut) }"
-                :disabled="shortcutsEqual('Alt+Up', appConfig.skills_prev_shortcut)"
-                @click="resetSkillsPrevShortcut"
-                :title="t('settings.resetToDefault')"
-              >
-                <RotateCcw :size="11" :stroke-width="2" />
-              </button>
-            </div>
-          </div>
-          <!-- Skills-next shortcut (webview-scoped, skills_lite mode only) -->
-          <div class="card-row shortcut-row">
-            <span class="card-label">{{ t('settings.skillsNextShortcut') }}</span>
-            <div class="shortcut-controls">
-              <button
-                ref="skillsNextShortcutRecBtn"
-                class="shortcut-btn"
-                :class="{ recording: skillsNextShortcutRecording, 'has-error': !!skillsNextShortcutError }"
-                :title="t('settings.skillsNextShortcutHint')"
-                tabindex="0"
-                @click="skillsNextShortcutRecording ? cancelSkillsNextShortcutRecord() : startSkillsNextShortcutRecord()"
-                @keydown="onSkillsNextShortcutKeydown"
-                @blur="cancelSkillsNextShortcutRecord"
-              >
-                <Keyboard :size="13" class="shortcut-btn-icon" :stroke-width="1.8" />
-                <template v-if="skillsNextShortcutRecording">
-                  <span class="shortcut-rec-text">{{ t('settings.shortcutRecording') }}</span>
-                </template>
-                <template v-else-if="skillsNextShortcutError">
-                  <span class="shortcut-err-text">{{ skillsNextShortcutError }}</span>
-                </template>
-                <template v-else>
-                  <kbd v-for="(tok, i) in skillsNextShortcutTokens" :key="i" class="kbd-badge">
-                    <component v-if="ARROW_ICON[tok]" :is="ARROW_ICON[tok]" :size="11" :stroke-width="2" />
-                    <template v-else>{{ tok }}</template>
-                  </kbd>
-                </template>
-              </button>
-              <button
-                class="shortcut-reset"
-                :class="{ 'shortcut-reset-off': shortcutsEqual('Alt+Down', appConfig.skills_next_shortcut) }"
-                :disabled="shortcutsEqual('Alt+Down', appConfig.skills_next_shortcut)"
-                @click="resetSkillsNextShortcut"
-                :title="t('settings.resetToDefault')"
-              >
-                <RotateCcw :size="11" :stroke-width="2" />
-              </button>
-            </div>
+          <!-- Shortcuts page entry -->
+          <div class="card-row">
+            <span class="card-label">{{ t('settings.shortcutsEntry') }}</span>
+            <button class="reset-btn neutral" @click="router.push('/settings/shortcuts')">
+              <Keyboard :size="11" :stroke-width="1.9" />{{ t('common.view') }}
+            </button>
           </div>
         </div>
 
@@ -3620,87 +3309,6 @@ label {
 }
 @media (prefers-reduced-motion: reduce) {
   .about-auto-btn.toggle-on { animation: none; }
-}
-
-/* ── Shortcut recorder ── */
-.shortcut-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.shortcut-reset {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: 0.15s;
-}
-.shortcut-reset:not(:disabled):hover {
-  background: var(--color-border);
-  color: var(--color-text-secondary);
-}
-.shortcut-reset-off {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.shortcut-row .shortcut-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 26px;
-  padding: 0 7px;
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: 11px;
-  font-family: inherit;
-  transition: 0.15s;
-  outline: none;
-}
-.shortcut-btn:hover {
-  border-color: var(--color-border-hover);
-  background: var(--color-surface-hover);
-}
-.shortcut-btn:focus-visible,
-.shortcut-btn.recording {
-  border-color: var(--color-accent);
-  background: var(--color-accent-bg);
-}
-.shortcut-btn-icon {
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-.shortcut-rec-text {
-  color: var(--color-accent-text);
-  font-weight: 500;
-}
-.shortcut-err-text {
-  color: var(--color-danger);
-  font-weight: 500;
-}
-.kbd-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 16px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 4px;
-  background: var(--color-overlay);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  font-family: inherit;
 }
 
 /* ── Web search engine cards ──

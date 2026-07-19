@@ -101,6 +101,7 @@
     "opacityScrollHint": "在浮动窗口中可用 {modifier} + 滚轮 调节透明度",
     "shortcutInvalid": "需包含修饰键（Alt/Ctrl/Shift/Cmd）和普通键。",
     "shortcutConflict": "该快捷键不可用，请换一个。",
+    "shortcutsEntry": "查看&编辑快捷键",
     "light": "浅色",
     "dark": "深色",
     "system": "跟随系统",
@@ -254,6 +255,24 @@
         "testSuccessNewDir": "连接成功，首次上传时会自动创建备份目录。"
       }
     }
+  },
+  "shortcuts": {
+    "title": "查看&编辑快捷键",
+    "groupGlobal": "全局",
+    "groupFloating": "浮动输入框",
+    "groupEditing": "编辑返回结果",
+    "groupSettings": "设置页",
+    "send": "依次：发送输入内容 → 发送返回结果",
+    "newline": "换行",
+    "escapeStaged": "依次：关闭结果 → 隐藏窗口",
+    "historyNav": "历史记录导航（光标在开头/结尾时）",
+    "copyResult": "复制结果（无选中文本时）",
+    "fontSizeWheel": "调整字号",
+    "opacityWheel": "调整窗口不透明度",
+    "editConfirm": "确认编辑",
+    "editCancel": "取消编辑",
+    "undo": "撤销",
+    "wheel": "滚轮"
   },
   "floating": {
     "pressEnterToPaste": "按 Enter 粘贴结果…",
