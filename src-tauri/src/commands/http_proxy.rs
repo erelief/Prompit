@@ -59,6 +59,33 @@ const DEFAULT_TIMEOUT_MS: u64 = 60_000;
 /// to reduce redirect-based SSRF / scheme-check-bypass surface.
 const MAX_REDIRECTS: usize = 3;
 
+/// Hostname of the built-in sandbox mock provider. Requests to this host are
+/// intercepted and never reach the network. Kept in sync with
+/// `SANDBOX_MOCK_BASE_URL` in `lib.rs`.
+const SANDBOX_MOCK_HOST: &str = "sandbox-mock.local";
+
+/// Build a canned HTTP response for a sandbox mock request, branched on the
+/// URL path:
+/// - `.../models` → OpenAI-style `{ data: [{ id }] }` list with one mock model.
+/// - `.../chat/completions` → OpenAI-style non-streaming chat completion with
+///   a fixed assistant message.
+/// - anything else → empty `{}`.
+fn mock_response(path: &str) -> LlmHttpResponse {
+    let body = if path.ends_with("/models") {
+        r#"{"object":"list","data":[{"id":"sandbox-mock-model","object":"model","owned_by":"sandbox"}]}"#.to_string()
+    } else if path.ends_with("/chat/completions") {
+        r#"{"id":"sandbox-mock","object":"chat.completion","model":"sandbox-mock-model","choices":[{"index":0,"message":{"role":"assistant","content":"Sandbox mock reply."},"finish_reason":"stop"}]}"#.to_string()
+    } else {
+        "{}".to_string()
+    };
+    LlmHttpResponse {
+        status: 200,
+        body,
+        ok: true,
+    }
+}
+
+
 /// Tracks in-flight requests so the frontend can abort them. The id is issued
 /// server-side per request; the frontend receives it via the response and can
 /// pass it to `llm_http_abort`.
@@ -97,7 +124,16 @@ pub async fn llm_http(
     registry: State<'_, InflightRegistry>,
 ) -> Result<LlmHttpResponse, String> {
     // VULN-4: reject non-http(s) schemes before anything touches the network.
-    let _validated = validate_url(&req.url)?;
+    let validated = validate_url(&req.url)?;
+
+    // Sandbox mock provider: when running in sandbox mode, any request aimed
+    // at the well-known mock host is answered locally with a canned response.
+    // This lets the whole provider flow (test connection, fetch models, chat)
+    // be exercised end-to-end without real credentials or network access.
+    if crate::sandbox_enabled() && validated.host_str() == Some(SANDBOX_MOCK_HOST) {
+        return Ok(mock_response(&validated.path()));
+    }
+
 
     let timeout = Duration::from_millis(req.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS));
 

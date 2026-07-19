@@ -152,6 +152,10 @@ const providerForm = ref<ProviderConfig>({
   temperature: 0.3,
   max_tokens: 1024,
 });
+// Sandbox-only: when true, step 2 shows a one-click "use sandbox mock
+// provider" shortcut that fills the form with the built-in mock provider
+// returned by the `sandbox_mock_provider` command.
+const isSandbox = ref(false);
 const providerPresets = ref<ProviderPreset[]>([]);
 const selectedPreset = ref("");
 const showApiKey = ref(false);
@@ -510,6 +514,29 @@ function applyEndpointByKey(endpointKey: string) {
   if (ep) applyEndpointFields(family, ep);
 }
 
+// ── Sandbox mock provider shortcut ──
+// Fills the form with the built-in mock provider so the user can finish
+// onboarding without entering real credentials. The mock provider's requests
+// are intercepted by the Rust backend (`llm_http`), so test/fetch/chat all
+// succeed offline.
+async function useSandboxMockProvider() {
+  const mock = await invoke<ProviderConfig | null>("sandbox_mock_provider");
+  if (!mock) return;
+  // Treat it as a custom preset (no preset selected) — the form just shows
+  // the raw fields, pre-filled.
+  selectedPreset.value = "";
+  providerForm.value = {
+    name: mock.name,
+    api_key: mock.api_key,
+    base_url: mock.base_url,
+    models: [],
+    temperature: 0.3,
+    max_tokens: 1024,
+    preset: mock.preset ?? undefined,
+    api_format: mock.api_format ?? undefined,
+  };
+}
+
 // ── Step 3 flow ──
 async function confirmProviderAndAdvance() {
   isConnecting.value = true;
@@ -647,6 +674,11 @@ onMounted(async () => {
   invoke<string>("get_shortcut_label").then(s => { shortcutKey.value = s; }).catch(() => {});
   // Ensure window is properly sized and visible for onboarding
   invoke("show_onboarding_window");
+  try {
+    isSandbox.value = await invoke<boolean>("is_sandbox");
+  } catch {
+    isSandbox.value = false;
+  }
   try {
     providerPresets.value = await loadProviderPresets();
   } catch (err) {
@@ -786,6 +818,20 @@ onMounted(async () => {
             <h2 class="text-lg font-medium mb-6" style="color: var(--color-text)">
               {{ t('onboarding.addProviderTitle') }}
             </h2>
+
+            <!-- Sandbox mock shortcut: only in sandbox mode. Fills the form
+                 with the built-in mock provider so the user can finish
+                 onboarding without real credentials. -->
+            <button
+              v-if="isSandbox"
+              type="button"
+              @click="useSandboxMockProvider"
+              class="ob-sandbox-mock-btn"
+              :title="t('onboarding.useSandboxMockHint')"
+            >
+              <ShieldAlert :size="14" :stroke-width="2" />
+              <span>{{ t('onboarding.useSandboxMock') }}</span>
+            </button>
 
             <!-- Preset selector -->
             <div class="mb-5">
@@ -1637,6 +1683,22 @@ div::-webkit-scrollbar-thumb {
 .ob-variant-btn.active{
   color: var(--color-accent); border-color: var(--color-accent-border);
   background: var(--color-accent-bg);
+}
+/* Sandbox mock shortcut button — only shown in sandbox mode. */
+.ob-sandbox-mock-btn{
+  display:flex; align-items:center; gap:6px; width:100%;
+  font-size: 11.5px; font-weight: 500;
+  padding: 8px 12px; margin-bottom: 16px;
+  border-radius: 8px;
+  border: 1px dashed var(--color-accent-border);
+  background: var(--color-accent-bg);
+  color: var(--color-accent-text);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.ob-sandbox-mock-btn:hover{
+  background: color-mix(in srgb, var(--color-accent-bg) 70%, var(--color-surface));
+  border-color: var(--color-accent);
 }
 .opt-left{ display:flex; align-items:center; gap:8px; min-width:0; flex:1; }
 .opt-info{ display:flex; flex-direction:column; gap:1px; min-width:0; }

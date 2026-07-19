@@ -82,9 +82,45 @@ fn get_proxy_url() -> Option<String> {
     read_proxy_url()
 }
 
+/// Whether the app is running in sandbox mode (`SANDBOX` env var set). Sandbox
+/// mode redirects all persistent data to a temp dir and enables the built-in
+/// mock provider / fake-update behaviour so the full UI flow can be exercised
+/// without real credentials or network.
+pub fn sandbox_enabled() -> bool {
+    std::env::var("SANDBOX").is_ok()
+}
+
 #[tauri::command]
 fn is_sandbox() -> bool {
-    std::env::var("SANDBOX").is_ok()
+    sandbox_enabled()
+}
+
+/// URL of the built-in sandbox mock provider. Every request to this host is
+/// intercepted inside `llm_http` and answered with a canned response, so the
+/// provider can be added, tested, and chatted with — all without a network.
+const SANDBOX_MOCK_BASE_URL: &str = "https://sandbox-mock.local/v1";
+
+/// Returns the built-in mock provider when running in sandbox mode, and
+/// `None` otherwise. The frontend uses this in onboarding to offer a one-click
+/// "use sandbox mock provider" shortcut.
+#[tauri::command]
+fn sandbox_mock_provider() -> Option<config::ProviderConfig> {
+    if !sandbox_enabled() {
+        return None;
+    }
+    Some(config::ProviderConfig {
+        name: "Sandbox Mock".to_string(),
+        api_key: "sandbox-key".to_string(),
+        base_url: SANDBOX_MOCK_BASE_URL.to_string(),
+        models: vec![config::ProviderModel {
+            id: "sandbox-mock-model".to_string(),
+            input_capabilities: None,
+        }],
+        temperature: None,
+        max_tokens: None,
+        preset: None,
+        api_format: None,
+    })
 }
 
 /// Returns the data directory to use for persistent storage.
@@ -185,10 +221,11 @@ pub fn run() {
             commands::webdav::webdav_restore_file,
             get_proxy_url,
             is_sandbox,
+            sandbox_mock_provider,
         ])
         .setup(|app| {
             // Sandbox mode: redirect all persistent data to a temp directory
-            if std::env::var("SANDBOX").is_ok() {
+            if sandbox_enabled() {
                 let temp_dir = std::env::temp_dir().join(format!(
                     "prompit-sandbox-{}",
                     std::time::SystemTime::now()

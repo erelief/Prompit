@@ -352,7 +352,8 @@
     "installing": "安装中…",
     "restarting": "重启中…",
     "updateFailed": "更新失败",
-    "checkFailed": "检查失败"
+    "checkFailed": "检查失败",
+    "sandboxUpdateBlocked": "沙盒模式下无法安装更新。"
   },
   "languages": {
     "English": {
@@ -400,6 +401,8 @@
     "infoTitle": "开始设置吧",
     "infoBody": "Prompit 需要接入 AI 模型才能使用。接下来会引导你添加一个模型供应方。",
     "addProviderTitle": "添加供应方",
+    "useSandboxMock": "使用沙盒虚拟 Provider",
+    "useSandboxMockHint": "跳过真实配置，填入内置虚拟 provider（仅沙盒模式）。",
     "preset": "AI 模型供应方",
     "selectPreset": "选择供应方…",
     "custom": "自定义",

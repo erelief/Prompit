@@ -352,7 +352,8 @@
     "installing": "Installing…",
     "restarting": "Restarting…",
     "updateFailed": "Update failed",
-    "checkFailed": "Failed"
+    "checkFailed": "Failed",
+    "sandboxUpdateBlocked": "Update install is disabled in sandbox mode."
   },
   "languages": {
     "English": {
@@ -400,6 +401,8 @@
     "infoTitle": "Let's get started",
     "infoBody": "Prompit uses AI models to power its features. You need to connect at least one model provider before you can start. Let's set one up now.",
     "addProviderTitle": "Add a provider",
+    "useSandboxMock": "Use sandbox mock provider",
+    "useSandboxMockHint": "Skip real setup — fill in a built-in mock provider (sandbox only).",
     "preset": "AI model providers",
     "selectPreset": "Select a provider…",
     "custom": "Custom",

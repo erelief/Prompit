@@ -345,6 +345,17 @@ async function checkForUpdate(silent = false) {
   if (!isTauri) return;
   updateStatus.value = "checking";
   updateError.value = "";
+  // Sandbox: short-circuit to a permanent "has-update" state so the entire
+  // update UI flow (badge, banner, install button) is exercised without a
+  // real network round-trip. installUpdate() blocks the actual install.
+  try {
+    const sandbox = await invoke<boolean>("is_sandbox");
+    if (sandbox) {
+      updateVersion.value = "0.0.0";
+      updateStatus.value = "has-update";
+      return;
+    }
+  } catch { /* ignore — fall through to real check */ }
   try {
     const { check } = await import("@tauri-apps/plugin-updater");
     const proxy = await invoke<string | null>("get_proxy_url");
@@ -373,6 +384,17 @@ async function checkForUpdate(silent = false) {
 
 async function installUpdate() {
   if (!isTauri) return;
+  // Sandbox: don't actually download/install — the "has-update" state was
+  // faked by checkForUpdate. Surface a brief error so the user knows.
+  try {
+    const sandbox = await invoke<boolean>("is_sandbox");
+    if (sandbox) {
+      updateStatus.value = "error";
+      updateError.value = t("about.sandboxUpdateBlocked");
+      scheduleUpdateReset(3000);
+      return;
+    }
+  } catch { /* ignore — fall through */ }
   try {
     const { check } = await import("@tauri-apps/plugin-updater");
     const { relaunch } = await import("@tauri-apps/plugin-process");
