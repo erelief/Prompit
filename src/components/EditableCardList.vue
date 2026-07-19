@@ -20,7 +20,10 @@ const props = withDefaults(defineProps<{
   validate?: (item: any, index: number) => string | null;
   /** Whether to show the remove button. Default true. */
   allowRemove?: boolean;
-  /** Max number of items visible when collapsed (controls max-height). Default 3. */
+  /** Max number of items visible when collapsed (controls max-height). Default 3.
+   *  Set to 0 to disable self-truncation entirely — the list then grows unbounded
+   *  and defers scrolling to the nearest ancestor scroll container (e.g. the
+   *  settings body), instead of scrolling inside its own box. */
   maxCollapsed?: number;
   /** Whether to render the built-in GripVertical drag handle. Set false when a slot-provided element (e.g. a provider logo) carries the `card-drag-handle` class and acts as the drag handle. Default true. */
   builtinDragHandle?: boolean;
@@ -223,7 +226,12 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
     </div>
   </div>
 
-  <div ref="rootEl" class="ecl-stack" :class="{ compact: !adding && !isEditingAny }" :style="(!adding && !isEditingAny) ? { maxHeight: (props.maxCollapsed * 56 + 4) + 'px' } : undefined">
+  <div
+    ref="rootEl"
+    class="ecl-stack"
+    :class="{ compact: !adding && !isEditingAny && props.maxCollapsed > 0 }"
+    :style="(!adding && !isEditingAny && props.maxCollapsed > 0) ? { maxHeight: (props.maxCollapsed * 56 + 4) + 'px' } : undefined"
+  >
     <!-- Empty state -->
     <div v-if="items.length === 0 && !adding" class="empty-card">
       <component :is="emptyIcon || icon" :size="22" :stroke-width="1" />
