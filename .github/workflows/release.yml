@@ -1,10 +1,8 @@
 # Release pipeline for Prompit (Tauri v2).
 #
 # Builds Windows (MSI + NSIS), Linux (deb + AppImage), and macOS (universal)
-# installers, signs the updater artifacts, and uploads everything to a GitHub
-# Release as a DRAFT. The auto-update mechanism stays inert until you click
-# "Publish release" — only then does the app's endpoint
-# (…/releases/latest/download/latest.json) resolve.
+# installers, signs the updater artifacts, and uploads everything to the
+# GitHub Release that release-please created for the tag.
 #
 # ── Triggers ─────────────────────────────────────────────────────────────
 #   1. Push a tag matching `v*` — normally created by release-please.yml
@@ -24,22 +22,28 @@
 #   release-please (see release-please.yml) is the source of truth for the
 #   version number. It parses Conventional Commits on `main`, maintains a
 #   "chore(main): release X.Y.Z" PR, and on merge bumps package.json +
-#   tauri.conf.json, updates CHANGELOG.md, tags vX.Y.Z, and creates a DRAFT
+#   tauri.conf.json, updates CHANGELOG.md, tags vX.Y.Z, and creates the
 #   GitHub Release (body = changelog). This workflow then picks up the tag:
 #
 #   1. Merge the release-please PR → it commits the bump, tags vX.Y.Z, and
-#      opens a draft release.
-#   2. The tag push triggers this workflow; tauri-action finds the draft
+#      creates the release (body = changelog).
+#   2. The tag push triggers this workflow; tauri-action finds the existing
 #      release by tagName and uploads the platform artifacts into it (the
 #      changelog body is preserved).
-#   3. Wait for the three matrix jobs to finish.
-#   4. Open the draft release, review assets, click "Publish".
+#   3. Wait for the three matrix jobs to finish uploading assets.
+#   4. Edit the release body to add the Chinese translation (bilingual).
 #   5. Existing users get auto-prompted; new users download from the page.
+#
+#   Why not draft: release-please's draft mode does not push a git tag, so
+#   this workflow's `on.push.tags: v*` trigger never fires. Using a
+#   published release means users may briefly see the release before assets
+#   finish uploading — acceptable because the updater only reads
+#   latest.json once all assets are present.
 #
 #   Fallback (no release-please): `npm version patch|minor|major` still
 #   works — its lifecycle hook runs scripts/sync-tauri-config.mjs to bump
 #   tauri.conf.json + Cargo.toml, then commits and tags. tauri-action will
-#   create a fresh draft release (empty body) if none exists for the tag.
+#   create a fresh release (empty body) if none exists for the tag.
 #
 # ── Limitations (can be added later) ─────────────────────────────────────
 #   • No OS code-signing (no Apple Developer ID / Windows Authenticode cert):
@@ -115,7 +119,7 @@ jobs:
         with:
           targets: ${{ matrix.rust-targets }}
 
-      - name: Build & publish draft release
+      - name: Build & upload release assets
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -123,9 +127,12 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          # release-please creates the release (with changelog body) on PR
+          # merge; this action finds it by tag and uploads the artifacts.
+          # releaseName/releaseDraft only matter when creating a new release
+          # (the manual `npm version` fallback path).
           tagName: ${{ github.event.inputs.tagName || github.ref_name }}
           releaseName: "Prompit ${{ github.event.inputs.tagName || github.ref_name }}"
-          releaseDraft: true
           # NSIS is the Windows installer format the updater can install
           # in place (MSI cannot self-update).
           updaterJsonPreferNsis: true
