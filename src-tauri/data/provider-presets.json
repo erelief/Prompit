@@ -236,6 +236,15 @@
       }
     },
     {
+      "name": "LongCat",
+      "provider_name": "LongCat",
+      "icon": "longcat",
+      "model_series": "LongCat",
+      "base_url": "https://api.longcat.chat/openai",
+      "api_url": "https://longcat.chat/platform/api_keys",
+      "api_format": "openai"
+    },
+    {
       "name": "Meta AI",
       "provider_name": "Meta AI",
       "icon": "meta",

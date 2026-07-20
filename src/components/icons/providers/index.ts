@@ -11,6 +11,7 @@ import Gemini from "./Gemini.vue";
 import Grok from "./Grok.vue";
 import Kimi from "./Kimi.vue";
 import LMStudio from "./LMStudio.vue";
+import LongCat from "./LongCat.vue";
 import Meta from "./Meta.vue";
 import MiMo from "./MIMO.vue";
 import Minimax from "./Minimax.vue";
@@ -43,6 +44,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   grok: Grok,
   kimi: Kimi,
   lmstudio: LMStudio,
+  longcat: LongCat,
   meta: Meta,
   mimo: MiMo,
   minimax: Minimax,
