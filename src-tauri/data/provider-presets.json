@@ -331,6 +331,15 @@
       "api_format": "openai"
     },
     {
+      "name": "千问 AI 平台",
+      "provider_name": "千问 AI 平台",
+      "icon": "qwenai",
+      "model_series": "Qwen",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "api_url": "https://platform.qianwenai.com/home/api-keys",
+      "api_format": "openai"
+    },
+    {
       "name": "SiliconFlow/硅基流动",
       "icon": "siliconflow",
       "api_format": "openai",
