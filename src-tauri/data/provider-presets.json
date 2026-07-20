@@ -194,7 +194,7 @@
                 "label": "Kimi Code",
                 "provider_name": "Kimi Code",
                 "base_url": "https://api.kimi.com/coding/v1",
-                "api_url": "https://platform.kimi.com/console/api-keys"
+                "api_url": "https://www.kimi.com/code/console"
               }
             ]
           },
