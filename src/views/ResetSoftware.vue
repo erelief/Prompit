@@ -98,7 +98,7 @@ async function handleConfirm() {
         <ArrowLeft :size="16" />
       </button>
       <span class="header-title">{{ t('settings.reset.pageTitle') }}</span>
-      <span v-if="isSandbox" class="sandbox-badge">{{ t('settings.reset.sandboxBadge') }}</span>
+      <span v-if="isSandbox" class="badge success sandbox-badge">{{ t('settings.reset.sandboxBadge') }}</span>
     </div>
 
     <!-- Body -->
@@ -155,7 +155,7 @@ async function handleConfirm() {
   background: var(--color-bg);
   color: var(--color-text);
   overflow: hidden;
-  border-radius: 11px;
+  border-radius: var(--radius-lg);
 }
 .reset-root.grow-above .reset-header { order: 2; border-bottom: none; border-top: 1px solid var(--color-surface); }
 .reset-root.grow-above .reset-footer { order: 1; border-top: none; border-bottom: 1px solid var(--color-surface); }
@@ -164,37 +164,30 @@ async function handleConfirm() {
 .reset-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 24px 12px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6) var(--space-3);
   border-bottom: 1px solid var(--color-surface);
   flex-shrink: 0;
 }
-.sandbox-badge {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  flex-shrink: 0;
-}
+/* Sandbox badge — uses shared .badge primitive from ui.css. Local rule kept
+   only for layout (flex-shrink); visual spec comes from .badge.success. */
+.sandbox-badge { flex-shrink: 0; }
 
 .reset-body {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: 18px 24px;
+  padding: 18px var(--space-6);
   overflow-y: auto;
   gap: 14px;
 }
 .reset-body::-webkit-scrollbar { width: 3px; }
-.reset-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
+.reset-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: var(--radius-xs); }
 .warn-card {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--space-4);
 }
 .warn-icon-wrap {
   display: flex;
@@ -202,7 +195,7 @@ async function handleConfirm() {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 11px;
+  border-radius: var(--radius-lg);
   background: var(--color-danger-bg);
   color: var(--color-danger);
   flex-shrink: 0;
@@ -210,29 +203,29 @@ async function handleConfirm() {
 .warn-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   padding-top: 2px;
 }
 .warn-text {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
   line-height: 1.55;
   color: var(--color-text-secondary);
 }
 .warn-irreversible {
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--color-danger);
   letter-spacing: 0.01em;
 }
 .sandbox-hint {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   color: var(--color-success);
 }
 .selector-label {
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-secondary);
   letter-spacing: 0.01em;
 }
@@ -240,20 +233,20 @@ async function handleConfirm() {
 .reset-footer {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 24px 16px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-6) var(--space-4);
   border-top: 1px solid var(--color-surface);
   flex-shrink: 0;
 }
 .understood-label {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
 .status-text {
   font-size: 10.5px;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -264,13 +257,13 @@ async function handleConfirm() {
 .footer-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
   margin-left: auto;
 }
 
 .confirm-with-countdown {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 </style>

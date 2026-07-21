@@ -147,7 +147,7 @@ async function handleDrag(e: MouseEvent) {
           :placeholder="t('settings.webdav.server.passwordPlaceholder')"
           autocomplete="new-password"
         />
-        <span v-if="serverPwSaved && !serverPw" class="saved-badge">
+        <span v-if="serverPwSaved && !serverPw" class="badge success saved-badge">
           {{ t('settings.webdav.server.passwordSaved') }}
         </span>
         <button class="pw-toggle" @click="showServerPw = !showServerPw" type="button">
@@ -214,35 +214,26 @@ async function handleDrag(e: MouseEvent) {
 <style scoped>
 .ud-body { order: 0; }
 
-.ud-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 24px 12px;
-  border-bottom: 1px solid var(--color-surface);
-  flex-shrink: 0;
-}
-
 .ud-body {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 24px;
+  padding: 18px var(--space-6);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 .ud-body::-webkit-scrollbar { width: 3px; }
-.ud-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
+.ud-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: var(--radius-xs); }
 
 .ud-hint {
-  font-size: 10px;
-  font-weight: 500;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   margin-top: -4px;
 }
 .field-label {
   font-size: 10.5px;
-  font-weight: 650;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-secondary);
   letter-spacing: 0.01em;
   margin-top: 2px;
@@ -250,21 +241,18 @@ async function handleDrag(e: MouseEvent) {
 
 .wd-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
 }
 .wd-actions .ud-btn {
   flex: 1;
 }
+/* Uses the shared .badge primitive from ui.css (success variant) */
 .saved-badge {
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--color-success);
   flex-shrink: 0;
 }
 
+/* Accent-tinted primary action — pairs with .primary-btn from ui.css */
 .analyze-btn {
   color: var(--color-accent-text);
   background: var(--color-accent-bg);
@@ -272,7 +260,9 @@ async function handleDrag(e: MouseEvent) {
 }
 .analyze-btn:hover:not(:disabled) {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
+.analyze-btn:active:not(:disabled) { transform: translateY(0.5px); }
+.analyze-btn:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 
 </style>

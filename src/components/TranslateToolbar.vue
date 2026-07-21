@@ -579,16 +579,16 @@ defineExpose({ closeAllDropdowns });
 .lang-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   height: 28px;
-  padding: 0 8px 0 7px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 550;
+  padding: 0 var(--space-2) 0 7px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-surface);
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 .lang-btn:hover,
 .lang-btn.active {
@@ -596,6 +596,9 @@ defineExpose({ closeAllDropdowns });
   background: var(--color-surface-hover);
   border-color: var(--color-border-hover);
 }
+.lang-btn:active { transform: translateY(0.5px); }
+.lang-btn:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
+.lang-btn:disabled { opacity: .4; cursor: not-allowed; }
 
 /* Persona toggle */
 .persona-wrap {
@@ -612,21 +615,22 @@ defineExpose({ closeAllDropdowns });
   align-items: center;
   gap: 5px;
   height: 28px;
-  padding: 0 4px 0 8px;
-  border-radius: 8px 0 0 8px;
-  font-size: 10px;
-  font-weight: 550;
+  padding: 0 var(--space-1) 0 var(--space-2);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-surface);
   border-right: none;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 .persona-toggle.on { padding-right: 10px; }
 .persona-toggle:hover {
   color: var(--color-text-secondary);
   background: var(--color-border);
 }
+.persona-toggle:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 .persona-toggle.on {
   color: var(--color-accent);
   background: var(--color-accent-bg);
@@ -652,12 +656,12 @@ defineExpose({ closeAllDropdowns });
   justify-content: center;
   width: 22px;
   height: 28px;
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-surface);
   border-left: 1px solid var(--color-surface);
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 .persona-chevron:hover,
 .persona-chevron.active {
@@ -665,6 +669,8 @@ defineExpose({ closeAllDropdowns });
   background: var(--color-border);
   border-color: var(--color-border);
 }
+.persona-chevron:active { background: var(--color-border-hover); }
+.persona-chevron:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 .persona-chevron.on {
   border-color: var(--color-accent-border);
   background: var(--color-accent-bg);
@@ -683,14 +689,14 @@ defineExpose({ closeAllDropdowns });
   gap: 5px;
   height: 28px;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-surface);
   background: var(--color-surface);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
-  font-size: 10px;
-  font-weight: 550;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   font-family: inherit;
   flex-shrink: 0;
 }
@@ -698,6 +704,9 @@ defineExpose({ closeAllDropdowns });
   color: var(--color-text-secondary);
   background: var(--color-border);
 }
+.dict-toggle:active { background: var(--color-border-hover); }
+.dict-toggle:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
+.dict-toggle:disabled { opacity: .4; cursor: not-allowed; }
 .dict-toggle.on {
   color: var(--color-accent);
   background: var(--color-accent-bg);
@@ -716,12 +725,12 @@ defineExpose({ closeAllDropdowns });
   justify-content: center;
   height: 28px;
   width: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px dashed var(--color-border-hover);
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
   flex-shrink: 0;
 }
 .ghost-btn:hover {
@@ -729,22 +738,24 @@ defineExpose({ closeAllDropdowns });
   color: var(--color-text-secondary);
   background: var(--color-surface);
 }
+.ghost-btn:active { transform: scale(0.95); }
+.ghost-btn:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 
 /* Skills Lite selector */
 .skills-lite-wrap { display: inline-flex; flex-shrink: 0; }
 .skills-lite-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   height: 28px;
-  padding: 0 8px 0 7px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 550;
+  padding: 0 var(--space-2) 0 7px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-surface);
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 .skills-lite-btn:hover,
 .skills-lite-btn.active {
@@ -752,6 +763,9 @@ defineExpose({ closeAllDropdowns });
   background: var(--color-accent-bg);
   border-color: var(--color-accent-border);
 }
+.skills-lite-btn:active { transform: translateY(0.5px); }
+.skills-lite-btn:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
+.skills-lite-btn:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ── Empty-state hint (full-window overlay) ── */
 .empty-hint-overlay {
@@ -762,63 +776,70 @@ defineExpose({ closeAllDropdowns });
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: var(--space-5);
   text-align: center;
   background: var(--color-bg);
 }
 .empty-hint-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
   line-height: 1.4;
   color: var(--color-text);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1);
 }
 .empty-hint-body {
-  font-size: 12px;
+  font-size: var(--text-base);
   line-height: 1.55;
   color: var(--color-text-secondary);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 .empty-hint-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: center;
 }
 .empty-hint-cancel {
   height: 32px;
-  padding: 0 16px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
   color: var(--color-text-secondary);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 .empty-hint-cancel:hover {
   color: var(--color-text);
   background: var(--color-surface-hover);
   border-color: var(--color-border-hover);
 }
+.empty-hint-cancel:active { transform: translateY(0.5px); }
+.empty-hint-cancel:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 .empty-hint-go {
   height: 32px;
-  padding: 0 16px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-bg);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--color-on-accent);
   background: var(--color-accent);
   border: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
-.empty-hint-go:hover {
-  filter: brightness(1.1);
-}
+.empty-hint-go:hover { background: color-mix(in srgb, var(--color-accent) 88%, var(--color-bg)); }
+.empty-hint-go:active { transform: translateY(0.5px); }
+.empty-hint-go:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 
 @media (prefers-reduced-motion: reduce) {
   .persona-wrap.on,
   .dict-toggle.on { animation: none; }
+  .lang-btn:active,
+  .skills-lite-btn:active,
+  .ghost-btn:active,
+  .empty-hint-cancel:active,
+  .empty-hint-go:active { transform: none; }
 }
 </style>

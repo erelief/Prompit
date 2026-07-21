@@ -78,30 +78,32 @@ onMounted(async () => {
 
 .close-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: var(--space-2);
+  right: var(--space-2);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 3px;
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 
 .close-btn:hover {
   color: var(--color-text);
   background: var(--color-surface-hover);
 }
+.close-btn:active { background: var(--color-border); }
+.close-btn:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 
 .countdown-text {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
 }
@@ -109,19 +111,19 @@ onMounted(async () => {
 .reminder-logo {
   height: 2em;
   width: auto;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .reminder-name {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
   letter-spacing: -0.02em;
   color: var(--color-text);
 }
 
 .reminder-hint {
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: var(--space-2);
+  font-size: var(--text-md);
   color: var(--color-text-secondary);
   text-align: center;
 }

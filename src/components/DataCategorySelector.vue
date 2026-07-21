@@ -108,8 +108,8 @@ function countLabel(cat: DataCategory): string | null {
         <span class="cat-label-line">
           <span class="cat-label">{{ t(CATEGORY_META[cat].labelKey) }}</span>
           <span v-if="countLabel(cat) !== null" class="cat-count">{{ countLabel(cat) }}</span>
-          <span v-if="CATEGORY_META[cat].sensitive" class="cat-badge sensitive">{{ t('settings.categories.sensitive') }}</span>
-          <span v-if="counts && countMap[cat] === undefined" class="cat-badge absent">{{ t('settings.categories.notInBackup') }}</span>
+          <span v-if="CATEGORY_META[cat].sensitive" class="badge danger">{{ t('settings.categories.sensitive') }}</span>
+          <span v-if="counts && countMap[cat] === undefined" class="badge cat-badge-absent">{{ t('settings.categories.notInBackup') }}</span>
         </span>
         <span class="cat-desc">{{ t(CATEGORY_META[cat].descKey) }}</span>
       </span>
@@ -162,7 +162,7 @@ function countLabel(cat: DataCategory): string | null {
   align-items: center;
 }
 .cat-all .cat-label {
-  font-weight: 650;
+  font-weight: var(--weight-semibold);
 }
 
 .cat-check {
@@ -177,7 +177,7 @@ function countLabel(cat: DataCategory): string | null {
   color: var(--color-bg);
   flex-shrink: 0;
   margin-top: 1px;
-  transition: 0.12s;
+  transition: border-color 0.12s, background 0.12s;
 }
 .cat-row.checked .cat-check,
 .cat-row.indeterminate .cat-check {
@@ -195,17 +195,17 @@ function countLabel(cat: DataCategory): string | null {
 .cat-label-line {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
   flex-wrap: wrap;
 }
 .cat-label {
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text);
 }
 .cat-count {
-  font-size: 10px;
-  font-weight: 650;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   color: var(--color-accent-text);
   background: var(--color-accent-bg);
   padding: 1px 6px;
@@ -214,28 +214,23 @@ function countLabel(cat: DataCategory): string | null {
 }
 .cat-desc {
   font-size: 10.5px;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   line-height: 1.4;
 }
-.cat-badge {
-  font-size: 9px;
-  font-weight: 650;
-  letter-spacing: 0.03em;
-  padding: 1px 5px;
-  border-radius: var(--radius-xs);
-  text-transform: uppercase;
-}
-.cat-badge.sensitive {
-  color: var(--color-danger);
-  background: var(--color-danger-bg);
-}
-.cat-badge.absent {
+/* "Not in backup" badge variant — overrides the shared .badge background with
+   a dashed-border muted style (the only badge that means "absent", not a
+   status). Other badges (.sensitive/.danger, .success) come from ui.css. */
+.cat-badge-absent {
   color: var(--color-text-muted);
   background: transparent;
   border: 1px dashed var(--color-border);
 }
 .cat-row.absent {
   opacity: 0.6;
+}
+.cat-row:focus-visible {
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: -2px;
 }
 </style>

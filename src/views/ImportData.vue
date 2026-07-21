@@ -264,14 +264,15 @@ async function handleDrag(e: MouseEvent) {
 
 <style scoped>
 .ud-warn {
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--color-danger);
   letter-spacing: 0.01em;
 }
 
 .change-file-btn { width: 22px; height: 22px; }
 
+/* Accent-tinted primary action — pairs with .primary-btn from ui.css */
 .analyze-btn {
   color: var(--color-accent-text);
   background: var(--color-accent-bg);
@@ -279,8 +280,10 @@ async function handleDrag(e: MouseEvent) {
 }
 .analyze-btn:hover:not(:disabled) {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
+.analyze-btn:active:not(:disabled) { transform: translateY(0.5px); }
+.analyze-btn:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 .primary-btn.danger {
   color: var(--color-danger);
   border-color: var(--color-danger-bg);
@@ -288,7 +291,7 @@ async function handleDrag(e: MouseEvent) {
 }
 .primary-btn.danger:hover:not(:disabled) {
   background: var(--color-danger);
-  color: var(--color-bg);
+  color: var(--color-on-danger);
 }
 
 .file-pick-btn {
@@ -297,21 +300,23 @@ async function handleDrag(e: MouseEvent) {
   justify-content: center;
   gap: 7px;
   padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--color-accent-text);
   background: var(--color-accent-bg);
   border: 1px dashed var(--color-accent-border);
   cursor: pointer;
-  transition: 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
   font-family: inherit;
 }
 .file-pick-btn:hover:not(:disabled) {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border-style: solid;
 }
+.file-pick-btn:active:not(:disabled) { transform: translateY(0.5px); }
+.file-pick-btn:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 .file-pick-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -320,35 +325,38 @@ async function handleDrag(e: MouseEvent) {
 .file-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) 10px;
 }
 .webdav-pick-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
 }
 .webdav-select {
   flex: 1;
   min-width: 0;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--color-text);
-  font-size: 12px;
+  font-size: var(--text-base);
   font-family: inherit;
   padding: 7px 10px;
   outline: none;
   cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .webdav-select:hover:not(:disabled) {
   border-color: var(--color-border-hover);
 }
-.webdav-select:focus {
+.webdav-select:focus,
+.webdav-select:focus-visible {
   border-color: var(--color-accent-border);
+  box-shadow: 0 0 0 2px var(--color-accent-bg);
 }
 .webdav-select:disabled {
   opacity: 0.4;
@@ -361,39 +369,41 @@ async function handleDrag(e: MouseEvent) {
 .file-name {
   flex: 1;
   font-size: 11.5px;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Destructive confirm — uses shared .warn-row spec from ui.css conceptually.
+   Kept as a stacked column variant for this flow. */
 .confirm-warn-row {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 11px 12px;
-  border-radius: 8px;
+  padding: 11px var(--space-3);
+  border-radius: var(--radius-md);
   background: var(--color-danger-bg);
   border-left: 3px solid var(--color-danger);
 }
 .confirm-warn-text {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  font-size: 11px;
-  font-weight: 600;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--color-danger);
   line-height: 1.45;
 }
 .confirm-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
+  gap: var(--space-1);
 }
 .confirm-with-countdown {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 </style>

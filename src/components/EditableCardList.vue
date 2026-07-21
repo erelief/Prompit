@@ -177,9 +177,11 @@ function onDragEnd() {
   triggerRef(order);
   emit("drag-end", { indexMap });
 
-  // FLIP: Invert + Play — animate cards from old to new positions
+  // FLIP: Invert + Play — animate cards from old to new positions.
+  // Skip the animation entirely under prefers-reduced-motion: cards just snap.
   nextTick(() => {
     if (!rootEl.value) return;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     rootEl.value.querySelectorAll<HTMLElement>(".ecl-card").forEach(el => {
       const oi = Number(el.dataset.flipId);
       if (isNaN(oi)) return;
@@ -189,6 +191,7 @@ function onDragEnd() {
       const dx = first.left - last.left;
       const dy = first.top - last.top;
       if (!dx && !dy) return;
+      if (reduceMotion) return;
       el.style.transform = `translate(${dx}px, ${dy}px)`;
       el.style.transition = "none";
       // Force reflow so the "invert" transform applies before we animate
@@ -235,7 +238,7 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
     <!-- Empty state -->
     <div v-if="items.length === 0 && !adding" class="empty-card">
       <component :is="emptyIcon || icon" :size="22" :stroke-width="1" />
-      <span>{{ emptyMessage || 'No items yet.' }}<br><small>{{ emptySubMessage || 'Add one to get started.' }}</small></span>
+      <span>{{ emptyMessage || t('common.emptyDefault') }}<br><small>{{ emptySubMessage || t('common.emptyDefaultSub') }}</small></span>
     </div>
 
     <!-- Adding form -->
@@ -281,9 +284,16 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
           :class="{ open: isEditing(oi), 'no-builtin-handle': !builtinDragHandle }"
           :data-flip-id="oi"
         >
-          <span v-if="builtinDragHandle" class="card-drag-handle" @click.stop>
+          <button
+            v-if="builtinDragHandle"
+            type="button"
+            class="card-drag-handle"
+            :title="t('common.dragToReorder')"
+            :tabindex="isEditingAny ? -1 : 0"
+            @click.stop
+          >
             <GripVertical :size="13" :stroke-width="1.8" />
-          </span>
+          </button>
 
           <!-- Collapsed -->
           <div v-if="!isEditing(oi)" class="ecl-collapsed" :class="{ 'remove-pending': pendingRemove === oi }">
@@ -349,16 +359,18 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 .ecl-stack.compact :deep(.ecl-card) { flex-shrink: 0; }
 .ecl-stack.compact::-webkit-scrollbar { width: 3px; }
 .ecl-stack.compact::-webkit-scrollbar-track { margin: 4px 0; }
-.ecl-stack.compact::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
+.ecl-stack.compact::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: var(--radius-xs); }
 
 .drag-wrapper { display: contents; }
 
 /* ── Card ── */
 .ecl-card {
   position: relative;
-  border-radius: 11px; overflow:hidden;
+  border-radius: var(--radius-lg); overflow:hidden;
   border: 1px solid var(--color-border);
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface) 100%);
+  /* Flat surface fill (was a self-cancelling 2-stop gradient on the same
+     token — collapsed to a plain fill so the intent is unambiguous). */
+  background: var(--color-surface);
   transition: border-color .18s, box-shadow .18s;
   user-select: none;
 }
@@ -389,19 +401,28 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
   display:flex; align-items:center; justify-content:flex-end; gap:6px; margin-top:10px;
 }
 
-/* ── Drag handle ── */
+/* ── Drag handle ──
+   <button> so keyboard users can reach it; vuedraggable's forceFallback
+   still drives the pointer drag. Focus-visible gives a ring on keyboard
+   focus; the hover/active color shifts remain. */
 .card-drag-handle {
   position: absolute; top: 12px; left: 10px;
   display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 5px;
+  width: 26px; height: 26px; border-radius: var(--radius-xs);
   cursor: grab; color: var(--color-text-muted);
-  z-index: 2; opacity: .55; transition: opacity 0.12s, color 0.12s;
+  z-index: 2; opacity: .55; transition: opacity 0.12s, color 0.12s, background 0.12s;
   pointer-events: auto; user-select: none;
+  border: none; background: none; padding: 0;
 }
 .ecl-card:hover > .card-drag-handle { opacity: 1; }
 .ecl-card.open > .card-drag-handle { display: none; }
 .card-drag-handle:hover {
   color: var(--color-text-secondary); background: var(--color-surface-hover);
+}
+.card-drag-handle:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: 1px;
 }
 .card-drag-handle:active { cursor: grabbing; color: var(--color-accent); }
 
@@ -410,16 +431,16 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 :deep(.sortable-ghost.card-ghost) {
   opacity: 0.35; background: var(--color-accent-bg);
   border: 1px dashed var(--color-accent-border);
-  border-radius: 11px; min-height: 44px;
+  border-radius: var(--radius-lg); min-height: 44px;
 }
 
 /* ── Mini button (Edit / Remove / Collapse) ── */
 .remove-warning-text {
-  font-size: 10px; font-weight: 550; letter-spacing: .01em;
+  font-size: var(--text-xs); font-weight: var(--weight-medium); letter-spacing: .01em;
   color: var(--color-danger);
 }
 .validation-error {
-  font-size: 10px; font-weight: 550; letter-spacing: .01em;
+  font-size: var(--text-xs); font-weight: var(--weight-medium); letter-spacing: .01em;
   color: var(--color-danger); margin-top: 6px;
 }
 .mini-btn.gold-active { color: var(--color-accent-text); }
@@ -428,12 +449,13 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 /* ── Name input ── */
 .name-input {
   flex:1; background:none; border:none;
-  font-size:14px; font-weight:700; letter-spacing: -.02em;
+  font-size:14px; font-weight: var(--weight-bold); letter-spacing: -.02em;
   color: var(--color-text); outline:none;
-  padding:3px 5px; border-radius:5px; transition:background .15s;
+  padding:3px 5px; border-radius: var(--radius-xs); transition:background .15s;
 }
 .name-input::placeholder{ color: var(--color-text-muted); }
-.name-input:focus{ background: var(--color-surface); }
+.name-input:focus,
+.name-input:focus-visible{ background: var(--color-surface); }
 
 /* ── Section head ── */
 .section-head {
@@ -444,17 +466,17 @@ function buildIndexMap(oldLen: number, removedAt: number): Map<number, number> {
 .section-head-actions { display:flex; align-items:center; gap:6px; }
 .section-title {
   display:flex; align-items:center; gap:7px;
-  font-size: 11.5px; font-weight: 650; letter-spacing: .01em;
+  font-size: 11.5px; font-weight: var(--weight-semibold); letter-spacing: .01em;
   color: var(--color-text-secondary);
 }
 
 /* ── Empty state ── */
 .empty-card {
-  display:flex; flex-direction:column; align-items:center; gap:8px;
-  padding: 28px 16px; border-radius: 11px;
+  display:flex; flex-direction:column; align-items:center; gap:var(--space-2);
+  padding: 28px var(--space-4); border-radius: var(--radius-lg);
   border: 1px dashed var(--color-surface-hover);
   color: var(--color-text-muted); font-size: 11.5px; line-height: 1.5;
   text-align: center;
 }
-.empty-card small{ font-size: 10px; color: var(--color-text-muted); }
+.empty-card small{ font-size: var(--text-xs); color: var(--color-text-muted); }
 </style>

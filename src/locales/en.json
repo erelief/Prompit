@@ -25,7 +25,10 @@
     "disabled": "Not enabled",
     "supportsImageInput": "Supports image input",
     "supportsAudioInput": "Supports audio input",
-    "supportsVideoInput": "Supports video input"
+    "supportsVideoInput": "Supports video input",
+    "emptyDefault": "No items yet.",
+    "emptyDefaultSub": "Add one to get started.",
+    "dragToReorder": "Drag to reorder"
   },
   "modes": {
     "translate": "Translate",

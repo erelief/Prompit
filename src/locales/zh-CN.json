@@ -25,7 +25,10 @@
     "disabled": "未启用",
     "supportsImageInput": "支持图片输入",
     "supportsAudioInput": "支持音频输入",
-    "supportsVideoInput": "支持视频输入"
+    "supportsVideoInput": "支持视频输入",
+    "emptyDefault": "暂无项目。",
+    "emptyDefaultSub": "添加一个以开始使用。",
+    "dragToReorder": "拖动以重新排序"
   },
   "modes": {
     "translate": "翻译",

@@ -201,7 +201,7 @@ onMounted(async () => {
       <template v-if="sourcesEntry">
         <a v-for="(src, i) in sourcesList" :key="i"
            :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
-          <div class="source-favicon">🌐</div>
+          <div class="source-favicon"><Globe :size="13" :stroke-width="1.8" /></div>
           <div class="source-meta">
             <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
             <div class="source-domain">{{ domainOf(src.url) }}</div>
@@ -301,41 +301,43 @@ onMounted(async () => {
 .history-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 24px 12px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6) var(--space-3);
   flex-shrink: 0;
   border-bottom: 1px solid var(--color-surface);
 }
 .header-title {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
   flex: 0 0 auto;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .reset-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 7px;
+  gap: var(--space-1);
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-sm);
   font-size: 10.5px;
-  font-weight: 550;
+  font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   cursor: pointer;
   border: none;
   background: none;
-  transition: 0.15s;
+  transition: color 0.15s, background 0.15s, transform 0.15s;
 }
 .reset-btn:hover {
   color: var(--color-text);
   background: var(--color-surface-hover);
 }
+.reset-btn:active { transform: translateY(0.5px); }
+.reset-btn:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 .reset-btn.danger:hover {
   color: var(--color-danger);
   background: var(--color-danger-bg);
@@ -345,20 +347,21 @@ onMounted(async () => {
 .history-search {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
   flex: 1;
   min-width: 0;
-  margin: 0 6px;
+  margin: 0 var(--space-1);
   padding: 5px 9px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   color: var(--color-text-muted);
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 .history-search:focus-within {
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-border);
   background: var(--color-surface-hover);
+  box-shadow: 0 0 0 2px var(--color-accent-bg);
 }
 .history-search.has-query {
   color: var(--color-text-secondary);
@@ -375,7 +378,7 @@ onMounted(async () => {
   outline: none;
   padding: 0;
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-base);
   color: var(--color-text);
 }
 .search-input::placeholder {
@@ -387,7 +390,7 @@ onMounted(async () => {
   justify-content: center;
   width: 18px;
   height: 18px;
-  border-radius: 5px;
+  border-radius: var(--radius-xs);
   border: none;
   background: none;
   cursor: pointer;
@@ -399,6 +402,7 @@ onMounted(async () => {
   color: var(--color-text);
   background: var(--color-border);
 }
+.search-clear:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 
 /* Highlighted matched keyword in search results */
 mark.search-hl {
@@ -406,7 +410,7 @@ mark.search-hl {
   color: var(--color-accent);
   border-radius: 2px;
   padding: 0 1px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 /* Hide the title text on very narrow windows so search stays usable */
 @media (max-width: 360px) {
@@ -417,10 +421,10 @@ mark.search-hl {
 .history-body {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 24px 16px;
+  padding: 10px var(--space-6) var(--space-4);
 }
 .history-body::-webkit-scrollbar { width: 3px; }
-.history-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
+.history-body::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: var(--radius-xs); }
 
 /* Empty */
 .empty-state {
@@ -428,11 +432,11 @@ mark.search-hl {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 40px 20px;
+  gap: var(--space-2);
+  padding: 40px var(--space-5);
   color: var(--color-text-secondary);
   text-align: center;
-  font-size: 12px;
+  font-size: var(--text-base);
   line-height: 1.5;
 }
 .empty-icon { opacity: 0.4; }
@@ -441,14 +445,14 @@ mark.search-hl {
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .history-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  gap: var(--space-1);
+  padding: var(--space-2) 10px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   background: transparent;
   transition: background 0.12s, border-color 0.12s;
@@ -475,6 +479,7 @@ mark.search-hl {
   padding: 0;
   min-width: 0;
 }
+.history-item-main:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 2px; border-radius: var(--radius-sm); }
 .history-item-text {
   display: flex;
   flex-direction: column;
@@ -495,8 +500,8 @@ mark.search-hl {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
-  font-weight: 550;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
   color: var(--color-text);
   line-height: 1.3;
 }
@@ -514,7 +519,7 @@ mark.search-hl {
   display: flex;
   align-items: flex-start;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.3;
   min-width: 0;
@@ -528,12 +533,12 @@ mark.search-hl {
 .model-badge {
   flex-shrink: 0;
   font-size: 9px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;
   color: var(--color-text-muted);
   background: var(--color-surface-hover);
   padding: 0 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   line-height: 16px;
   max-width: 112px;
   white-space: nowrap;
@@ -541,12 +546,12 @@ mark.search-hl {
 .preset-badge {
   flex-shrink: 0;
   font-size: 9px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;
   color: var(--color-text-muted);
   background: var(--color-surface-hover);
   padding: 0 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   line-height: 16px;
   max-width: 96px;
   white-space: nowrap;
@@ -572,8 +577,8 @@ mark.search-hl {
   opacity: 1;
 }
 .remove-warning-text {
-  font-size: 10px;
-  font-weight: 550;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   letter-spacing: 0.01em;
   color: var(--color-danger);
 }
@@ -584,7 +589,7 @@ mark.search-hl {
   flex-shrink: 0;
 }
 .history-footer {
-  margin-top: 8px;
+  margin-top: var(--space-2);
   padding-top: 10px;
   border-top: 1px solid var(--color-surface);
   text-align: center;
@@ -593,53 +598,55 @@ mark.search-hl {
   letter-spacing: 0.01em;
 }
 
-/* ── Searched tag (🌐) + sources overlay ── */
+/* ── Searched tag (Globe icon) + sources overlay ── */
 .searched-tag {
   display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  width: 16px; height: 16px; border-radius: 4px;
+  width: 16px; height: 16px; border-radius: var(--radius-xs);
   background: var(--color-surface-hover); border: none;
   color: var(--color-accent); cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
 .searched-tag:hover { background: var(--color-accent-bg); color: var(--color-accent); }
+.searched-tag:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 
 /* ── Edited tag ── */
 .edited-tag {
   flex-shrink: 0;
   font-size: 9px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;
   color: var(--color-text-muted);
   background: var(--color-surface-hover);
   padding: 0 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   line-height: 16px;
   white-space: nowrap;
 }
 
 /* Source-item list (used inside history-body when viewing sources) */
 .source-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; border-radius: 8px;
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) 10px; border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   text-decoration: none; cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
 }
 .source-item:hover { background: var(--color-surface-hover); border-color: var(--color-border-hover); }
-.source-favicon { flex-shrink: 0; font-size: 13px; line-height: 1; }
+.source-item:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
+.source-favicon { flex-shrink: 0; display: inline-flex; align-items: center; color: var(--color-text-muted); }
 .source-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
 .source-title {
-  font-size: 12px; font-weight: 600; color: var(--color-text);
+  font-size: var(--text-base); font-weight: var(--weight-semibold); color: var(--color-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .source-domain {
-  font-size: 10px; color: var(--color-text-muted);
+  font-size: var(--text-xs); color: var(--color-text-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .source-external { flex-shrink: 0; color: var(--color-text-muted); }
-.sources-empty { font-size: 11px; color: var(--color-text-muted); padding: 16px 0; text-align: center; }
+.sources-empty { font-size: var(--text-sm); color: var(--color-text-muted); padding: var(--space-4) 0; text-align: center; }
 
 /* Toggle button */
 .reset-btn.toggle-on {

@@ -1191,7 +1191,7 @@ useShortcutTriggered(() => {
             <div v-if="sourcesView && !isEditing" class="sources-view">
               <a v-for="(src, i) in lastResultSources" :key="i"
                  :href="src.url" target="_blank" rel="noopener noreferrer" class="source-item">
-                <div class="source-favicon">🌐</div>
+                <div class="source-favicon"><Globe :size="13" :stroke-width="1.8" /></div>
                 <div class="source-meta">
                   <div class="source-title">{{ src.title || t('search.untitledSource') }}</div>
                   <div class="source-domain">{{ domainOf(src.url) }}</div>
@@ -1228,7 +1228,7 @@ useShortcutTriggered(() => {
   background: var(--color-surface);
   color: var(--color-text);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 9px 36px 9px 14px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   field-sizing: content;
@@ -1241,12 +1241,15 @@ useShortcutTriggered(() => {
   color: var(--color-text-placeholder);
 }
 
-.floating-input:focus {
+.floating-input:focus,
+.floating-input:focus-visible {
   border-color: var(--color-accent-border);
   box-shadow: 0 0 0 2px var(--color-accent-bg);
 }
 
-/* Textarea with inline send button */
+/* Textarea with inline send button — flat token fill, no gradient/glow.
+   The earlier 135° accent-on-white gradient was the only glossy element on
+   this surface and read as inconsistent with the rest of the flat UI. */
 .send-btn-inline {
   position: absolute;
   right: 7px;
@@ -1256,21 +1259,25 @@ useShortcutTriggered(() => {
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 85%, white) 0%, var(--color-accent) 100%);
-  color: var(--color-bg);
-  transition: all 0.15s ease;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  transition: background 0.15s ease, transform 0.15s ease;
   flex-shrink: 0;
   z-index: 3;
 }
 
 .send-btn-inline:hover:not(:disabled) {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 70%, white) 0%, color-mix(in srgb, var(--color-accent) 85%, white) 100%);
-  box-shadow: 0 2px 8px var(--color-accent-bg);
+  background: color-mix(in srgb, var(--color-accent) 88%, var(--color-bg));
 }
 
 .send-btn-inline:active:not(:disabled) {
   transform: scale(0.9);
+}
+
+.send-btn-inline:focus-visible {
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: 1px;
 }
 
 .send-btn-inline:disabled {
@@ -1279,13 +1286,11 @@ useShortcutTriggered(() => {
 }
 
 .send-btn-inline.paste-mode {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 70%, white) 0%, color-mix(in srgb, var(--color-accent) 85%, white) 100%);
-  box-shadow: 0 0 8px var(--color-accent-bg);
+  background: color-mix(in srgb, var(--color-accent) 80%, var(--color-bg));
 }
 
 .send-btn-inline.paste-mode:hover:not(:disabled) {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 55%, white) 0%, color-mix(in srgb, var(--color-accent) 70%, white) 100%);
-  box-shadow: 0 2px 10px var(--color-accent-bg);
+  background: color-mix(in srgb, var(--color-accent) 70%, var(--color-bg));
 }
 
 /* Cancel request button */
@@ -1295,18 +1300,23 @@ useShortcutTriggered(() => {
   justify-content: center;
   width: 18px;
   height: 18px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 0.15s ease;
-  margin-left: 4px;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  margin-left: var(--space-1);
 }
 
 .cancel-request-btn:hover {
   color: var(--color-danger);
   background: var(--color-danger-bg);
+}
+
+.cancel-request-btn:focus-visible {
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: 1px;
 }
 
 .cancel-request-btn:active {
@@ -1317,16 +1327,16 @@ useShortcutTriggered(() => {
 .model-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   height: 28px;
-  padding: 0 8px 0 10px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 500;
+  padding: 0 var(--space-2) 0 10px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-surface);
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
   flex-shrink: 0;
 }
 
@@ -1335,6 +1345,11 @@ useShortcutTriggered(() => {
   color: var(--color-text);
   background: var(--color-border);
   border-color: var(--color-border);
+}
+
+.model-btn:focus-visible {
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: 1px;
 }
 
 /* Brand icon: keep it full-size and outside the truncated text area */
@@ -1351,15 +1366,24 @@ useShortcutTriggered(() => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease;
   flex-shrink: 0;
 }
 
 .icon-btn:hover {
   color: var(--color-text);
   background: var(--color-surface);
+}
+
+.icon-btn:active {
+  background: var(--color-surface-hover);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: 1px;
 }
 
 /* Pin button — accent-colored when pinned, to signal the window stays open */
@@ -1377,8 +1401,8 @@ useShortcutTriggered(() => {
    matches the "message/notification" affordance on system toolbars. */
 .update-dot {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: var(--space-1);
+  right: var(--space-1);
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -1391,6 +1415,9 @@ useShortcutTriggered(() => {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.5; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .update-dot { animation: none; }
+}
 
 /* Mode switch button — accent-colored to stand out */
 .mode-btn {
@@ -1399,17 +1426,24 @@ useShortcutTriggered(() => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   color: var(--color-accent);
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
   border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
   flex-shrink: 0;
 }
 .mode-btn:hover {
-  color: color-mix(in srgb, white 30%, var(--color-accent));
+  color: var(--color-accent);
   background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface));
   border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+.mode-btn:active {
+  transform: scale(0.95);
+}
+.mode-btn:focus-visible {
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: 1px;
 }
 .mode-btn.active {
   background: color-mix(in srgb, var(--color-accent) 25%, var(--color-surface));
@@ -1419,11 +1453,11 @@ useShortcutTriggered(() => {
 /* Result block */
 .result-block {
   background: var(--color-accent-bg);
-  border-left: 2.5px solid var(--color-accent);
+  border-left: 3px solid var(--color-accent);
   border-top: 1px solid var(--color-accent-border);
   border-right: 1px solid var(--color-accent-border);
   border-bottom: 1px solid var(--color-accent-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: visible;
   position: relative;
 }
@@ -1444,7 +1478,7 @@ useShortcutTriggered(() => {
   opacity: 0 !important;
   transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s !important;
   z-index: 9999 !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
+  box-shadow: 0 1px 3px var(--color-shadow) !important;
   background: var(--color-bg) !important;
 }
 .corner-btn.pos-1 { left: -11px !important; }
@@ -1463,6 +1497,9 @@ useShortcutTriggered(() => {
   border-color: var(--color-accent) !important;
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
 }
+.corner-btn:active {
+  transform: scale(0.92) !important;
+}
 .corner-btn.close:hover {
   color: var(--color-danger) !important;
   border-color: var(--color-danger) !important;
@@ -1480,29 +1517,29 @@ useShortcutTriggered(() => {
 /* Transient "Copied" hint pill */
 .copy-hint {
   position: absolute !important;
-  top: 8px !important;
+  top: var(--space-2) !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   z-index: 9999 !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: var(--space-1) !important;
   padding: 3px 9px !important;
-  font-size: 11px !important;
+  font-size: var(--text-sm) !important;
   line-height: 1.4 !important;
   color: var(--color-success) !important;
   background: var(--color-bg) !important;
   border: 1px solid var(--color-success) !important;
-  border-radius: 999px !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,.12) !important;
+  border-radius: var(--radius-pill) !important;
+  box-shadow: 0 1px 4px var(--color-shadow) !important;
   pointer-events: none !important;
 }
 
 /* Edit textarea */
 .result-edit-textarea {
   width: 100%;
-  padding: 12px 14px;
-  font-size: 13px;
+  padding: var(--space-3) 14px;
+  font-size: var(--text-md);
   line-height: 1.65;
   color: var(--color-text);
   background: transparent;
@@ -1545,21 +1582,21 @@ useShortcutTriggered(() => {
 /* Edit action buttons */
 .edit-actions {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
+  bottom: var(--space-2);
+  right: var(--space-2);
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
   z-index: 2;
 }
 
 .edit-action-btn {
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
   background: transparent;
   border: none;
   color: var(--color-text-muted);
@@ -1569,6 +1606,15 @@ useShortcutTriggered(() => {
 .edit-action-btn:hover {
   background: var(--color-surface-hover);
   color: var(--color-text);
+}
+
+.edit-action-btn:active {
+  transform: scale(0.92);
+}
+
+.edit-action-btn:focus-visible {
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: 1px;
 }
 
 .edit-action-btn.confirm:hover {
@@ -1593,8 +1639,8 @@ useShortcutTriggered(() => {
 }
 
 .result-text {
-  padding: 12px 14px;
-  font-size: 13px;
+  padding: var(--space-3) 14px;
+  font-size: var(--text-md);
   line-height: 1.65;
   color: var(--color-text);
   white-space: pre-wrap;
@@ -1610,7 +1656,7 @@ useShortcutTriggered(() => {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   font-size: 10.5px;
   line-height: 1.4;
   color: var(--color-text-secondary);
@@ -1623,11 +1669,11 @@ useShortcutTriggered(() => {
   scrollbar-color: var(--color-scrollbar) transparent;
 }
 :deep(.overflow-y-auto)::-webkit-scrollbar {
-  width: 4px;
+  width: var(--radius-xs);
 }
 :deep(.overflow-y-auto)::-webkit-scrollbar-thumb {
   background: var(--color-scrollbar);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 :deep(.overflow-y-auto)::-webkit-scrollbar-track {
   background: transparent;
@@ -1654,7 +1700,7 @@ useShortcutTriggered(() => {
   opacity: 0 !important;
   transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s !important;
   z-index: 9999 !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
+  box-shadow: 0 1px 3px var(--color-shadow) !important;
 }
 
 .textarea-with-history:hover .history-btn,
@@ -1674,6 +1720,10 @@ useShortcutTriggered(() => {
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)) !important;
 }
 
+.history-btn:active {
+  transform: scale(0.92) !important;
+}
+
 /* ── Web search provenance button + sources view ── */
 .provenance-row {
   display: flex;
@@ -1684,7 +1734,7 @@ useShortcutTriggered(() => {
 .provenance-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   font-size: 10.5px;
   color: var(--color-text-secondary);
   background: none;
@@ -1694,46 +1744,49 @@ useShortcutTriggered(() => {
   transition: color 0.12s;
 }
 .provenance-btn:hover { color: var(--color-accent); }
+.provenance-btn:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 .provenance-chevron { margin-left: 1px; }
 .sources-back {
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; gap: var(--space-1);
   font-size: 10.5px; color: var(--color-text-muted);
   background: none; border: none; cursor: pointer; padding: 0;
   transition: color 0.12s;
 }
 .sources-back:hover { color: var(--color-text); }
+.sources-back:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 
 .sources-view {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
   max-height: 200px;
   overflow-y: auto;
-  padding-bottom: 4px;
+  padding-bottom: var(--space-1);
 }
 .sources-view::-webkit-scrollbar { width: 3px; }
-.sources-view::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: 3px; }
+.sources-view::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: var(--radius-xs); }
 .source-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 9px; border-radius: 8px;
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: 7px 9px; border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   text-decoration: none; cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
 }
 .source-item:hover { background: var(--color-surface-hover); border-color: var(--color-border-hover); }
-.source-favicon { flex-shrink: 0; font-size: 13px; line-height: 1; }
+.source-item:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
+.source-favicon { flex-shrink: 0; display: inline-flex; align-items: center; color: var(--color-text-muted); }
 .source-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
 .source-title {
-  font-size: 11.5px; font-weight: 600; color: var(--color-text);
+  font-size: 11.5px; font-weight: var(--weight-semibold); color: var(--color-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .source-domain {
-  font-size: 10px; color: var(--color-text-muted);
+  font-size: var(--text-xs); color: var(--color-text-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .source-external { flex-shrink: 0; color: var(--color-text-muted); }
-.sources-empty { font-size: 10.5px; color: var(--color-text-muted); padding: 8px 0; }
+.sources-empty { font-size: 10.5px; color: var(--color-text-muted); padding: var(--space-2) 0; }
 
 /* Block order when the window grows upward (result above, input+toolbar below) */
 .grow-order .fi-result { order: 0; }

@@ -127,8 +127,8 @@ onMounted(() => {
 .about-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 24px 12px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6) var(--space-3);
   border-bottom: 1px solid var(--color-surface);
   flex-shrink: 0;
 }
@@ -138,7 +138,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 24px 8px;
+  padding: 14px var(--space-6) var(--space-2);
   flex-shrink: 0;
 }
 .about-icon {
@@ -148,14 +148,14 @@ onMounted(() => {
 }
 .about-name {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   letter-spacing: -0.01em;
   color: var(--color-text);
 }
 .about-version {
   margin-left: auto;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -165,22 +165,22 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 24px;
+  padding: 6px var(--space-6);
   flex-shrink: 0;
 }
 .about-label {
-  font-size: 12px;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
 }
 .about-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: var(--space-1);
+  font-size: var(--text-base);
   color: var(--color-accent-text);
   text-decoration: none;
-  font-weight: 500;
-  transition: 0.15s;
+  font-weight: var(--weight-medium);
+  transition: color 0.15s;
 }
 /* When used as a <button> (the license row), reset button defaults so it
    renders identically to the <a> variant above. */
@@ -194,22 +194,23 @@ button.about-link {
 .about-link:hover {
   color: var(--color-accent);
 }
+.about-link:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 
 /* ── Divider ── */
 .about-divider {
   height: 1px;
   background: var(--color-surface);
-  margin: 8px 24px;
+  margin: var(--space-2) var(--space-6);
   flex-shrink: 0;
 }
 
 /* ── Dependencies ── */
 .about-deps-title {
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-muted);
   letter-spacing: 0.02em;
-  padding: 2px 24px 6px;
+  padding: 2px var(--space-6) 6px;
   flex-shrink: 0;
 }
 /* Scrollable acknowledgments list: takes remaining height, scrolls internally
@@ -218,7 +219,7 @@ button.about-link {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-bottom: 8px;
+  padding-bottom: var(--space-2);
   scrollbar-width: thin;
   scrollbar-color: var(--color-scrollbar) transparent;
 }
@@ -227,16 +228,16 @@ button.about-link {
 }
 .about-deps-scroll::-webkit-scrollbar-thumb {
   background: var(--color-scrollbar);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 .about-dep {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 3px 24px;
+  padding: 3px var(--space-6);
 }
 .about-dep-name {
-  font-size: 12px;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
 }
 </style>

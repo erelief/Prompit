@@ -503,7 +503,7 @@ const settingsStatics = computed<StaticShortcut[]>(() => [
   flex: 1; overflow-y: auto; padding: 10px 24px 16px;
 }
 .shortcuts-body::-webkit-scrollbar{width:3px}
-.shortcuts-body::-webkit-scrollbar-thumb{background:var(--color-scrollbar);border-radius:3px}
+.shortcuts-body::-webkit-scrollbar-thumb{background:var(--color-scrollbar);border-radius:var(--radius-xs)}
 
 /* ── Section head ── */
 .section-head {
@@ -513,28 +513,28 @@ const settingsStatics = computed<StaticShortcut[]>(() => [
 .section-head.mt { margin-top: 18px; }
 .section-title {
   display:flex; align-items:center; gap:7px;
-  font-size: 11.5px; font-weight: 650; letter-spacing: .01em;
+  font-size: 11.5px; font-weight: var(--weight-semibold); letter-spacing: .01em;
   color: var(--color-text-secondary);
 }
 
 /* ── Card section: reusable grouped-settings container ── */
 .card-section {
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column; gap: var(--space-2);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) 14px;
 }
 .card-row {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .card-row + .card-row {
   border-top: 1px solid var(--color-border);
-  padding-top: 8px;
+  padding-top: var(--space-2);
 }
 .card-label {
-  font-size: 11px; font-weight: 500;
+  font-size: var(--text-sm); font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   white-space: nowrap; flex-shrink: 0;
 }
@@ -543,7 +543,7 @@ const settingsStatics = computed<StaticShortcut[]>(() => [
 .shortcut-controls {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .shortcut-reset {
   display: flex;
@@ -551,17 +551,19 @@ const settingsStatics = computed<StaticShortcut[]>(() => [
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 .shortcut-reset:not(:disabled):hover {
   background: var(--color-border);
   color: var(--color-text-secondary);
 }
+.shortcut-reset:not(:disabled):active { transform: scale(0.95); }
+.shortcut-reset:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 .shortcut-reset-off {
   opacity: 0.4;
   cursor: not-allowed;
@@ -569,23 +571,24 @@ const settingsStatics = computed<StaticShortcut[]>(() => [
 .shortcut-row .shortcut-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   min-height: 26px;
   padding: 0 7px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-family: inherit;
-  transition: 0.15s;
+  transition: border-color 0.15s, background 0.15s;
   outline: none;
 }
 .shortcut-btn:hover {
   border-color: var(--color-border-hover);
   background: var(--color-surface-hover);
 }
+.shortcut-btn:active:not(:disabled) { transform: translateY(0.5px); }
 .shortcut-btn:focus-visible,
 .shortcut-btn.recording {
   border-color: var(--color-accent);
@@ -597,11 +600,11 @@ const settingsStatics = computed<StaticShortcut[]>(() => [
 }
 .shortcut-rec-text {
   color: var(--color-accent-text);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 .shortcut-err-text {
   color: var(--color-danger);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 .kbd-badge {
   display: inline-flex;
@@ -610,12 +613,12 @@ const settingsStatics = computed<StaticShortcut[]>(() => [
   min-width: 16px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--color-overlay);
   border: 1px solid var(--color-border);
   color: var(--color-text);
-  font-size: 10px;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   line-height: 1;
   font-family: inherit;
 }
@@ -624,7 +627,7 @@ const settingsStatics = computed<StaticShortcut[]>(() => [
 .kbd-static {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   min-height: 26px;
   padding: 0 7px;
 }

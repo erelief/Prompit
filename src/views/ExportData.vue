@@ -169,7 +169,7 @@ function todayStamp(): string {
           <EyeOff v-else :size="13" />
         </button>
       </div>
-      <p v-if="passwordMismatch" class="ud-hint" style="color: var(--color-danger)">{{ t('settings.exportData.export.passwordMismatch') }}</p>
+      <p v-if="passwordMismatch" class="ud-hint status-text error">{{ t('settings.exportData.export.passwordMismatch') }}</p>
 
       <div class="btn-row">
         <button
