@@ -13,6 +13,7 @@ import { useWindowBg, domainOf, hexToRgb } from "../composables/useWindowBg";
 import { useEventListener } from "@vueuse/core";
 import { capHeight, chevronTransform } from "../shared/dropdown";
 import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, saveSkillsLites, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
+import { updateStatus as updateCheckStatus, updateVersion as updateCheckVersion } from "../composables/useUpdateChecker";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
@@ -47,6 +48,16 @@ const growAbove = ref(false);
 const pinned = ref(false);
 const isEditing = ref(false);
 const editedText = ref("");
+
+// New-version hint on the settings button: red dot + changed hover title.
+// Reads the shared update-checker singleton (populated by main.ts's launch
+// check), so the dot appears immediately without visiting Settings first.
+const hasUpdate = computed(() => updateCheckStatus.value === "has-update");
+const settingsTitle = computed(() =>
+  hasUpdate.value
+    ? t("about.newVersion", { version: updateCheckVersion.value })
+    : t("common.settings"),
+);
 
 // Copy-to-clipboard success feedback (mirrors Settings.vue's shortcutError pattern)
 const copiedFlash = ref(false);
@@ -996,10 +1007,11 @@ useShortcutTriggered(() => {
 
             <button
               @click="handleOpenSettings"
-              class="icon-btn"
-              :title="t('common.settings')"
+              class="icon-btn update-badge-btn"
+              :title="settingsTitle"
             >
               <Settings :size="14" :stroke-width="1.8" />
+              <span v-if="hasUpdate" class="update-dot" aria-hidden="true"></span>
             </button>
 
             <button @click="handleHide" class="icon-btn" :title="t('common.hide')">
@@ -1354,6 +1366,30 @@ useShortcutTriggered(() => {
 .icon-btn.pin-active {
   color: var(--color-accent);
   background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+}
+
+/* Settings button — hosts the new-version red dot (absolute positioning). */
+.icon-btn.update-badge-btn {
+  position: relative;
+}
+
+/* New-version indicator dot (top-right of the settings gear). Pulsing red
+   matches the "message/notification" affordance on system toolbars. */
+.update-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  pointer-events: none;
+  animation: update-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes update-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
 }
 
 /* Mode switch button — accent-colored to stand out */

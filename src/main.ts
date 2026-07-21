@@ -6,6 +6,7 @@ import i18n from "./i18n";
 import { loadConfig, loadSkillsLites, appConfig, enableConfigAutosave } from "./stores/config";
 import { initTheme } from "./composables/useTheme";
 import { hexToRgb } from "./composables/useWindowBg";
+import { checkForUpdate } from "./composables/useUpdateChecker";
 import "./style.css";
 import "./shared/ui.css";
 
@@ -50,6 +51,15 @@ router.isReady().then(async () => {
   enableConfigAutosave();
   initTheme();
   await loadSkillsLites();
+
+  // Kick off a silent update check at startup (gated on the user's auto-update
+  // preference). The shared singleton it populates is read by FloatingInput
+  // to render the new-version red dot — without this, the dot only appears
+  // after the user has visited Settings. Fire-and-forget: we don't await it
+  // here because it must not block the first paint / window reveal.
+  if (localStorage.getItem("app-auto-update") !== "false") {
+    void checkForUpdate(true);
+  }
 
   // Mark onboarding complete for returning users
   // (OnboardingState defaults to false on each launch; only set to true

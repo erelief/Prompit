@@ -49,6 +49,15 @@ import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
 import ModelCapabilityIcon from "../components/ModelCapabilityIcon.vue";
 import { getTheme, setTheme } from "../composables/useTheme";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
+import {
+  updateStatus,
+  updateVersion,
+  updateLabel,
+  updateDisabled,
+  updateProgressPct,
+  handleUpdateClick as handleUpdateClickShared,
+  isUpdateTauri,
+} from "../composables/useUpdateChecker";
 import { testProviderConnection, fetchProviderModels, optimizePrompt } from "../services/llm-client";
 import type { FetchModelEntry } from "../services/llm-client";
 import { WEB_SEARCH_PRESETS, presetMeta, testWebSearchProvider } from "../services/websearch";
@@ -191,14 +200,14 @@ const fontSizeOptions = computed(() => [
 ]);
 
 // ── Auto-update ──
-// idle | checking | up-to-date | has-update | preparing | downloading | installing | restarting | error
-const updateStatus = ref("idle");
-const updateVersion = ref("");
-const downloaded = ref(0);
-const contentLength = ref(0);
-const updateError = ref("");
+// The state and logic live in the shared useUpdateChecker singleton so
+// FloatingInput's red dot can read the same result without re-checking, and
+// main.ts can trigger the launch-time check. Here we only alias the imports
+// the template actually binds to.
+const handleUpdateClick = handleUpdateClickShared;
+const isTauri = isUpdateTauri;
+
 const autoUpdate = ref(localStorage.getItem("app-auto-update") !== "false");
-const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 function toggleAutoUpdate(e: MouseEvent) {
   const turning = !autoUpdate.value;
@@ -261,130 +270,6 @@ function toggleHistoryEnabled(e: MouseEvent) {
   const turning = !appConfig.history_enabled;
   appConfig.history_enabled = turning;
   if (turning) burstParticles(e.currentTarget as HTMLElement);
-}
-
-async function checkForUpdate(silent = false) {
-  if (!isTauri) return;
-  updateStatus.value = "checking";
-  updateError.value = "";
-  // Sandbox: short-circuit to a permanent "has-update" state so the entire
-  // update UI flow (badge, banner, install button) is exercised without a
-  // real network round-trip. installUpdate() blocks the actual install.
-  try {
-    const sandbox = await invoke<boolean>("is_sandbox");
-    if (sandbox) {
-      updateVersion.value = "0.0.0";
-      updateStatus.value = "has-update";
-      return;
-    }
-  } catch { /* ignore — fall through to real check */ }
-  try {
-    const { check } = await import("@tauri-apps/plugin-updater");
-    const proxy = await invoke<string | null>("get_proxy_url");
-    const update = await check(proxy ? { proxy } : {});
-    if (!update) {
-      if (silent) {
-        updateStatus.value = "idle";
-      } else {
-        updateStatus.value = "up-to-date";
-        scheduleUpdateReset(2000);
-      }
-      return;
-    }
-    updateVersion.value = update.version;
-    updateStatus.value = "has-update";
-  } catch (e) {
-    if (!silent) {
-      updateStatus.value = "error";
-      updateError.value = e instanceof Error ? e.message : String(e);
-      scheduleUpdateReset(3000);
-    } else {
-      updateStatus.value = "idle";
-    }
-  }
-}
-
-async function installUpdate() {
-  if (!isTauri) return;
-  // Sandbox: don't actually download/install — the "has-update" state was
-  // faked by checkForUpdate. Surface a brief error so the user knows.
-  try {
-    const sandbox = await invoke<boolean>("is_sandbox");
-    if (sandbox) {
-      updateStatus.value = "error";
-      updateError.value = t("about.sandboxUpdateBlocked");
-      scheduleUpdateReset(3000);
-      return;
-    }
-  } catch { /* ignore — fall through */ }
-  try {
-    const { check } = await import("@tauri-apps/plugin-updater");
-    const { relaunch } = await import("@tauri-apps/plugin-process");
-    const proxy = await invoke<string | null>("get_proxy_url");
-    const update = await check(proxy ? { proxy } : {});
-    if (!update) return;
-    updateStatus.value = "preparing";
-    downloaded.value = 0;
-    contentLength.value = 0;
-    await update.downloadAndInstall((event) => {
-      switch (event.event) {
-        case "Started":
-          contentLength.value = event.data.contentLength || 0;
-          updateStatus.value = "downloading";
-          break;
-        case "Progress":
-          downloaded.value += event.data.chunkLength;
-          break;
-        case "Finished":
-          updateStatus.value = "installing";
-          break;
-      }
-    });
-    updateStatus.value = "restarting";
-    await relaunch();
-  } catch (e) {
-    updateStatus.value = "error";
-    updateError.value = e instanceof Error ? e.message : String(e);
-    scheduleUpdateReset(3000);
-  }
-}
-
-// Statuses that disable interaction with the update button (busy / in-flight).
-const UPDATE_BUSY_STATUSES = ["checking", "preparing", "downloading", "installing", "restarting"];
-
-const updateDisabled = computed(() => UPDATE_BUSY_STATUSES.includes(updateStatus.value));
-
-const updateProgressPct = computed(() =>
-  updateStatus.value === "downloading" && contentLength.value > 0
-    ? Math.round(downloaded.value / contentLength.value * 100)
-    : null,
-);
-
-/** Human label for the update button, keyed off the current status. Replaces
- *  a nested ternary chain in the template. */
-const updateLabel = computed(() => {
-  switch (updateStatus.value) {
-    case "checking": return t("about.checking");
-    case "up-to-date": return t("about.upToDate");
-    case "has-update": return t("about.install");
-    case "preparing": return t("about.preparing");
-    case "downloading": return contentLength.value > 0 ? "" : t("about.downloading");
-    case "installing": return t("about.installing");
-    case "restarting": return t("about.restarting");
-    case "error": return updateError.value || t("about.checkFailed");
-    default: return t("about.checkUpdate");
-  }
-});
-
-/** Schedule a temporary status, then reset to idle after `ms`. Used by the
- *  silent-check error paths. */
-function scheduleUpdateReset(ms: number) {
-  setTimeout(() => { updateStatus.value = "idle"; updateError.value = ""; }, ms);
-}
-
-function handleUpdateClick() {
-  if (updateStatus.value === "has-update") installUpdate();
-  else if (["idle", "up-to-date", "error"].includes(updateStatus.value)) checkForUpdate(false);
 }
 
 // ── Persona management ──
@@ -1210,7 +1095,8 @@ onMounted(async () => {
   settingsBodyRef.value?.addEventListener("scroll", repositionOpenDropdowns);
   load();
   loadProviderPresets().then(p => { providerPresets.value = p; }).catch(console.error);
-  if (autoUpdate.value) checkForUpdate(true);
+  // The launch-time update check now lives in main.ts so FloatingInput can
+  // read its result; this view just displays the shared status.
   // Reconcile the launch-on-startup toggle with the actual OS entry, since the
   // user may have disabled it outside the app (e.g. Task Manager → Startup).
   if (isTauri) {
