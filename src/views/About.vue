@@ -11,6 +11,11 @@ import { useSettingsWindow } from "../composables/useSettingsWindow";
 // `npm run gen:third-party`). Fonts and manually-vendored assets aren't in the
 // lockfile as production deps, so they are appended below.
 import generatedDeps from "../generated/about-deps.json";
+// Manually-curated acknowledgments. Edit src/data/special-thanks.json to add
+// entries — they're bundled at build time (Vite JSON import, no runtime fetch).
+// Each entry: { name, reason?, version?, url }. `reason` is optional and
+// renders as a smaller subtitle below the name.
+import specialThanks from "../data/special-thanks.json";
 
 declare const __APP_VERSION__: string;
 const appVersion = __APP_VERSION__;
@@ -19,17 +24,16 @@ const { t } = useI18n();
 const router = useRouter();
 const { growAbove } = useSettingsWindow();
 
-const deps = [
+interface AboutDep {
+  name: string;
+  reason?: string;
+  version?: string;
+  url: string;
+}
+
+const deps: AboutDep[] = [
   ...generatedDeps,
-  // ── Fonts ──
-  // Geist ships the woff2 bundled in src/assets/fonts/. It's a devDep in the
-  // lockfile (build-time only) so the generator skips it — acknowledge here.
-  { name: "Geist", version: "1.7.2", url: "https://vercel.com/font" },
-  // Madimi One renders the "P" in the logo SVG. OFL-1.1 (see OFL FAQ). Not an
-  // npm/cargo dep, so it isn't in any lockfile.
-  { name: "Madimi One", version: "", url: "https://fonts.google.com/specimen/Madimi+One" },
-  // ── Manually-vendored assets ──
-  { name: "Lobe Icons", version: "1.91.0", url: "https://www.npmjs.com/package/@lobehub/icons" },
+  ...(specialThanks as AboutDep[]),
 ];
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -97,7 +101,10 @@ onMounted(() => {
     <div class="about-deps-title">{{ t('about.acknowledgments') }}</div>
     <div class="about-deps-scroll">
       <div class="about-dep" v-for="dep in deps" :key="dep.name">
-        <span class="about-dep-name">{{ dep.name }}</span>
+        <div class="about-dep-info">
+          <span class="about-dep-name">{{ dep.name }}</span>
+          <span v-if="dep.reason" class="about-dep-reason">{{ dep.reason }}</span>
+        </div>
         <a class="about-link" :href="dep.url">
           <span v-if="dep.version">v{{ dep.version }}</span>
           <span v-else>{{ dep.name }}</span>
@@ -234,10 +241,22 @@ button.about-link {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-3);
   padding: 3px var(--space-6);
+}
+.about-dep-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 .about-dep-name {
   font-size: var(--text-base);
   color: var(--color-text-muted);
+}
+.about-dep-reason {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+  margin-top: 1px;
 }
 </style>

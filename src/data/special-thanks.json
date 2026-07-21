@@ -1,0 +1,60 @@
+[
+  {
+    "name": "Xiaomi MiMo Orbit",
+    "reason": "100T Token Grant for Builders",
+    "version": "",
+    "url": "https://100t.xiaomimimo.com/"
+  },
+  {
+    "name": "HanaAgent",
+    "reason": "Drew inspiration from UI design",
+    "version": "",
+    "url": "https://github.com/liliMozi/openhanako"
+  },
+  {
+    "name": "Codegraph",
+    "version": "1.4.1",
+    "url": "https://github.com/colbymchenry/codegraph"
+  },
+  {
+    "name": "Superpower",
+    "version": "",
+    "url": "https://github.com/obra/superpowers"
+  },
+  {
+    "name": "Ponytail",
+    "version": "",
+    "url": "https://github.com/DietrichGebert/ponytail"
+  },
+  {
+    "name": "Agent-skills",
+    "version": "",
+    "url": "https://github.com/addyosmani/agent-skills"
+  },
+  {
+    "name": "Taste-skill",
+    "version": "",
+    "url": "https://github.com/Leonxlnx/taste-skill"
+  },
+  {
+    "name": "Hallmark",
+    "version": "",
+    "url": "https://github.com/nutlope/hallmark"
+  },
+  {
+    "name": "Geist",
+    "version": "1.7.2",
+    "url": "https://vercel.com/font"
+  },
+  {
+    "name": "Madimi One",
+    "reason": "Logo font",
+    "version": "",
+    "url": "https://fonts.google.com/specimen/Madimi+One"
+  },
+  {
+    "name": "Lobe Icons",
+    "version": "1.91.0",
+    "url": "https://www.npmjs.com/package/@lobehub/icons"
+  }
+]
