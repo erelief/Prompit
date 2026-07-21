@@ -26,6 +26,19 @@
       "api_format": "anthropic"
     },
     {
+      "name": "Ant-Ling/蚂蚁百灵",
+      "provider_name": "Ant-Ling/蚂蚁百灵",
+      "icon": "antling",
+      "model_series": [
+        "Ling",
+        "Ring",
+        "Ming"
+      ],
+      "base_url": "https://api.ant-ling.com/v1",
+      "api_url": "https://chat.ant-ling.com/open",
+      "api_format": "openai"
+    },
+    {
       "name": "Baidu/百度智能云",
       "icon": "baidu",
       "model_series": "ERNIE",

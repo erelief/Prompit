@@ -1,6 +1,7 @@
 import type { Component } from "vue";
 import Agnes from "./Agnes.vue";
 import Anthropic from "./Anthropic.vue";
+import AntLing from "./AntLing.vue";
 import AnySearch from "./AnySearch.vue";
 import Baidu from "./Baidu.vue";
 import Bailian from "./Bailian.vue";
@@ -34,6 +35,7 @@ import Zhipu from "./Zhipu.vue";
 export const PROVIDER_ICONS: Record<string, Component> = {
   agnes: Agnes,
   anthropic: Anthropic,
+  antling: AntLing,
   anysearch: AnySearch,
   baidu: Baidu,
   bailian: Bailian,
