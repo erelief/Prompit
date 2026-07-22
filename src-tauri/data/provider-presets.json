@@ -180,6 +180,52 @@
       "api_format": "openai"
     },
     {
+      "name": "iFLYTEK/讯飞开放平台",
+      "icon": "iflytekcloud",
+      "model_series": "Spark",
+      "api_format": "openai",
+      "variants": {
+        "default_region": "default",
+        "default_endpoint": "x2",
+        "regions": [
+          {
+            "key": "default",
+            "label": "CN",
+            "endpoints": [
+              {
+                "key": "x2",
+                "label": "x2",
+                "provider_name": "讯飞星火 x2",
+                "base_url": "https://spark-api-open.xf-yun.com/x2/",
+                "api_url": "https://xinghuo.xfyun.cn/sparkapi?scr=price"
+              },
+              {
+                "key": "x1.5",
+                "label": "x1.5",
+                "provider_name": "讯飞星火 x1.5",
+                "base_url": "https://spark-api-open.xf-yun.com/v2/",
+                "api_url": "https://xinghuo.xfyun.cn/sparkapi?scr=price"
+              },
+              {
+                "key": "coding_plan",
+                "label": "Coding Plan",
+                "provider_name": "讯飞星辰 Astron Coding Plan",
+                "base_url": "https://maas-coding-api.cn-huabei-1.xf-yun.com/v2",
+                "api_url": "https://maas.xfyun.cn/packageSubscription"
+              },
+              {
+                "key": "token_plan",
+                "label": "Token Plan",
+                "provider_name": "讯飞星辰 Astron Token Plan",
+                "base_url": "https://maas-token-api.cn-huabei-1.xf-yun.com/v2",
+                "api_url": "https://maas.xfyun.cn/tokenPlan/subscription"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "Kimi",
       "icon": "kimi",
       "model_series": [
@@ -270,7 +316,7 @@
       "name": "MiniMax",
       "icon": "minimax",
       "model_series": "MiniMax",
-      "api_format": "anthropic",
+      "api_format": "openai",
       "variants": {
         "default_region": "cn",
         "default_endpoint": "standard",
@@ -283,7 +329,7 @@
                 "key": "standard",
                 "label": "Standard",
                 "provider_name": "MiniMaxi.com",
-                "base_url": "https://api.minimaxi.com/anthropic/v1",
+                "base_url": "https://api.minimaxi.com/openai/v1",
                 "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key"
               }
             ]
@@ -296,7 +342,7 @@
                 "key": "standard",
                 "label": "Standard",
                 "provider_name": "MiniMax.io",
-                "base_url": "https://api.minimax.io/anthropic/v1",
+                "base_url": "https://api.minimax.io/openai/v1",
                 "api_url": "https://platform.minimax.io/user-center/basic-information/interface-key"
               }
             ]

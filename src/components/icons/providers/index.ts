@@ -10,6 +10,8 @@ import DeepSeek from "./DeepSeek.vue";
 import Exa from "./Exa.vue";
 import Gemini from "./Gemini.vue";
 import Grok from "./Grok.vue";
+import iFlyTekCloud from "./iFLYTEKCloud.vue";
+import iFlyTekMaaS from "./iFLYTEKMaaS.vue";
 import Kimi from "./Kimi.vue";
 import LMStudio from "./LMStudio.vue";
 import LongCat from "./LongCat.vue";
@@ -44,6 +46,8 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   exa: Exa,
   gemini: Gemini,
   grok: Grok,
+  iflytekcloud: iFLYTEKCloud,
+  iflytekmaas: iFLYTEKMaaS,
   kimi: Kimi,
   lmstudio: LMStudio,
   longcat: LongCat,
