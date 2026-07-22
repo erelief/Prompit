@@ -15,12 +15,12 @@ const { growAbove } = useSettingsWindow();
 type Status = { kind: "idle" | "info" | "success" | "error"; msg: string };
 const status = ref<Status>({ kind: "idle", msg: "" });
 
-// Form state mirrors appConfig.webdav; the account password is never part of
-// the config — it goes to the OS credential store on save.
+// Form state mirrors appConfig.webdav (URL/username/remote dir); the account
+// password is never part of the config — it goes to the OS credential store on
+// save. The backup file name is chosen on the Backup page, not here.
 const url = ref(appConfig.webdav.url);
 const username = ref(appConfig.webdav.username);
 const remoteDir = ref(appConfig.webdav.remote_dir || "prompit");
-const fileName = ref(appConfig.webdav.file_name || "prompit-backup.json");
 const serverPw = ref("");
 const showServerPw = ref(false);
 const serverPwSaved = ref(false);
@@ -53,7 +53,6 @@ async function saveServer() {
     appConfig.webdav.url = url.value.trim();
     appConfig.webdav.username = username.value.trim();
     appConfig.webdav.remote_dir = remoteDir.value.trim() || "prompit";
-    appConfig.webdav.file_name = fileName.value.trim() || "prompit-backup.json";
     await flushConfigSave();
     if (serverPw.value) {
       await invoke("webdav_save_password", { password: serverPw.value });
@@ -167,18 +166,6 @@ async function handleDrag(e: MouseEvent) {
         />
       </div>
 
-      <div class="field-label">{{ t('settings.webdav.server.fileNameLabel') }}</div>
-      <div class="pw-row">
-        <input
-          class="pw-input"
-          v-model="fileName"
-          :placeholder="t('settings.webdav.server.fileNamePlaceholder')"
-          autocomplete="off"
-          spellcheck="false"
-        />
-      </div>
-      <p class="ud-hint">{{ t('settings.webdav.server.fileNameHint') }}</p>
-
       <div class="wd-actions">
         <button
           class="ud-btn analyze-btn"
@@ -230,13 +217,6 @@ async function handleDrag(e: MouseEvent) {
   font-weight: var(--weight-medium);
   color: var(--color-text-muted);
   margin-top: -4px;
-}
-.field-label {
-  font-size: 10.5px;
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-secondary);
-  letter-spacing: 0.01em;
-  margin-top: 2px;
 }
 
 .wd-actions {

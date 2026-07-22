@@ -81,6 +81,26 @@ fn saved_file_name(app: &AppHandle) -> Result<String, String> {
     Ok(name.to_string())
 }
 
+/// Resolve the upload file name for an export. When the Backup page supplies a
+/// name (the user-edited field, stored without an extension), it wins — `.json`
+/// is appended here if missing. Otherwise we fall back to the server-configured
+/// name (itself defaulted to `prompit-backup.json`) for backward compatibility.
+/// Either way the result is validated.
+fn resolve_export_file_name(app: &AppHandle, supplied: Option<&str>) -> Result<String, String> {
+    match supplied.map(str::trim).filter(|s| !s.is_empty()) {
+        Some(raw) => {
+            let name = if raw.to_ascii_lowercase().ends_with(".json") {
+                raw.to_string()
+            } else {
+                format!("{raw}.json")
+            };
+            validate_file_name(&name)?;
+            Ok(name)
+        }
+        None => saved_file_name(app),
+    }
+}
+
 /// A backup file name must be a plain file name — it is appended to the
 /// remote directory URL, so reject separators and traversal outright.
 fn validate_file_name(name: &str) -> Result<(), String> {
@@ -406,18 +426,21 @@ pub struct UploadResult {
 }
 
 /// Build an encrypted bundle of the selected categories and upload it to the
-/// configured server + file name.
+/// configured server. The file name comes from the Backup page when provided
+/// (overriding the server-configured default) — the page stores it without an
+/// extension, so `.json` is appended here.
 #[tauri::command]
 pub async fn webdav_export(
     app: AppHandle,
     password: String,
     categories: Option<Vec<String>>,
+    file_name: Option<String>,
 ) -> Result<UploadResult, String> {
     if password.len() < 6 {
         return Err("password must be at least 6 characters".into());
     }
     let conn = saved_connection(&app)?;
-    let name = saved_file_name(&app)?;
+    let name = resolve_export_file_name(&app, file_name.as_deref())?;
     let app2 = app.clone();
     let cats = categories.unwrap_or_default();
     // Argon2 at export strength is CPU-heavy; keep it off the async runtime.
@@ -522,6 +545,13 @@ mod tests {
         assert!(validate_file_name("a\\b.json").is_err());
         assert!(validate_file_name("..\\cfg").is_err());
         assert!(file_url(&conn("https://dav.example.com", "d"), "../x").is_err());
+    }
+
+    #[test]
+    fn dated_backup_name_is_valid() {
+        // The Backup page's default stem, once `.json` is appended, passes the
+        // same validation the upload path applies.
+        assert!(validate_file_name("prompit_config_260723.json").is_ok());
     }
 
     #[test]

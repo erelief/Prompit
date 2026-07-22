@@ -263,13 +263,6 @@ async function handleDrag(e: MouseEvent) {
 </template>
 
 <style scoped>
-.ud-warn {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  color: var(--color-danger);
-  letter-spacing: 0.01em;
-}
-
 .change-file-btn { width: 22px; height: 22px; }
 
 /* Accent-tinted primary action — pairs with .primary-btn from ui.css */

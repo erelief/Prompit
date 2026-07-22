@@ -170,6 +170,19 @@
   color: var(--color-text-secondary);
   letter-spacing: .01em; margin-top: 2px;
 }
+.field-label {
+  font-size: 10.5px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+  margin-top: 2px;
+}
+.ud-warn {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-danger);
+  letter-spacing: 0.01em;
+}
 
 .pw-row {
   display: flex; align-items: center; gap: var(--space-1);

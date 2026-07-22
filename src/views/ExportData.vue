@@ -23,6 +23,10 @@ const JSON_FILTER = [{ name: "JSON", extensions: ["json"] }];
 // at least the default-checked UX here.
 const selected = ref<string[]>([...defaultSelectedCategories("export")]);
 
+// Backup file name (no extension; `.json` is appended at the point of use).
+// Mainly affects the WebDAV upload, which has no OS save dialog — for local
+// saves it only pre-fills the file-dialog default and the user can rename it.
+const fileName = ref(`prompit_config_${shortDateStamp()}`);
 const exportPassword = ref("");
 const exportConfirmPassword = ref("");
 const exportShowPw = ref(false);
@@ -41,6 +45,12 @@ const passwordMismatch = computed(
     && exportConfirmPassword.value !== exportPassword.value,
 );
 
+// The safekeeping warning only matters once a password has actually been set —
+// surface it after the user has filled in both fields.
+const showPasswordWarning = computed(
+  () => exportConfirmPassword.value.length > 0,
+);
+
 // WebDAV is just another destination for the same bundle — available only
 // once a server is configured (Settings → General → Data Management → WebDAV).
 const webdavConfigured = computed(() => appConfig.webdav.url.trim().length > 0);
@@ -55,7 +65,7 @@ function resetExport() {
 async function handleExport() {
   if (!exportReady.value) return;
   const path = await save({
-    defaultPath: `prompit-backup-${todayStamp()}.json`,
+    defaultPath: jsonFileName(),
     filters: JSON_FILTER,
   });
   if (!path) {
@@ -88,6 +98,7 @@ async function handleExportWebdav() {
     const r = await invoke<{ bytes: number }>("webdav_export", {
       password: exportPassword.value,
       categories: selected.value,
+      fileName: jsonFileName(),
     });
     const kb = Math.max(1, Math.round(r.bytes / 1024));
     exportStatus.value = {
@@ -111,11 +122,21 @@ async function handleDrag(e: MouseEvent) {
   await getCurrentWindow().startDragging();
 }
 
-function todayStamp(): string {
+/** Compact date stamp YYMMDD (2-digit year + zero-padded month/day). */
+function shortDateStamp(): string {
   const d = new Date();
+  const yy = String(d.getFullYear()).slice(-2);
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
+  return `${yy}${mm}${dd}`;
+}
+
+/** The `.json` file name to use, derived from the user's input. The backend
+ *  appends `.json` if missing, so this only needs to supply the stem and fall
+ *  back to the dated default when the field is empty. */
+function jsonFileName(): string {
+  const base = fileName.value.trim();
+  return `${base || `prompit_config_${shortDateStamp()}`}.json`;
 }
 </script>
 
@@ -138,6 +159,7 @@ function todayStamp(): string {
       <DataCategorySelector v-model="selected" :available="ALL_CATEGORIES" />
 
       <!-- password -->
+      <div class="field-label">{{ t('settings.exportData.export.passwordLabel') }}</div>
       <div class="pw-row">
         <input
           :type="exportShowPw ? 'text' : 'password'"
@@ -169,7 +191,21 @@ function todayStamp(): string {
           <EyeOff v-else :size="13" />
         </button>
       </div>
+      <p v-if="showPasswordWarning" class="ud-warn">{{ t('settings.exportData.export.passwordWarning') }}</p>
       <p v-if="passwordMismatch" class="ud-hint status-text error">{{ t('settings.exportData.export.passwordMismatch') }}</p>
+
+      <!-- backup file name (mainly affects WebDAV upload) -->
+      <div class="field-label">{{ t('settings.exportData.fileNameLabel') }}</div>
+      <div class="pw-row">
+        <input
+          class="pw-input"
+          v-model="fileName"
+          :placeholder="t('settings.exportData.fileNamePlaceholder')"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+      <p class="ud-hint">{{ t('settings.exportData.fileNameHint') }}</p>
 
       <div class="btn-row">
         <button
