@@ -137,9 +137,22 @@ pub async fn llm_http(
 
     let timeout = Duration::from_millis(req.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS));
 
-    let client = reqwest::Client::builder()
+    // Apply the SAME proxy the Tauri updater uses (env vars + Windows system
+    // proxy via `read_proxy_url`). reqwest does not auto-detect the Windows
+    // WinINET/registry proxy, so without this `llm_http` silently ignores the
+    // system proxy — which is why update checks (that pass `{ proxy }`) succeed
+    // while LLM / web-search / release-notes fetches through here fail behind a
+    // proxy. Routing every `llm_http` request through the discovered proxy
+    // keeps this channel consistent with the updater's network path.
+    let mut builder = reqwest::Client::builder()
         .timeout(timeout)
-        .redirect(reqwest::redirect::Policy::limited(MAX_REDIRECTS))
+        .redirect(reqwest::redirect::Policy::limited(MAX_REDIRECTS));
+    if let Some(proxy_url) = crate::read_proxy_url() {
+        if let Ok(proxy) = reqwest::Proxy::all(&proxy_url) {
+            builder = builder.proxy(proxy);
+        }
+    }
+    let client = builder
         .build()
         .map_err(|e| format!("build client: {e}"))?;
 

@@ -11,15 +11,60 @@
 import { ref, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import i18n from "../i18n";
+import { proxyFetch } from "../services/proxy";
 
 // idle | checking | up-to-date | has-update | preparing | downloading | installing | restarting | error
 export const updateStatus = ref("idle");
 export const updateVersion = ref("");
+// Release-notes text for the available update. Populated from Update.body, or
+// the GitHub Releases API `body` when that's empty (the updater manifest's
+// `notes` is only filled if the workflow sets it — this one doesn't).
+export const updateNotes = ref("");
+// True while a release-notes API fetch is in flight (so the popup can show a
+// spinner instead of an empty/error state).
+export const updateNotesLoading = ref(false);
+// True when a release-notes fetch failed (network / 404 / parse). The popup
+// shows a single "couldn't load" message in every case — the cause isn't
+// actionable for the user.
+export const updateNotesFailed = ref(false);
 export const downloaded = ref(0);
 export const contentLength = ref(0);
 export const updateError = ref("");
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
+// GitHub Releases API for the latest published release. Its `body` field is the
+// full release notes (markdown), which is exactly what the popup shows.
+const RELEASES_API_URL = "https://api.github.com/repos/erelief/Prompit/releases/latest";
+
+/** Fetch the latest release's `body` (release notes) from the GitHub Releases
+ *  API into `updateNotes`. Used in sandbox (no real Update object) and as the
+ *  prod fallback when Update.body is empty. On success with `adoptTag`, copies
+ *  the release's tag_name into `updateVersion` — only the sandbox caller needs
+ *  this (it fakes "0.0.0"; prod already has the real version). */
+async function fetchReleaseNotes(adoptTag = false) {
+  updateNotesFailed.value = false;
+  updateNotesLoading.value = true;
+  try {
+    const res = await proxyFetch(RELEASES_API_URL, {
+      method: "GET",
+      headers: { Accept: "application/vnd.github+json" },
+    });
+    if (!res.ok) { updateNotesFailed.value = true; return; }
+    const release = res.body ? JSON.parse(res.body) : null;
+    const body = typeof release?.body === "string" ? release.body : "";
+    if (!body) { updateNotesFailed.value = true; return; }
+    updateNotes.value = body;
+    if (adoptTag && typeof release?.tag_name === "string") {
+      updateVersion.value = release.tag_name.replace(/^v/, "");
+    }
+  } catch {
+    // proxyFetch rejects on transport-level failures (DNS, timeout, …).
+    updateNotesFailed.value = true;
+  } finally {
+    updateNotesLoading.value = false;
+  }
+}
 
 /** Schedule a temporary status, then reset to idle after `ms`. Used by the
  *  silent-check error paths. */
@@ -41,7 +86,13 @@ export async function checkForUpdate(silent = false) {
     const sandbox = await invoke<boolean>("is_sandbox");
     if (sandbox) {
       updateVersion.value = "0.0.0";
+      updateNotes.value = "";
       updateStatus.value = "has-update";
+      // Populate the release-notes popup with the latest published release
+      // body from the GitHub API (the fake-update state has no Update object).
+      // adoptTag: copy the API's tag_name so the popup header shows a real
+      // version instead of the faked "0.0.0". Non-blocking.
+      void fetchReleaseNotes(true);
       return;
     }
   } catch { /* ignore — fall through to real check */ }
@@ -59,7 +110,14 @@ export async function checkForUpdate(silent = false) {
       return;
     }
     updateVersion.value = update.version;
+    updateNotes.value = typeof update.body === "string" ? update.body : "";
     updateStatus.value = "has-update";
+    // The updater manifest's `notes` (→ Update.body) is empty unless the
+    // release workflow explicitly sets it, so fall back to the GitHub Releases
+    // API `body` when we didn't get one from the update object.
+    if (!updateNotes.value) {
+      void fetchReleaseNotes();
+    }
   } catch (e) {
     if (!silent) {
       updateStatus.value = "error";

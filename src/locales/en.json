@@ -380,7 +380,9 @@
     "restarting": "Restarting…",
     "updateFailed": "Update failed",
     "checkFailed": "Failed",
-    "sandboxUpdateBlocked": "Update install is disabled in sandbox mode."
+    "sandboxUpdateBlocked": "Update install is disabled in sandbox mode.",
+    "releaseNotes": "Release Notes",
+    "releaseNotesFailed": "Couldn't load release notes."
   },
   "languages": {
     "English": {

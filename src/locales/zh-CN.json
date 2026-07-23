@@ -380,7 +380,9 @@
     "restarting": "重启中…",
     "updateFailed": "更新失败",
     "checkFailed": "检查失败",
-    "sandboxUpdateBlocked": "沙盒模式下无法安装更新。"
+    "sandboxUpdateBlocked": "沙盒模式下无法安装更新。",
+    "releaseNotes": "更新说明",
+    "releaseNotesFailed": "无法加载更新说明。"
   },
   "languages": {
     "English": {

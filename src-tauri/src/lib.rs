@@ -66,7 +66,12 @@ fn prefix_url(addr: &str) -> String {
     }
 }
 
-fn read_proxy_url() -> Option<String> {
+/// Configured proxy URL (env vars + Windows system proxy) — the same source
+/// the Tauri updater uses (it passes this to `check({ proxy })`). Shared with
+/// `llm_http` so the LLM / web-search / release-notes channel stays on the SAME
+/// network path as the updater; otherwise proxy-dependent requests fail while
+/// the updater succeeds.
+pub fn read_proxy_url() -> Option<String> {
     std::env::var("HTTPS_PROXY")
         .or_else(|_| std::env::var("https_proxy"))
         .or_else(|_| std::env::var("HTTP_PROXY"))

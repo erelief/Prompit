@@ -52,6 +52,9 @@ import { useSettingsWindow } from "../composables/useSettingsWindow";
 import {
   updateStatus,
   updateVersion,
+  updateNotes,
+  updateNotesLoading,
+  updateNotesFailed,
   updateLabel,
   updateDisabled,
   updateProgressPct,
@@ -214,6 +217,20 @@ function toggleAutoUpdate(e: MouseEvent) {
   autoUpdate.value = turning;
   localStorage.setItem("app-auto-update", String(turning));
   if (turning) burstParticles(e.currentTarget as HTMLElement);
+}
+
+// ── Release-notes popup ──
+// Shown when an update is available; displays the markdown body captured by
+// the update checker. Loading/error states come from the composable so the
+// template is purely reactive (no polling).
+const showReleaseNotes = ref(false);
+
+function openReleaseNotes() {
+  showReleaseNotes.value = true;
+}
+
+function closeReleaseNotes() {
+  showReleaseNotes.value = false;
 }
 
 function toggleShortcutHint(e: MouseEvent) {
@@ -1795,6 +1812,16 @@ onUnmounted(() => {
               <span v-if="updateProgressPct !== null">{{ updateProgressPct }}%</span>
               <span>{{ updateLabel }}</span>
             </button>
+            <!-- Release-notes button: only appears when an update is available. -->
+            <button
+              v-if="updateStatus === 'has-update'"
+              class="pill-btn micro release-notes-btn"
+              :title="t('about.releaseNotes')"
+              @click.stop="openReleaseNotes"
+            >
+              <BookText :size="10" :stroke-width="2" />
+              <span>{{ t('about.releaseNotes') }}</span>
+            </button>
           </div>
         </div>
         <!-- Auto Check Update -->
@@ -2230,6 +2257,30 @@ onUnmounted(() => {
         </EditableCardList>
       </template>
     </main>
+
+    <!-- ═══ Release-notes popup ═══ -->
+    <!-- Small overlay showing the markdown body of the available update. -->
+    <div v-if="showReleaseNotes" class="rn-overlay" @click.self="closeReleaseNotes">
+      <div class="rn-card">
+        <div class="rn-header">
+          <span class="rn-title">
+            <BookText :size="13" :stroke-width="1.8" />
+            {{ t('about.releaseNotes') }}
+            <span v-if="updateVersion" class="rn-ver">v{{ updateVersion }}</span>
+          </span>
+          <button class="rn-close" :title="t('common.close')" @click="closeReleaseNotes">
+            <X :size="14" :stroke-width="2" />
+          </button>
+        </div>
+        <div class="rn-body">
+          <div v-if="updateNotesLoading" class="rn-loading">
+            <Loader2 :size="14" class="spin" :stroke-width="2" />
+          </div>
+          <pre v-else-if="updateNotes" class="rn-pre">{{ updateNotes }}</pre>
+          <p v-else-if="updateNotesFailed" class="rn-empty">{{ t('about.releaseNotesFailed') }}</p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -3202,6 +3253,129 @@ label {
 }
 .au-ver {
   font-weight: var(--weight-bold);
+}
+
+/* ── Release-notes button & popup ── */
+.release-notes-btn {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.release-notes-btn:hover {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+.release-notes-btn:focus-visible {
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: 1px;
+}
+
+/* Overlay scoped to the settings window. */
+.rn-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+}
+.rn-card {
+  width: 100%;
+  max-width: 460px;
+  max-height: 80%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px var(--color-shadow), 0 0 0 1px var(--color-surface);
+  overflow: hidden;
+}
+.rn-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-surface);
+  flex-shrink: 0;
+}
+.rn-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+.rn-ver {
+  font-size: 10.5px;
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+.rn-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
+}
+.rn-close:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+.rn-close:focus-visible {
+  outline: 2px solid var(--color-accent-border);
+  outline-offset: 1px;
+}
+.rn-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar) transparent;
+}
+.rn-body::-webkit-scrollbar { width: 4px; }
+.rn-body::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar);
+  border-radius: var(--radius-xs);
+}
+/* Release notes are markdown rendered as plain text (no markdown lib): <pre>
+   preserves line breaks / indentation. word-wrap keeps long URLs in bounds. */
+.rn-pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+.rn-empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  text-align: left;
+  padding: var(--space-3) var(--space-1);
+}
+.rn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5) 0;
+  color: var(--color-text-muted);
 }
 /* .about-auto-btn is the app's "toggle" pattern: a Lucide ToggleLeft/Right
    icon swap. Full state coverage: default / hover / active / focus-visible /
