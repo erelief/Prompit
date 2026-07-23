@@ -45,6 +45,8 @@ Beyond translation, you can load commonly-used system prompts as preset template
 - Supports importing standard-format SKILL.md files, and exporting skills in the same format.
 - Supports connecting a third-party service for AI search, so it can pull real-time information from the web and keep the sources.
 
+> The built-in skills above live as standard `.md` files in [`skills-lite-presets/`](./skills-lite-presets), as a reference.
+
 ### 🔌 AI
 Prompit's features run on AI models, **but it doesn't ship with one** — you'll need to connect a third-party AI service (any OpenAI-API-compatible provider; mainstream platforms come as presets in the app).
 

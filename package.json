@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/generate-third-party-licenses.mjs && node scripts/validate-i18n.mjs && vue-tsc --noEmit && vite build",
+    "build": "node scripts/generate-skills-lite-presets.mjs && node scripts/generate-third-party-licenses.mjs && node scripts/validate-i18n.mjs && vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "gen:third-party": "node scripts/generate-third-party-licenses.mjs",
-    "prepare": "husky && node scripts/generate-third-party-licenses.mjs",
+    "gen:skills-lite": "node scripts/generate-skills-lite-presets.mjs",
+    "prepare": "husky && node scripts/generate-third-party-licenses.mjs && node scripts/generate-skills-lite-presets.mjs",
     "tauri": "tauri",
     "tauri:sandbox": "set SANDBOX=1 && tauri dev",
     "version": "node scripts/sync-tauri-config.mjs && git add src-tauri/tauri.conf.json src-tauri/Cargo.toml"

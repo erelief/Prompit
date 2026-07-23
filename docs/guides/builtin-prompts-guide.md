@@ -16,8 +16,8 @@ entry, and the hardcoded system/meta prompts that wrap them.
 | What you want to change | Layer | Section |
 |---|---|---|
 | The wording of the default **Translation Persona** ("Coding（编程）") | 1 — seed | [§3](#3-layer-1--built-in-persona-seed-translate-mode) |
-| The wording of the default **Skills Lite** entry ("Polish（润色）") | 1 — seed | [§4](#4-layer-2--built-in-skills-lite-seed-skills-lite-mode) |
-| Ship **multiple** built-in personas/skills-lites on first run | 1 — seed | [§3.3](#33-ship-more-than-one-builtin) / [§4.3](#43-ship-more-than-one-builtin) |
+| The wording of the default **Skills Lite** entry ("quick-question") | 1 — seed | [§4](#4-layer-2--built-in-skills-lite-seed-skills-lite-mode) |
+| Ship **multiple** built-in personas/skills-lites on first run | 1 — seed | [§3.3](#33-ship-more-than-one-builtin) / [§4.5](#45-ship-more-than-one-builtin-or-addreorderrename) |
 | Add a **new field** to personas/skills-lites (e.g. `category`) | 1 — seed + schema | [§7.3](#73-add-a-new-field-to-personasskills-lites) |
 | The fixed **"You are a translation engine…"** translate prompt | 3 — hardcoded | [§5.1](#51-translates-system-prompt) |
 | The **"Output ONLY the transformed result"** guardrail suffix | 3 — hardcoded | [§5.2](#52-skills-lites-guardrail-suffix) |
@@ -39,9 +39,12 @@ The three layers, at a glance:
 └─────────────────────────────────────────────────────────────────────┘
                               ▲ wraps
 ┌─────────────────────────────────────────────────────────────────────┐
-│ Layer 1/2 — SEED constants  (src/stores/config.ts)                  │
-│   DEFAULT_CODING_PERSONA     (persona seed)                         │
-│   DEFAULT_POLISH_SKILLS_LITE (skills-lite seed)                     │
+│ Layer 1/2 — SEED sources                                           │
+│   Persona seed:    DEFAULT_CODING_PERSONA  (src/stores/config.ts)   │
+│   Skills-lite seed: skills-lite-presets/*.md +                      │
+│     scripts/skills-lite-presets.manifest.json                       │
+│     → compiled by scripts/generate-skills-lite-presets.mjs into     │
+│       src/generated/skills-lite-presets.ts (PRESET_SKILLS_LITES)    │
 │   → Written ONCE into encrypted personas.json / skills_lites.json   │
 │     on first run. After that, the user owns & can edit/delete them. │
 └─────────────────────────────────────────────────────────────────────┘
@@ -55,16 +58,18 @@ The three layers, at a glance:
 ### The four things most people get wrong
 
 1. **Built-ins are not flagged.** There is **no `isBuiltin` / `preset` / `system`
-   field** on personas or skills-lites. The "built-in" entry is just a hardcoded
-   seed constant that gets written into the user's data file on first run.
-   From that moment on it is **indistinguishable** from a user-created entry —
-   the user can rename, edit, or delete it freely.
+   field** on personas or skills-lites. The "built-in" entry is just a seed
+   that gets written into the user's data file on first run (the persona seed
+   is a TS constant; the skills-lite seed is compiled from
+   `skills-lite-presets/*.md`). From that moment on it is
+   **indistinguishable** from a user-created entry — the user can rename,
+   edit, or delete it freely.
 
 2. **Seed changes do NOT reach existing installs.** Seeding only happens when
-   `personas.json` / `skills_lites.json` is missing or empty (`config.ts:485`,
-   `config.ts:733`). Editing a seed constant only affects **fresh installs**.
-   To update an existing user you must either bump the schema with a migration
-   or have them reset (see [§7.5](#75-reset-a-users-builtins-to-defaults)).
+   `personas.json` / `skills_lites.json` is missing or empty. Editing a seed
+   (the persona constant, or a `skills-lite-presets/*.md` file) only affects
+   **fresh installs**. To update an existing user you must either bump the
+   schema with a migration or have them reset (see [§7.5](#75-reset-a-users-builtins-to-defaults)).
 
 3. **Schema changes must mirror BOTH TypeScript and Rust.** A persona/skills-lite
    is defined in `src/stores/config.ts` (frontend) **and** in
@@ -81,9 +86,13 @@ The three layers, at a glance:
 
 | Concern | File | Key lines |
 |---|---|---|
-| All TS interfaces + seed constants + load/save | `src/stores/config.ts` | schemas `:109-126`, persona seed `:470`, skills-lite seed `:722`, `MODES` `:760` |
+| All TS interfaces + load/save + persona seed | `src/stores/config.ts` | schemas `:109-126`, persona seed `:470`, `MODES` `:760` |
+| Skills Lite seed **source** (plaintext `.md`) | `skills-lite-presets/*.md` | one file per preset (`quick-question`, `xml-tag-prompt`, `polish-skill`) |
+| Skills Lite seed **order** / default-enabled | `scripts/skills-lite-presets.manifest.json` | ordered array; first entry = default `enabled:true` |
+| Skills Lite seed **generator** | `scripts/generate-skills-lite-presets.mjs` | run via `npm run gen:skills-lite` / `build` / `prepare` |
+| Skills Lite seed **bundle** (generated, gitignored) | `src/generated/skills-lite-presets.ts` | `PRESET_SKILLS_LITES` |
 | Persona load/save (TS) | `src/stores/config.ts` | `loadPersonas :477`, `savePersonas :509` |
-| Skills Lite load/save (TS) | `src/stores/config.ts` | `loadSkillsLites :730`, `saveSkillsLites :750` |
+| Skills Lite load/save (TS) | `src/stores/config.ts` | `loadSkillsLites` (seeds `PRESET_SKILLS_LITES`), `saveSkillsLites` |
 | System/meta prompt construction | `src/services/llm-client.ts` | `optimizePrompt :282`, `buildSystemPrompt :355`, `buildSkillsLiteSystemPrompt :370` |
 | Persona persistence (Rust) | `src-tauri/src/commands/persona.rs` | struct `:10-15`, cmds `:48-55` |
 | Skills Lite persistence (Rust) | `src-tauri/src/commands/skills_lite.rs` | struct `:10-17`, cmds `:50-57` |
@@ -212,25 +221,45 @@ used in Skills Lite mode (polish, summarize, rewrite formally, …). Exactly
 
 ### 4.1 Where it lives
 
-The single built-in skills-lite entry is a constant in `src/stores/config.ts:722`:
+The built-in skills-lites are **plain `.md` files** in `skills-lite-presets/`,
+one per skill, using the exact same plaintext template as the user-facing
+export/import format (see `docs/guides/SKILL.md`):
 
-```ts
-const DEFAULT_POLISH_SKILLS_LITE: SkillsLiteEntry = {
-  name: "Polish（润色）",
-  prompt:
-    "Detect the language of the user's input. Adopt the role of a native speaker of that language. Rewrite the user's input as a more idiomatic, accurate, and natural expression in the same language, preserving the original meaning and intent.",
-  description: "Polish the input like a native speaker of its language.",
-  enabled: true,
-};
+```markdown
+---
+name: 'polish-skill'
+description: 'Polish the input like a native speaker of its language.'
+---
+
+# polish-skill
+Detect the language of the user's input. Adopt the role of a native speaker of …
 ```
 
-Seeded on first run inside `loadSkillsLites()` (`src/stores/config.ts:730-748`),
-with the seed branch at `config.ts:733-735`:
+A companion `scripts/skills-lite-presets.manifest.json` (next to the generator)
+is an **ordered array of file stems**. **Order matters**: the first entry is
+the default-enabled skill (`enabled: true`); the rest are `enabled: false`.
+
+```json
+["quick-question", "xml-tag-prompt", "polish-skill"]
+```
+
+At build time, `scripts/generate-skills-lite-presets.mjs` reads every listed
+`.md`, parses the frontmatter + first `# ` heading (the same logic as the Rust
+import parser `parse_skill_markdown` in
+`src-tauri/src/commands/skills_lite.rs`), and writes a typed bundle to
+`src/generated/skills-lite-presets.ts`:
+
+```ts
+export const PRESET_SKILLS_LITES: SkillsLiteEntry[] = [ /* … */ ];
+```
+
+The bundle is imported by `loadSkillsLites()` in `src/stores/config.ts` and
+seeded into the user's encrypted store on first run (or if loading fails):
 
 ```ts
 const entries = await invoke<SkillsLiteEntry[]>("read_skills_lites");
 if (entries.length === 0) {
-  skillsLiteStore.skillsLites = [DEFAULT_POLISH_SKILLS_LITE];
+  skillsLiteStore.skillsLites = PRESET_SKILLS_LITES;
   await saveSkillsLites();
 }
 ```
@@ -290,24 +319,24 @@ function buildSkillsLiteSystemPrompt(): string {
 }
 ```
 
-### 4.4 Edit recipe — change the built-in skills-lite entry
+### 4.4 Edit recipe — change a built-in skills-lite
 
-1. Edit `name` / `prompt` / `description` of `DEFAULT_POLISH_SKILLS_LITE` in
-   `src/stores/config.ts:722-728`.
-2. For a text-only change, nothing else is needed. Verify on a clean profile
+1. Edit the `name` / `description` (frontmatter) or prompt (body after the
+   `# ` heading) of the relevant `.md` file in `skills-lite-presets/`.
+2. Re-run the generator (`npm run gen:skills-lite`, or any `npm run build` /
+   `npm run prepare`) to regenerate `src/generated/skills-lite-presets.ts`.
+3. For a text-only change, nothing else is needed. Verify on a clean profile
    (delete `<data_dir>/skills_lites.json`).
 
-### 4.5 Ship more than one built-in
+### 4.5 Ship more than one built-in (or add/reorder/rename)
 
-Replace the seed array in `loadSkillsLites()` at `config.ts:734`:
-
-```ts
-skillsLiteStore.skillsLites = [
-  DEFAULT_POLISH_SKILLS_LITE,
-  DEFAULT_SUMMARIZE_SKILLS_LITE,   // add new DEFAULT_* constants; keep exactly one enabled:true
-];
-await saveSkillsLites();
-```
+1. Add a new `skills-lite-presets/<name>.md` (copy an existing one as a
+   template — the format must match `docs/guides/SKILL.md`).
+2. Add its stem to `scripts/skills-lite-presets.manifest.json` in the desired
+   position. Remember: **the first entry is the default-enabled one**.
+3. Regenerate (`npm run gen:skills-lite`). To remove a built-in, delete its
+   `.md` and drop it from the manifest; to reorder (e.g. change which one is
+   enabled by default), just reorder the manifest.
 
 ---
 
@@ -395,10 +424,11 @@ so bilingual seed names use the `Name（中文名）` convention.
 
 ## 7. Common workflows
 
-### 7.1 Change the wording of the default Polish skills-lite entry
+### 7.1 Change the wording of a built-in skills-lite entry
 
-Edit `DEFAULT_POLISH_SKILLS_LITE` at `src/stores/config.ts:722-728`. Done — only
-fresh installs are affected; existing users keep their copy.
+Edit the relevant `.md` in `skills-lite-presets/` (e.g. `polish-skill.md`), then
+regenerate with `npm run gen:skills-lite`. Done — only fresh installs are
+affected; existing users keep their copy.
 
 ### 7.2 Change the "output only the result" guardrail
 
@@ -415,8 +445,13 @@ Full checklist (skills-lite shown; persona is analogous):
 2. **Rust struct** — add the field to `SkillsLiteEntry` in
    `src-tauri/src/commands/skills_lite.rs:10-17` **with `#[serde(default)]`** (so
    old `skills_lites.json` files still load).
-3. **Seed constant** — set the field on `DEFAULT_POLISH_SKILLS_LITE`
-   (`config.ts:722`) and in the seed array (`loadSkillsLites`, `config.ts:734`).
+3. **Seed source** — if the field should be set per-preset, extend the `.md`
+   template (`skills-lite-presets/*.md`) and the generator
+   (`scripts/generate-skills-lite-presets.mjs`, both the parser and the
+   serializer) to read/write it, then set it in each preset file. For a
+   field that's constant across all presets (or derived like `enabled`),
+   set it directly in the generator's `main()`. Regenerate with
+   `npm run gen:skills-lite`.
 4. **Load normalization** — if needed, default-fill the field in the
    `entries.map(...)` branch of `loadSkillsLites()` (`config.ts:739-742`), the way
    `description` is normalized.
@@ -440,7 +475,8 @@ encrypted data file(s) in the app data dir (resolved by `get_data_dir` at
 - `skills_lites.json` — skills-lites
 
 On next launch, `loadPersonas()` / `loadSkillsLites()` see an empty/missing file
-and re-seed from `DEFAULT_CODING_PERSONA` / `DEFAULT_POLISH_SKILLS_LITE`.
+and re-seed from `DEFAULT_CODING_PERSONA` (persona) / `PRESET_SKILLS_LITES`
+(skills-lite, compiled from `skills-lite-presets/`).
 
 ### 7.5 Add a true read-only built-in (does NOT exist yet)
 
