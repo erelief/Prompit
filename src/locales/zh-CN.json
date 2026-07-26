@@ -137,6 +137,7 @@
     "skillsLiteDescription": "用一两句话简述该轻技能的作用…",
     "organizePrompt": "AI 条理化",
     "summarizePrompt": "AI 总结为说明",
+    "generateName": "AI 生成名称（kebab-case）",
     "importSkillsLite": "导入轻技能",
     "exportSkillsLite": "将该轻技能导出为 Markdown 文件",
     "skillsLiteImported": "已导入 {imported} 个轻技能，跳过 {skipped} 个。",
