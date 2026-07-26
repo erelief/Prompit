@@ -593,7 +593,7 @@ export async function savePersonas(): Promise<void> {
   }
 }
 
-export function getActiveModel(): {
+export function getActiveModel(modeOverride?: string): {
   model: string;
   api_key: string;
   base_url: string;
@@ -601,7 +601,11 @@ export function getActiveModel(): {
   max_tokens: number | null;
   api_format?: ApiFormat;
 } | null {
-  const mode = appConfig.active_mode || "translate";
+  // Only real modes (translate / skills_lite) own per-mode model indices.
+  // "summarize" is a prompt-only variant used inside the skills-lite card, so
+  // it should resolve to the skills-lite model.
+  const raw = modeOverride || appConfig.active_mode || "translate";
+  const mode = raw === "summarize" ? "skills_lite" : raw;
   const config = appConfig as any;
   const pi = config[`${mode}_active_provider_index`] ?? 0;
   const mi = config[`${mode}_active_model_index`] ?? 0;

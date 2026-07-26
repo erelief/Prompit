@@ -241,7 +241,7 @@ export async function translate(text: string, signal?: AbortSignal): Promise<Tra
 }
 
 export async function optimizePrompt(rawPrompt: string, mode: "translate" | "skills_lite" | "summarize" = "translate"): Promise<string> {
-  const model = getActiveModel();
+  const model = getActiveModel(mode);
   const fmt = resolveFormat(model?.api_format);
 
   const messages: ChatMessage[] = [
