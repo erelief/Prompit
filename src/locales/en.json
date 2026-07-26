@@ -137,6 +137,7 @@
     "skillsLiteDescription": "Briefly describe what this skill does…",
     "organizePrompt": "AI Organize prompt",
     "summarizePrompt": "AI Summarize as description",
+    "generateName": "AI Generate name (kebab-case)",
     "importSkillsLite": "Import Skills Lite",
     "exportSkillsLite": "Export this skill to a markdown file",
     "skillsLiteImported": "Imported {imported} skill(s), skipped {skipped}.",

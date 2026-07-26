@@ -240,14 +240,16 @@ export async function translate(text: string, signal?: AbortSignal): Promise<Tra
   return { status: "ok", content, searched, sources };
 }
 
-export async function optimizePrompt(rawPrompt: string, mode: "translate" | "skills_lite" | "summarize" = "translate"): Promise<string> {
+export async function optimizePrompt(rawPrompt: string, mode: "translate" | "skills_lite" | "summarize" | "name" = "translate"): Promise<string> {
   const model = getActiveModel(mode);
   const fmt = resolveFormat(model?.api_format);
 
   const messages: ChatMessage[] = [
     {
       role: "system",
-      content: mode === "skills_lite"
+      content: mode === "name"
+        ? "Based on the following skill prompt, produce a short identifier in English kebab-case that names what the skill does (lowercase letters and hyphens only, no spaces, no quotes). Use 1 to 4 hyphenated words that capture the skill's core action and object (e.g. polish-translation / summarize-article / generate-test-cases). Do not include words like 'skill', 'prompt', 'tool' or 'assistant'. Output ONLY the identifier, nothing else."
+        : mode === "skills_lite"
         ? "You organize and structure user-written prompts. Reorganize the prompt to be clear, well-structured, and unambiguous. Do not change the original intent or add new instructions. Output ONLY the reorganized prompt, nothing else."
         : mode === "summarize"
         ? "Detect the language of the following prompt and reply in THAT same language. Be extremely concise: under 20 characters for Chinese (under 12 words for English). Start directly with the action in the form \"<verb> the input into <result>\" (e.g. 将输入内容润色得更自然 / Rewrite the input more formally / Turn the input into a bulleted summary). Pick the verb that best fits the prompt. No filler, no subject (no \"This tool\"/\"Acts as\"/\"本工具\"/\"该助手\"). Output ONLY that single line, nothing else."

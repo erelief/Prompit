@@ -128,6 +128,8 @@ const optimizingIndex = ref<number | null>(null);
 const promptUndoStack = new Map<number, string>();
 const summarizingIndex = ref<number | null>(null);
 const descUndoStack = new Map<number, string>();
+const namingIndex = ref<number | null>(null);
+const nameUndoStack = new Map<number, string>();
 
 interface ProviderEditState {
   keyVisible: boolean;
@@ -658,6 +660,29 @@ async function handleSkillsLiteSummarize(item: { prompt: string; description: st
     descUndoStack.delete(index);
   } finally {
     summarizingIndex.value = null;
+  }
+}
+
+function handleNameKeydown(e: KeyboardEvent, item: { name: string }, index: number) {
+  const isMod = e.ctrlKey || e.metaKey;
+  if (isMod && e.key === "z" && !e.shiftKey && nameUndoStack.has(index)) {
+    e.preventDefault();
+    item.name = nameUndoStack.get(index)!;
+    nameUndoStack.delete(index);
+  }
+}
+
+async function handleSkillsLiteGenerateName(item: { prompt: string; name: string }, index: number) {
+  if (!item.prompt.trim() || namingIndex.value !== null) return;
+  nameUndoStack.set(index, item.name);
+  namingIndex.value = index;
+  try {
+    item.name = await optimizePrompt(item.prompt, "name");
+  } catch (err) {
+    console.error("Generate name failed:", err);
+    nameUndoStack.delete(index);
+  } finally {
+    namingIndex.value = null;
   }
 }
 
@@ -2196,10 +2221,31 @@ onUnmounted(() => {
             </button>
           </template>
 
-          <template #name-input="{ item }">
+          <template #name-input="{ item, index }">
             <div class="name-input-icon-wrap">
               <Sparkles :size="14" :stroke-width="1.8" class="name-input-icon" />
-              <input v-model="item.name" :placeholder="t('settings.skillsLiteName')" class="fi name-fi" @click.stop />
+              <input
+                v-model="item.name"
+                :placeholder="t('settings.skillsLiteName')"
+                class="fi name-fi"
+                @click.stop
+                @keydown="handleNameKeydown($event, item, index)"
+              />
+              <button
+                v-if="item.prompt.trim()"
+                class="persona-wand-btn name-wand-btn"
+                :class="{ active: namingIndex === index }"
+                :title="t('settings.generateName')"
+                @click.stop="handleSkillsLiteGenerateName(item, index)"
+              >
+                <Loader2
+                  v-if="namingIndex === index"
+                  :size="12"
+                  :stroke-width="1.9"
+                  class="spin"
+                />
+                <Wand2 v-else :size="13" :stroke-width="1.6" />
+              </button>
             </div>
           </template>
 
@@ -2764,6 +2810,7 @@ label {
   box-shadow: 0 1px 3px var(--color-shadow);
 }
 .persona-textarea-wrap:hover .persona-wand-btn,
+.name-input-icon-wrap:hover .name-wand-btn,
 .persona-wand-btn.active { opacity:1; }
 .persona-wand-btn.active { color:var(--color-accent); border-color:var(--color-accent); background:color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)); }
 .persona-wand-btn:hover { color:var(--color-accent); border-color:var(--color-border-hover); background:color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)); }
