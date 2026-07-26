@@ -602,10 +602,10 @@ export function getActiveModel(modeOverride?: string): {
   api_format?: ApiFormat;
 } | null {
   // Only real modes (translate / skills_lite) own per-mode model indices.
-  // "summarize" is a prompt-only variant used inside the skills-lite card, so
-  // it should resolve to the skills-lite model.
+  // "summarize" and "name" are prompt-only variants used inside the
+  // skills-lite card, so they resolve to the skills-lite model.
   const raw = modeOverride || appConfig.active_mode || "translate";
-  const mode = raw === "summarize" ? "skills_lite" : raw;
+  const mode = raw === "summarize" || raw === "name" ? "skills_lite" : raw;
   const config = appConfig as any;
   const pi = config[`${mode}_active_provider_index`] ?? 0;
   const mi = config[`${mode}_active_model_index`] ?? 0;
