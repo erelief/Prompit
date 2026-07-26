@@ -39,6 +39,9 @@ const emit = defineEmits<{
   "result-stale": [];
 }>();
 
+// Dropdown transition name: slide from below when the window grows upward.
+const dropdownTransition = computed(() => (props.growAbove ? "dropdown-up" : "dropdown"));
+
 // ── Persona selector ──
 const lastActivePersonaIndex = ref(0);
 const activePersonaName = computed(() => {
@@ -71,8 +74,9 @@ const skillsLiteMenuRef = ref<HTMLDivElement | null>(null);
 const skillsLiteDropdownPos = ref({ top: 0, left: 0 });
 
 // ── Dropdown positioning (shared by persona / skills-lite / language) ──
-// Places the menu at the trigger button's bottom-left, then flips it above
-// the button when there isn't enough room below. `anchorLeft` is the wrapper
+// Places the menu at the trigger button's bottom-left by default, or above it
+// when the window grows upward (`props.growAbove`). A viewport fallback still
+// flips the menu if the chosen side lacks room. `anchorLeft` is the wrapper
 // left (persona/skills-lite align to the wrapper edge) or the button left
 // (language aligns to the button itself).
 function openDropdown(
@@ -82,13 +86,21 @@ function openDropdown(
   anchorLeft: number,
 ) {
   const rect = btn.getBoundingClientRect();
-  pos.value = { top: rect.bottom + 4, left: anchorLeft };
+  pos.value = props.growAbove
+    ? { top: rect.top - 4, left: anchorLeft }
+    : { top: rect.bottom + 4, left: anchorLeft };
   nextTick(() => {
     if (!menu) return;
     const menuH = menu.offsetHeight;
     const spaceBelow = window.innerHeight - rect.bottom - 4;
     const spaceAbove = rect.top - 4;
-    if (menuH > spaceBelow && menuH <= spaceAbove) {
+    if (props.growAbove) {
+      if (menuH <= spaceAbove || menuH > spaceBelow) {
+        pos.value = { top: rect.top - menuH - 4, left: anchorLeft };
+      } else {
+        pos.value = { top: rect.bottom + 4, left: anchorLeft };
+      }
+    } else if (menuH > spaceBelow && menuH <= spaceAbove) {
       pos.value = { top: rect.top - menuH - 4, left: anchorLeft };
     }
   });
@@ -334,7 +346,7 @@ defineExpose({ closeAllDropdowns });
       </button>
 
       <Teleport to="body">
-        <Transition name="dropdown">
+        <Transition :name="dropdownTransition">
           <div
             v-if="showSkillsLiteDropdown && skillsLiteStore.skillsLites.length > 0"
             ref="skillsLiteMenuRef"
@@ -388,7 +400,7 @@ defineExpose({ closeAllDropdowns });
         />
       </button>
       <Teleport to="body">
-        <Transition name="dropdown">
+        <Transition :name="dropdownTransition">
           <div
             v-if="showWebSearchDropdown"
             ref="webSearchMenuRef"
@@ -440,7 +452,7 @@ defineExpose({ closeAllDropdowns });
     </button>
 
     <Teleport to="body">
-      <Transition name="dropdown">
+      <Transition :name="dropdownTransition">
         <div
           v-if="showLangDropdown"
           ref="langMenuRef"
@@ -486,7 +498,7 @@ defineExpose({ closeAllDropdowns });
     </button>
 
     <Teleport to="body">
-      <Transition name="dropdown">
+      <Transition :name="dropdownTransition">
         <div
           v-if="showPersonaDropdown"
           ref="personaMenuRef"
