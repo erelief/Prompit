@@ -114,6 +114,14 @@
   opacity: 0;
   transform: translateY(-4px) scale(.97);
 }
+
+/* Variant for menus opening above their anchor (window growing upward):
+   slides in/out from below instead of above. */
+.dropdown-up-enter-from,
+.dropdown-up-leave-to {
+  opacity: 0;
+  transform: translateY(4px) scale(.97);
+}
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity .15s ease-out;

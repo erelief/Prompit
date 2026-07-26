@@ -216,7 +216,7 @@ function toggleModelDropdown() {
     dropdownPos.value = { top: rect.bottom + 4, left: rect.left };
     showModelDropdown.value = true;
     nextTick(() => {
-      dropdownPos.value = positionDropdownBelowOrAbove(rect, modelMenuRef.value);
+      dropdownPos.value = positionDropdownBelowOrAbove(rect, modelMenuRef.value, growAbove.value);
     });
   } else {
     showModelDropdown.value = false;
@@ -224,17 +224,27 @@ function toggleModelDropdown() {
 }
 
 /**
- * Position a dropdown below `rect`; if there isn't enough vertical room below,
- * flip it above the anchor instead. The measured menu height decides which
- * side has more room.
+ * Position a dropdown. When the window grows upward (`growAbove`) the menu
+ * opens above the anchor by default; otherwise below. A viewport fallback
+ * still flips the menu if there isn't room on the chosen side — the measured
+ * menu height decides which side has more room.
  */
 function positionDropdownBelowOrAbove(
   rect: DOMRect,
   menu: HTMLElement | null,
+  growAbove: boolean,
 ): { top: number; left: number } {
   const menuH = menu?.offsetHeight ?? 0;
   const spaceBelow = window.innerHeight - rect.bottom - 4;
   const spaceAbove = rect.top - 4;
+  // Prefer opening on the growAbove side; only flip if that side lacks room
+  // and the other side has more.
+  if (growAbove) {
+    if (menuH <= spaceAbove || menuH > spaceBelow) {
+      return { top: rect.top - menuH - 4, left: rect.left };
+    }
+    return { top: rect.bottom + 4, left: rect.left };
+  }
   if (menuH > spaceBelow && menuH <= spaceAbove) {
     return { top: rect.top - menuH - 4, left: rect.left };
   }
@@ -267,6 +277,9 @@ const isActiveModelEntry = (pIndex: number, mIndex: number) =>
 // ── Dropdown max-height (2 items visible, scroll beyond) ──
 const modelDropdownStyle = computed(() => capHeight(allModels.value.length));
 
+// Dropdown transition name: slide from below when the window grows upward.
+const dropdownTransition = computed(() => (growAbove.value ? "dropdown-up" : "dropdown"));
+
 // ── Mode switch ──
 const showModeDropdown = ref(false);
 const modeBtnRef = ref<HTMLButtonElement | null>(null);
@@ -282,7 +295,7 @@ function toggleModeDropdown() {
     modeDropdownPos.value = { top: rect.bottom + 4, left: rect.left };
     showModeDropdown.value = true;
     nextTick(() => {
-      modeDropdownPos.value = positionDropdownBelowOrAbove(rect, modeMenuRef.value);
+      modeDropdownPos.value = positionDropdownBelowOrAbove(rect, modeMenuRef.value, growAbove.value);
     });
   } else {
     showModeDropdown.value = false;
@@ -921,7 +934,7 @@ useShortcutTriggered(() => {
             </button>
 
             <Teleport to="body">
-              <Transition name="dropdown">
+              <Transition :name="dropdownTransition">
                 <div
                   v-if="showModeDropdown && MODES.length > 0"
                   ref="modeMenuRef"
@@ -963,7 +976,7 @@ useShortcutTriggered(() => {
             </button>
 
             <Teleport to="body">
-              <Transition name="dropdown">
+              <Transition :name="dropdownTransition">
                 <div
                   v-if="showModelDropdown && allModels.length > 0"
                   ref="modelMenuRef"
