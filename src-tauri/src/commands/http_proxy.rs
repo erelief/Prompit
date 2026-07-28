@@ -146,7 +146,11 @@ pub async fn llm_http(
     // keeps this channel consistent with the updater's network path.
     let mut builder = reqwest::Client::builder()
         .timeout(timeout)
-        .redirect(reqwest::redirect::Policy::limited(MAX_REDIRECTS));
+        .redirect(reqwest::redirect::Policy::limited(MAX_REDIRECTS))
+        // reqwest sends no User-Agent by default, and some APIs (notably
+        // api.github.com, the release-notes fallback) 403 such requests. Set
+        // a default; a per-request header still overrides it.
+        .user_agent(concat!("Prompit/", env!("CARGO_PKG_VERSION")));
     if let Some(proxy_url) = crate::read_proxy_url() {
         if let Ok(proxy) = reqwest::Proxy::all(&proxy_url) {
             builder = builder.proxy(proxy);
