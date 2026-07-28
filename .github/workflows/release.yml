@@ -127,6 +127,13 @@ jobs:
   # always failed. Once all matrix jobs merged their platforms into the
   # draft's latest.json, copy the release body into `notes` so the updater's
   # Update.body carries the notes with zero extra network calls.
+  #
+  # This runs after `build`, so it only embeds whatever body exists at that
+  # point. If you write the GitHub release notes *before* pushing the tag the
+  # body is present and gets copied; if you push the tag first and write notes
+  # afterward (the release-prompt flow), this job finds an empty body and
+  # exits cleanly — patch latest.json manually in that case, or re-run it once
+  # the notes are written (Actions → release → Re-run embed-notes).
   embed-notes:
     needs: build
     runs-on: ubuntu-latest
@@ -136,10 +143,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.event.inputs.tagName || github.ref_name }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          body="$(gh release view "$TAG" --json body --jq .body)"
-          gh release download "$TAG" --pattern latest.json --output latest.json --clobber
+          # No checkout on this job — give gh an explicit --repo so it doesn't
+          # try to infer owner/repo from a .git dir that isn't there.
+          body="$(gh release view "$TAG" --repo "$REPO" --json body --jq '.body // ""')"
+          if [ -z "$body" ]; then
+            echo "Release body is empty — nothing to embed into latest.json. Exiting."
+            exit 0
+          fi
+          gh release download "$TAG" --repo "$REPO" --pattern latest.json --output latest.json --clobber
           jq --arg notes "$body" '.notes = $notes' latest.json > latest.patched.json
           mv latest.patched.json latest.json
-          gh release upload "$TAG" latest.json --clobber
+          gh release upload "$TAG" --repo "$REPO" latest.json --clobber
