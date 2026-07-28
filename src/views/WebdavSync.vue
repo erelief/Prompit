@@ -149,16 +149,14 @@ async function handleDrag(e: MouseEvent) {
       </div>
 
       <div class="field-label">{{ t('settings.webdav.server.passwordLabel') }}</div>
-      <div v-if="serverPwSaved && !editingPw" class="pw-row">
+      <div v-if="serverPwSaved && !editingPw" class="pw-row pw-saved-row">
+        <KeyRound :size="13" class="pw-saved-icon" />
+        <span class="pw-saved-text">{{ t('settings.webdav.server.passwordSavedLabel') }}</span>
         <button
-          class="pw-saved-btn"
+          class="pw-change-btn"
           type="button"
           @click="editingPw = true"
-        >
-          <KeyRound :size="13" />
-          <span>{{ t('settings.webdav.server.passwordSavedLabel') }}</span>
-          <span class="pw-saved-change">{{ t('settings.webdav.server.passwordChange') }}</span>
-        </button>
+        >{{ t('settings.webdav.server.passwordChange') }}</button>
       </div>
       <div v-else class="pw-row">
         <input
@@ -246,27 +244,30 @@ async function handleDrag(e: MouseEvent) {
 .wd-actions .ud-btn {
   flex: 1;
 }
-/* The "saved, click to change" button reuses the surrounding .pw-row for its
-   frame/focus ring; only layout + hover tint are its own. */
-.pw-saved-btn {
+/* The saved-password row reuses the surrounding .pw-row frame; inside it the
+   status text matches the input text size/weight, and "Change" is a compact
+   accent button styled like .pw-toggle. */
+.pw-saved-row { gap: var(--space-2); }
+.pw-saved-icon { color: var(--color-text-muted); flex-shrink: 0; }
+.pw-saved-text {
   flex: 1;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  background: none;
-  border: none;
+  font-size: var(--text-base);
   color: var(--color-text);
-  font: inherit;
-  cursor: pointer;
-  transition: background .12s;
 }
-.pw-saved-btn:hover { background: var(--color-accent-bg); }
-.pw-saved-btn > span:first-of-type { flex: 1; text-align: left; }
-.pw-saved-change {
+.pw-change-btn {
   flex-shrink: 0;
-  font-size: var(--text-xs);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
   color: var(--color-accent-text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .12s, color .12s;
 }
+.pw-change-btn:hover { background: var(--color-accent-bg); }
+.pw-change-btn:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
 
 /* Accent-tinted primary action — pairs with .primary-btn from ui.css */
 .analyze-btn {
