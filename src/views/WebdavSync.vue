@@ -6,7 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { appConfig, flushConfigSave } from "../stores/config";
-import { ArrowLeft, Eye, EyeOff, Save, PlugZap } from "@lucide/vue";
+import { ArrowLeft, Eye, EyeOff, Save, PlugZap, KeyRound } from "@lucide/vue";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -24,6 +24,11 @@ const remoteDir = ref(appConfig.webdav.remote_dir || "prompit");
 const serverPw = ref("");
 const showServerPw = ref(false);
 const serverPwSaved = ref(false);
+// When a password is already stored, the field is hidden behind a "Change"
+// button until the user opts in — avoids an always-empty password box on the
+// edit page. `editingPw` flips to true either by clicking that button or when
+// no password is stored yet.
+const editingPw = ref(false);
 const testing = ref(false);
 const saving = ref(false);
 
@@ -41,6 +46,9 @@ function connDto() {
 async function refreshPwStatus() {
   try {
     serverPwSaved.value = await invoke<boolean>("webdav_has_password");
+    // No stored password yet → the field must be editable so the user can set
+    // one. A stored password stays hidden behind the "Change" button.
+    if (!serverPwSaved.value) editingPw.value = true;
   } catch {
     // Keyring probe failing is non-fatal; the operation itself will surface it.
   }
@@ -59,6 +67,9 @@ async function saveServer() {
       serverPw.value = "";
     }
     await refreshPwStatus();
+    // After a successful save the password lives in the keyring; collapse the
+    // field back to the "Change" button unless nothing got stored.
+    if (serverPwSaved.value) editingPw.value = false;
     status.value = { kind: "success", msg: t("settings.webdav.server.saved") };
   } catch (err) {
     status.value = {
@@ -138,7 +149,18 @@ async function handleDrag(e: MouseEvent) {
       </div>
 
       <div class="field-label">{{ t('settings.webdav.server.passwordLabel') }}</div>
-      <div class="pw-row">
+      <div v-if="serverPwSaved && !editingPw" class="pw-row">
+        <button
+          class="pw-saved-btn"
+          type="button"
+          @click="editingPw = true"
+        >
+          <KeyRound :size="13" />
+          <span>{{ t('settings.webdav.server.passwordSavedLabel') }}</span>
+          <span class="pw-saved-change">{{ t('settings.webdav.server.passwordChange') }}</span>
+        </button>
+      </div>
+      <div v-else class="pw-row">
         <input
           :type="showServerPw ? 'text' : 'password'"
           class="pw-input"
@@ -146,9 +168,6 @@ async function handleDrag(e: MouseEvent) {
           :placeholder="t('settings.webdav.server.passwordPlaceholder')"
           autocomplete="new-password"
         />
-        <span v-if="serverPwSaved && !serverPw" class="badge success saved-badge">
-          {{ t('settings.webdav.server.passwordSaved') }}
-        </span>
         <button class="pw-toggle" @click="showServerPw = !showServerPw" type="button">
           <Eye v-if="!showServerPw" :size="13" />
           <EyeOff v-else :size="13" />
@@ -227,9 +246,26 @@ async function handleDrag(e: MouseEvent) {
 .wd-actions .ud-btn {
   flex: 1;
 }
-/* Uses the shared .badge primitive from ui.css (success variant) */
-.saved-badge {
+/* The "saved, click to change" button reuses the surrounding .pw-row for its
+   frame/focus ring; only layout + hover tint are its own. */
+.pw-saved-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+  transition: background .12s;
+}
+.pw-saved-btn:hover { background: var(--color-accent-bg); }
+.pw-saved-btn > span:first-of-type { flex: 1; text-align: left; }
+.pw-saved-change {
   flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-accent-text);
 }
 
 /* Accent-tinted primary action — pairs with .primary-btn from ui.css */
