@@ -97,6 +97,7 @@ let lastSentHeight = 0;
 let resizeObserver: ResizeObserver | null = null;
 let unlistenConfig: (() => void) | null = null;
 let unlistenResume: (() => void) | null = null;
+let unlistenScale: (() => void) | null = null;
 
 // ── History browsing (terminal-style ↑↓) ──
 const historyIndex = ref<number | null>(null);
@@ -855,6 +856,18 @@ onMounted(async () => {
 
   // Also react to live wake events for the in-place (non-remount) case.
   unlistenResume = await listen("system-resumed", recomputeGeometry);
+
+  // React to DPI changes (monitor plug/unplug, lid open/close moving the
+  // window across displays). On the DPI-DOWNSCALE path nobody applies
+  // WM_DPICHANGED's suggested rect (Windows only auto-sizes on upscale
+  // topology moves; tao just updates its cached scale), so the window keeps
+  // its old physical extent — oversized on the lower-DPI display — until
+  // something re-asserts the intended size. Previously only Ctrl+R's remount
+  // did. Recompute on every scale change; the backend no-ops when geometry
+  // is already correct.
+  unlistenScale = await listen("display-scale-changed", () => {
+    applyWindowResize(true);
+  });
 });
 
 // Config auto-save is centralized in stores/config.ts (enabled at startup).
@@ -870,6 +883,7 @@ onUnmounted(() => {
   window.removeEventListener("wheel", onCtrlWheel);
   unlistenConfig?.();
   unlistenResume?.();
+  unlistenScale?.();
   resizeObserver?.disconnect();
   if (shrinkTimer) {
     clearTimeout(shrinkTimer);
@@ -904,6 +918,14 @@ useShortcutTriggered(() => {
   clearAll();
   lastSentHeight = 0;
   if (router.currentRoute.value.path !== '/') router.push('/');
+  // Re-assert the intended geometry on every show. When the hidden window
+  // crossed to a lower-DPI display (monitor unplug, lid close), nothing
+  // applied WM_DPICHANGED's suggested rect, so the window is still sitting
+  // at its old — oversized — physical extent (the "window got bigger, UI
+  // shifted" bug that previously needed Ctrl+R). snapResize no-ops at the
+  // backend when the geometry is already correct, so a normal show costs
+  // nothing.
+  applyWindowResize(true);
 });
 </script>
 

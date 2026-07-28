@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 pub mod commands;
 pub mod config;
@@ -245,6 +245,17 @@ pub fn run() {
             is_sandbox,
             sandbox_mock_provider,
         ])
+        // On the DPI-downscale path nobody applies WM_DPICHANGED's suggested
+        // rect (Windows auto-sizes only on upscale topology moves; tao just
+        // updates its cached scale), so the window keeps its old physical
+        // extent and drifts from the frontend's intended logical size — the
+        // "window got bigger after monitor change" bug. The frontend owns
+        // content sizing — nudge it to re-assert geometry at the new scale.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::ScaleFactorChanged { scale_factor, .. } = event {
+                let _ = window.emit("display-scale-changed", *scale_factor);
+            }
+        })
         .setup(|app| {
             // Sandbox mode: redirect all persistent data to a temp directory
             if sandbox_enabled() {
