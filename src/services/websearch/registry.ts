@@ -7,12 +7,16 @@ import Brave from "../../components/icons/providers/Brave.vue";
 import Tavily from "../../components/icons/providers/Tavily.vue";
 import Exa from "../../components/icons/providers/Exa.vue";
 import Firecrawl from "../../components/icons/providers/Firecrawl.vue";
+// Doubao (豆包搜索) is a Volcengine/ByteDance product — reuse its brand icon.
+import Volcengine from "../../components/icons/providers/Volcengine.vue";
 import type { SearchFn } from "./types";
 import { search as anysearchSearch } from "./anysearch";
 import { search as braveSearch } from "./brave";
 import { search as tavilySearch } from "./tavily";
 import { search as exaSearch } from "./exa";
 import { search as firecrawlSearch } from "./firecrawl";
+import { search as doubaoSearch } from "./doubao";
+import { search as doubaoCustomSearch } from "./doubao-custom";
 
 export interface WebSearchPresetMeta {
   id: string;
@@ -68,6 +72,20 @@ export const WEB_SEARCH_PRESETS: WebSearchPresetMeta[] = [
     keyRequired: true,
     apiUrl: "https://app.tavily.com/",
   },
+  {
+    id: "doubao",
+    label: "豆包搜索 Global 版",
+    icon: Volcengine,
+    keyRequired: true,
+    apiUrl: "https://console.volcengine.com/search-infinity/api-key?tab=post_paid",
+  },
+  {
+    id: "doubao-custom",
+    label: "豆包搜索 Custom 版",
+    icon: Volcengine,
+    keyRequired: true,
+    apiUrl: "https://console.volcengine.com/search-infinity/api-key?tab=post_paid",
+  },
 ];
 
 /** preset id → search implementation */
@@ -77,6 +95,8 @@ const REGISTRY: Record<string, SearchFn> = {
   tavily: tavilySearch,
   exa: exaSearch,
   firecrawl: firecrawlSearch,
+  doubao: doubaoSearch,
+  "doubao-custom": doubaoCustomSearch,
 };
 
 /** Resolve the search implementation for a preset id. */
