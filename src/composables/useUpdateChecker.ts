@@ -13,6 +13,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { Update } from "@tauri-apps/plugin-updater";
 import i18n from "../i18n";
 import { proxyFetch } from "../services/proxy";
+import { pickLocalizedReleaseNotes } from "../stores/config";
 
 // idle | checking | up-to-date | has-update | preparing | downloading | installing | restarting | error
 export const updateStatus = ref("idle");
@@ -20,6 +21,8 @@ export const updateVersion = ref("");
 // Release-notes text for the available update. Populated from Update.body
 // (the release workflow injects the release body into the manifest's `notes`),
 // or — for releases published before that — the GitHub Releases API `body`.
+// This holds the FULL bilingual body (English\n---\nChinese); the popup binds
+// to `displayNotes` which shows only the current UI locale's block.
 export const updateNotes = ref("");
 // True while a release-notes API fetch is in flight (so the popup can show a
 // spinner instead of an empty/error state).
@@ -28,6 +31,10 @@ export const updateNotesLoading = ref(false);
 // shows a single "couldn't load" message in every case — the cause isn't
 // actionable for the user.
 export const updateNotesFailed = ref(false);
+// The release-notes block for the CURRENT UI locale (English or Chinese),
+// derived from the bilingual `updateNotes`. Re-computes when the notes load or
+// when the user switches app language. Bind the popup to this, not updateNotes.
+export const displayNotes = computed(() => pickLocalizedReleaseNotes(updateNotes.value));
 export const downloaded = ref(0);
 export const contentLength = ref(0);
 export const updateError = ref("");

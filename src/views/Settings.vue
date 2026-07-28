@@ -52,9 +52,9 @@ import { useSettingsWindow } from "../composables/useSettingsWindow";
 import {
   updateStatus,
   updateVersion,
-  updateNotes,
   updateNotesLoading,
   updateNotesFailed,
+  displayNotes,
   updateLabel,
   updateDisabled,
   updateProgressPct,
@@ -2319,7 +2319,7 @@ onUnmounted(() => {
           <div v-if="updateNotesLoading" class="rn-loading">
             <Loader2 :size="14" class="spin" :stroke-width="2" />
           </div>
-          <pre v-else-if="updateNotes" class="rn-pre">{{ updateNotes }}</pre>
+          <pre v-else-if="displayNotes" class="rn-pre">{{ displayNotes }}</pre>
           <p v-else-if="updateNotesFailed" class="rn-empty">{{ t('about.releaseNotesFailed') }}</p>
         </div>
       </div>
