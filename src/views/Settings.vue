@@ -620,7 +620,8 @@ function toggleWebPresetMenu(e: MouseEvent, index: number) {
 
 function applyWebPreset(item: WebSearchProviderConfig, presetId: string) {
   item.preset = presetId;
-  item.api_key = "";
+  // Preserve any api_key the user already typed — never wipe user input on a
+  // preset change. They can edit the field manually if it no longer applies.
   item.custom_name = presetMeta(presetId).label;
   showWebPresetMenu.value = false;
   webPresetMenuIndex.value = null;
@@ -729,17 +730,13 @@ function applyPreset(item: ProviderConfig, preset: ProviderPreset) {
     item.preset = undefined;
     item.base_url = "";
     item.api_format = undefined;
-    item.api_key = "";
     showPresetMenu.value = false;
     presetMenuIndex.value = null;
     return;
   }
-  // Clear API key when switching to a different provider family.
-  // Preserves key when switching endpoints within the same variant family.
-  const oldFamily = resolvePreset(item.preset, providerPresets.value).preset;
-  if (oldFamily?.name !== preset.name) {
-    item.api_key = "";
-  }
+  // Preserve any api_key the user already typed — never wipe user input on a
+  // preset change, even across provider families. They can edit the field
+  // manually if the key no longer applies.
   // Variant family → land on its default region/endpoint selection.
   if (preset.variants) {
     const { endpoint } = defaultSelection(preset);
