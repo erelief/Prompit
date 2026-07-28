@@ -119,3 +119,27 @@ jobs:
           # in place (MSI cannot self-update).
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
+
+  # tauri-action leaves latest.json's `notes` empty, which forced the app to
+  # call api.github.com for release notes — unauthenticated API calls are
+  # rate-limited to 60 req/hr per egress IP (routinely exhausted on shared
+  # proxy IPs) and rejected without a User-Agent, so the in-app notes popup
+  # always failed. Once all matrix jobs merged their platforms into the
+  # draft's latest.json, copy the release body into `notes` so the updater's
+  # Update.body carries the notes with zero extra network calls.
+  embed-notes:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inject release body into latest.json notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tagName || github.ref_name }}
+        run: |
+          set -euo pipefail
+          body="$(gh release view "$TAG" --json body --jq .body)"
+          gh release download "$TAG" --pattern latest.json --output latest.json --clobber
+          jq --arg notes "$body" '.notes = $notes' latest.json > latest.patched.json
+          mv latest.patched.json latest.json
+          gh release upload "$TAG" latest.json --clobber

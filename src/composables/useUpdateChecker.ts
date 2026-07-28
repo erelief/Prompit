@@ -10,15 +10,16 @@
  */
 import { ref, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import type { Update } from "@tauri-apps/plugin-updater";
 import i18n from "../i18n";
 import { proxyFetch } from "../services/proxy";
 
 // idle | checking | up-to-date | has-update | preparing | downloading | installing | restarting | error
 export const updateStatus = ref("idle");
 export const updateVersion = ref("");
-// Release-notes text for the available update. Populated from Update.body, or
-// the GitHub Releases API `body` when that's empty (the updater manifest's
-// `notes` is only filled if the workflow sets it — this one doesn't).
+// Release-notes text for the available update. Populated from Update.body
+// (the release workflow injects the release body into the manifest's `notes`),
+// or — for releases published before that — the GitHub Releases API `body`.
 export const updateNotes = ref("");
 // True while a release-notes API fetch is in flight (so the popup can show a
 // spinner instead of an empty/error state).
@@ -32,6 +33,13 @@ export const contentLength = ref(0);
 export const updateError = ref("");
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
+// The Update object from the last successful check, kept so installUpdate()
+// can download it directly instead of re-running check() — a second GitHub
+// round-trip at click time is one more chance to fail on a flaky connection,
+// and the user was already told which version they'll get. Not reactive; the
+// refs above carry everything the UI needs.
+let pendingUpdate: Update | null = null;
 
 // GitHub Releases API for the latest published release. Its `body` field is the
 // full release notes (markdown), which is exactly what the popup shows.
@@ -101,6 +109,7 @@ export async function checkForUpdate(silent = false) {
     const proxy = await invoke<string | null>("get_proxy_url");
     const update = await check(proxy ? { proxy } : {});
     if (!update) {
+      pendingUpdate = null;
       if (silent) {
         updateStatus.value = "idle";
       } else {
@@ -109,12 +118,13 @@ export async function checkForUpdate(silent = false) {
       }
       return;
     }
+    pendingUpdate = update;
     updateVersion.value = update.version;
     updateNotes.value = typeof update.body === "string" ? update.body : "";
     updateStatus.value = "has-update";
-    // The updater manifest's `notes` (→ Update.body) is empty unless the
-    // release workflow explicitly sets it, so fall back to the GitHub Releases
-    // API `body` when we didn't get one from the update object.
+    // Update.body carries the notes for releases cut after the workflow
+    // started embedding them; fall back to the GitHub Releases API `body`
+    // for older releases whose manifest `notes` is empty.
     if (!updateNotes.value) {
       void fetchReleaseNotes();
     }
@@ -146,7 +156,10 @@ export async function installUpdate() {
     const { check } = await import("@tauri-apps/plugin-updater");
     const { relaunch } = await import("@tauri-apps/plugin-process");
     const proxy = await invoke<string | null>("get_proxy_url");
-    const update = await check(proxy ? { proxy } : {});
+    // Reuse the Update from the last check rather than hitting GitHub again.
+    // Fall back to a fresh check only when this webview never ran one (e.g.
+    // the startup check ran in a different window).
+    const update = pendingUpdate ?? (await check(proxy ? { proxy } : {}));
     if (!update) return;
     updateStatus.value = "preparing";
     downloaded.value = 0;
