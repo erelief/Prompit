@@ -464,6 +464,41 @@ function resolveAppLang(): string {
   return osLocaleToAppLang(navigator.language);
 }
 
+/**
+ * Pick the release-notes block for the current UI locale.
+ *
+ * Release bodies are bilingual — English first, Chinese second, separated by a
+ * horizontal rule (`---`), per the project's release-prompt convention. The
+ * in-app "Release Notes" popup should show only the user's language. This splits
+ * on `---` and returns the Chinese block when the resolved app lang is zh-CN,
+ * else the first (English) block. If the body isn't split-able (older releases
+ * or single-language drafts), it's returned unchanged so nothing regresses.
+ *
+ * The release-prompt convention appends a `**Full Changelog**: …compare/…`
+ * link after the last `---`, so it lands inside the Chinese block. To keep it
+ * visible in both locales, any trailing compare link is hoisted out and
+ * re-appended to whichever block we return.
+ */
+export function pickLocalizedReleaseNotes(body: string): string {
+  const text = (body ?? "").trim();
+  if (!text) return "";
+  // A line that is just dashes (3+) is the bilingual separator.
+  let parts = text.split(/^\s*-{3,}\s*$/m).map(s => s.trim()).filter(Boolean);
+  if (parts.length < 2) return text;
+  // Hoist a trailing "**Full Changelog**: …" line so it shows in both locales.
+  let changelog = "";
+  const last = parts[parts.length - 1];
+  const m = last.match(/\n?\s*(\*\*Full Changelog\*\*:\s*\S+.*)\s*$/);
+  if (m) {
+    changelog = m[1];
+    const trimmed = last.replace(/\n?\s*\*\*Full Changelog\*\*:\s*\S+.*\s*$/, "").trim();
+    parts = parts.slice(0, -1);
+    if (trimmed) parts.push(trimmed);
+  }
+  const block = resolveAppLang() === "zh-CN" ? parts[1] : parts[0];
+  return changelog ? `${block}\n\n${changelog}` : block;
+}
+
 export async function loadConfig(): Promise<void> {
   try {
     const loaded = await invoke<AppConfig>("read_config");
