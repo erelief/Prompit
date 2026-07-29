@@ -32,6 +32,7 @@ import Tavily from "./Tavily.vue";
 import TencentCloud from "./TencentCloud.vue";
 import Volcengine from "./Volcengine.vue";
 import xAI from "./xAI.vue";
+import ZeroOne from "./ZeroOne.vue";
 import Zhipu from "./Zhipu.vue";
 
 export const PROVIDER_ICONS: Record<string, Component> = {
@@ -68,5 +69,6 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   tencentcloud: TencentCloud,
   volcengine: Volcengine,
   xai: xAI,
+  zeroone: ZeroOne,
   zhipu: Zhipu,
 };

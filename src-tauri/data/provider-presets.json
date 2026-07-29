@@ -8,14 +8,52 @@
       "api_url": ""
     },
     {
-      "name": "Agnes",
-      "provider_name": "Agnes",
-      "icon": "agnes",
-      "model_series": "Agnes",
-      "base_url": "https://apihub.agnes-ai.com/v1",
-      "api_url": "https://platform.agnes-ai.com/settings/apiKeys",
+      "name": "01.AI/零一万物",
+      "provider_name": "01.AI/零一万物",
+      "icon": "zeroone",
+      "model_series": "Yi",
+      "base_url": "https://api.lingyiwanwu.com/v1",
+      "api_url": "https://platform.lingyiwanwu.com/apikeys",
       "api_format": "openai"
     },
+    {
+      "name": "Agnes",
+      "icon": "agnes",
+      "model_series": "Agnes",
+      "api_format": "openai",
+      "variants": {
+        "default_region": "cn",
+        "default_endpoint": "standard",
+        "regions": [
+          {
+            "key": "cn",
+            "label": "CN",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "Agenes (CN)",
+                "base_url": "https://apihub.agnes-ai.cn/v1",
+                "api_url": "https://platform.agnes-ai.cn/settings/apiKeys"
+              }
+            ]
+          },
+          {
+            "key": "global",
+            "label": "Global",
+            "endpoints": [
+              {
+                "key": "standard",
+                "label": "Standard",
+                "provider_name": "Agenes (Global)",
+                "base_url": "https://apihub.agnes-ai.com/v1",
+                "api_url": "https://platform.agnes-ai.com/settings/apiKeys"
+              }
+            ]
+          }
+        ]
+      }
+    },   
     {
       "name": "Anthropic",
       "provider_name": "Anthropic",
