@@ -9,7 +9,7 @@ import { useSettingsWindow } from "../composables/useSettingsWindow";
 import DataCategorySelector from "../components/DataCategorySelector.vue";
 import { ALL_CATEGORIES } from "../composables/useDataCategories";
 import {
-  loadConfig, loadHistory, loadPersonas, loadSkillsLites, refreshDictStatus,
+  loadConfig, loadHistory, loadUsage, loadPersonas, loadSkillsLites, refreshDictStatus,
 } from "../stores/config";
 import { ArrowLeft, ShieldAlert, Check, X } from "@lucide/vue";
 
@@ -72,6 +72,7 @@ async function handleConfirm() {
       await loadConfig();
       await Promise.all([
         loadHistory(),
+        loadUsage(true),
         loadPersonas(),
         loadSkillsLites(),
         refreshDictStatus(),

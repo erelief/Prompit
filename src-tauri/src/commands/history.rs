@@ -6,6 +6,18 @@ use tauri::AppHandle;
 
 use crate::crypto::{self, EncryptedPayload};
 
+/// Token usage reported by the provider for a single request. Absent when the
+/// provider does not return a `usage` object (or for pre-feature entries).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenUsage {
+    #[serde(default)]
+    pub prompt: Option<u64>,
+    #[serde(default)]
+    pub completion: Option<u64>,
+    #[serde(default)]
+    pub total: Option<u64>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryEntry {
     pub input: String,
@@ -13,6 +25,8 @@ pub struct HistoryEntry {
     pub timestamp: u64,
     #[serde(default)]
     pub model: Option<String>,
+    #[serde(default)]
+    pub usage: Option<TokenUsage>,
     #[serde(default)]
     pub mode: Option<String>,
     #[serde(default)]

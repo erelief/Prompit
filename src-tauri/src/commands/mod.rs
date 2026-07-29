@@ -7,6 +7,7 @@ pub mod persona;
 pub mod presets;
 pub mod providers;
 pub mod skills_lite;
+pub mod usage;
 pub mod webdav;
 pub mod websearch;
 pub mod window;

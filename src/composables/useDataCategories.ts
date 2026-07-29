@@ -16,7 +16,8 @@ export type DataCategory =
   | "history"
   | "dictionaries"
   | "personas"
-  | "skills_lite";
+  | "skills_lite"
+  | "usage";
 
 export interface CategoryMeta {
   /** i18n key under `settings.categories.<id>` for the human label. */
@@ -36,20 +37,21 @@ export const ALL_CATEGORIES: DataCategory[] = [
   "settings",
   "webdav",
   "history",
+  "usage",
 ];
 
 /**
  * Default selection for backup / restore: everything except software settings,
- * WebDAV server settings and history (those are less likely to need backing up
- * and more likely to differ between machines). Reset always selects every
- * category.
+ * WebDAV server settings, history and usage stats (those are less likely to
+ * need backing up and more likely to differ between machines). Reset always
+ * selects every category.
  */
 export function defaultSelectedCategories(
   mode: "export" | "import" | "reset",
 ): DataCategory[] {
   if (mode === "reset") return [...ALL_CATEGORIES];
   return ALL_CATEGORIES.filter(
-    (c) => c !== "settings" && c !== "history" && c !== "webdav",
+    (c) => c !== "settings" && c !== "history" && c !== "webdav" && c !== "usage",
   );
 }
 
@@ -77,6 +79,11 @@ export const CATEGORY_META: Record<DataCategory, CategoryMeta> = {
   history: {
     labelKey: "settings.categories.history",
     descKey: "settings.categories.historyDescription",
+    sensitive: false,
+  },
+  usage: {
+    labelKey: "settings.categories.usage",
+    descKey: "settings.categories.usageDescription",
     sensitive: false,
   },
   dictionaries: {

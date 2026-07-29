@@ -148,6 +148,26 @@
     "userData": {
       "label": "Data Management"
     },
+    "usageStats": {
+      "pageTitle": "Usage Statistics",
+      "entryButton": "Usage",
+      "disclaimer": "Usage is for reference only — the provider's own statistics prevail.",
+      "viewDate": "By date",
+      "viewMode": "By mode",
+      "viewModel": "By model",
+      "last7Days": "Last 7 days",
+      "last30Days": "Last 30 days",
+      "allProviders": "All",
+      "dailyTokens": "Daily token usage",
+      "dailyRequests": "Daily requests",
+      "tokensShare": "Token usage share",
+      "requestsShare": "Request count share",
+      "total": "Total {n}",
+      "requests": "no requests | {n} request | {n} requests",
+      "requestsMetric": "requests",
+      "empty": "No usage data in this period.",
+      "other": "Other"
+    },
     "categories": {
       "selectAll": "Select all",
       "sensitive": "Sensitive",
@@ -162,6 +182,8 @@
       "websearchDescription": "Configured web search providers and their API keys",
       "history": "History",
       "historyDescription": "Past communication records",
+      "usage": "Usage statistics",
+      "usageDescription": "Token usage and request counts by provider, model and mode",
       "dictionaries": "Translation user dictionary",
       "dictionariesDescription": "Your custom-dictionary entries",
       "personas": "Translation personas",
@@ -327,6 +349,7 @@
     "clearHistory": "Clear History",
     "entryCount": "Max entries: {current}/{limit}",
     "edited": "Edited",
+    "usageBreakdown": "Prompt {prompt} · Completion {completion}",
     "searchPlaceholder": "Search input or output…",
     "searchEmpty": "No matching history.",
     "searchCount": "Matches {current} / {total} total"

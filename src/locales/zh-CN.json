@@ -148,6 +148,26 @@
     "userData": {
       "label": "数据管理"
     },
+    "usageStats": {
+      "pageTitle": "用量统计",
+      "entryButton": "用量统计",
+      "disclaimer": "用量仅供参考，以供应方统计为准",
+      "viewDate": "按日期",
+      "viewMode": "按模式",
+      "viewModel": "按模型",
+      "last7Days": "近 7 天",
+      "last30Days": "近 30 天",
+      "allProviders": "全部",
+      "dailyTokens": "每日 token 消耗",
+      "dailyRequests": "每日请求次数",
+      "tokensShare": "Token 用量占比",
+      "requestsShare": "请求次数占比",
+      "total": "共 {n}",
+      "requests": "{n} 次请求",
+      "requestsMetric": "次请求",
+      "empty": "该时间段内暂无用量数据",
+      "other": "其他"
+    },
     "categories": {
       "selectAll": "全选",
       "sensitive": "敏感信息",
@@ -162,6 +182,8 @@
       "websearchDescription": "已配置的网页搜索供应方及其 API key",
       "history": "历史记录",
       "historyDescription": "过往通信记录",
+      "usage": "用量统计",
+      "usageDescription": "按供应方、模型与模式统计的 token 用量与请求次数",
       "dictionaries": "翻译用户词典",
       "dictionariesDescription": "翻译功能中用户自定义词典条目",
       "personas": "翻译角色",
@@ -327,6 +349,7 @@
     "clearHistory": "清除历史记录",
     "entryCount": "最大条数: {current}/{limit}",
     "edited": "已编辑",
+    "usageBreakdown": "输入 {prompt} · 输出 {completion}",
     "searchPlaceholder": "搜索输入或输出…",
     "searchEmpty": "没有匹配的历史记录。",
     "searchCount": "匹配 {current} / 共 {total} 条"

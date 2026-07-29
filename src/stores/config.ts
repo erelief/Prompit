@@ -631,6 +631,7 @@ export async function savePersonas(): Promise<void> {
 
 export function getActiveModel(modeOverride?: string): {
   model: string;
+  provider: string;
   api_key: string;
   base_url: string;
   temperature: number | null;
@@ -660,6 +661,7 @@ export function getActiveModel(modeOverride?: string): {
 
   return {
     model: provider.models[mi].id,
+    provider: provider.name,
     api_key: provider.api_key,
     base_url: provider.base_url,
     temperature: provider.temperature,
@@ -958,6 +960,7 @@ export interface HistoryEntry {
   timestamp: number;
   model?: string;
   mode?: string;
+  usage?: TokenUsage;   // token usage of the request, when the provider reported it
   persona?: string;   // active persona name (translate mode) — display only
   skills_lite?: string;   // active skills-lite name (skills_lite mode) — display only
   searched?: boolean;   // whether web search context was used (skills_lite mode)
@@ -979,7 +982,7 @@ export async function loadHistory(): Promise<void> {
   }
 }
 
-export async function saveHistoryEntry(input: string, output: string, searched: boolean = false, sources?: SearchHit[], edited: boolean = false): Promise<void> {
+export async function saveHistoryEntry(input: string, output: string, searched: boolean = false, sources?: SearchHit[], edited: boolean = false, usage?: TokenUsage): Promise<void> {
   if (!appConfig.history_enabled) return;
   const active = getActiveModel();
   const mode = appConfig.active_mode || "translate";
@@ -989,6 +992,7 @@ export async function saveHistoryEntry(input: string, output: string, searched: 
     timestamp: Date.now(),
     model: active?.model || undefined,
     mode,
+    usage,
     searched,
     sources: sources && sources.length > 0 ? sources : undefined,
     persona: mode === "translate"
@@ -1032,5 +1036,81 @@ export async function saveHistory(): Promise<void> {
     });
   } catch (err) {
     console.error("Failed to save history:", err);
+  }
+}
+
+// ── Token usage stats ──
+// Aggregated per-request usage, stored independently of history (history can
+// be disabled, capped or cleared — stats must survive all three). Persisted
+// encrypted as usage.json via the read_usage/save_usage commands, same pattern
+// as the other data files.
+
+/** Token usage reported by a provider for one request. All fields optional:
+ *  some providers return no `usage` object at all (then only the request
+ *  itself is counted), and Anthropic-style payloads lack a `total`. */
+export interface TokenUsage {
+  prompt?: number;
+  completion?: number;
+  total?: number;
+}
+
+export interface UsageRecord {
+  ts: number;         // ms epoch
+  mode: string;       // mode id at request time ("translate" | "skills_lite" | future modes)
+  provider: string;   // provider display name at request time
+  provider_key?: string;   // stable identity "name|base_url" — two providers sharing a display name still group separately; absent in pre-provider_key records, which fall back to `provider`
+  model: string;      // model id
+  prompt?: number;
+  completion?: number;
+  total?: number;
+}
+
+export const usageStore = reactive<{ records: UsageRecord[] }>({
+  records: [],
+});
+
+// Keep a one-day buffer beyond the 30-day stats window so the "last 30 days"
+// view bucketed by calendar day is always fully covered; the record cap is a
+// safety valve against unbounded file growth.
+const USAGE_RETENTION_MS = 31 * 24 * 60 * 60 * 1000;
+const USAGE_MAX_RECORDS = 20000;
+
+function pruneUsageRecords(records: UsageRecord[]): UsageRecord[] {
+  const cutoff = Date.now() - USAGE_RETENTION_MS;
+  const kept = records.filter((r) => r.ts >= cutoff);
+  return kept.length > USAGE_MAX_RECORDS
+    ? kept.slice(kept.length - USAGE_MAX_RECORDS)
+    : kept;
+}
+
+let usageLoadPromise: Promise<void> | null = null;
+
+/** Load usage records from disk. Memoized; pass `force` to re-read (e.g.
+ *  after a reset or import replaced the file). */
+export function loadUsage(force = false): Promise<void> {
+  if (!usageLoadPromise || force) {
+    usageLoadPromise = (async () => {
+      try {
+        const records = await invoke<UsageRecord[]>("read_usage");
+        usageStore.records = pruneUsageRecords(records);
+      } catch (err) {
+        console.error("Failed to load usage stats:", err);
+        usageStore.records = [];
+      }
+    })();
+  }
+  return usageLoadPromise;
+}
+
+/** Append one request to the stats and persist. Fire-and-forget safe: errors
+ *  are logged, never thrown into the caller's request path. */
+export async function recordUsage(record: UsageRecord): Promise<void> {
+  try {
+    await loadUsage(); // hydrate before appending so we never clobber the file
+    usageStore.records.push(record);
+    usageStore.records = pruneUsageRecords(usageStore.records);
+    await invoke("save_usage", { records: toRaw(usageStore.records) });
+  } catch (err) {
+    console.error("Failed to save usage stats:", err);
   }
 }

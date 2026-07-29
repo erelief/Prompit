@@ -227,6 +227,8 @@ pub fn run() {
             commands::history::read_history,
             commands::history::save_history,
             commands::history::clear_history,
+            commands::usage::read_usage,
+            commands::usage::save_usage,
             commands::presets::read_provider_presets,
             commands::presets::read_model_capabilities,
             commands::http_proxy::llm_http,

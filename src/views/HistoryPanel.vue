@@ -49,6 +49,18 @@ function shortModel(model: string): string {
   return model.replace(/-\d{4}-\d{2}-\d{2}$/, "");
 }
 
+// Compact token count for the per-entry badge (1.2K / 3.4M …); the full
+// prompt/completion breakdown goes into the hover tooltip.
+const tokenCompactFmt = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
+function usageTitle(entry: HistoryEntry): string {
+  const u = entry.usage;
+  if (!u) return "";
+  return t("history.usageBreakdown", {
+    prompt: u.prompt != null ? String(u.prompt) : "–",
+    completion: u.completion != null ? String(u.completion) : "–",
+  });
+}
+
 // Mode → icon component for the left indicator (display only)
 function modeIcon(mode?: string) {
   return MODES.find(m => m.id === mode)?.icon ?? MODES[0].icon;
@@ -252,6 +264,7 @@ onMounted(async () => {
                   <MessageSquare :size="9" :stroke-width="2" class="output-icon" />
                   <span :title="entry.output"><template v-for="(seg, si) in highlightSegments(entry.output)" :key="si"><mark v-if="seg.hit" class="search-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></span>
                   <span v-if="entry.model" class="model-badge">{{ shortModel(entry.model) }}</span>
+                  <span v-if="entry.usage?.total" class="model-badge usage-badge" :title="usageTitle(entry)">{{ tokenCompactFmt.format(entry.usage.total) }} tokens</span>
                   <span v-if="presetTag(entry)" class="preset-badge">{{ presetTag(entry) }}</span>
                   <span v-if="entry.edited" class="edited-tag">{{ t('history.edited') }}</span>
                   <button v-if="entry.searched" class="searched-tag" :title="t('search.sourcesTitle')" @click.stop="openSources(entry)">
@@ -542,6 +555,11 @@ mark.search-hl {
   line-height: 16px;
   max-width: 112px;
   white-space: nowrap;
+}
+.usage-badge {
+  color: var(--color-accent-text);
+  background: var(--color-accent-bg);
+  font-variant-numeric: tabular-nums;
 }
 .preset-badge {
   flex-shrink: 0;

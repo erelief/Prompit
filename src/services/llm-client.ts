@@ -1,5 +1,5 @@
-import { getActiveModel, appConfig, personaStore, skillsLiteStore, loadDictionary } from "../stores/config";
-import type { ApiFormat, ProviderConfig, ModelInputCapabilities } from "../stores/config";
+import { getActiveModel, appConfig, personaStore, skillsLiteStore, loadDictionary, recordUsage } from "../stores/config";
+import type { ApiFormat, ProviderConfig, ModelInputCapabilities, TokenUsage } from "../stores/config";
 import { detectInputCapabilitiesAsync } from "./model-capabilities";
 import { webSearch, formatSearchContext } from "./websearch";
 import type { ClassifiedSearchError, SearchHit } from "./websearch/types";
@@ -31,7 +31,7 @@ async function llmFetch(
 }
 
 export type TranslateOutcome =
-  | { status: "ok"; content: string; searched: boolean; sources?: SearchHit[] }
+  | { status: "ok"; content: string; searched: boolean; sources?: SearchHit[]; usage?: TokenUsage }
   | { status: "search-error"; error: ClassifiedSearchError };
 
 /** Wraps a search failure so the caller (FloatingInput) can classify it. */
@@ -146,16 +146,69 @@ export function resolvePath(obj: any, path: string): any {
   return cur;
 }
 
+/** Pull token usage out of a chat response body. OpenAI-style payloads carry
+ *  `usage.{prompt,completion,total}_tokens`; Anthropic uses
+ *  `usage.{input,output}_tokens`. Returns undefined when the provider does
+ *  not report usage — callers then count only the request itself. */
+function extractUsage(data: any): TokenUsage | undefined {
+  const toNum = (v: any): number | undefined =>
+    typeof v === "number" && Number.isFinite(v) ? v : undefined;
+  const usage = data?.usage;
+  const prompt = toNum(usage?.prompt_tokens) ?? toNum(usage?.input_tokens);
+  const completion = toNum(usage?.completion_tokens) ?? toNum(usage?.output_tokens);
+  const total =
+    toNum(usage?.total_tokens) ??
+    (prompt != null || completion != null ? (prompt ?? 0) + (completion ?? 0) : undefined);
+  if (prompt == null && completion == null && total == null) return undefined;
+  return { prompt, completion, total };
+}
+
+/** Record one successful chat request in the usage stats. Fire-and-forget:
+ *  stats must never break the request path. `mode` is the calling mode;
+ *  prompt-only variants ("summarize"/"name") resolve to the skills_lite
+ *  mode, mirroring getActiveModel(). */
+function trackUsage(
+  model: NonNullable<ReturnType<typeof getActiveModel>>,
+  mode: string,
+  usage: TokenUsage | undefined,
+): void {
+  const statMode = mode === "summarize" || mode === "name" ? "skills_lite" : mode;
+  void recordUsage({
+    ts: Date.now(),
+    mode: statMode,
+    // Unnamed providers (name is "") fall back to the endpoint host for
+    // display. The provider_key keeps two same-named (or two unnamed)
+    // provider configs aggregating separately.
+    provider: model.provider || hostOf(model.base_url),
+    provider_key: `${model.provider}|${model.base_url}`,
+    model: model.model,
+    prompt: usage?.prompt,
+    completion: usage?.completion,
+    total: usage?.total,
+  });
+}
+
+/** Extract the host part of a base URL; returns the raw string when it is not
+ *  a parseable URL (e.g. a bare host or a typo the provider page accepted). */
+export function hostOf(baseUrl: string): string {
+  try {
+    return new URL(baseUrl).host || baseUrl;
+  } catch {
+    return baseUrl;
+  }
+}
+
 /** Shared "send a chat request, return the trimmed content string" sequence.
  *  Used by translate() and optimizePrompt(), which both post to a chat
- *  endpoint and extract a single content field. Throws ModelHttpError on
- *  non-2xx, Error on an empty response. */
+ *  endpoint and extract a single content field. Also returns the provider's
+ *  token usage when reported. Throws ModelHttpError on non-2xx, Error on an
+ *  empty response. */
 async function chatCompletion(
   model: ReturnType<typeof getActiveModel>,
   messages: ChatMessage[],
   fmt: Required<ApiFormat>,
   signal?: AbortSignal,
-): Promise<string> {
+): Promise<{ content: string; usage?: TokenUsage }> {
   if (!model) {
     throw new Error("No model configured. Please add a model in Settings.");
   }
@@ -181,7 +234,7 @@ async function chatCompletion(
   if (content == null) {
     throw new Error("Empty response from LLM API");
   }
-  return String(content).trim();
+  return { content: String(content).trim(), usage: extractUsage(data) };
 }
 
 export async function translate(text: string, signal?: AbortSignal): Promise<TranslateOutcome> {
@@ -236,8 +289,9 @@ export async function translate(text: string, signal?: AbortSignal): Promise<Tra
 
   messages.push({ role: "user", content: text });
 
-  const content = await chatCompletion(model, messages, fmt, signal);
-  return { status: "ok", content, searched, sources };
+  const result = await chatCompletion(model, messages, fmt, signal);
+  if (model) trackUsage(model, mode, result.usage);
+  return { status: "ok", content: result.content, searched, sources, usage: result.usage };
 }
 
 export async function optimizePrompt(rawPrompt: string, mode: "translate" | "skills_lite" | "summarize" | "name" = "translate"): Promise<string> {
@@ -269,7 +323,9 @@ export async function optimizePrompt(rawPrompt: string, mode: "translate" | "ski
     { role: "user", content: rawPrompt },
   ];
 
-  return chatCompletion(model, messages, fmt);
+  const result = await chatCompletion(model, messages, fmt);
+  if (model) trackUsage(model, mode, result.usage);
+  return result.content;
 }
 
 function buildSystemPrompt(): string {

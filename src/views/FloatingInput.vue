@@ -12,7 +12,7 @@ import { useAnimatedResize } from "../composables/useAnimatedResize";
 import { useWindowBg, domainOf, hexToRgb } from "../composables/useWindowBg";
 import { useEventListener } from "@vueuse/core";
 import { capHeight, chevronTransform } from "../shared/dropdown";
-import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, saveHistoryEntry, saveSkillsLites, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
+import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, loadUsage, saveHistoryEntry, saveSkillsLites, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
 import { updateStatus as updateCheckStatus, updateVersion as updateCheckVersion } from "../composables/useUpdateChecker";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
@@ -592,7 +592,7 @@ async function handleTranslate() {
       // The ResizeObserver will fire once the result-block lays out; snap that
       // resize so the window matches the content instantly (no grow-in tear).
       snapNextResize = true;
-      await saveHistoryEntry(text, outcome.content, outcome.searched, outcome.sources);
+      await saveHistoryEntry(text, outcome.content, outcome.searched, outcome.sources, false, outcome.usage);
     }
     // search-error is handled in catch below via SearchFailureError
   } catch (err) {
@@ -773,6 +773,7 @@ onMounted(async () => {
   // would overwrite in-memory edits made in other views.
   refreshDictStatus();
   await loadHistory();
+  loadUsage();
   loadProviderPresets().then(p => { floatingPresets.value = p; }).catch(console.error);
 
   // Restore from history panel if applicable

@@ -110,6 +110,7 @@ import {
   Keyboard,
   SlidersHorizontal,
   Globe,
+  BarChart3,
 } from "@lucide/vue";
 
 declare const __APP_VERSION__: string;
@@ -1209,6 +1210,17 @@ onUnmounted(() => {
           @remove="onProviderRemove"
           @drag-end="onProviderDragEnd"
         >
+          <template #header-actions="{ adding, editing }">
+            <button
+              v-show="!adding && !editing"
+              class="pill-btn micro"
+              :title="t('settings.usageStats.pageTitle')"
+              @click="router.push('/settings/usage')"
+            >
+              <BarChart3 :size="12" :stroke-width="2" />{{ t('settings.usageStats.entryButton') }}
+            </button>
+          </template>
+
           <template #collapsed="{ item }">
             <div class="prov-lhs">
               <span class="card-drag-handle prov-drag-logo" @click.stop>
