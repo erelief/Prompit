@@ -168,6 +168,11 @@
       "empty": "No usage data in this period.",
       "other": "Other"
     },
+    "searchUsage": {
+      "pageTitle": "Search Usage",
+      "entryButton": "Usage",
+      "viewProvider": "By provider"
+    },
     "categories": {
       "selectAll": "Select all",
       "sensitive": "Sensitive",
@@ -184,6 +189,8 @@
       "historyDescription": "Past communication records",
       "usage": "Usage statistics",
       "usageDescription": "Token usage and request counts by provider, model and mode",
+      "search_usage": "Search usage statistics",
+      "search_usageDescription": "Web search request counts by provider",
       "dictionaries": "Translation user dictionary",
       "dictionariesDescription": "Your custom-dictionary entries",
       "personas": "Translation personas",

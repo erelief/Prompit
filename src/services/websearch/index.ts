@@ -1,6 +1,6 @@
 // Public API: resolve provider, search, format context for the LLM, classify errors.
 
-import { appConfig } from "../../stores/config";
+import { appConfig, recordSearchUsage } from "../../stores/config";
 import { getSearchFn, presetMeta } from "./registry";
 import type { SearchHit, ClassifiedSearchError } from "./types";
 import { SearchHttpError } from "./types";
@@ -13,6 +13,11 @@ export type { SearchHit, SearchFn, ClassifiedSearchError } from "./types";
 interface ResolvedProvider {
   preset: string;
   apiKey: string | undefined;
+  /** Display name for stats: custom_name, falling back to the preset label. */
+  name: string;
+  /** Stable stats identity: two providers sharing a display name (e.g. two
+   *  accounts of one preset) still aggregate separately. */
+  key: string;
 }
 
 /**
@@ -31,7 +36,12 @@ export function resolveActiveProvider(): ResolvedProvider | null {
       // Keyed provider → needs a key; keyless preset (e.g. Firecrawl/AnySearch
       // anonymous tier) → usable without one.
       if (provider.api_key || !meta.keyRequired) {
-        return { preset: provider.preset, apiKey: provider.api_key || undefined };
+        return {
+          preset: provider.preset,
+          apiKey: provider.api_key || undefined,
+          name: provider.custom_name || meta.label,
+          key: `${provider.preset}|${provider.custom_name ?? ""}`,
+        };
       }
     }
   }
@@ -51,7 +61,11 @@ export async function webSearch(
     throw new SearchHttpError(0, "No web search provider configured");
   }
   const fn = getSearchFn(provider.preset);
-  return fn(query, { apiKey: provider.apiKey, signal, maxResults });
+  const hits = await fn(query, { apiKey: provider.apiKey, signal, maxResults });
+  // Count successful searches only, mirroring the token-usage stats which
+  // count successful completions. Fire-and-forget: stats never break search.
+  void recordSearchUsage({ ts: Date.now(), provider: provider.name, provider_key: provider.key });
+  return hits;
 }
 
 const MAX_HITS = 5;
