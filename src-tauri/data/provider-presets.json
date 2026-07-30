@@ -354,7 +354,7 @@
       "name": "MiniMax",
       "icon": "minimax",
       "model_series": "MiniMax",
-      "api_format": "openai",
+      "api_format": "anthropic",
       "variants": {
         "default_region": "cn",
         "default_endpoint": "standard",
@@ -367,7 +367,7 @@
                 "key": "standard",
                 "label": "Standard",
                 "provider_name": "MiniMaxi.com",
-                "base_url": "https://api.minimaxi.com/openai/v1",
+                "base_url": "https://api.minimaxi.com/anthropic/v1",
                 "api_url": "https://platform.minimaxi.com/user-center/basic-information/interface-key"
               }
             ]
@@ -380,7 +380,7 @@
                 "key": "standard",
                 "label": "Standard",
                 "provider_name": "MiniMax.io",
-                "base_url": "https://api.minimax.io/openai/v1",
+                "base_url": "https://api.minimax.io/anthropic/v1",
                 "api_url": "https://platform.minimax.io/user-center/basic-information/interface-key"
               }
             ]
