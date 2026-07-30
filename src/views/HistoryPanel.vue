@@ -264,12 +264,12 @@ onMounted(async () => {
                   <MessageSquare :size="9" :stroke-width="2" class="output-icon" />
                   <span :title="entry.output"><template v-for="(seg, si) in highlightSegments(entry.output)" :key="si"><mark v-if="seg.hit" class="search-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></span>
                   <span v-if="entry.model" class="model-badge">{{ shortModel(entry.model) }}</span>
-                  <span v-if="entry.usage?.total" class="model-badge usage-badge" :title="usageTitle(entry)">{{ tokenCompactFmt.format(entry.usage.total) }} tokens</span>
                   <span v-if="presetTag(entry)" class="preset-badge">{{ presetTag(entry) }}</span>
                   <span v-if="entry.edited" class="edited-tag">{{ t('history.edited') }}</span>
                   <button v-if="entry.searched" class="searched-tag" :title="t('search.sourcesTitle')" @click.stop="openSources(entry)">
                     <Globe :size="9" :stroke-width="2" />
                   </button>
+                  <span v-if="entry.usage?.total" class="model-badge usage-badge" :title="usageTitle(entry)">{{ tokenCompactFmt.format(entry.usage.total) }} tokens</span>
                 </div>
               </div>
             </button>
