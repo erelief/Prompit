@@ -255,6 +255,10 @@ pub fn run() {
         // content sizing — nudge it to re-assert geometry at the new scale.
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::ScaleFactorChanged { scale_factor, .. } = event {
+                // Display-topology changes can also tear the WebView2 surface;
+                // mark it so the next show rebuilds it (same path as wake).
+                #[cfg(target_os = "windows")]
+                power_watcher::mark_surface_dirty();
                 let _ = window.emit("display-scale-changed", *scale_factor);
             }
         })

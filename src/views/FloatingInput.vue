@@ -866,8 +866,14 @@ onMounted(async () => {
   // something re-asserts the intended size. Previously only Ctrl+R's remount
   // did. Recompute on every scale change; the backend no-ops when geometry
   // is already correct.
-  unlistenScale = await listen("display-scale-changed", () => {
-    applyWindowResize(true);
+  //
+  // Visibility gate: while hidden, do NOT resize. A hidden window's geometry
+  // is re-asserted on show (useShortcutTriggered below), and resizing a
+  // hidden window mid display-topology change risks disturbing the WebView2
+  // exactly while its surface/swapchain is being torn down or rebuilt
+  // (the wake-transparency bug class).
+  unlistenScale = await listen("display-scale-changed", async () => {
+    if (await getCurrentWindow().isVisible()) applyWindowResize(true);
   });
 });
 

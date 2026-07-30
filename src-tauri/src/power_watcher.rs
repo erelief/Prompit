@@ -43,23 +43,40 @@ static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 /// that a wake happened and force a layout recompute.
 static WOKE_SINCE_PROCESS_START: AtomicBool = AtomicBool::new(false);
 
+/// Set when the WebView2 surface may be dead (wake events, DPI changes) and
+/// no repair has run yet. repair_surface clears it when it can rebuild
+/// immediately (window visible); otherwise the shortcut show path consumes it
+/// via take_surface_dirty() and repairs on the first show — extending the
+/// wake-transparency fix to the hidden-then-summoned case, which previously
+/// had no repair path at all.
+static SURFACE_DIRTY: AtomicBool = AtomicBool::new(false);
+
 /// Whether the system has resumed from sleep at least once in this process.
 pub fn woke_since_process_start() -> bool {
     WOKE_SINCE_PROCESS_START.load(Ordering::Relaxed)
 }
 
-/// Repair the main window's composited surface after the GPU/DWM context was
-/// torn down during sleep. This is the fix for the transparent/white window
-/// bug. Only acts when the window is currently visible — the main window
-/// defaults to hidden and is summoned on demand, so blindly doing
-/// ShowWindow(SW_HIDE)→SW_SHOW would *pop up* a window the user had closed.
-/// Always emits `system-resumed` so the frontend can recompute geometry
-/// regardless of visibility.
-unsafe fn repair_surface() {
-    let main = MAIN_HWND.load(Ordering::Relaxed);
-    if !main.is_null() && IsWindowVisible(main) != 0 {
-        // Force DWM to rebuild the composited surface for the transparent
-        // window: a hide/show cycle plus a frame-change notification.
+/// Consume the surface-dirty flag (one-shot). Called by the show path.
+pub fn take_surface_dirty() -> bool {
+    SURFACE_DIRTY.swap(false, Ordering::Relaxed)
+}
+
+/// Mark the surface as possibly broken. Called from lib.rs on
+/// ScaleFactorChanged (display-topology changes can tear the surface even
+/// without a sleep).
+pub fn mark_surface_dirty() {
+    SURFACE_DIRTY.store(true, Ordering::Relaxed);
+}
+
+/// Force DWM to rebuild the composited surface for the transparent window: a
+/// hide/show cycle plus a frame-change notification. Returns false (no-op)
+/// when the window is hidden — a show there would pop it up unexpectedly.
+pub fn force_surface_rebuild() -> bool {
+    unsafe {
+        let main = MAIN_HWND.load(Ordering::Relaxed);
+        if main.is_null() || IsWindowVisible(main) == 0 {
+            return false;
+        }
         ShowWindow(main, SW_HIDE);
         ShowWindow(main, SW_SHOW);
         SetWindowPos(
@@ -71,6 +88,21 @@ unsafe fn repair_surface() {
             0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
         );
+        true
+    }
+}
+
+/// Repair the main window's composited surface after the GPU/DWM context was
+/// torn down during sleep. This is the fix for the transparent/white window
+/// bug. When the window is hidden (the common case — it is summoned on
+/// demand), the repair cannot run without popping it up, so the dirty flag is
+/// left set and the shortcut show path rebuilds the surface on first show.
+/// Always emits `system-resumed` so the frontend can recompute geometry
+/// regardless of visibility.
+unsafe fn repair_surface() {
+    SURFACE_DIRTY.store(true, Ordering::Relaxed);
+    if force_surface_rebuild() {
+        SURFACE_DIRTY.store(false, Ordering::Relaxed);
     }
     if let Some(app) = APP_HANDLE.get() {
         if let Some(win) = app.get_webview_window("main") {

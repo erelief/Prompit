@@ -218,6 +218,17 @@ pub fn register(app: &AppHandle, shortcut_str: &str) -> Result<(), Box<dyn std::
                     let _ = main_window.set_focus();
                     let _ = main_window.emit("shortcut-triggered", ());
                     let _ = main_window.emit("window-config", grow_above);
+
+                    // After a wake or display-topology change the WebView2
+                    // surface may be dead (transparent window showing only the
+                    // DWM frame until Ctrl+R). The power watcher's repair only
+                    // covers windows visible at resume; rebuild here for the
+                    // hidden-then-summoned case. One-shot per wake/topology
+                    // change; the hide/show cycle is a single frame.
+                    #[cfg(target_os = "windows")]
+                    if crate::power_watcher::take_surface_dirty() {
+                        crate::power_watcher::force_surface_rebuild();
+                    }
                 }
             }
         })?;
