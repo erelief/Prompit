@@ -60,6 +60,11 @@ const router = createRouter({
       component: () => import("../views/UsageStats.vue"),
     },
     {
+      path: "/settings/search-usage",
+      name: "search-usage-stats",
+      component: () => import("../views/SearchUsageStats.vue"),
+    },
+    {
       path: "/settings/shortcuts",
       name: "shortcuts",
       component: () => import("../views/Shortcuts.vue"),

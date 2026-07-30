@@ -62,6 +62,7 @@ const DATA_FILES: &[&str] = &[
     "providers",
     "websearch",
     "usage",
+    "search_usage",
 ];
 
 /// Pseudo-stem used in the export bundle for the software-settings payload.
@@ -91,6 +92,7 @@ const KNOWN_STEMS: &[&str] = &[
     "providers",
     "websearch",
     "usage",
+    "search_usage",
     "settings",
     "webdav",
 ];

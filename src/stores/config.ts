@@ -1114,3 +1114,59 @@ export async function recordUsage(record: UsageRecord): Promise<void> {
     console.error("Failed to save usage stats:", err);
   }
 }
+
+// ── Web search usage stats ──
+// Same pattern as the token usage stats above: independent encrypted file
+// (search_usage.json), 31-day rolling window. Searches are counted by request
+// only — there is no token semantic, and only skills-lite mode searches, so
+// records carry no mode field.
+
+export interface SearchUsageRecord {
+  ts: number;         // ms epoch
+  provider: string;   // search provider display name at request time
+  provider_key?: string;   // stable identity "preset|custom_name" — two providers sharing a display name still group separately
+}
+
+export const searchUsageStore = reactive<{ records: SearchUsageRecord[] }>({
+  records: [],
+});
+
+function pruneSearchUsageRecords(records: SearchUsageRecord[]): SearchUsageRecord[] {
+  const cutoff = Date.now() - USAGE_RETENTION_MS;
+  const kept = records.filter((r) => r.ts >= cutoff);
+  return kept.length > USAGE_MAX_RECORDS
+    ? kept.slice(kept.length - USAGE_MAX_RECORDS)
+    : kept;
+}
+
+let searchUsageLoadPromise: Promise<void> | null = null;
+
+/** Load search usage records from disk. Memoized; pass `force` to re-read
+ *  (e.g. after a reset or import replaced the file). */
+export function loadSearchUsage(force = false): Promise<void> {
+  if (!searchUsageLoadPromise || force) {
+    searchUsageLoadPromise = (async () => {
+      try {
+        const records = await invoke<SearchUsageRecord[]>("read_search_usage");
+        searchUsageStore.records = pruneSearchUsageRecords(records);
+      } catch (err) {
+        console.error("Failed to load search usage stats:", err);
+        searchUsageStore.records = [];
+      }
+    })();
+  }
+  return searchUsageLoadPromise;
+}
+
+/** Append one search request to the stats and persist. Fire-and-forget safe:
+ *  errors are logged, never thrown into the caller's search path. */
+export async function recordSearchUsage(record: SearchUsageRecord): Promise<void> {
+  try {
+    await loadSearchUsage(); // hydrate before appending so we never clobber the file
+    searchUsageStore.records.push(record);
+    searchUsageStore.records = pruneSearchUsageRecords(searchUsageStore.records);
+    await invoke("save_search_usage", { records: toRaw(searchUsageStore.records) });
+  } catch (err) {
+    console.error("Failed to save search usage stats:", err);
+  }
+}

@@ -168,6 +168,11 @@
       "empty": "该时间段内暂无用量数据",
       "other": "其他"
     },
+    "searchUsage": {
+      "pageTitle": "搜索用量统计",
+      "entryButton": "用量统计",
+      "viewProvider": "按供应方"
+    },
     "categories": {
       "selectAll": "全选",
       "sensitive": "敏感信息",
@@ -184,6 +189,8 @@
       "historyDescription": "过往通信记录",
       "usage": "用量统计",
       "usageDescription": "按供应方、模型与模式统计的 token 用量与请求次数",
+      "search_usage": "搜索用量统计",
+      "search_usageDescription": "按供应方统计的网页搜索请求次数",
       "dictionaries": "翻译用户词典",
       "dictionariesDescription": "翻译功能中用户自定义词典条目",
       "personas": "翻译角色",

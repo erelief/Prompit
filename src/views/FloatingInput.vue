@@ -12,7 +12,7 @@ import { useAnimatedResize } from "../composables/useAnimatedResize";
 import { useWindowBg, domainOf, hexToRgb } from "../composables/useWindowBg";
 import { useEventListener } from "@vueuse/core";
 import { capHeight, chevronTransform } from "../shared/dropdown";
-import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, loadUsage, saveHistoryEntry, saveSkillsLites, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
+import { getActiveModel, appConfig, flushConfigSave, refreshDictStatus, historyStore, loadHistory, loadUsage, loadSearchUsage, saveHistoryEntry, saveSkillsLites, MODES, getCurrentMode, loadProviderPresets, getProviderIcon, skillsLiteStore, FONT_SIZE_LEVELS } from "../stores/config";
 import { updateStatus as updateCheckStatus, updateVersion as updateCheckVersion } from "../composables/useUpdateChecker";
 import type { ProviderPreset, ModelInputCapabilities } from "../stores/config";
 import ProviderIcon from "../components/icons/providers/ProviderIcon.vue";
@@ -774,6 +774,7 @@ onMounted(async () => {
   refreshDictStatus();
   await loadHistory();
   loadUsage();
+  loadSearchUsage();
   loadProviderPresets().then(p => { floatingPresets.value = p; }).catch(console.error);
 
   // Restore from history panel if applicable

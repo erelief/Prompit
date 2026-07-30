@@ -6,6 +6,7 @@ pub mod http_proxy;
 pub mod persona;
 pub mod presets;
 pub mod providers;
+pub mod search_usage;
 pub mod skills_lite;
 pub mod usage;
 pub mod webdav;

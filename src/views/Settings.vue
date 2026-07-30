@@ -1470,6 +1470,17 @@ onUnmounted(() => {
           @cancel="onWebSearchProviderCancel"
           @remove="onWebSearchProviderRemove"
         >
+          <template #header-actions="{ adding, editing }">
+            <button
+              v-show="!adding && !editing"
+              class="pill-btn micro"
+              :title="t('settings.searchUsage.pageTitle')"
+              @click="router.push('/settings/search-usage')"
+            >
+              <BarChart3 :size="12" :stroke-width="2" />{{ t('settings.searchUsage.entryButton') }}
+            </button>
+          </template>
+
           <template #collapsed="{ item, index }">
             <div class="prov-lhs">
               <span class="card-drag-handle prov-drag-logo" @click.stop>
