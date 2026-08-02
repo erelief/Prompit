@@ -596,6 +596,14 @@
       }
     },
     {
+      "name": "SuperComputingNet/超算互联网",
+      "provider_name": "SuperComputingNet/超算互联网",
+      "icon": "scnet",
+      "base_url": "https://api.scnet.cn/api/llm/v1",
+      "api_url": "https://www.scnet.cn/ui/llm/apikeys",
+      "api_format": "openai"
+    },
+    {
       "name": "TencentCloud/腾讯云",
       "icon": "tencentcloud",
       "model_series": "Hy",

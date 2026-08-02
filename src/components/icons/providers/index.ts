@@ -23,6 +23,7 @@ import OpenCode from "./OpenCode.vue";
 import OpenAI from "./OpenAI.vue";
 import OpenRouter from "./OpenRouter.vue";
 import Qwen from "./Qwen.vue";
+import SCNet from "./SCNet.vue";
 import QwenAI from "./QwenAI.vue";
 import SenseNova from "./SenseNova.vue";
 import SiliconFlow from "./SiliconFlow.vue";
@@ -61,6 +62,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   openrouter: OpenRouter,
   qwen: Qwen,
   qwenai: QwenAI,
+  scent: SCNet,
   sensenova: SenseNova,
   siliconflow: SiliconFlow,
   step: Step,
