@@ -62,7 +62,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   openrouter: OpenRouter,
   qwen: Qwen,
   qwenai: QwenAI,
-  scent: SCNet,
+  scnet: SCNet,
   sensenova: SenseNova,
   siliconflow: SiliconFlow,
   step: Step,
