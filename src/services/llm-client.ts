@@ -5,9 +5,28 @@ import { webSearch, formatSearchContext } from "./websearch";
 import type { ClassifiedSearchError, SearchHit } from "./websearch/types";
 import { proxyFetch, type ProxyResponse } from "./proxy";
 
+/** OpenAI-style content part: text, or an image carried as a base64 data URL.
+ *  Anthropic-style bodies convert these to their `image` block shape in
+ *  buildRequestBody (see toAnthropicContent). */
+export type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
 interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | ContentPart[];
+}
+
+/** A file attached to the outgoing user message (skills_lite mode). Images
+ *  become image_url parts; text files are inlined into the message text. */
+export interface OutgoingAttachment {
+  name: string;
+  mime: string;
+  kind: "image" | "text";
+  /** base64 payload (images). */
+  data?: string;
+  /** decoded UTF-8 content (text files). */
+  text?: string;
 }
 
 /**
@@ -94,6 +113,35 @@ function buildHeaders(
   return headers;
 }
 
+/** Flatten message content to plain text. System prompts are always strings;
+ *  parts arrays only occur on user messages carrying attachments. */
+function contentToText(content: string | ContentPart[]): string {
+  if (typeof content === "string") return content;
+  return content
+    .map((p) => (p.type === "text" ? p.text : ""))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/** Convert OpenAI-style content parts to Anthropic blocks (used when the
+ *  preset extracts system prompts via system_key, i.e. Anthropic's /messages
+ *  dialect). Strings pass through; image_url data URLs become image blocks. */
+function toAnthropicContent(content: string | ContentPart[]): any {
+  if (typeof content === "string") return content;
+  const blocks: any[] = [];
+  for (const p of content) {
+    if (p.type === "text") {
+      blocks.push({ type: "text", text: p.text });
+    } else {
+      const m = /^data:([^;]+);base64,(.*)$/.exec(p.image_url.url);
+      if (m) {
+        blocks.push({ type: "image", source: { type: "base64", media_type: m[1], data: m[2] } });
+      }
+    }
+  }
+  return blocks;
+}
+
 /** Build request body. Extracts system messages into a top-level field when
  *  `system_key` is set (Anthropic), and forces required fields (Anthropic
  *  requires `max_tokens`). Field-name remapping is intentionally not
@@ -108,13 +156,16 @@ function buildRequestBody(
   // Extract system messages if system_key is configured (e.g. Anthropic's
   // top-level `system` field — its /messages API rejects role:"system").
   let systemContent: string | undefined;
-  let nonSystemMessages = messages;
+  let nonSystemMessages: Array<{ role: string; content: any }> = messages;
   if (fmt.system_key) {
     const systemMsgs = messages.filter((m) => m.role === "system");
     if (systemMsgs.length > 0) {
-      systemContent = systemMsgs.map((m) => m.content).join("\n\n");
+      systemContent = systemMsgs.map((m) => contentToText(m.content)).join("\n\n");
     }
-    nonSystemMessages = messages.filter((m) => m.role !== "system");
+    // Anthropic speaks its own block vocabulary — convert content parts.
+    nonSystemMessages = messages
+      .filter((m) => m.role !== "system")
+      .map((m) => ({ role: m.role, content: toAnthropicContent(m.content) }));
   }
 
   const body: Record<string, any> = {
@@ -237,7 +288,27 @@ async function chatCompletion(
   return { content: String(content).trim(), usage: extractUsage(data) };
 }
 
-export async function translate(text: string, signal?: AbortSignal): Promise<TranslateOutcome> {
+/** Compose the user message content from typed text plus attachments. Text
+ *  files are inlined as fenced blocks; images become image_url parts. Returns
+ *  a plain string when no images are attached (zero regression for text-only
+ *  requests). */
+function buildUserContent(text: string, attachments?: OutgoingAttachment[]): string | ContentPart[] {
+  if (!attachments || attachments.length === 0) return text;
+
+  let fullText = text;
+  const images: ContentPart[] = [];
+  for (const att of attachments) {
+    if (att.kind === "image" && att.data) {
+      images.push({ type: "image_url", image_url: { url: `data:${att.mime};base64,${att.data}` } });
+    } else if (att.kind === "text" && att.text != null) {
+      fullText += `\n\n[Attached file: ${att.name}]\n\`\`\`\n${att.text}\n\`\`\``;
+    }
+  }
+  if (images.length === 0) return fullText;
+  return [{ type: "text", text: fullText }, ...images];
+}
+
+export async function translate(text: string, signal?: AbortSignal, attachments?: OutgoingAttachment[]): Promise<TranslateOutcome> {
   const model = getActiveModel();
   const fmt = resolveFormat(model?.api_format);
 
@@ -287,7 +358,7 @@ export async function translate(text: string, signal?: AbortSignal): Promise<Tra
     }
   }
 
-  messages.push({ role: "user", content: text });
+  messages.push({ role: "user", content: buildUserContent(text, attachments) });
 
   const result = await chatCompletion(model, messages, fmt, signal);
   if (model) trackUsage(model, mode, result.usage);

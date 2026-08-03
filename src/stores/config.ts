@@ -954,6 +954,25 @@ watch(
 );
 
 // ── History ──
+/** Attachment metadata persisted on a history entry. Payload bytes live in
+ *  files under the backend's history_attachments/ dir; `path` is relative to
+ *  it, so the encrypted history.json stays small. */
+export interface HistoryAttachment {
+  name: string;
+  mime: string;
+  size: number;
+  path: string;
+}
+
+/** Attachment payload handed to saveHistoryEntry; the backend decodes and
+ *  writes it to disk (save_history_attachments) and returns HistoryAttachment
+ *  metadata — only the metadata lands on the entry. */
+export interface NewHistoryAttachment {
+  name: string;
+  mime: string;
+  data_base64: string;
+}
+
 export interface HistoryEntry {
   input: string;
   output: string;
@@ -966,6 +985,7 @@ export interface HistoryEntry {
   searched?: boolean;   // whether web search context was used (skills_lite mode)
   sources?: SearchHit[];   // web-search hits used for this entry (skills_lite mode)
   edited?: boolean;   // whether the entry was edited by the user
+  attachments?: HistoryAttachment[];   // files attached to the input (skills_lite mode)
 }
 
 export const historyStore = reactive<{ entries: HistoryEntry[] }>({
@@ -982,14 +1002,25 @@ export async function loadHistory(): Promise<void> {
   }
 }
 
-export async function saveHistoryEntry(input: string, output: string, searched: boolean = false, sources?: SearchHit[], edited: boolean = false, usage?: TokenUsage): Promise<void> {
+export async function saveHistoryEntry(input: string, output: string, searched: boolean = false, sources?: SearchHit[], edited: boolean = false, usage?: TokenUsage, attachments?: NewHistoryAttachment[]): Promise<void> {
   if (!appConfig.history_enabled) return;
   const active = getActiveModel();
   const mode = appConfig.active_mode || "translate";
+  const timestamp = Date.now();
+  // Persist attachment payloads first so the entry only carries metadata.
+  // The entry timestamp names the on-disk dir, so it must be fixed up front.
+  let attachmentMeta: HistoryAttachment[] | undefined;
+  if (attachments && attachments.length > 0) {
+    try {
+      attachmentMeta = await invoke<HistoryAttachment[]>("save_history_attachments", { entryTs: timestamp, files: attachments });
+    } catch (err) {
+      console.error("Failed to persist attachments:", err);
+    }
+  }
   const entry: HistoryEntry = {
     input,
     output,
-    timestamp: Date.now(),
+    timestamp,
     model: active?.model || undefined,
     mode,
     usage,
@@ -1002,6 +1033,7 @@ export async function saveHistoryEntry(input: string, output: string, searched: 
       ? (skillsLiteStore.skillsLites.find(s => s.enabled)?.name || undefined)
       : undefined,
     edited,
+    attachments: attachmentMeta,
   };
   historyStore.entries.unshift(entry);
   const limit = appConfig.history_limit || HISTORY_LIMIT_DEFAULT;

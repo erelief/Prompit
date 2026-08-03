@@ -2,6 +2,8 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useRouter } from "vue-router";
 import { burstParticles, popElement } from "../utils/burstParticles";
 import { eventMatchesShortcut } from "../utils/shortcut";
@@ -9,6 +11,7 @@ import { useShortcutTriggered } from "../composables/useTauriEvents";
 import { listen } from "@tauri-apps/api/event";
 import { MAIN_WIDTH } from "../composables/useSettingsWindow";
 import { useAnimatedResize } from "../composables/useAnimatedResize";
+import { useAttachments, type ComposeAttachment } from "../composables/useAttachments";
 import { useWindowBg, domainOf, hexToRgb } from "../composables/useWindowBg";
 import { useEventListener } from "@vueuse/core";
 import { capHeight, chevronTransform } from "../shared/dropdown";
@@ -22,7 +25,7 @@ import type { TranslateOutcome } from "../services/llm-client";
 import { SearchFailureError, ModelHttpError } from "../services/llm-client";
 import { classifySearchError } from "../services/websearch";
 import type { SearchHit } from "../services/websearch/types";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink, Pencil, Check, Copy, Forward } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink, Pencil, Check, Copy, Forward, Plus, FileText } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
 const { t } = useI18n();
@@ -101,7 +104,7 @@ let unlistenScale: (() => void) | null = null;
 
 // ── History browsing (terminal-style ↑↓) ──
 const historyIndex = ref<number | null>(null);
-let draftSnapshot: { input: string; output: string } | null = null;
+let draftSnapshot: { input: string; output: string; attachments?: ComposeAttachment[] } | null = null;
 
 const activeModelName = computed(() => {
   const m = getActiveModel();
@@ -135,6 +138,57 @@ const activeModelIcon = computed(() => {
 const activeModelCapabilities = computed<ModelInputCapabilities | undefined>(() =>
   appConfig.providers[activeProviderIdx()]?.models?.[activeModelIdx()]?.input_capabilities
 );
+
+// ── Attachments (skills_lite mode) ──
+const {
+  attachments,
+  intakeError,
+  addFromPaths,
+  addFromFiles,
+  removeAttachment,
+  clearAttachments,
+  restoreFromHistory,
+  toOutgoing,
+} = useAttachments();
+
+const isSkillsLiteMode = computed(() => appConfig.active_mode === "skills_lite");
+
+/** Localized message for the last intake rejection, or "" when none. */
+const intakeErrorText = computed(() => {
+  const err = intakeError.value;
+  if (!err) return "";
+  switch (err.kind) {
+    case "unsupported": return t("floating.unsupportedFileType", { name: err.name });
+    case "readFailed": return t("floating.attachmentReadFailed", { name: err.name });
+    case "tooLarge": return t("floating.fileTooLarge", { name: err.name, max: err.max });
+    case "tooMany": return t("floating.tooManyAttachments", { max: err.max });
+  }
+});
+
+/** Highlight the input while files are dragged over the window (native
+ *  tauri://drag-* events — the webview never sees HTML5 drop). */
+const dropActive = ref(false);
+let unlistenDragDrop: (() => void) | null = null;
+
+async function handleAttachClick() {
+  const paths = await openFileDialog({ multiple: true });
+  if (paths && paths.length > 0) await addFromPaths(paths);
+}
+
+/** Paste intake: only intercept when files are on the clipboard — plain-text
+ *  paste keeps the textarea's native behavior. */
+function handlePaste(e: ClipboardEvent) {
+  if (!isSkillsLiteMode.value) return;
+  const files = Array.from(e.clipboardData?.files ?? []);
+  if (files.length === 0) return;
+  e.preventDefault();
+  void addFromFiles(files);
+}
+
+/** Base64 payloads of the given attachments, for history persistence. */
+function persistPayloadOf(list: ReturnType<typeof toOutgoing>) {
+  return list.map((a) => ({ name: a.name, mime: a.mime, data_base64: a.data ?? "" }));
+}
 
 const windowBg = useWindowBg();
 
@@ -515,8 +569,8 @@ function navigateHistory(direction: -1 | 1) {
   }
 
   // Save draft snapshot before first navigation
-  if (historyIndex.value === null && direction === 1 && (inputText.value || translatedText.value)) {
-    draftSnapshot = { input: inputText.value, output: translatedText.value };
+  if (historyIndex.value === null && direction === 1 && (inputText.value || translatedText.value || attachments.value.length > 0)) {
+    draftSnapshot = { input: inputText.value, output: translatedText.value, attachments: [...attachments.value] };
   }
 
   // Going below index 0 (newer than newest) → restore draft or stay
@@ -527,6 +581,7 @@ function navigateHistory(direction: -1 | 1) {
       inputText.value = draftSnapshot.input;
       translatedText.value = draftSnapshot.output;
       hasResult.value = !!draftSnapshot.output;
+      attachments.value = draftSnapshot.attachments ?? [];
       errorMessage.value = "";
       nextTick(() => { isRestoringHistory.value = false; });
       draftSnapshot = null;
@@ -547,6 +602,7 @@ function navigateHistory(direction: -1 | 1) {
   lastResultSearched.value = !!entry.searched;
   lastResultSources.value = entry.sources ?? [];
   sourcesView.value = false;
+  void restoreFromHistory(entry.attachments ?? []);
   errorMessage.value = "";
   nextTick(() => {
     isRestoringHistory.value = false;
@@ -565,7 +621,10 @@ function navigateHistory(direction: -1 | 1) {
 
 async function handleTranslate() {
   const text = inputText.value.trim();
-  if (!text || isLoading.value) return;
+  if ((!text && attachments.value.length === 0) || isLoading.value) return;
+  // Snapshot attachments at send time — the composer may change while the
+  // request is in flight, and history must persist what was actually sent.
+  const outgoing = toOutgoing();
 
   errorMessage.value = "";
   translatedText.value = "";
@@ -581,7 +640,7 @@ async function handleTranslate() {
   }
 
   try {
-    const outcome: TranslateOutcome = await translate(text, controller.signal);
+    const outcome: TranslateOutcome = await translate(text, controller.signal, outgoing.length > 0 ? outgoing : undefined);
     if (outcome.status === "ok") {
       translatedText.value = outcome.content;
       lastResultSearched.value = outcome.searched;
@@ -592,7 +651,7 @@ async function handleTranslate() {
       // The ResizeObserver will fire once the result-block lays out; snap that
       // resize so the window matches the content instantly (no grow-in tear).
       snapNextResize = true;
-      await saveHistoryEntry(text, outcome.content, outcome.searched, outcome.sources, false, outcome.usage);
+      await saveHistoryEntry(text, outcome.content, outcome.searched, outcome.sources, false, outcome.usage, outgoing.length > 0 ? persistPayloadOf(outgoing) : undefined);
     }
     // search-error is handled in catch below via SearchFailureError
   } catch (err) {
@@ -608,6 +667,11 @@ async function handleTranslate() {
         t("search.retryOrDisable");
     } else if (err instanceof ModelHttpError) {
       errorMessage.value = t("failed", { code: err.status, message: err.message });
+      // The request carried attachments — a 4xx here most likely means the
+      // model rejected the multimodal parts. Say so, alongside the raw error.
+      if (outgoing.length > 0) {
+        errorMessage.value += " " + t("floating.multimodalUnsupportedHint");
+      }
     } else {
       errorMessage.value = String(err);
     }
@@ -675,6 +739,7 @@ function clearAll() {
   errorMessage.value = "";
   webSearchErrorText.value = "";
   webSearchStatus.value = "idle";
+  clearAttachments();
   resetResultBlock();
 }
 
@@ -696,8 +761,9 @@ function cancelEditing() {
 }
 
 async function confirmEditing() {
-  // 保存到历史记录，添加 "已编辑" tag
-  await saveHistoryEntry(inputText.value, editedText.value, lastResultSearched.value, lastResultSources.value, true);
+  // 保存到历史记录，添加 "已编辑" tag；当前附件随条目一起重新持久化到新目录
+  const persist = attachments.value.length > 0 ? persistPayloadOf(toOutgoing()) : undefined;
+  await saveHistoryEntry(inputText.value, editedText.value, lastResultSearched.value, lastResultSources.value, true, undefined, persist);
   
   // 更新当前显示
   translatedText.value = editedText.value;
@@ -791,6 +857,7 @@ onMounted(async () => {
       lastResultSearched.value = !!entry.searched;
       lastResultSources.value = entry.sources ?? [];
       sourcesView.value = false;
+      void restoreFromHistory(entry.attachments ?? []);
       nextTick(() => { isRestoringHistory.value = false; });
     } catch { /* ignore */ }
   }
@@ -802,6 +869,20 @@ onMounted(async () => {
   window.addEventListener("keydown", onCopyShortcutKeydown);
   window.addEventListener("wheel", onAltWheel, { passive: false });
   window.addEventListener("wheel", onCtrlWheel, { passive: false });
+
+  // Native file drag-drop (tauri://drag-* events; HTML5 drop never reaches
+  // the webview while dragDropEnabled is on). Drop anywhere on the bar = attach.
+  unlistenDragDrop = await getCurrentWebviewWindow().onDragDropEvent((event) => {
+    if (!isSkillsLiteMode.value) return;
+    if (event.payload.type === "enter" || event.payload.type === "over") {
+      dropActive.value = true;
+    } else if (event.payload.type === "leave") {
+      dropActive.value = false;
+    } else if (event.payload.type === "drop") {
+      dropActive.value = false;
+      void addFromPaths(event.payload.paths);
+    }
+  });
   nextTick(() => {
     textareaRef.value?.focus();
   });
@@ -892,6 +973,7 @@ onUnmounted(() => {
   unlistenConfig?.();
   unlistenResume?.();
   unlistenScale?.();
+  unlistenDragDrop?.();
   resizeObserver?.disconnect();
   if (shrinkTimer) {
     clearTimeout(shrinkTimer);
@@ -1063,17 +1145,43 @@ useShortcutTriggered(() => {
           </div>
         </div>
 
+        <!-- Attachment strip: sits between toolbar and input in both growth
+             directions (above the input when growing downward, below it when
+             growing upward via the .grow-order rules) -->
+        <Transition name="fade">
+          <div v-if="attachments.length > 0" class="fi-attachments">
+            <div
+              v-for="att in attachments"
+              :key="att.id"
+              class="attachment-chip"
+              :class="{ 'chip-image': att.kind === 'image' }"
+              :title="att.name"
+            >
+              <img v-if="att.kind === 'image'" :src="att.previewUrl" class="chip-thumb" :alt="att.name" />
+              <template v-else>
+                <FileText :size="13" :stroke-width="1.8" class="chip-file-icon" />
+                <span class="chip-name">{{ att.name }}</span>
+              </template>
+              <button class="chip-remove" @click="removeAttachment(att.id)" :title="t('common.remove')">
+                <X :size="9" :stroke-width="2.5" />
+              </button>
+            </div>
+          </div>
+        </Transition>
+
         <!-- Input area + inline send -->
-        <div class="relative fi-input">
+        <div class="relative fi-input" :class="{ 'drop-active': dropActive }">
           <div class="textarea-with-history">
             <textarea
               ref="textareaRef"
               v-model="inputText"
               @keydown="handleKeydown"
+              @paste="handlePaste"
               :placeholder="inputPlaceholder"
               :readonly="isEditing"
               rows="1"
               class="floating-input w-full resize-none text-[13px] leading-relaxed outline-none"
+              :class="{ 'with-attach': isSkillsLiteMode }"
             ></textarea>
 
             <!-- History button (top-left corner of textarea) -->
@@ -1088,9 +1196,19 @@ useShortcutTriggered(() => {
             </button>
           </div>
 
+          <!-- Attach button (skills_lite mode): inside the input, left side -->
+          <button
+            v-if="isSkillsLiteMode && !isEditing"
+            @click="handleAttachClick"
+            class="attach-btn"
+            :title="t('floating.attachFiles')"
+          >
+            <Plus :size="13" :stroke-width="2" />
+          </button>
+
           <button
             @click="hasResult ? handlePasteResult() : handleTranslate()"
-            :disabled="(!inputText.trim() && !hasResult) || isLoading || isEditing"
+            :disabled="(!inputText.trim() && attachments.length === 0 && !hasResult) || isLoading || isEditing"
             class="send-btn-inline"
             :class="{ 'paste-mode': hasResult }"
             :title="hasResult ? t('floating.pasteIntoActiveField') : t('floating.send')"
@@ -1137,6 +1255,17 @@ useShortcutTriggered(() => {
           >
             <X :size="12" :stroke-width="2" />
             {{ errorMessage }}
+          </div>
+        </Transition>
+
+        <!-- Attachment intake error -->
+        <Transition name="fade">
+          <div
+            v-show="intakeErrorText"
+            class="fi-status text-[11px] text-[var(--color-danger)] flex items-center gap-1.5"
+          >
+            <X :size="12" :stroke-width="2" />
+            {{ intakeErrorText }}
           </div>
         </Transition>
 
@@ -1334,6 +1463,110 @@ useShortcutTriggered(() => {
 
 .send-btn-inline.paste-mode:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-accent) 70%, var(--color-bg));
+}
+
+/* Attach button — ghost twin of the inline send button, pinned to the left
+   inside the input. Visible in skills_lite mode only. */
+.attach-btn {
+  position: absolute;
+  left: 7px;
+  top: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  z-index: 3;
+}
+
+.attach-btn:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* Room for the attach button inside the input (skills_lite mode only). */
+.floating-input.with-attach {
+  padding-left: 36px;
+}
+
+/* Drag-over highlight for file drop (native tauri://drag-* events). */
+.fi-input.drop-active .floating-input {
+  border-color: var(--color-accent-border);
+  box-shadow: 0 0 0 2px var(--color-accent-bg);
+}
+
+/* Attachment strip between toolbar and input */
+.fi-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.attachment-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 160px;
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.attachment-chip.chip-image {
+  padding: 2px;
+}
+
+.chip-thumb {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+}
+
+.chip-file-icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.chip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* × button straddling the chip's top-right corner */
+.chip-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.chip-remove:hover {
+  color: var(--color-text);
+  border-color: var(--color-accent-border);
 }
 
 /* Cancel request button */
@@ -1836,5 +2069,6 @@ useShortcutTriggered(() => {
 .grow-order .fi-disclaimer { order: 1; }
 .grow-order .fi-status { order: 2; }
 .grow-order .fi-input { order: 3; }
-.grow-order .fi-toolbar { order: 4; }
+.grow-order .fi-attachments { order: 4; }
+.grow-order .fi-toolbar { order: 5; }
 </style>

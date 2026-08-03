@@ -1,9 +1,11 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
+use crate::commands::attachments::{attachments_dir, HistoryAttachment};
 use crate::crypto::{self, EncryptedPayload};
 
 /// Token usage reported by the provider for a single request. Absent when the
@@ -39,6 +41,9 @@ pub struct HistoryEntry {
     pub sources: Option<Vec<serde_json::Value>>,
     #[serde(default)]
     pub edited: bool,
+    /// Attachment metadata; payload files live under history_attachments/.
+    #[serde(default)]
+    pub attachments: Option<Vec<HistoryAttachment>>,
 }
 
 fn history_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -76,7 +81,30 @@ pub fn save_history(
     let out = serde_json::to_string_pretty(&payload).map_err(|e| format!("serialize enc: {e}"))?;
     let path = history_path(&app)?;
     fs::write(&path, out).map_err(|e| format!("write: {e}"))?;
+    sweep_orphan_attachments(&app, &trimmed);
     Ok(())
+}
+
+/// Delete attachment dirs whose owning entry is no longer in the kept history
+/// (pruned by limit, removed individually, or cleared). Best-effort: a failed
+/// sweep must not fail the save.
+fn sweep_orphan_attachments(app: &AppHandle, kept: &[&HistoryEntry]) {
+    let dir = match attachments_dir(app) {
+        Ok(d) => d,
+        Err(_) => return,
+    };
+    if !dir.exists() {
+        return;
+    }
+    let kept_ts: HashSet<String> = kept.iter().map(|e| e.timestamp.to_string()).collect();
+    if let Ok(read_dir) = fs::read_dir(&dir) {
+        for entry in read_dir.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !kept_ts.contains(&name) {
+                let _ = fs::remove_dir_all(entry.path());
+            }
+        }
+    }
 }
 
 #[tauri::command]
@@ -84,6 +112,10 @@ pub fn clear_history(app: AppHandle) -> Result<(), String> {
     let path = history_path(&app)?;
     if path.exists() {
         fs::remove_file(&path).map_err(|e| format!("delete: {e}"))?;
+    }
+    let attachments = attachments_dir(&app)?;
+    if attachments.exists() {
+        fs::remove_dir_all(&attachments).map_err(|e| format!("delete attachments: {e}"))?;
     }
     Ok(())
 }
