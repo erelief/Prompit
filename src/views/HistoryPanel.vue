@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink, ToggleRight, ToggleLeft, Search } from "@lucide/vue";
+import { invoke } from "@tauri-apps/api/core";
+import { save as saveFileDialog } from "@tauri-apps/plugin-dialog";
+import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink, ToggleRight, ToggleLeft, Search, Download, Image, FileText } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { useWindowBg, domainOf } from "../composables/useWindowBg";
-import { appConfig, historyStore, loadHistory, saveHistory, MODES, HISTORY_LIMIT_DEFAULT, type HistoryEntry } from "../stores/config";
+import { formatBytes } from "../composables/useAttachments";
+import { appConfig, historyStore, loadHistory, saveHistory, MODES, HISTORY_LIMIT_DEFAULT, type HistoryEntry, type HistoryAttachment } from "../stores/config";
 import { useI18n } from "vue-i18n";
 import type { SearchHit } from "../services/websearch/types";
 
@@ -131,6 +134,40 @@ async function confirmRemove(ts: number) {
   if (idx >= 0) historyStore.entries.splice(idx, 1);
   pendingRemove.value = null;
   await saveHistory();
+}
+
+/** Download a persisted attachment: ask where, then the backend copies the
+ *  file out (arbitrary destination paths bypass the fs plugin scope). */
+async function downloadAttachment(att: HistoryAttachment) {
+  const dest = await saveFileDialog({ defaultPath: att.name });
+  if (!dest) return;
+  try {
+    await invoke("export_history_attachment", { path: att.path, dest });
+  } catch (err) {
+    console.error("Failed to export attachment:", err);
+  }
+}
+
+/** Lazily loaded data-URL thumbnails for image attachments (hover preview).
+ *  Keyed by attachment path; "" while the read is in flight. */
+const attachmentThumbs = reactive<Record<string, string>>({});
+/** Popover direction per attachment path: a tag in the window's upper half
+ *  pops downward (more room below), lower half pops upward. */
+const thumbDirs = reactive<Record<string, "up" | "down">>({});
+async function ensureThumb(att: HistoryAttachment, e?: MouseEvent) {
+  if (!att.mime.startsWith("image/")) return;
+  if (e?.currentTarget) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    thumbDirs[att.path] = rect.top + rect.height / 2 < window.innerHeight / 2 ? "down" : "up";
+  }
+  if (att.path in attachmentThumbs) return;
+  attachmentThumbs[att.path] = "";
+  try {
+    const f = await invoke<{ data_base64: string }>("read_history_attachment", { path: att.path });
+    attachmentThumbs[att.path] = `data:${att.mime};base64,${f.data_base64}`;
+  } catch {
+    delete attachmentThumbs[att.path];
+  }
 }
 
 onMounted(async () => {
@@ -270,6 +307,27 @@ onMounted(async () => {
                     <Globe :size="9" :stroke-width="2" />
                   </button>
                   <span v-if="entry.usage?.total" class="model-badge usage-badge" :title="usageTitle(entry)">{{ tokenCompactFmt.format(entry.usage.total) }} tokens</span>
+                </div>
+                <div v-if="entry.attachments?.length" class="history-item-attachments">
+                  <span
+                    v-for="(att, ai) in entry.attachments"
+                    :key="ai"
+                    class="attachment-tag"
+                    :class="{ 'pop-below': thumbDirs[att.path] === 'down' }"
+                    :title="att.name"
+                    @mouseenter="ensureThumb(att, $event)"
+                  >
+                    <Image v-if="att.mime.startsWith('image/')" :size="9" :stroke-width="2" class="attachment-icon" />
+                    <FileText v-else :size="9" :stroke-width="2" class="attachment-icon" />
+                    <span class="attachment-name">{{ att.name }}</span>
+                    <span class="attachment-size">{{ formatBytes(att.size) }}</span>
+                    <button class="attachment-download" :title="t('history.downloadAttachment')" @click.stop="downloadAttachment(att)">
+                      <Download :size="9" :stroke-width="2" />
+                    </button>
+                    <span v-if="attachmentThumbs[att.path]" class="attachment-thumb-pop">
+                      <img :src="attachmentThumbs[att.path]" :alt="att.name" />
+                    </span>
+                  </span>
                 </div>
               </div>
             </button>
@@ -627,6 +685,77 @@ mark.search-hl {
 }
 .searched-tag:hover { background: var(--color-accent-bg); color: var(--color-accent); }
 .searched-tag:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
+
+/* ── Attachment tags (skills_lite multimodal entries) ── */
+.history-item-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.attachment-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 5px;
+  line-height: 16px;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
+  font-size: 9px;
+}
+.attachment-icon { flex-shrink: 0; }
+.attachment-name {
+  min-width: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attachment-size { flex-shrink: 0; opacity: 0.7; }
+.attachment-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.attachment-download:hover { color: var(--color-text); }
+.attachment-download:focus-visible { outline: 2px solid var(--color-accent-border); outline-offset: 1px; }
+
+/* Hover thumbnail popover for image attachments. Default pops above the tag;
+   .pop-below (tag in the window's upper half) flips it below. */
+.attachment-thumb-pop {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+.attachment-tag.pop-below .attachment-thumb-pop {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+.attachment-tag:hover .attachment-thumb-pop { display: block; }
+.attachment-thumb-pop img {
+  display: block;
+  max-width: 128px;
+  max-height: 128px;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+}
 
 /* ── Edited tag ── */
 .edited-tag {

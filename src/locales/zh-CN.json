@@ -342,7 +342,13 @@
     "webSearchOff": "网页搜索已关闭",
     "searching": "正在搜索…",
     "history": "历史记录",
-    "aiDisclaimer": "内容由 AI 生成，请仔细甄别"
+    "aiDisclaimer": "内容由 AI 生成，请仔细甄别",
+    "attachFiles": "添加附件",
+    "multimodalUnsupportedHint": "该模型可能不支持多模态输入——可移除附件或更换模型后重试。",
+    "unsupportedFileType": "不支持的文件类型：{name}",
+    "fileTooLarge": "文件过大：{name}（最大 {max}）",
+    "tooManyAttachments": "附件过多（最多 {max} 个）",
+    "attachmentReadFailed": "读取文件失败：{name}"
   },
   "history": {
     "title": "历史记录",
@@ -359,7 +365,8 @@
     "usageBreakdown": "输入 {prompt} · 输出 {completion}",
     "searchPlaceholder": "搜索输入或输出…",
     "searchEmpty": "没有匹配的历史记录。",
-    "searchCount": "匹配 {current} / 共 {total} 条"
+    "searchCount": "匹配 {current} / 共 {total} 条",
+    "downloadAttachment": "下载附件"
   },
   "dictionary": {
     "userDictionary": "用户词典",

@@ -1,3 +1,4 @@
+pub mod attachments;
 pub mod clipboard;
 pub mod config_cmd;
 pub mod dictionary;
