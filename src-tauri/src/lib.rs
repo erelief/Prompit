@@ -319,6 +319,7 @@ pub fn run() {
 
             let tray = TrayIconBuilder::with_id("main-tray")
                 .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("Prompit")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "settings" => {
