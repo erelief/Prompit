@@ -5,16 +5,8 @@
 </div>
 
 <p align="center">
-  <img src="public/prompit_logo.svg" width="120" alt="Prompit">
+  <img src="./assets/readme/hero-en.svg" width="100%" alt="Prompit — an AI helper that shows up when called, and leaves when dismissed">
 </p>
-
-<h1 align="center">Prompit</h1>
-
-<p align="center">
-  A small AI helper that shows up when called, and leaves when dismissed.
-</p>
-
----
 
 > *Prompit* is a portmanteau of *Prompt it*.
 >
@@ -22,14 +14,19 @@
 
 Prompit is a small floating window that lives in the background. **Press a shortcut when you need it**, it appears next to your cursor, uses an AI model to do a few simple things — translate, polish, answer a question — then drops the result right back where your cursor is and disappears on its own.
 
-<p align="center"><img src="docs/screenshots/floatinginput_light_en.webp" width="600" alt="screenshot"></p>
+<p align="center">
+  <img src="./assets/readme/workflow-en.svg" width="100%" alt="Workflow: Alt+Y summons the window → type a request → AI generates the result → Enter pastes it back in place">
+</p>
+
+<p align="center"><sub>The shortcut is customizable — <code>Alt+Y</code> by default.</sub></p>
+
+## Demo
+
+<p align="center"><img src="docs/screenshots/translate_light_en.webp" width="600" alt="Translation: typing 'Hello, world!' returns '你好，世界！'"></p>
+<p align="center"><img src="docs/screenshots/skills-lite_light_EN.webp" width="600" alt="Skills Lite: structuring a prompt with XML tags"></p>
+<p align="center"><img src="docs/screenshots/multimodality_light_EN.webp" width="600" alt="Multimodal attachments"></p>
 
 ## Highlights
-
-### 🪂 Summon on demand, dismiss in a blink
-Press `Alt+Y` (customizable) and the window pops up next to your cursor. After typing your request, press `Enter`, and after the result arrives press `Enter` again — the result is pasted straight back to where you were, and the window disappears on its own.
-
-No window switching, no copy-paste.
 
 ### 🌐 Translation
 Translates your input into a target language, with several customization options:
@@ -61,7 +58,6 @@ Prompit's features run on AI models, **but it doesn't ship with one** — you'll
   - When web search is enabled, history entries keep their sources for traceability.
   - History entries keep multimodal attachments.
 
-
 ## With so many AI input methods out there, why build this?
 
 Prompit is **not** an AI input method. It's closer to a launcher like [Alfred](https://www.alfredapp.com/) or [Listary](https://www.listary.com/).
@@ -69,27 +65,6 @@ Prompit is **not** an AI input method. It's closer to a launcher like [Alfred](h
 Modern AI input methods tend to emphasize "voice input" efficiency. But even when I'm alone, talking to my computer still feels deeply awkward to me. AI input methods also lack a sense of boundary — I only want AI to show up *when I actually want it*. So Prompit and input methods don't really compete for the same niche.
 
 The original idea came from [sxzxs/Real-time-translation-typing](https://github.com/sxzxs/Real-time-translation-typing), a real-time translation tool built on an [AHK v2 script](https://www.autohotkey.com/v2/). I first forked it into a version powered by an AI service — [erelief/Real-time-translation-typing-LLM](https://github.com/erelief/Real-time-translation-typing-LLM) — but AHK had too many limitations, was hard to pick up, and couldn't go cross-platform. So I built this.
-
-## Security notes
-This project is entirely the product of Vibe Coding. I can't really call myself a programmer, but I've understood and learned as much as I reasonably could. The app has some basic security in place (all personal data is stored encrypted rather than in plain text, with simple data import/export and destruction) — but please still keep the following in mind:
-- The software may have rough edges.
-- Use official provider endpoints; be wary of third-party relay/proxy services.
-- **Do not feed privacy-sensitive, important, or high-risk information** to the AI service.
-- Use a **dedicated** API key for this app, and rotate it regularly.
-- Clear your history from time to time.
-
-
-## Demo
-
-<!-- TODO: add screenshots here -->
-<!-- Suggested paths: docs/screenshots/summon.png (the popup), docs/screenshots/translate.png (translation), docs/screenshots/skills.png (skills) -->
-<!-- Example: <p align="center"><img src="docs/screenshots/summon.png" width="600" alt="Summoning the window"></p> -->
-
-<p align="center"><img src="docs/screenshots/translate_light_en.webp" width="600" alt="Translation"></p>
-<p align="center"><img src="docs/screenshots/skills-lite_light_EN.webp" width="600" alt="Skills Lite"></p>
-<p align="center"><img src="docs/screenshots/multimodality_light_EN.webp" width="600" alt="Multimodal attachments"></p>
-
-(Screenshots coming soon.)
 
 ## Download & install
 
@@ -100,7 +75,6 @@ Grab the installer for your system from the [Releases page](https://github.com/e
 - **Linux**: `.deb` or `.AppImage`
 
 After installing and opening it, the first run will ask you to connect a model provider — without one, it's just an empty shell. Connect one and you're ready.
-
 
 ## FAQ
 
@@ -127,6 +101,14 @@ On your machine, encrypted. Nothing gets uploaded to a Prompit server (there isn
 **Do I have to pay for a model?**
 
 That depends on your chosen provider and model. Many providers offer free quotas, and self-hosted models are supported too.
+
+## Security notes
+This project is entirely the product of Vibe Coding. I can't really call myself a programmer, but I've understood and learned as much as I reasonably could. The app has some basic security in place (all personal data is stored encrypted rather than in plain text, with simple data import/export and destruction) — but please still keep the following in mind:
+- The software may have rough edges.
+- Use official provider endpoints; be wary of third-party relay/proxy services.
+- **Do not feed privacy-sensitive, important, or high-risk information** to the AI service.
+- Use a **dedicated** API key for this app, and rotate it regularly.
+- Clear your history from time to time.
 
 ## For developers
 

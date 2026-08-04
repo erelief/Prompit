@@ -5,30 +5,28 @@
 </div>
 
 <p align="center">
-  <img src="public/prompit_logo.svg" width="120" alt="Prompit">
+  <img src="./assets/readme/hero.svg" width="100%" alt="Prompit — 呼之则来、挥之则去的 AI 小帮手">
 </p>
 
-<h1 align="center">Prompit</h1>
-
-<p align="center">
-  呼之则来、挥之则去的 AI 小帮手。
-</p>
-
----
 > Prompit 是 *Prompt it* 的合成词。
-> 
+>
 > 也确实只会这个。
 
 Prompit 是一个常驻后台的悬浮小窗。**需要它的时候按一下快捷键**，它就在光标旁边出现，借助 AI 模型实现一些简单的功能——翻译、润色、回答一个问题——然后把结果直接塞回光标所在的位置，自己消失。
 
-<p align="center"><img src="docs/screenshots/floatinginput_light.webp" width="600" alt="软件截图"></p>
+<p align="center">
+  <img src="./assets/readme/workflow.svg" width="100%" alt="工作流：Alt+Y 呼出小窗 → 输入需求 → AI 生成结果 → Enter 粘回原位">
+</p>
+
+<p align="center"><sub>快捷键可在设置中修改，默认 <code>Alt+Y</code>。</sub></p>
+
+## 效果演示
+
+<p align="center"><img src="docs/screenshots/translate_light.webp" width="600" alt="翻译效果：输入「你好，世界！」得到「Hello, world!」"></p>
+<p align="center"><img src="docs/screenshots/skills-lite_light.webp" width="600" alt="轻技能效果：用 XML 标签优化提示词"></p>
+<p align="center"><img src="docs/screenshots/multimodality_light.webp" width="600" alt="多模态附件效果"></p>
 
 ## 功能亮点
-
-### 🪂 呼之则来，挥之即去
-按 `Alt+Y`（可改），小窗在光标旁边弹出；按 `Enter` 发送需求后，再按 `Enter`，结果直接粘回你刚才的位置，小窗自动消失。
-
-不用切换窗口，不用复制粘贴。
 
 ### 🌐 翻译
 将输入的内容翻译成目标语言，有多种自定义功能：
@@ -60,7 +58,6 @@ Prompit 的功能是靠 AI 模型实现的，**但不自带 AI 模型**——需
   - 开启网页搜索的情况下，历史记录支持溯源
   - 历史记录保存多模态附件
 
-
 ## 已经有那么多 AI 输入法了，为什么还要做这个？
 
 Prompit **不是** AI 输入法，它更像 [Alfred](https://www.alfredapp.com/) 或 [Listary](https://www.listary.com/) 那样的快捷启动工具。
@@ -68,25 +65,6 @@ Prompit **不是** AI 输入法，它更像 [Alfred](https://www.alfredapp.com/)
 现代 AI 输入法普遍强调“语音输入”的效率，可是，即便是在独处的情况下，对着电脑自言自语对我来说仍旧非常尴尬；AI 输入法也缺少“边界感”，我只想要“我需要 AI 来的时候”，AI 才来。所以，Prompit 和输入法的生态位并不冲突。
 
 最初的想法来自[sxzxs/Real-time-translation-typing](https://github.com/sxzxs/Real-time-translation-typing)，一个借助 [AHK v2 脚本](https://www.autohotkey.com/v2/)的实时翻译软件。最开始我 fork 了一个接入 AI 服务作为翻译的项目 [erelief/Real-time-translation-typing-LLM](https://github.com/erelief/Real-time-translation-typing-LLM)，但 AHK 限制较多/不易上手/无法多平台，于是做了这个软件。
-
-## 安全说明
-本项目全部由 Vibe Coding 而成，我本人可以说是不会编程，但在能力范围内尽可能去理解和学习。软件做了一定的基础安全保障（所有个人数据都加密存储，非明文暴露，并支持简单的数据导入、导出和销毁），但仍请注意以下内容：
-- 本软件可能存在不完善的地方
-- 使用官方渠道提供的服务，警惕使用第三方中转服务
-- **不要将隐私、重要或高风险的信息**提供给 AI 服务
-- 使用**独立的** API key 用于该软件，并定期更换
-- 定期清理历史记录
-
-
-## 效果演示
-
-<!-- TODO: 在这里放截图 -->
-<!-- 建议路径：docs/screenshots/summon.png（呼出）、docs/screenshots/translate.png（翻译）、docs/screenshots/skills.png（轻技能） -->
-<!-- 示例: <p align="center"><img src="docs/screenshots/summon.png" width="600" alt="呼出小窗"></p> -->
-
-<p align="center"><img src="docs/screenshots/translate_light.webp" width="600" alt="翻译效果"></p>
-<p align="center"><img src="docs/screenshots/skills-lite_light.webp" width="600" alt="轻技能效果"></p>
-<p align="center"><img src="docs/screenshots/multimodality_light.webp" width="600" alt="轻技能效果"></p>
 
 ## 下载安装
 
@@ -97,7 +75,6 @@ Prompit **不是** AI 输入法，它更像 [Alfred](https://www.alfredapp.com/)
 - **Linux**：`.deb` 或 `.AppImage`
 
 装好打开后，第一次会让你接一个模型供应方——没模型它就是个空壳。接好就能用了。
-
 
 ## 常见疑问
 
@@ -124,6 +101,14 @@ Prompit **不是** AI 输入法，它更像 [Alfred](https://www.alfredapp.com/)
 **我一定要付费的模型吗？**
 
 这取决于你选的供应方和模型。很多供应方有免费额度，也支持使用自部署模型。
+
+## 安全说明
+本项目全部由 Vibe Coding 而成，我本人可以说是不会编程，但在能力范围内尽可能去理解和学习。软件做了一定的基础安全保障（所有个人数据都加密存储，非明文暴露，并支持简单的数据导入、导出和销毁），但仍请注意以下内容：
+- 本软件可能存在不完善的地方
+- 使用官方渠道提供的服务，警惕使用第三方中转服务
+- **不要将隐私、重要或高风险的信息**提供给 AI 服务
+- 使用**独立的** API key 用于该软件，并定期更换
+- 定期清理历史记录
 
 ## 面向开发者
 

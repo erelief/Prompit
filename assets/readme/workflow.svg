@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="230" viewBox="0 0 1200 230"
+     role="img" aria-labelledby="title desc">
+  <title id="title">Prompit 工作流</title>
+  <desc id="desc">四步流程：按 Alt+Y 呼出悬浮小窗，输入需求，AI 在小窗内生成结果，按 Enter 把结果粘回原来的位置。</desc>
+
+  <defs>
+    <linearGradient id="redGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF243D"/>
+      <stop offset="1" stop-color="#AD0013"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="230" rx="26" fill="#FCFAF6"/>
+
+  <!-- step 1 -->
+  <g id="step-1" transform="translate(64 46)">
+    <rect width="244" height="144" rx="16" fill="#FFFFFF" stroke="#E3DAC7" stroke-width="2"/>
+    <text x="20" y="34" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="16" font-weight="700" fill="#C4001C">01</text>
+    <rect x="20" y="48" width="102" height="32" rx="9" fill="#F9F5EC" stroke="#DCD2BE" stroke-width="1.5"/>
+    <text x="71" y="69" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="16" font-weight="600" fill="#C4001C">Alt + Y</text>
+    <text x="20" y="112" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="21" font-weight="700" fill="#2C2620">呼出小窗</text>
+    <text x="20" y="136" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="16" fill="#8B7F6D">出现在光标旁边</text>
+  </g>
+
+  <text x="324" y="126" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="24" fill="#C9BBA0">→</text>
+
+  <!-- step 2 -->
+  <g id="step-2" transform="translate(340 46)">
+    <rect width="244" height="144" rx="16" fill="#FFFFFF" stroke="#E3DAC7" stroke-width="2"/>
+    <text x="20" y="34" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="16" font-weight="700" fill="#C4001C">02</text>
+    <g transform="translate(20 50)">
+      <rect width="112" height="30" rx="8" fill="#F9F5EC" stroke="#DCD2BE" stroke-width="1.5"/>
+      <line x1="12" y1="15" x2="74" y2="15" stroke="#8B7F6D" stroke-width="2.5" stroke-linecap="round"/>
+      <rect x="78" y="8" width="2.5" height="14" rx="1" fill="#2C2620"/>
+    </g>
+    <text x="20" y="112" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="21" font-weight="700" fill="#2C2620">输入需求</text>
+    <text x="20" y="136" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="16" fill="#8B7F6D">翻译 / 润色 / 提问</text>
+  </g>
+
+  <text x="600" y="126" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="24" fill="#C9BBA0">→</text>
+
+  <!-- step 3 -->
+  <g id="step-3" transform="translate(616 46)">
+    <rect width="244" height="144" rx="16" fill="#FFFFFF" stroke="#E3DAC7" stroke-width="2"/>
+    <text x="20" y="34" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="16" font-weight="700" fill="#C4001C">03</text>
+    <g transform="translate(20 48)">
+      <rect width="112" height="32" rx="8" fill="#F9F4E8" stroke="#E4D8BC" stroke-width="1.5"/>
+      <path d="M16 16 L20 8 L24 16 L20 24 Z" fill="#C9A961"/>
+      <line x1="34" y1="12" x2="100" y2="12" stroke="#C9BBA0" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="34" y1="21" x2="88" y2="21" stroke="#C9BBA0" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+    <text x="20" y="112" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="21" font-weight="700" fill="#2C2620">AI 生成结果</text>
+    <text x="20" y="136" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="16" fill="#8B7F6D">就在小窗里呈现</text>
+  </g>
+
+  <text x="876" y="126" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="24" fill="#C9BBA0">→</text>
+
+  <!-- step 4 -->
+  <g id="step-4" transform="translate(892 46)">
+    <rect width="244" height="144" rx="16" fill="#FFFFFF" stroke="#E3DAC7" stroke-width="2"/>
+    <text x="20" y="34" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="16" font-weight="700" fill="#C4001C">04</text>
+    <rect x="20" y="48" width="102" height="32" rx="9" fill="#F9F5EC" stroke="#DCD2BE" stroke-width="1.5"/>
+    <text x="71" y="69" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="16" font-weight="600" fill="#C4001C">Enter</text>
+    <text x="20" y="112" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="21" font-weight="700" fill="#2C2620">粘回原位</text>
+    <text x="20" y="136" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="16" fill="#8B7F6D">小窗自动消失</text>
+  </g>
+</svg>
