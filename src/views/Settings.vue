@@ -228,6 +228,119 @@ function toggleAutoUpdate(e: MouseEvent) {
 // template is purely reactive (no polling).
 const showReleaseNotes = ref(false);
 
+/** Escape the 5 HTML-significant chars. Every text fragment the renderer
+ *  emits goes through this — inline formatters operate on already-escaped
+ *  text, so markdown sigils survive while user prose can never inject HTML. */
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+/** Inline markdown on an already-HTML-escaped line: bold (**…** / __…__),
+ *  inline code (`…`), reference links [text](url), and bare URLs. Links are
+ *  rewritten to anchors with href stripped — the popup intercepts clicks and
+ *  routes them through openExternal, so we never render a navigable href. */
+function renderInline(line: string): string {
+  // Inline code first so the backticked content is shielded from the other
+  // rules (it's already escaped, so no re-escape needed).
+  let out = line.replace(/`([^`]+?)`/g, (_m, code: string) => `<code class="rn-code">${code}</code>`);
+  // Protect any <code>…</code> spans just produced before the remaining rules run.
+  const stash: string[] = [];
+  out = out.replace(/<code class="rn-code">[\s\S]*?<\/code>/g, (m) => { stash.push(m); return `\u0000${stash.length - 1}\u0000`; });
+  // Bold: **text** or __text__
+  out = out.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__([^_]+?)__/g, "<strong>$1</strong>");
+  // Reference links: [text](http…)
+  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    (_m, text: string, _url: string) => `<a class="rn-link" data-url="${_url}">${text}</a>`);
+  // Bare URLs (including the trailing "Full Changelog" one). Avoid anything
+  // already captured by a reference link above.
+  out = out.replace(/(?<![="\w>])((?:https?:\/\/)[^\s<]+)/g,
+    (url: string) => `<a class="rn-link" data-url="${url}">${url}</a>`);
+  // Restore inline-code spans.
+  out = out.replace(/\u0000(\d+)\u0000/g, (_m, i: string) => stash[Number(i)]);
+  return out;
+}
+
+/** Render the release-notes markdown to HTML. Handles only the shapes GitHub
+ *  actually produces for these bodies: ATX headings (# …), bullet lists,
+ *  ordered lists, blank-line-separated paragraphs, and inline markdown per
+ *  renderInline. Input is escaped first, so this never trusts raw markdown. */
+function renderReleaseNotes(md: string): string {
+  const lines = md.replace(/\r\n/g, "\n").split("\n");
+  const html: string[] = [];
+  let list: "ul" | "ol" | null = null;
+  const closeList = () => { if (list) { html.push(`</${list}>`); list = null; } };
+
+  for (const raw of lines) {
+    const line = escapeHtml(raw);
+    const trimmed = raw.trim();
+
+    // Blank line — paragraph separator.
+    if (trimmed === "") { closeList(); continue; }
+
+    // ATX headings: "# Title" → "### Title"
+    const h = raw.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      closeList();
+      const level = h[1].length;
+      html.push(`<h${level} class="rn-h">${renderInline(escapeHtml(h[2]))}</h${level}>`);
+      continue;
+    }
+
+    // Ordered list item.
+    const ol = raw.match(/^\s*\d+\.\s+(.*)$/);
+    if (ol) {
+      if (list !== "ol") { closeList(); html.push("<ol>"); list = "ol"; }
+      html.push(`<li>${renderInline(escapeHtml(ol[1]))}</li>`);
+      continue;
+    }
+    // Unordered list item.
+    const ul = raw.match(/^\s*[-*+]\s+(.*)$/);
+    if (ul) {
+      if (list !== "ul") { closeList(); html.push("<ul>"); list = "ul"; }
+      html.push(`<li>${renderInline(escapeHtml(ul[1]))}</li>`);
+      continue;
+    }
+
+    // Blockquote.
+    const bq = raw.match(/^>\s?(.*)$/);
+    if (bq) {
+      closeList();
+      html.push(`<blockquote class="rn-quote">${renderInline(escapeHtml(bq[1]))}</blockquote>`);
+      continue;
+    }
+
+    // Horizontal rule.
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(raw)) {
+      closeList();
+      html.push('<hr class="rn-hr">');
+      continue;
+    }
+
+    // Default: paragraph (merge consecutive text into one <p> is overkill for
+    // these short notes — each non-list line gets its own <p>).
+    closeList();
+    html.push(`<p class="rn-p">${renderInline(line)}</p>`);
+  }
+  closeList();
+  return html.join("\n");
+}
+
+const renderedNotes = computed(() => displayNotes.value ? renderReleaseNotes(displayNotes.value) : "");
+
+/** Click delegate for the rendered notes: any anchor carrying data-url opens
+ *  in the system browser (Tauri) or a new tab (web), never inside the app. */
+function onNotesClick(e: MouseEvent) {
+  const target = (e.target as HTMLElement)?.closest("a[data-url]") as HTMLAnchorElement | null;
+  if (!target) return;
+  const url = target.getAttribute("data-url") || "";
+  if (/^https?:\/\//i.test(url)) {
+    e.preventDefault();
+    openExternal(url);
+  }
+}
+
 function openReleaseNotes() {
   showReleaseNotes.value = true;
 }
@@ -2342,7 +2455,7 @@ onUnmounted(() => {
           <div v-if="updateNotesLoading" class="rn-loading">
             <Loader2 :size="14" class="spin" :stroke-width="2" />
           </div>
-          <pre v-else-if="displayNotes" class="rn-pre">{{ displayNotes }}</pre>
+          <div v-else-if="renderedNotes" class="rn-md" @click="onNotesClick" v-html="renderedNotes"></div>
           <p v-else-if="updateNotesFailed" class="rn-empty">{{ t('about.releaseNotesFailed') }}</p>
         </div>
       </div>
@@ -3417,18 +3530,66 @@ label {
   background: var(--color-scrollbar);
   border-radius: var(--radius-xs);
 }
-/* Release notes are markdown rendered as plain text (no markdown lib): <pre>
-   preserves line breaks / indentation. word-wrap keeps long URLs in bounds. */
-.rn-pre {
-  margin: 0;
-  font-family: var(--font-mono);
+/* Release notes are rendered markdown (lightweight in-house renderer). The
+   .rn-md wrapper is scoped, but its children are injected via v-html so they
+   lack the scoped attribute — style them through :deep(). word-wrap keeps long
+   URLs (the Full-Changelog link) in bounds. */
+.rn-md {
   font-size: var(--text-xs);
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--color-text);
-  white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
 }
+.rn-md :deep(p) { margin: 0 0 var(--space-2); }
+.rn-md :deep(p:last-child) { margin-bottom: 0; }
+.rn-md :deep(strong) { font-weight: 600; }
+.rn-md :deep(h1),
+.rn-md :deep(h2),
+.rn-md :deep(h3),
+.rn-md :deep(h4),
+.rn-md :deep(h5),
+.rn-md :deep(h6) {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.rn-md :deep(h1:first-child),
+.rn-md :deep(h2:first-child),
+.rn-md :deep(h3:first-child) { margin-top: 0; }
+.rn-md :deep(ul),
+.rn-md :deep(ol) {
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-5);
+}
+.rn-md :deep(li) { margin: var(--space-1) 0; }
+.rn-md :deep(li:last-child) { margin-bottom: 0; }
+.rn-md :deep(.rn-code) {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+}
+.rn-md :deep(.rn-quote) {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-left: 2px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.rn-md :deep(.rn-hr) {
+  border: none;
+  border-top: 1px solid var(--color-surface);
+  margin: var(--space-3) 0;
+}
+.rn-md :deep(.rn-link) {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.rn-md :deep(.rn-link:hover) { text-decoration: none; opacity: 0.85; }
 .rn-empty {
   margin: 0;
   font-size: var(--text-sm);
