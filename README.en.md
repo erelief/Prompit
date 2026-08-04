@@ -132,10 +132,13 @@ Requires Node.js and a Rust toolchain.
 
 </details>
 
-<p align="center">
-  <a href="https://github.com/oil-oil/beautify-github-readme"><img src="./assets/readme/made-with-beautify.svg" width="300" alt="README made with beautify-github-readme"></a>
-</p>
+
 
 ## License
 
 [Apache License 2.0](./LICENSE)
+
+---
+<p align="right">
+  <a href="https://github.com/oil-oil/beautify-github-readme"><img src="./assets/readme/made-with-beautify.svg" width="300" alt="README made with beautify-github-readme"></a>
+</p>
