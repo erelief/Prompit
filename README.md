@@ -21,7 +21,7 @@
 
 Prompit 是一个常驻后台的悬浮小窗。**需要它的时候按一下快捷键**，它就在光标旁边出现，借助 AI 模型实现一些简单的功能——翻译、润色、回答一个问题——然后把结果直接塞回光标所在的位置，自己消失。
 
-<p align="center"><img src="docs/screenshots/floatinginput_light.png" width="600" alt="软件截图"></p>
+<p align="center"><img src="docs/screenshots/floatinginput_light.webp" width="600" alt="软件截图"></p>
 
 ## 功能亮点
 
@@ -43,7 +43,7 @@ Prompit 是一个常驻后台的悬浮小窗。**需要它的时候按一下快�
 - 预置润色技能（polish-skill）：检测你输入的语言，作为该语言的母语使用者帮你润色
 - 支持导入标准格式的 SKILL.md，也支持把技能按照该格式导出
 - 支持接入适用于 AI 搜索的第三方服务，可以获取互联网实时信息并保存信息源
-- **支持多模态附件**：+ 按钮、粘贴、拖拽均可添加——图片、视频随消息一起发送，文本文件（含 SVG，以其 XML 源码）内联进输入；附件会随历史记录保存，可随时下载。媒体文件需小于 10 MB（图片不超过 4K、视频不超过 1080p 分辨率）；模型本身不支持多模态时，会把接口的报错直接提示给你
+- 支持多模态附件：多模态附件可随消息一起发送。模型本身不支持多模态时，会把接口的报错直接提示给你
 
 > 上面提到的几个预置技能以标准 `.md` 格式存放在 [`skills-lite-presets/`](./skills-lite-presets)，作为参考。
 
@@ -58,6 +58,7 @@ Prompit 的功能是靠 AI 模型实现的，**但不自带 AI 模型**——需
 - 历史记录功能，不怕误操作造成丢失
   - 支持搜索聊天记录
   - 开启网页搜索的情况下，历史记录支持溯源
+  - 历史记录保存多模态附件
 
 
 ## 已经有那么多 AI 输入法了，为什么还要做这个？
@@ -83,9 +84,9 @@ Prompit **不是** AI 输入法，它更像 [Alfred](https://www.alfredapp.com/)
 <!-- 建议路径：docs/screenshots/summon.png（呼出）、docs/screenshots/translate.png（翻译）、docs/screenshots/skills.png（轻技能） -->
 <!-- 示例: <p align="center"><img src="docs/screenshots/summon.png" width="600" alt="呼出小窗"></p> -->
 
-<p align="center"><img src="docs/screenshots/translate_light.png" width="600" alt="翻译效果"></p>
-<p align="center"><img src="docs/screenshots/skills-lite_light.png" width="600" alt="轻技能效果"></p>
-
+<p align="center"><img src="docs/screenshots/translate_light.webp" width="600" alt="翻译效果"></p>
+<p align="center"><img src="docs/screenshots/skills-lite_light.webp" width="600" alt="轻技能效果"></p>
+<p align="center"><img src="docs/screenshots/multimodality_light.webp" width="600" alt="轻技能效果"></p>
 
 ## 下载安装
 

@@ -22,7 +22,7 @@
 
 Prompit is a small floating window that lives in the background. **Press a shortcut when you need it**, it appears next to your cursor, uses an AI model to do a few simple things — translate, polish, answer a question — then drops the result right back where your cursor is and disappears on its own.
 
-<p align="center"><img src="docs/screenshots/floatinginput_light_en.png" width="600" alt="screenshot"></p>
+<p align="center"><img src="docs/screenshots/floatinginput_light_en.webp" width="600" alt="screenshot"></p>
 
 ## Highlights
 
@@ -44,7 +44,7 @@ Beyond translation, you can load commonly-used system prompts as preset template
 - Built-in polish skill: detects the language of your input and polishes it as if a native speaker wrote it.
 - Supports importing standard-format SKILL.md files, and exporting skills in the same format.
 - Supports connecting a third-party service for AI search, so it can pull real-time information from the web and keep the sources.
-- **Multimodal attachments**: add files via the + button, paste, or drag-and-drop — images and videos are sent with your message, text files (including SVG, as its XML source) are inlined into the input. Media files must be under 10 MB (images up to 4K, videos up to 1080p resolution). Attachments are saved with history entries and can be downloaded anytime. If the model itself doesn't support multimodal input, the API error is surfaced to you as a hint.
+- Supports multimodal attachments: they can be sent along with your message. If the model itself doesn't support multimodal input, the API error is surfaced to you as a hint.
 
 > The built-in skills above live as standard `.md` files in [`skills-lite-presets/`](./skills-lite-presets), as a reference.
 
@@ -59,6 +59,7 @@ Prompit's features run on AI models, **but it doesn't ship with one** — you'll
 - History, so nothing is lost to a slip of the hand:
   - Searchable history records.
   - When web search is enabled, history entries keep their sources for traceability.
+  - History entries keep multimodal attachments.
 
 
 ## With so many AI input methods out there, why build this?
@@ -84,8 +85,9 @@ This project is entirely the product of Vibe Coding. I can't really call myself 
 <!-- Suggested paths: docs/screenshots/summon.png (the popup), docs/screenshots/translate.png (translation), docs/screenshots/skills.png (skills) -->
 <!-- Example: <p align="center"><img src="docs/screenshots/summon.png" width="600" alt="Summoning the window"></p> -->
 
-<p align="center"><img src="docs/screenshots/translate_light_en.png" width="600" alt="Translation"></p>
-<p align="center"><img src="docs/screenshots/skills-lite_light_en.png" width="600" alt="Skills Lite"></p>
+<p align="center"><img src="docs/screenshots/translate_light_en.webp" width="600" alt="Translation"></p>
+<p align="center"><img src="docs/screenshots/skills-lite_light_EN.webp" width="600" alt="Skills Lite"></p>
+<p align="center"><img src="docs/screenshots/multimodality_light_EN.webp" width="600" alt="Multimodal attachments"></p>
 
 (Screenshots coming soon.)
 
