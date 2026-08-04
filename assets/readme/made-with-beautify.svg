@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="420" height="64" viewBox="0 0 420 64"
+     role="img" aria-labelledby="title desc">
+  <title id="title">README made with beautify-github-readme</title>
+  <desc id="desc">A small signature badge reading "README MADE WITH beautify-github-readme" with an outbound arrow.</desc>
+
+  <rect width="420" height="64" rx="14" fill="#F9F5EC" stroke="#E3DAC7" stroke-width="1.5"/>
+
+  <!-- text -->
+  <text x="24" y="28" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10.5" letter-spacing="1.5" fill="#8B7F6D">README MADE WITH</text>
+  <text x="24" y="47" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="16" font-weight="600" fill="#2C2620">beautify-github-readme</text>
+
+  <!-- outbound arrow -->
+  <g transform="translate(376 22) scale(0.8333)" fill="none" stroke="#B48228" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 17 17 7"/><path d="M8 7h9v9"/>
+  </g>
+</svg>
