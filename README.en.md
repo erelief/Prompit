@@ -44,6 +44,7 @@ Beyond translation, you can load commonly-used system prompts as preset template
 - Built-in polish skill: detects the language of your input and polishes it as if a native speaker wrote it.
 - Supports importing standard-format SKILL.md files, and exporting skills in the same format.
 - Supports connecting a third-party service for AI search, so it can pull real-time information from the web and keep the sources.
+- **Multimodal attachments**: add files via the + button, paste, or drag-and-drop — images and videos are sent with your message, text files (including SVG, as its XML source) are inlined into the input. Media files must be under 10 MB (images up to 4K, videos up to 1080p resolution). Attachments are saved with history entries and can be downloaded anytime. If the model itself doesn't support multimodal input, the API error is surfaced to you as a hint.
 
 > The built-in skills above live as standard `.md` files in [`skills-lite-presets/`](./skills-lite-presets), as a reference.
 

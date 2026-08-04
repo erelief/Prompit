@@ -347,6 +347,7 @@
     "multimodalUnsupportedHint": "The model may not support multimodal input — remove the attachments or switch models and try again.",
     "unsupportedFileType": "Unsupported file type: {name}",
     "fileTooLarge": "File too large: {name} (max {max})",
+    "resolutionTooHigh": "Resolution too high: {name} (max {max})",
     "tooManyAttachments": "Too many attachments (max {max})",
     "attachmentReadFailed": "Failed to read file: {name}"
   },

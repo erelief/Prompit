@@ -347,6 +347,7 @@
     "multimodalUnsupportedHint": "该模型可能不支持多模态输入——可移除附件或更换模型后重试。",
     "unsupportedFileType": "不支持的文件类型：{name}",
     "fileTooLarge": "文件过大：{name}（最大 {max}）",
+    "resolutionTooHigh": "分辨率过高：{name}（最大 {max}）",
     "tooManyAttachments": "附件过多（最多 {max} 个）",
     "attachmentReadFailed": "读取文件失败：{name}"
   },

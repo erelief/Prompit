@@ -25,7 +25,7 @@ import type { TranslateOutcome } from "../services/llm-client";
 import { SearchFailureError, ModelHttpError } from "../services/llm-client";
 import { classifySearchError } from "../services/websearch";
 import type { SearchHit } from "../services/websearch/types";
-import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink, Pencil, Check, Copy, Forward, Plus, FileText } from "@lucide/vue";
+import { Settings, LoaderCircle, Send, X, ClipboardPaste, ChevronDown, History, MessageSquareLock, MessageSquareShare, Globe, ChevronLeft, ChevronRight, ArrowLeft, ExternalLink, Pencil, Check, Copy, Forward, Plus, FileText, FileVideo } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import TranslateToolbar from "../components/TranslateToolbar.vue";
 const { t } = useI18n();
@@ -161,6 +161,7 @@ const intakeErrorText = computed(() => {
     case "unsupported": return t("floating.unsupportedFileType", { name: err.name });
     case "readFailed": return t("floating.attachmentReadFailed", { name: err.name });
     case "tooLarge": return t("floating.fileTooLarge", { name: err.name, max: err.max });
+    case "tooHighRes": return t("floating.resolutionTooHigh", { name: err.name, max: err.max });
     case "tooMany": return t("floating.tooManyAttachments", { max: err.max });
   }
 });
@@ -1159,7 +1160,8 @@ useShortcutTriggered(() => {
             >
               <img v-if="att.kind === 'image'" :src="att.previewUrl" class="chip-thumb" :alt="att.name" />
               <template v-else>
-                <FileText :size="13" :stroke-width="1.8" class="chip-file-icon" />
+                <FileVideo v-if="att.kind === 'video'" :size="13" :stroke-width="1.8" class="chip-file-icon" />
+                <FileText v-else :size="13" :stroke-width="1.8" class="chip-file-icon" />
                 <span class="chip-name">{{ att.name }}</span>
               </template>
               <button class="chip-remove" @click="removeAttachment(att.id)" :title="t('common.remove')">
