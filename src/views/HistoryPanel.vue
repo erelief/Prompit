@@ -5,7 +5,7 @@ import { useRouter } from "vue-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { save as saveFileDialog } from "@tauri-apps/plugin-dialog";
-import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink, ToggleRight, ToggleLeft, Search, Download, Image, FileText } from "@lucide/vue";
+import { ArrowLeft, History, Trash2, Check, X, Send, MessageSquare, Globe, ExternalLink, ToggleRight, ToggleLeft, Search, Download, Image, FileText, FileVideo } from "@lucide/vue";
 import { useSettingsWindow } from "../composables/useSettingsWindow";
 import { useWindowBg, domainOf } from "../composables/useWindowBg";
 import { formatBytes } from "../composables/useAttachments";
@@ -318,6 +318,7 @@ onMounted(async () => {
                     @mouseenter="ensureThumb(att, $event)"
                   >
                     <Image v-if="att.mime.startsWith('image/')" :size="9" :stroke-width="2" class="attachment-icon" />
+                    <FileVideo v-else-if="att.mime.startsWith('video/')" :size="9" :stroke-width="2" class="attachment-icon" />
                     <FileText v-else :size="9" :stroke-width="2" class="attachment-icon" />
                     <span class="attachment-name">{{ att.name }}</span>
                     <span class="attachment-size">{{ formatBytes(att.size) }}</span>

@@ -5,12 +5,14 @@ import { webSearch, formatSearchContext } from "./websearch";
 import type { ClassifiedSearchError, SearchHit } from "./websearch/types";
 import { proxyFetch, type ProxyResponse } from "./proxy";
 
-/** OpenAI-style content part: text, or an image carried as a base64 data URL.
- *  Anthropic-style bodies convert these to their `image` block shape in
- *  buildRequestBody (see toAnthropicContent). */
+/** OpenAI-style content part: text, or media carried as a base64 data URL.
+ *  Anthropic-style bodies convert images to their `image` block shape in
+ *  buildRequestBody (see toAnthropicContent); video_url parts are OpenAI-
+ *  dialect only and dropped for Anthropic (no video block exists there). */
 export type ContentPart =
   | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string } };
+  | { type: "image_url"; image_url: { url: string } }
+  | { type: "video_url"; video_url: { url: string } };
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -18,12 +20,13 @@ interface ChatMessage {
 }
 
 /** A file attached to the outgoing user message (skills_lite mode). Images
- *  become image_url parts; text files are inlined into the message text. */
+ *  become image_url parts, videos video_url parts; text files (including
+ *  svg, which is sent as its XML source) are inlined into the message text. */
 export interface OutgoingAttachment {
   name: string;
   mime: string;
-  kind: "image" | "text";
-  /** base64 payload (images). */
+  kind: "image" | "video" | "text";
+  /** base64 payload (image/video). */
   data?: string;
   /** decoded UTF-8 content (text files). */
   text?: string;
@@ -125,14 +128,16 @@ function contentToText(content: string | ContentPart[]): string {
 
 /** Convert OpenAI-style content parts to Anthropic blocks (used when the
  *  preset extracts system prompts via system_key, i.e. Anthropic's /messages
- *  dialect). Strings pass through; image_url data URLs become image blocks. */
+ *  dialect). Strings pass through; image_url data URLs become image blocks.
+ *  video_url parts are dropped — Anthropic has no video block, and the
+ *  agreed fallback for unsupported media is to omit it silently. */
 function toAnthropicContent(content: string | ContentPart[]): any {
   if (typeof content === "string") return content;
   const blocks: any[] = [];
   for (const p of content) {
     if (p.type === "text") {
       blocks.push({ type: "text", text: p.text });
-    } else {
+    } else if (p.type === "image_url") {
       const m = /^data:([^;]+);base64,(.*)$/.exec(p.image_url.url);
       if (m) {
         blocks.push({ type: "image", source: { type: "base64", media_type: m[1], data: m[2] } });
@@ -289,23 +294,25 @@ async function chatCompletion(
 }
 
 /** Compose the user message content from typed text plus attachments. Text
- *  files are inlined as fenced blocks; images become image_url parts. Returns
- *  a plain string when no images are attached (zero regression for text-only
- *  requests). */
+ *  files are inlined as fenced blocks; images become image_url parts, videos
+ *  video_url parts. Returns a plain string when no media is attached (zero
+ *  regression for text-only requests). */
 function buildUserContent(text: string, attachments?: OutgoingAttachment[]): string | ContentPart[] {
   if (!attachments || attachments.length === 0) return text;
 
   let fullText = text;
-  const images: ContentPart[] = [];
+  const media: ContentPart[] = [];
   for (const att of attachments) {
     if (att.kind === "image" && att.data) {
-      images.push({ type: "image_url", image_url: { url: `data:${att.mime};base64,${att.data}` } });
+      media.push({ type: "image_url", image_url: { url: `data:${att.mime};base64,${att.data}` } });
+    } else if (att.kind === "video" && att.data) {
+      media.push({ type: "video_url", video_url: { url: `data:${att.mime};base64,${att.data}` } });
     } else if (att.kind === "text" && att.text != null) {
       fullText += `\n\n[Attached file: ${att.name}]\n\`\`\`\n${att.text}\n\`\`\``;
     }
   }
-  if (images.length === 0) return fullText;
-  return [{ type: "text", text: fullText }, ...images];
+  if (media.length === 0) return fullText;
+  return [{ type: "text", text: fullText }, ...media];
 }
 
 export async function translate(text: string, signal?: AbortSignal, attachments?: OutgoingAttachment[]): Promise<TranslateOutcome> {
