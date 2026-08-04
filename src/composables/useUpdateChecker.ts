@@ -18,13 +18,16 @@ import { pickLocalizedReleaseNotes } from "../stores/config";
 // idle | checking | up-to-date | has-update | preparing | downloading | installing | restarting | error
 export const updateStatus = ref("idle");
 export const updateVersion = ref("");
-// Release-notes text for the available update. Populated from Update.body
-// (the release workflow injects the release body into the manifest's `notes`),
-// or — for releases published before that — the GitHub Releases API `body`.
-// This holds the FULL bilingual body (English\n---\nChinese); the popup binds
-// to `displayNotes` which shows only the current UI locale's block.
+// Release-notes text for the available update. In normal mode the updater's
+// `check()` returns it as `Update.body` (the release workflow injects the
+// release body into the manifest's `notes` field). Sandbox can't run `check()`
+// (it fakes the update state), so it fetches the SAME manifest directly —
+// keeping sandbox on the identical, un-throttled data source as prod instead
+// of a divergent GitHub-API path. This holds the FULL bilingual body
+// (English\n---\nChinese); the popup binds to `displayNotes` which shows only
+// the current UI locale's block.
 export const updateNotes = ref("");
-// True while a release-notes API fetch is in flight (so the popup can show a
+// True while a release-notes fetch is in flight (so the popup can show a
 // spinner instead of an empty/error state).
 export const updateNotesLoading = ref(false);
 // True when a release-notes fetch failed (network / 404 / parse). The popup
@@ -48,30 +51,36 @@ const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
 // refs above carry everything the UI needs.
 let pendingUpdate: Update | null = null;
 
-// GitHub Releases API for the latest published release. Its `body` field is the
-// full release notes (markdown), which is exactly what the popup shows.
-const RELEASES_API_URL = "https://api.github.com/repos/erelief/Prompit/releases/latest";
+// The SAME updater manifest `check()` reads in normal mode. The release
+// workflow (embed-notes job) copies the release body into its `notes` field,
+// so this carries the full release notes with zero rate-limit — unlike the
+// GitHub Releases API (api.github.com), whose unauthenticated 60 req/hr/IP
+// quota is routinely exhausted on shared egress IPs. Fetching it here keeps
+// sandbox on the identical data source as prod, which is the whole point of
+// sandbox: it must exercise the real path, not a divergent one.
+const UPDATER_MANIFEST_URL = "https://github.com/erelief/Prompit/releases/latest/download/latest.json";
 
-/** Fetch the latest release's `body` (release notes) from the GitHub Releases
- *  API into `updateNotes`. Used in sandbox (no real Update object) and as the
- *  prod fallback when Update.body is empty. On success with `adoptTag`, copies
- *  the release's tag_name into `updateVersion` — only the sandbox caller needs
- *  this (it fakes "0.0.0"; prod already has the real version). */
+/** Fetch the latest release's notes from the updater manifest into
+ *  `updateNotes`. Sandbox calls this (it fakes "has-update" and never runs
+ *  `check()`, so it has no Update.body). Prod also uses it as the fallback
+ *  when an older manifest's `notes` is empty. On success with `adoptTag`,
+ *  copies the manifest's `version` into `updateVersion` — only the sandbox
+ *  caller needs this (it fakes "0.0.0"; prod already has the real version). */
 async function fetchReleaseNotes(adoptTag = false) {
   updateNotesFailed.value = false;
   updateNotesLoading.value = true;
   try {
-    const res = await proxyFetch(RELEASES_API_URL, {
+    const res = await proxyFetch(UPDATER_MANIFEST_URL, {
       method: "GET",
-      headers: { Accept: "application/vnd.github+json" },
+      headers: { Accept: "application/json" },
     });
     if (!res.ok) { updateNotesFailed.value = true; return; }
-    const release = res.body ? JSON.parse(res.body) : null;
-    const body = typeof release?.body === "string" ? release.body : "";
-    if (!body) { updateNotesFailed.value = true; return; }
-    updateNotes.value = body;
-    if (adoptTag && typeof release?.tag_name === "string") {
-      updateVersion.value = release.tag_name.replace(/^v/, "");
+    const manifest = res.body ? JSON.parse(res.body) : null;
+    const notes = typeof manifest?.notes === "string" ? manifest.notes : "";
+    if (!notes) { updateNotesFailed.value = true; return; }
+    updateNotes.value = notes;
+    if (adoptTag && typeof manifest?.version === "string") {
+      updateVersion.value = manifest.version.replace(/^v/, "");
     }
   } catch {
     // proxyFetch rejects on transport-level failures (DNS, timeout, …).
@@ -103,9 +112,11 @@ export async function checkForUpdate(silent = false) {
       updateVersion.value = "0.0.0";
       updateNotes.value = "";
       updateStatus.value = "has-update";
-      // Populate the release-notes popup with the latest published release
-      // body from the GitHub API (the fake-update state has no Update object).
-      // adoptTag: copy the API's tag_name so the popup header shows a real
+      // Populate the release-notes popup from the SAME updater manifest prod
+      // reads (latest.json `notes`). Sandbox never runs `check()`, so it has
+      // no Update.body — fetching the manifest directly keeps sandbox on the
+      // identical, un-throttled data source instead of a divergent API path.
+      // adoptTag: copy the manifest's version so the popup header shows a real
       // version instead of the faked "0.0.0". Non-blocking.
       void fetchReleaseNotes(true);
       return;
@@ -129,9 +140,9 @@ export async function checkForUpdate(silent = false) {
     updateVersion.value = update.version;
     updateNotes.value = typeof update.body === "string" ? update.body : "";
     updateStatus.value = "has-update";
-    // Update.body carries the notes for releases cut after the workflow
-    // started embedding them; fall back to the GitHub Releases API `body`
-    // for older releases whose manifest `notes` is empty.
+    // Update.body carries the notes for releases cut after the embed-notes
+    // workflow started populating the manifest. Fall back to fetching the
+    // manifest directly for older releases whose `notes` is empty.
     if (!updateNotes.value) {
       void fetchReleaseNotes();
     }
