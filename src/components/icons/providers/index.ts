@@ -17,6 +17,7 @@ import LMStudio from "./LMStudio.vue";
 import LongCat from "./LongCat.vue";
 import Meta from "./Meta.vue";
 import MiMo from "./MIMO.vue";
+import Mistral from "./Mistral.vue";
 import Minimax from "./Minimax.vue";
 import Moonshot from "./Moonshot.vue";
 import OpenCode from "./OpenCode.vue";
@@ -55,6 +56,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   longcat: LongCat,
   meta: Meta,
   mimo: MiMo,
+  mistral: Mistral,
   minimax: Minimax,
   moonshot: Moonshot,
   opencode: OpenCode,
