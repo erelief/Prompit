@@ -69,6 +69,7 @@ import type { WebSearchProviderConfig } from "../stores/config";
 import { BUILTIN_LANGUAGES, getLangName } from "../constants/languages";
 import draggable from "vuedraggable";
 import EditableCardList from "../components/EditableCardList.vue";
+import ProviderConfigJsonModal from "../components/ProviderConfigJsonModal.vue";
 import {
   ArrowLeft,
   Languages,
@@ -89,6 +90,7 @@ import {
   CircleDot,
   X,
   BookText,
+  Braces,
   GripVertical,
   RotateCcw,
   CloudDownload,
@@ -1044,6 +1046,21 @@ function onProviderAdd(draft: ProviderConfig) {
   });
 }
 
+// ── Provider config JSON editor (advanced) ──
+// The modal edits the card's live draft object (EditableCardList owns it in
+// its draft map / add-draft slot), so apply must mutate in place to preserve
+// object identity — replacing the object would detach it from the card.
+const jsonEditorTarget = ref<ProviderConfig | null>(null);
+
+function applyProviderJson(cfg: ProviderConfig) {
+  const target = jsonEditorTarget.value;
+  if (target) {
+    for (const k of Object.keys(target)) delete (target as any)[k];
+    Object.assign(target, cfg);
+  }
+  jsonEditorTarget.value = null;
+}
+
 function onProviderConfirm({ index }: { index: number }) {
   // Migrate edit state from draft index (-1) to the real index
   const draftState = editStates.value.get(-1);
@@ -1484,6 +1501,14 @@ onUnmounted(() => {
                 <label>{{ t('settings.baseUrl') }}</label>
                 <input v-model="item.base_url" class="fi" placeholder="https://api.example.com/v1" @click.stop />
               </div>
+
+              <!-- raw JSON config (advanced: temperature, max_tokens, api_format…) -->
+              <div class="json-config-row">
+                <button class="pill-btn micro" @click.stop="jsonEditorTarget = item">
+                  <Braces :size="10" :stroke-width="2" />
+                  {{ t('settings.configJsonButton') }}
+                </button>
+              </div>
             </div>
 
             <!-- pool -->
@@ -1566,6 +1591,14 @@ onUnmounted(() => {
             </div>
           </template>
         </EditableCardList>
+
+        <!-- Raw JSON editor for the provider draft being added/edited -->
+        <ProviderConfigJsonModal
+          v-if="jsonEditorTarget"
+          :config="jsonEditorTarget"
+          @apply="applyProviderJson"
+          @close="jsonEditorTarget = null"
+        />
 
         <!-- Web Search -->
         <EditableCardList
@@ -2720,6 +2753,10 @@ label {
   display:flex; align-items:center; justify-content:space-between;
   margin-top:14px; padding-top:11px;
   border-top: 1px solid var(--color-surface);
+}
+/* Raw-JSON config entry under the provider fields (advanced users). */
+.json-config-row {
+  display:flex; justify-content:flex-end; margin-top:8px;
 }
 .pool-label {
   font-size: 9.5px; font-weight: var(--weight-semibold); text-transform:uppercase;

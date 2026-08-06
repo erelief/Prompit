@@ -58,7 +58,9 @@ import {
   FolderOpen,
   FileText,
   ShieldAlert,
+  Braces,
 } from "@lucide/vue";
+import ProviderConfigJsonModal from "../components/ProviderConfigJsonModal.vue";
 import { WEB_SEARCH_PRESETS, testWebSearchProvider, presetMeta } from "../services/websearch";
 import { useDataImport } from "../composables/useDataImport";
 
@@ -158,6 +160,13 @@ const providerForm = ref<ProviderConfig>({
 // provider" shortcut that fills the form with the built-in mock provider
 // returned by the `sandbox_mock_provider` command.
 const isSandbox = ref(false);
+// Raw JSON editor (advanced): edits providerForm wholesale, so apply can
+// replace the ref value outright — nothing else holds the old object.
+const showJsonEditor = ref(false);
+function applyProviderJson(cfg: ProviderConfig) {
+  providerForm.value = cfg;
+  showJsonEditor.value = false;
+}
 const providerPresets = ref<ProviderPreset[]>([]);
 const selectedPreset = ref("");
 const showApiKey = ref(false);
@@ -989,6 +998,13 @@ onMounted(async () => {
               <Info :size="11" :stroke-width="1.8" />
               <span>{{ t('settings.apiKeyDisclaimer') }}</span>
             </div>
+            <!-- raw JSON config (advanced: temperature, max_tokens, api_format…) -->
+            <div class="flex justify-end mt-3">
+              <button class="pill-btn micro" @click="showJsonEditor = true">
+                <Braces :size="10" :stroke-width="2" />
+                {{ t('settings.configJsonButton') }}
+              </button>
+            </div>
           </div>
 
           <!-- Step 3: Lightweight model suggestion -->
@@ -1464,6 +1480,14 @@ onMounted(async () => {
       </div>
 
     </div>
+
+    <!-- Raw JSON editor for the provider draft (step 2) -->
+    <ProviderConfigJsonModal
+      v-if="showJsonEditor"
+      :config="providerForm"
+      @apply="applyProviderJson"
+      @close="showJsonEditor = false"
+    />
   </div>
 </template>
 
