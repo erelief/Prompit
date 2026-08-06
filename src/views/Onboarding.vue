@@ -149,8 +149,10 @@ const providerForm = ref<ProviderConfig>({
   api_key: "",
   base_url: "",
   models: [],
-  temperature: 0.3,
-  max_tokens: 1024,
+  // null = not sent in the request body; the provider's own default applies
+  // (see buildRequestBody). No client-side cap on output length or sampling.
+  temperature: null,
+  max_tokens: null,
 });
 // Sandbox-only: when true, step 2 shows a one-click "use sandbox mock
 // provider" shortcut that fills the form with the built-in mock provider
@@ -530,8 +532,8 @@ async function useSandboxMockProvider() {
     api_key: mock.api_key,
     base_url: mock.base_url,
     models: [],
-    temperature: 0.3,
-    max_tokens: 1024,
+    temperature: mock.temperature ?? null,
+    max_tokens: mock.max_tokens ?? null,
     preset: mock.preset ?? undefined,
     api_format: mock.api_format ?? undefined,
   };
