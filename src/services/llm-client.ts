@@ -287,10 +287,19 @@ async function chatCompletion(
   const data = JSON.parse(response.body);
   const contentPath = fmt.response["content"] ?? "choices.0.message.content";
   const content = resolvePath(data, contentPath);
-  if (content == null) {
-    throw new Error("Empty response from LLM API");
+  const trimmed = content == null ? "" : String(content).trim();
+  if (!trimmed) {
+    // An empty content string must not pass as success: callers would show no
+    // result and no error while the provider still bills the tokens (the
+    // result block is v-show'd on non-empty text, so "" renders as nothing).
+    // Typical cause on long inputs: the model exhausted max_tokens (reasoning
+    // models spend it all on thinking) — surface finish_reason to show why.
+    const finishReason = resolvePath(data, "choices.0.finish_reason");
+    throw new Error(
+      `Empty response from LLM API${finishReason ? ` (finish_reason: ${finishReason})` : ""}`,
+    );
   }
-  return { content: String(content).trim(), usage: extractUsage(data) };
+  return { content: trimmed, usage: extractUsage(data) };
 }
 
 /** Compose the user message content from typed text plus attachments. Text
