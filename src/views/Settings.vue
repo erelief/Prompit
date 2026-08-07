@@ -1503,7 +1503,7 @@ onUnmounted(() => {
               </div>
 
               <!-- raw JSON config (advanced: temperature, max_tokens, api_format…) -->
-              <div class="json-config-row">
+              <div class="flex justify-end mt-3">
                 <button class="pill-btn micro" @click.stop="jsonEditorTarget = item">
                   <Braces :size="10" :stroke-width="2" />
                   {{ t('settings.configJsonButton') }}
@@ -2753,10 +2753,6 @@ label {
   display:flex; align-items:center; justify-content:space-between;
   margin-top:14px; padding-top:11px;
   border-top: 1px solid var(--color-surface);
-}
-/* Raw-JSON config entry under the provider fields (advanced users). */
-.json-config-row {
-  display:flex; justify-content:flex-end; margin-top:8px;
 }
 .pool-label {
   font-size: 9.5px; font-weight: var(--weight-semibold); text-transform:uppercase;
