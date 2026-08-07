@@ -165,7 +165,12 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
   outline: none;
   white-space: pre;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar) transparent;
 }
+
+.json-editor::-webkit-scrollbar { width: 3px; }
+.json-editor::-webkit-scrollbar-thumb { background: var(--color-scrollbar); border-radius: var(--radius-xs); }
 
 .json-editor:focus {
   border-color: var(--color-accent-border);
