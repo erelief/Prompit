@@ -6,7 +6,6 @@
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    >
     <path
       d="M3.428 3.4h3.429v3.428H3.428V3.4zm13.714 0h3.43v3.428h-3.43V3.4z"
       style="fill: currentColor; fill-opacity: 0.2"
