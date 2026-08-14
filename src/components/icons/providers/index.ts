@@ -7,6 +7,7 @@ import Baidu from "./Baidu.vue";
 import Bailian from "./Bailian.vue";
 import Brave from "./Brave.vue";
 import DeepSeek from "./DeepSeek.vue";
+import dots from "./dots.vue";
 import Exa from "./Exa.vue";
 import Gemini from "./Gemini.vue";
 import Grok from "./Grok.vue";
@@ -46,6 +47,7 @@ export const PROVIDER_ICONS: Record<string, Component> = {
   bailian: Bailian,
   brave: Brave,
   deepseek: DeepSeek,
+  dots: dots,
   exa: Exa,
   gemini: Gemini,
   grok: Grok,

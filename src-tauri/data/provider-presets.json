@@ -200,6 +200,15 @@
       "api_format": "openai"
     },
     {
+      "name": "dots studio/点点模型工作室(小红书)",
+      "provider_name": "dots studio/点点模型工作室(小红书)",
+      "icon": "dots",
+      "model_series": "dots",
+      "base_url": "https://note3-prev-api.askdiandian.com",
+      "api_url": "https://dots.ai/platform/apikeys",
+      "api_format": "openai"
+    },
+    {
       "name": "Google",
       "provider_name": "Google",
       "icon": "gemini",
