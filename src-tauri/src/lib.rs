@@ -236,6 +236,7 @@ pub fn run() {
             commands::search_usage::read_search_usage,
             commands::search_usage::save_search_usage,
             commands::presets::read_provider_presets,
+            commands::presets::refresh_provider_presets,
             commands::presets::read_model_capabilities,
             commands::http_proxy::llm_http,
             commands::http_proxy::llm_http_abort,

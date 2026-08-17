@@ -718,6 +718,18 @@ export async function loadProviderPresets(): Promise<ProviderPreset[]> {
   return await invoke<ProviderPreset[]>("read_provider_presets");
 }
 
+export interface PresetsRefreshResult {
+  /** True when the GitHub copy was newer and replaced the local cache. */
+  updated: boolean;
+  preset_count: number;
+}
+
+/** Pull the latest provider preset list from GitHub and persist it locally.
+ *  The next `loadProviderPresets()` resolves to the newer of the two layers. */
+export async function refreshProviderPresets(): Promise<PresetsRefreshResult> {
+  return await invoke<PresetsRefreshResult>("refresh_provider_presets");
+}
+
 export interface ModelCapabilityItem {
   id: string;
   input_capabilities: ModelInputCapabilities;

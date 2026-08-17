@@ -19,6 +19,7 @@ import {
   getOrderedLanguages,
   rebuildLanguageOrder,
   loadProviderPresets,
+  refreshProviderPresets,
   dictStore,
   refreshDictStatus,
   clearAllHistory,
@@ -165,6 +166,36 @@ const showPresetMenu = ref(false);
 const presetMenuPos = ref({ top: 0, left: 0, width: 220 });
 const presetMenuIndex = ref<number | null>(null);
 const providerPresets = ref<ProviderPreset[]>([]);
+
+// ── Provider preset list hot-update (GitHub) ──
+// The preset menu keeps a refresh action pinned at its bottom; feedback is
+// shown inline on that action so the menu stays open during the fetch.
+const presetRefreshing = ref(false);
+const presetRefreshMsg = ref<string>("");
+let presetRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function refreshPresetList() {
+  if (presetRefreshing.value) return;
+  presetRefreshing.value = true;
+  presetRefreshMsg.value = "";
+  try {
+    const result = await refreshProviderPresets();
+    // Re-resolve so the menu (and everything else reading providerPresets)
+    // reflects the newer layer immediately.
+    providerPresets.value = await loadProviderPresets();
+    presetRefreshMsg.value = result.updated
+      ? t("settings.presetListUpdated", { count: result.preset_count })
+      : t("settings.presetListUpToDate");
+  } catch (err) {
+    console.error("Failed to refresh provider presets:", err);
+    presetRefreshMsg.value = t("settings.presetListRefreshFailed");
+  } finally {
+    presetRefreshing.value = false;
+  }
+  if (presetRefreshTimer) clearTimeout(presetRefreshTimer);
+  presetRefreshTimer = setTimeout(() => { presetRefreshMsg.value = ""; }, 4000);
+}
+
 const selMenuPos = ref({ top: 0, left: 0 });
 const translationLangMenuPos = ref({ top: 0, left: 0 });
 const selBtnRef = ref<HTMLElement | null>(null);
@@ -1409,6 +1440,21 @@ onUnmounted(() => {
                     <div v-if="providerPresets.length === 0" class="preset-empty">
                       {{ t('settings.noPresetsFound') }}
                     </div>
+                  </div>
+
+                  <!-- Hot-update action, pinned to the menu bottom like the
+                       target-language dropdown's action row. -->
+                  <div class="preset-menu-actions">
+                    <div class="lang-sep"></div>
+                    <button
+                      class="lang-restore-btn preset-refresh-btn"
+                      :disabled="presetRefreshing"
+                      @click.stop="refreshPresetList"
+                    >
+                      <RefreshCw :size="10" :stroke-width="1.8" :class="{ spin: presetRefreshing }" />
+                      <span v-if="presetRefreshMsg" class="preset-refresh-msg">{{ presetRefreshMsg }}</span>
+                      <span v-else>{{ presetRefreshing ? t('settings.presetListRefreshing') : t('settings.refreshPresetList') }}</span>
+                    </button>
                   </div>
                 </div>
               </Transition>
@@ -2873,7 +2919,12 @@ label {
   box-shadow: 0 16px 40px var(--color-shadow), 0 0 0 1px var(--color-surface);
   z-index:99999; overflow:hidden;
 }
-.preset-menu { max-width:none; min-width:0; }
+.preset-menu { max-width:none; min-width:0; display:flex; flex-direction:column; }
+.preset-menu .sel-clip { flex:1; min-height:0; max-height:none; }
+.preset-menu-actions { flex-shrink:0; }
+.preset-refresh-btn { width:100%; }
+.preset-refresh-btn:disabled { opacity:.55; cursor:default; }
+.preset-refresh-msg { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .web-preset-menu { max-width:none; min-width:0; }
 .sel-clip{ max-height:inherit; overflow-y:auto; overflow-x:hidden; padding:5px 7px 5px 5px; }
 .sel-menu-inner{ min-height:0; }
