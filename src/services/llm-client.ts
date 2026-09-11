@@ -72,6 +72,7 @@ export { ModelHttpError } from "./errors";
 export interface FetchModelEntry {
   id: string;
   input_capabilities: ModelInputCapabilities; // {} when nothing detected
+  unavailable?: boolean; // committed but not returned by the latest fetch
 }
 
 const OPENAI_FORMAT: Required<ApiFormat> = {

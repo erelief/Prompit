@@ -83,6 +83,7 @@
     "presetListRefreshFailed": "Failed to refresh provider list",
     "fetch": "Fetch",
     "fetching": "Fetching",
+    "modelsUnavailableHint": "Models with this mark could not be fetched from the provider — they may no longer be offered.",
     "done": "Done",
     "interface": "Interface",
     "systemSettings": "System",

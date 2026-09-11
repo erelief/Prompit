@@ -79,6 +79,7 @@ import {
   Plus,
   Trash2,
   Check,
+  TriangleAlert,
   Eye,
   EyeOff,
   Link2,
@@ -1154,14 +1155,17 @@ async function fetchModels(provider: ProviderConfig, index: number) {
     // De-dup: drop any fetched entry that collides with a committed model id,
     // so no id appears twice in the merged pickable list.
     const committedIds = new Set(provider.models.map((m) => m.id));
-    const fetchedUnique = result.models.filter((e) => !committedIds.has(e.id));
+    const fetchedIds = new Set(result.models.map((e) => e.id));
     // Merge: committed models (stays selected) + freshly fetched ones (selectable).
+    // A committed model missing from the response is kept but flagged unavailable —
+    // it may have been delisted, or manually entered.
     s.fetched = [
       ...provider.models.map((m) => ({
         id: m.id,
         input_capabilities: m.input_capabilities || {},
+        ...(fetchedIds.has(m.id) ? {} : { unavailable: true as const }),
       })),
-      ...fetchedUnique,
+      ...result.models.filter((e) => !committedIds.has(e.id)),
     ];
   } else {
     s.ok = false;
@@ -1184,6 +1188,10 @@ function toggleModel(item: ProviderConfig, entry: FetchModelEntry) {
           : undefined,
     });
   }
+}
+
+function isModelSelected(item: ProviderConfig, id: string) {
+  return item.models.some((m) => m.id === id);
 }
 
 function addManualModel(item: ProviderConfig, index: number) {
@@ -1573,6 +1581,14 @@ onUnmounted(() => {
               </div>
             </div>
 
+            <div
+              v-if="getFetchedModels(index).some((e) => e.unavailable && isModelSelected(item, e.id))"
+              class="models-unavailable-hint"
+            >
+              <TriangleAlert class="warn-icon" :size="10" :stroke-width="2.5" />
+              {{ t('settings.modelsUnavailableHint') }}
+            </div>
+
             <!-- model tags (draggable) -->
             <draggable
               v-if="item.models.length > 0 && getFetchedModels(index).length === 0"
@@ -1603,10 +1619,11 @@ onUnmounted(() => {
               <button
                 v-for="entry in getFetchedModels(index)" :key="entry.id"
                 class="tag"
-                :class="{ selected: item.models.some((m: any) => m.id === entry.id) }"
+                :class="{ selected: isModelSelected(item, entry.id), unavailable: entry.unavailable && isModelSelected(item, entry.id) }"
                 @click.stop="toggleModel(item, entry)"
               >
-                <Check v-if="item.models.some((m: any) => m.id === entry.id)" :size="10" :stroke-width="2.5" />
+                <Check v-if="isModelSelected(item, entry.id)" :size="10" :stroke-width="2.5" />
+                <TriangleAlert v-if="entry.unavailable && isModelSelected(item, entry.id)" class="warn-icon" :size="10" :stroke-width="2.5" />
                 {{ entry.id }}
                 <ModelCapabilityIcon :capabilities="entry.input_capabilities" :size="10" />
               </button>
@@ -2862,6 +2879,18 @@ label {
   background: var(--color-accent-bg);
   border-color: var(--color-accent-border);
   color: var(--color-accent);
+}
+/* Committed but missing from the latest fetch: keep the selected look, flag caution.
+   Only applied while selected — an unchecked entry renders like any other unpicked tag. */
+.tags.pickable .tag.unavailable {
+  border: 1px dashed var(--color-danger);
+}
+.warn-icon { color: var(--color-danger); }
+.models-unavailable-hint {
+  display: flex; align-items: center; gap: var(--space-1);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 /* Model tag drag handle */

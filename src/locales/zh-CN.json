@@ -83,6 +83,7 @@
     "presetListRefreshFailed": "供应商列表刷新失败",
     "fetch": "获取",
     "fetching": "获取中",
+    "modelsUnavailableHint": "无法从供应方获取带此标识的模型，供应方可能已不再提供。",
     "done": "完成",
     "interface": "界面",
     "systemSettings": "系统",
