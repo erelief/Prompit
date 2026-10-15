@@ -22,13 +22,22 @@ const MAX_REMOTE_BYTES: usize = 1024 * 1024;
 
 const REMOTE_CACHE_FILE: &str = "provider-presets.remote.json";
 
+/// Shared shape of the built-in file and the GitHub copy. Unknown fields are
+/// ignored — the data file still carries a top-level `version` solely for the
+/// 0.8.0 release, whose refresh logic compared it; current builds never read
+/// it (freshness is decided by content comparison instead).
 #[derive(serde::Deserialize)]
 struct PresetsFile {
-    /// Monotonic version; bump it on every remote-side edit. Missing/0 marks
-    /// an unversioned (legacy or hand-made) file, which the refresh path
-    /// refuses to trust.
-    #[serde(default)]
-    version: u64,
+    presets: Vec<ProviderPreset>,
+}
+
+/// On-disk snapshot of the last fetched GitHub copy, tagged with the app
+/// version that wrote it. A cache from an older build is ignored: a fresh
+/// release's built-in list is at least as new as anything the old build could
+/// have fetched (releases are cut from main after preset edits land there).
+#[derive(serde::Serialize, serde::Deserialize)]
+struct CacheFile {
+    app_version: String,
     presets: Vec<ProviderPreset>,
 }
 
@@ -36,26 +45,19 @@ fn parse_presets(raw: &str) -> Result<PresetsFile, String> {
     serde_json::from_str(raw).map_err(|e| format!("parse presets: {e}"))
 }
 
-/// Sanity-check a remote file before trusting it: it must carry a version and
-/// every preset a non-empty name.
-fn validate_remote(file: &PresetsFile) -> Result<(), String> {
-    if file.version == 0 {
-        return Err("remote presets file has no version".to_string());
-    }
-    if file.presets.iter().any(|p| p.name.trim().is_empty()) {
-        return Err("remote presets file contains a preset with an empty name".to_string());
+/// Sanity-check a preset list before trusting it: every preset needs a name.
+fn validate_presets(presets: &[ProviderPreset]) -> Result<(), String> {
+    if presets.iter().any(|p| p.name.trim().is_empty()) {
+        return Err("presets file contains a preset with an empty name".to_string());
     }
     Ok(())
 }
 
-/// The layer currently in effect: the remote cache when (and only when) its
-/// version is strictly newer than the built-in file. Version comparison is
-/// the whole merge rule — a reverted or broken remote can never downgrade the
-/// list a user already has.
-fn pick_effective(builtin: PresetsFile, cached: Option<PresetsFile>) -> PresetsFile {
-    match cached {
-        Some(c) if c.version > builtin.version => c,
-        _ => builtin,
+/// Semantic equality of two preset lists (formatting / key-order insensitive).
+fn same_presets(a: &[ProviderPreset], b: &[ProviderPreset]) -> bool {
+    match (serde_json::to_value(a), serde_json::to_value(b)) {
+        (Ok(va), Ok(vb)) => va == vb,
+        _ => false,
     }
 }
 
@@ -63,37 +65,50 @@ fn remote_cache_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(crate::get_data_dir(app)?.join(REMOTE_CACHE_FILE))
 }
 
-/// Load the cached remote file. A missing or corrupt cache is not an error —
-/// the built-in layer simply stays in effect.
-fn read_remote_cache(app: &AppHandle) -> Option<PresetsFile> {
-    let path = remote_cache_path(app).ok()?;
-    let raw = std::fs::read_to_string(path).ok()?;
-    let file = parse_presets(&raw).ok()?;
-    validate_remote(&file).ok()?;
-    Some(file)
+/// Extract the preset list from a cache blob, but only when it was written by
+/// this exact app version and passes validation. Anything else (older build,
+/// foreign shape, corrupt JSON) is treated as "no cache" — the built-in layer
+/// simply stays in effect.
+fn current_cache_presets(raw: &str) -> Option<Vec<ProviderPreset>> {
+    let cache: CacheFile = serde_json::from_str(raw).ok()?;
+    if cache.app_version != env!("CARGO_PKG_VERSION") {
+        return None;
+    }
+    validate_presets(&cache.presets).ok()?;
+    Some(cache.presets)
 }
 
-fn current_presets(app: &AppHandle) -> Result<PresetsFile, String> {
-    Ok(pick_effective(parse_presets(BUILTIN_RAW)?, read_remote_cache(app)))
+fn read_remote_cache(app: &AppHandle) -> Option<Vec<ProviderPreset>> {
+    let raw = std::fs::read_to_string(remote_cache_path(app).ok()?).ok()?;
+    current_cache_presets(&raw)
+}
+
+/// The layer currently in effect: the cached GitHub copy when one exists for
+/// this app version, otherwise the built-in list.
+fn current_presets(app: &AppHandle) -> Result<Vec<ProviderPreset>, String> {
+    if let Some(cached) = read_remote_cache(app) {
+        return Ok(cached);
+    }
+    Ok(parse_presets(BUILTIN_RAW)?.presets)
 }
 
 #[tauri::command]
 pub fn read_provider_presets(app: AppHandle) -> Result<Vec<ProviderPreset>, String> {
-    Ok(current_presets(&app)?.presets)
+    current_presets(&app)
 }
 
 #[derive(serde::Serialize)]
 pub struct PresetsRefreshResult {
-    /// True when the remote file was newer than what the app already had and
+    /// True when the remote list differed from what the app already had and
     /// the cache was updated.
     pub updated: bool,
     pub preset_count: usize,
 }
 
-/// Fetch the latest preset list from GitHub and cache it on disk when it is
-/// newer than the layer currently in effect. Runs through the same proxy
-/// discovery (`read_proxy_url`) as `llm_http` and the updater, so it works
-/// behind the same system proxy.
+/// Fetch the latest preset list from GitHub and cache it on disk when its
+/// content differs from the list currently in effect. Runs through the same
+/// proxy discovery (`read_proxy_url`) as `llm_http` and the updater, so it
+/// works behind the same system proxy.
 #[tauri::command]
 pub async fn refresh_provider_presets(app: AppHandle) -> Result<PresetsRefreshResult, String> {
     let url = std::env::var(REMOTE_URL_ENV).unwrap_or_else(|_| REMOTE_PRESETS_URL.to_string());
@@ -133,13 +148,13 @@ pub async fn refresh_provider_presets(app: AppHandle) -> Result<PresetsRefreshRe
         String::from_utf8(body.to_vec()).map_err(|e| format!("remote presets not utf-8: {e}"))?;
 
     let remote = parse_presets(&raw)?;
-    validate_remote(&remote)?;
+    validate_presets(&remote.presets)?;
 
     let current = current_presets(&app)?;
-    if remote.version <= current.version {
+    if same_presets(&remote.presets, &current) {
         return Ok(PresetsRefreshResult {
             updated: false,
-            preset_count: current.presets.len(),
+            preset_count: current.len(),
         });
     }
 
@@ -149,13 +164,18 @@ pub async fn refresh_provider_presets(app: AppHandle) -> Result<PresetsRefreshRe
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("create dir: {e}"))?;
     }
+    let cache = CacheFile {
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
+        presets: remote.presets,
+    };
+    let out = serde_json::to_vec(&cache).map_err(|e| format!("serialize cache: {e}"))?;
     let tmp = path.with_extension("json.tmp");
-    std::fs::write(&tmp, &raw).map_err(|e| format!("write cache: {e}"))?;
+    std::fs::write(&tmp, out).map_err(|e| format!("write cache: {e}"))?;
     std::fs::rename(&tmp, &path).map_err(|e| format!("replace cache: {e}"))?;
 
     Ok(PresetsRefreshResult {
         updated: true,
-        preset_count: remote.presets.len(),
+        preset_count: cache.presets.len(),
     })
 }
 
@@ -196,42 +216,40 @@ mod tests {
     use super::*;
 
     #[test]
-    fn builtin_file_is_versioned_and_wellformed() {
+    fn builtin_file_is_wellformed() {
         let builtin = parse_presets(BUILTIN_RAW).unwrap();
-        assert!(builtin.version >= 1, "built-in presets must carry a version");
         assert!(!builtin.presets.is_empty());
         assert!(builtin.presets.iter().all(|p| !p.name.trim().is_empty()));
     }
 
     #[test]
-    fn validate_remote_rejects_unversioned_file() {
-        let file = parse_presets(r#"{"presets":[{"name":"X"}]}"#).unwrap();
-        assert!(validate_remote(&file).is_err());
+    fn validate_presets_rejects_empty_name() {
+        let file = parse_presets(r#"{"presets":[{"name":"  "}]}"#).unwrap();
+        assert!(validate_presets(&file.presets).is_err());
     }
 
     #[test]
-    fn validate_remote_rejects_empty_preset_name() {
-        let file = parse_presets(r#"{"version":2,"presets":[{"name":"  "}]}"#).unwrap();
-        assert!(validate_remote(&file).is_err());
+    fn cache_is_used_only_from_same_app_version() {
+        let current = format!(
+            r#"{{"app_version":"{}","presets":[{{"name":"X"}}]}}"#,
+            env!("CARGO_PKG_VERSION")
+        );
+        assert_eq!(current_cache_presets(&current).unwrap().len(), 1);
+
+        let stale = r#"{"app_version":"0.0.0","presets":[{"name":"X"}]}"#;
+        assert!(current_cache_presets(stale).is_none());
+
+        assert!(current_cache_presets("not json").is_none());
     }
 
     #[test]
-    fn pick_effective_prefers_newer_cache() {
-        let builtin = parse_presets(r#"{"version":1,"presets":[]}"#).unwrap();
-        let newer = parse_presets(r#"{"version":2,"presets":[{"name":"X"}]}"#).unwrap();
-        let picked = pick_effective(builtin, Some(newer));
-        assert_eq!(picked.version, 2);
-        assert_eq!(picked.presets.len(), 1);
-    }
+    fn same_presets_ignores_formatting_and_key_order() {
+        let a = parse_presets(r#"{"presets":[{"name":"X","base_url":"u"}]}"#).unwrap();
+        let b =
+            parse_presets("{ \"presets\": [ { \"base_url\": \"u\", \"name\": \"X\" } ] }").unwrap();
+        assert!(same_presets(&a.presets, &b.presets));
 
-    #[test]
-    fn pick_effective_keeps_builtin_on_tie_or_older_cache() {
-        let newer_builtin = parse_presets(r#"{"version":3,"presets":[{"name":"B"}]}"#).unwrap();
-        let tied = parse_presets(r#"{"version":3,"presets":[]}"#).unwrap();
-        assert_eq!(pick_effective(newer_builtin, Some(tied)).presets[0].name, "B");
-
-        let builtin = parse_presets(r#"{"version":5,"presets":[]}"#).unwrap();
-        let older = parse_presets(r#"{"version":4,"presets":[]}"#).unwrap();
-        assert_eq!(pick_effective(builtin, Some(older)).version, 5);
+        let c = parse_presets(r#"{"presets":[{"name":"X"},{"name":"Y"}]}"#).unwrap();
+        assert!(!same_presets(&a.presets, &c.presets));
     }
 }
