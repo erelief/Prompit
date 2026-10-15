@@ -192,6 +192,14 @@
       }
     },
     {
+      "name": "Command Code",
+      "provider_name": "Command Code",
+      "icon": "commandcode",
+      "base_url": "https://api.commandcode.ai/provider/v1",
+      "api_url": "https://platform.deepseek.com/apikeys",
+      "api_format": "openai"
+    },
+    {
       "name": "DeepSeek",
       "provider_name": "DeepSeek",
       "icon": "deepseek",
