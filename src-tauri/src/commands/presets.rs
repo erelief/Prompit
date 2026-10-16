@@ -61,6 +61,17 @@ fn same_presets(a: &[ProviderPreset], b: &[ProviderPreset]) -> bool {
     }
 }
 
+/// Drop sandbox-only presets unless the app runs in sandbox mode. Applied only
+/// where the list leaves the backend — the cache and the refresh comparison
+/// always work on the full list.
+fn visible_presets(presets: &[ProviderPreset], sandbox: bool) -> Vec<ProviderPreset> {
+    presets
+        .iter()
+        .filter(|p| sandbox || !p.sandbox_only)
+        .cloned()
+        .collect()
+}
+
 fn remote_cache_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(crate::get_data_dir(app)?.join(REMOTE_CACHE_FILE))
 }
@@ -94,7 +105,10 @@ fn current_presets(app: &AppHandle) -> Result<Vec<ProviderPreset>, String> {
 
 #[tauri::command]
 pub fn read_provider_presets(app: AppHandle) -> Result<Vec<ProviderPreset>, String> {
-    current_presets(&app)
+    Ok(visible_presets(
+        &current_presets(&app)?,
+        crate::sandbox_enabled(),
+    ))
 }
 
 #[derive(serde::Serialize)]
@@ -151,10 +165,11 @@ pub async fn refresh_provider_presets(app: AppHandle) -> Result<PresetsRefreshRe
     validate_presets(&remote.presets)?;
 
     let current = current_presets(&app)?;
+    let sandbox = crate::sandbox_enabled();
     if same_presets(&remote.presets, &current) {
         return Ok(PresetsRefreshResult {
             updated: false,
-            preset_count: current.len(),
+            preset_count: visible_presets(&current, sandbox).len(),
         });
     }
 
@@ -164,6 +179,7 @@ pub async fn refresh_provider_presets(app: AppHandle) -> Result<PresetsRefreshRe
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("create dir: {e}"))?;
     }
+    let visible_count = visible_presets(&remote.presets, sandbox).len();
     let cache = CacheFile {
         app_version: env!("CARGO_PKG_VERSION").to_string(),
         presets: remote.presets,
@@ -175,7 +191,7 @@ pub async fn refresh_provider_presets(app: AppHandle) -> Result<PresetsRefreshRe
 
     Ok(PresetsRefreshResult {
         updated: true,
-        preset_count: cache.presets.len(),
+        preset_count: visible_count,
     })
 }
 
@@ -251,5 +267,28 @@ mod tests {
 
         let c = parse_presets(r#"{"presets":[{"name":"X"},{"name":"Y"}]}"#).unwrap();
         assert!(!same_presets(&a.presets, &c.presets));
+    }
+
+    #[test]
+    fn visible_presets_filters_sandbox_only_unless_sandbox() {
+        let file = parse_presets(
+            r#"{"presets":[{"name":"Normal"},{"name":"Test","sandbox_only":true}]}"#,
+        )
+        .unwrap();
+        let normal = visible_presets(&file.presets, false);
+        assert_eq!(normal.len(), 1);
+        assert_eq!(normal[0].name, "Normal");
+        assert_eq!(visible_presets(&file.presets, true).len(), 2);
+    }
+
+    #[test]
+    fn builtin_sandbox_only_entry_points_at_mock_host() {
+        let builtin = parse_presets(BUILTIN_RAW).unwrap();
+        let test = builtin
+            .presets
+            .iter()
+            .find(|p| p.sandbox_only)
+            .expect("builtin file carries one sandbox-only test preset");
+        assert_eq!(test.base_url, "https://sandbox-mock.local/v1");
     }
 }

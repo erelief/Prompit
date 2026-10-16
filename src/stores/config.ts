@@ -100,6 +100,9 @@ export interface ProviderPreset {
    *  template: the hint becomes a "download" link, the API-key disclaimer is
    *  hidden, and the API-key field is optional. */
   is_local?: boolean;
+  /** Test-only preset: ships in the shared data file but the backend filters
+   *  it out unless the app runs in sandbox mode. Never true in normal builds. */
+  sandbox_only?: boolean;
   /** Optional multi-variant family: one menu entry that fans out into
    *  region → endpoint selections (e.g. CN/Global × Standard/Coding Plan).
    *  When present, provider_name/base_url/api_url are read from the selected

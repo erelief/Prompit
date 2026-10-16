@@ -117,6 +117,12 @@ pub struct ProviderPreset {
     pub api_format: ApiFormat,
     #[serde(default)]
     pub is_local: bool,
+    /// Test-only presets (e.g. the sandbox mock) live in the shared data file
+    /// but are filtered out of `read_provider_presets` unless the app runs in
+    /// sandbox mode. The cache and the refresh comparison always see the full
+    /// list; the flag only gates what reaches the frontend.
+    #[serde(default)]
+    pub sandbox_only: bool,
     #[serde(default)]
     pub variants: Option<PresetVariants>,
 }

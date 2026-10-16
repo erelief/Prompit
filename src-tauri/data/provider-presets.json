@@ -9,6 +9,15 @@
       "api_url": ""
     },
     {
+      "name": "Sandbox Test",
+      "provider_name": "Sandbox Test",
+      "icon": "",
+      "base_url": "https://sandbox-mock.local/v1",
+      "api_url": "",
+      "api_format": "openai",
+      "sandbox_only": true
+    },
+    {
       "name": "Agnes",
       "icon": "agnes",
       "model_series": "Agnes",
