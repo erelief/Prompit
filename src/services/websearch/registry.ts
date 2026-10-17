@@ -9,6 +9,8 @@ import Exa from "../../components/icons/providers/Exa.vue";
 import Firecrawl from "../../components/icons/providers/Firecrawl.vue";
 // Doubao (豆包搜索) is a Volcengine/ByteDance product — reuse its brand icon.
 import Volcengine from "../../components/icons/providers/Volcengine.vue";
+// DeepSeek Search shares the brand mark with the LLM-provider preset icon.
+import DeepSeek from "../../components/icons/providers/DeepSeek.vue";
 import type { SearchFn } from "./types";
 import { search as anysearchSearch } from "./anysearch";
 import { search as braveSearch } from "./brave";
@@ -17,6 +19,7 @@ import { search as exaSearch } from "./exa";
 import { search as firecrawlSearch } from "./firecrawl";
 import { search as doubaoSearch } from "./doubao";
 import { search as doubaoCustomSearch } from "./doubao-custom";
+import { search as deepseekSearch } from "./deepseek";
 
 export interface WebSearchPresetMeta {
   id: string;
@@ -77,14 +80,23 @@ export const WEB_SEARCH_PRESETS: WebSearchPresetMeta[] = [
     label: "豆包搜索 Global 版",
     icon: Volcengine,
     keyRequired: true,
-    apiUrl: "https://console.volcengine.com/search-infinity/api-key?tab=post_paid",
+    apiUrl:
+      "https://console.volcengine.com/search-infinity/api-key?tab=post_paid",
   },
   {
     id: "doubao-custom",
     label: "豆包搜索 Custom 版",
     icon: Volcengine,
     keyRequired: true,
-    apiUrl: "https://console.volcengine.com/search-infinity/api-key?tab=post_paid",
+    apiUrl:
+      "https://console.volcengine.com/search-infinity/api-key?tab=post_paid",
+  },
+  {
+    id: "deepseek",
+    label: "DeepSeek Search",
+    icon: DeepSeek,
+    keyRequired: true,
+    apiUrl: "https://platform.deepseek.com/api_keys",
   },
 ];
 
@@ -97,6 +109,7 @@ const REGISTRY: Record<string, SearchFn> = {
   firecrawl: firecrawlSearch,
   doubao: doubaoSearch,
   "doubao-custom": doubaoCustomSearch,
+  deepseek: deepseekSearch,
 };
 
 /** Resolve the search implementation for a preset id. */
