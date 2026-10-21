@@ -11,6 +11,9 @@ import Firecrawl from "../../components/icons/providers/Firecrawl.vue";
 import Volcengine from "../../components/icons/providers/Volcengine.vue";
 // DeepSeek Search shares the brand mark with the LLM-provider preset icon.
 import DeepSeek from "../../components/icons/providers/DeepSeek.vue";
+// 元宝搜索 (Yuanbao Search / WSA) is a Tencent product — reuse the Tencent
+// Cloud brand icon.
+import TencentCloud from "../../components/icons/providers/TencentCloud.vue";
 import type { SearchFn } from "./types";
 import { search as anysearchSearch } from "./anysearch";
 import { search as braveSearch } from "./brave";
@@ -20,6 +23,7 @@ import { search as firecrawlSearch } from "./firecrawl";
 import { search as doubaoSearch } from "./doubao";
 import { search as doubaoCustomSearch } from "./doubao-custom";
 import { search as deepseekSearch } from "./deepseek";
+import { search as yuanbaoSearch } from "./yuanbao";
 
 export interface WebSearchPresetMeta {
   id: string;
@@ -98,6 +102,13 @@ export const WEB_SEARCH_PRESETS: WebSearchPresetMeta[] = [
     keyRequired: true,
     apiUrl: "https://platform.deepseek.com/api_keys",
   },
+  {
+    id: "yuanbao",
+    label: "元宝搜索",
+    icon: TencentCloud,
+    keyRequired: true,
+    apiUrl: "https://console.cloud.tencent.com/wsa",
+  },
 ];
 
 /** preset id → search implementation */
@@ -110,6 +121,7 @@ const REGISTRY: Record<string, SearchFn> = {
   doubao: doubaoSearch,
   "doubao-custom": doubaoCustomSearch,
   deepseek: deepseekSearch,
+  yuanbao: yuanbaoSearch,
 };
 
 /** Resolve the search implementation for a preset id. */
