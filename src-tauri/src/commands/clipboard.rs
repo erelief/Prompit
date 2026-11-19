@@ -28,6 +28,33 @@ fn simulate_paste_keystrokes(enigo: &mut Enigo) -> Result<(), String> {
     Ok(())
 }
 
+/// Back up the clipboard's current text. `None` when the clipboard is empty or
+/// holds only non-text content (image, files): there is no text to put back,
+/// and writing a "" placeholder would destroy that content.
+fn backup_clipboard_text() -> Option<String> {
+    arboard::Clipboard::new().and_then(|mut c| c.get_text()).ok()
+}
+
+/// How long to wait after the Ctrl+V keystroke before restoring the backed-up
+/// clipboard text. The target app reads the clipboard only when it gets around
+/// to processing the keystroke — with an IME attached to it (or in a busy app)
+/// that lands well past the old 100ms, and the app then pasted the
+/// already-restored OLD content. Half a second covers that lag while still
+/// returning the user's clipboard promptly.
+const PASTE_CONSUME_TIMEOUT_MS: u64 = 500;
+
+/// Put `backup` back, but only while the clipboard still holds exactly the
+/// `pasted` text we wrote: if the user (or any app) copied something else in
+/// the meantime, that copy wins and is left untouched.
+fn restore_clipboard_backup(backup: Option<String>, pasted: String) {
+    let Some(backup) = backup else { return };
+    thread::sleep(Duration::from_millis(PASTE_CONSUME_TIMEOUT_MS));
+    let Ok(mut clipboard) = arboard::Clipboard::new() else { return };
+    if matches!(clipboard.get_text(), Ok(current) if current == pasted) {
+        let _ = clipboard.set_text(backup);
+    }
+}
+
 /// Plain copy-to-clipboard (no paste simulation, no focus change).
 /// Cross-platform via `arboard` — used by the "Copy result" button and the
 /// Ctrl/Cmd+C shortcut while a result is on screen.
@@ -47,30 +74,28 @@ pub fn simulate_paste(text: String) -> Result<(), String> {
         Enigo::new(&Settings::default()).map_err(|e| format!("Failed to init enigo: {e}"))?;
 
     // Backup current clipboard
-    let backup = arboard::Clipboard::new()
-        .and_then(|mut c| c.get_text())
-        .unwrap_or_default();
+    let backup = backup_clipboard_text();
 
     // Write translation to clipboard
     {
         let mut clipboard =
             arboard::Clipboard::new().map_err(|e| format!("clipboard init: {e}"))?;
         clipboard
-            .set_text(text)
+            .set_text(text.clone())
             .map_err(|e| format!("clipboard set: {e}"))?;
     }
 
-    // Small delay to ensure clipboard is set
-    thread::sleep(Duration::from_millis(50));
+    // Delay so the clipboard write propagates and the foreground handoff
+    // settles (our window just hid; an IME attached to the old focus can take
+    // a beat to tear down) before the keystroke is delivered.
+    thread::sleep(Duration::from_millis(100));
 
     // Simulate paste
     simulate_paste_keystrokes(&mut enigo)?;
 
-    // Wait for paste to complete, then restore clipboard
-    thread::sleep(Duration::from_millis(100));
-    if let Ok(mut clipboard) = arboard::Clipboard::new() {
-        let _ = clipboard.set_text(backup);
-    }
+    // Restore the backup off the critical path so the JS side (clearAll etc.)
+    // doesn't wait out the consume timeout.
+    thread::spawn(move || restore_clipboard_backup(backup, text));
 
     Ok(())
 }
@@ -87,16 +112,14 @@ pub fn paste_pinned(app: AppHandle, text: String) -> Result<(), String> {
         Enigo::new(&Settings::default()).map_err(|e| format!("Failed to init enigo: {e}"))?;
 
     // Backup current clipboard
-    let backup = arboard::Clipboard::new()
-        .and_then(|mut c| c.get_text())
-        .unwrap_or_default();
+    let backup = backup_clipboard_text();
 
     // Write translation to clipboard before hiding, so it's ready immediately
     {
         let mut clipboard =
             arboard::Clipboard::new().map_err(|e| format!("clipboard init: {e}"))?;
         clipboard
-            .set_text(text)
+            .set_text(text.clone())
             .map_err(|e| format!("clipboard set: {e}"))?;
     }
 
@@ -104,8 +127,8 @@ pub fn paste_pinned(app: AppHandle, text: String) -> Result<(), String> {
         .get_webview_window("main")
         .ok_or("Main window not found")?;
 
-    // Hide so OS focus returns to the previous app. A short wait is needed for
-    // the focus handoff to settle before the simulated keystrokes.
+    // Hide so OS focus returns to the previous app. A short wait is needed for the
+    // focus handoff to settle before the simulated keystrokes.
     window.hide().map_err(|e| e.to_string())?;
     thread::sleep(Duration::from_millis(30));
 
@@ -116,13 +139,10 @@ pub fn paste_pinned(app: AppHandle, text: String) -> Result<(), String> {
     window.show().map_err(|e| e.to_string())?;
     let _ = window.set_focus();
 
-    // Restore the original clipboard off the critical path.
-    thread::spawn(move || {
-        thread::sleep(Duration::from_millis(150));
-        if let Ok(mut clipboard) = arboard::Clipboard::new() {
-            let _ = clipboard.set_text(backup);
-        }
-    });
+    // Restore the original clipboard off the critical path (waits out the
+    // consume timeout and leaves any newer copy alone — see
+    // restore_clipboard_backup).
+    thread::spawn(move || restore_clipboard_backup(backup, text));
 
     Ok(())
 }
