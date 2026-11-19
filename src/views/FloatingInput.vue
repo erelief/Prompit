@@ -507,6 +507,13 @@ function handleKeydown(e: KeyboardEvent) {
     return;
   }
 
+  // 输入法组合期间（打拼音/选词），按键属于 IME：全部放行，不触发历史导航、
+  // Enter 发送等快捷行为。确认候选词的那次回车 isComposing=true，若不拦截，
+  // 会在提交组合文本的同时把尚未上屏的旧输入直接发送出去。
+  if (e.isComposing) {
+    return;
+  }
+
   // ── History navigation with ↑↓ ──
   // 若该按键已被绑定为 skills 上一个/下一个快捷键，则交给 window 级
   // onCycleSkillsLiteKeydown 处理，历史导航不抢先消费。
@@ -773,6 +780,11 @@ async function confirmEditing() {
 }
 
 function handleEditKeydown(e: KeyboardEvent) {
+  // 输入法组合期间按键属于 IME（同 handleKeydown），否则确认候选词的回车
+  // 会提前提交编辑。
+  if (e.isComposing) {
+    return;
+  }
   // ESC exits edit mode (discards changes); the next ESC closes the window.
   if (e.key === "Escape") {
     e.preventDefault();
